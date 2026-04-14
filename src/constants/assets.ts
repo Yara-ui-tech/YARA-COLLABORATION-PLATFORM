@@ -9,59 +9,53 @@ export const ASSETS = {
   LOGO_PLACEHOLDER: '/assets/placeholders/logo.svg',
   
   // Auth Page
-  AUTH_HERO_BG: 'https://picsum.photos/seed/ai-innovation/1920/1080',
+  AUTH_HERO_BG: '/assets/micromouse-competition.png',
   
   // Dashboard / Home
-  DASHBOARD_HERO_BG: 'https://picsum.photos/seed/robotics-lab/1920/1080',
+  DASHBOARD_HERO_BG: '/assets/innovator-showcase.png',
   
-  // Outreach Images (Mashwest Province)
+  // Outreach Images (Mashwest Province 2025)
   OUTREACH: [
-    'https://picsum.photos/seed/outreach1/800/600',
-    'https://picsum.photos/seed/outreach2/800/600',
-    'https://picsum.photos/seed/outreach3/800/600',
-    'https://picsum.photos/seed/outreach4/800/600',
-    'https://picsum.photos/seed/outreach5/800/600',
-    'https://picsum.photos/seed/outreach6/800/600',
-    'https://picsum.photos/seed/outreach7/800/600',
+    '/assets/impact-outreach-mashwest-1.jpg',
+    '/assets/impact-outreach-mashwest-2.jpg',
+    '/assets/impact-outreach-mashwest-3.jpg',
+    '/assets/impact-outreach-mashwest-4.jpg',
+    '/assets/impact-outreach-mashwest-5.png',
+    '/assets/impact-outreach-mashwest-6.png',
+    '/assets/impact-outreach-mashwest-7.png',
   ],
 
-  // Gallery Images
+  // Gallery Images (Mashwest Outreach 2025)
   GALLERY: [
-    'https://picsum.photos/seed/gallery1/800/600',
-    'https://picsum.photos/seed/gallery2/800/600',
-    'https://picsum.photos/seed/gallery3/800/600',
-    'https://picsum.photos/seed/gallery4/800/600',
-    'https://picsum.photos/seed/gallery5/800/600',
-    'https://picsum.photos/seed/gallery6/800/600',
-    'https://picsum.photos/seed/gallery7/800/600',
-    'https://picsum.photos/seed/gallery8/800/600',
-    'https://picsum.photos/seed/gallery9/800/600',
-    'https://picsum.photos/seed/gallery10/800/600',
-    'https://picsum.photos/seed/gallery11/800/600',
-    'https://picsum.photos/seed/gallery12/800/600',
-    'https://picsum.photos/seed/gallery13/800/600',
-    'https://picsum.photos/seed/gallery14/800/600',
-    'https://picsum.photos/seed/gallery15/800/600',
+    '/assets/impact-outreach-mashwest-1.jpg',
+    '/assets/impact-outreach-mashwest-2.jpg',
+    '/assets/impact-outreach-mashwest-3.jpg',
+    '/assets/impact-outreach-mashwest-4.jpg',
+    '/assets/impact-outreach-mashwest-5.png',
+    '/assets/impact-outreach-mashwest-6.png',
+    '/assets/impact-outreach-mashwest-7.png',
+    '/assets/innovator-showcase.png',
+    '/assets/micromouse-competition.png',
   ],
   
-  // Mentors (Placeholders)
+  // Mentors (Using default avatar to avoid AI pictures)
   MENTOR_AVATARS: [
-    'https://picsum.photos/seed/mentor1/200/200',
-    'https://picsum.photos/seed/mentor2/200/200',
-    'https://picsum.photos/seed/mentor3/200/200',
-    'https://picsum.photos/seed/mentor4/200/200',
-    'https://picsum.photos/seed/mentor5/200/200',
+    '/assets/placeholders/avatar.svg',
+    '/assets/placeholders/avatar.svg',
+    '/assets/placeholders/avatar.svg',
+    '/assets/placeholders/avatar.svg',
+    '/assets/placeholders/avatar.svg',
   ],
   
   // Default User Avatar
-  DEFAULT_AVATAR: 'https://picsum.photos/seed/avatar/200/200',
+  DEFAULT_AVATAR: '/assets/placeholders/avatar.svg',
   
   // Project Thumbnails
-  PROJECT_PLACEHOLDER: 'https://picsum.photos/seed/robotics/800/600',
+  PROJECT_PLACEHOLDER: '/assets/placeholders/project.svg',
   
   // Event Banners
-  EVENT_PLACEHOLDER: 'https://picsum.photos/seed/tech-event/1200/400',
+  EVENT_PLACEHOLDER: '/assets/micromouse-competition.png',
 
   // Resource Placeholders
-  RESOURCE_PLACEHOLDER: 'https://picsum.photos/seed/ai-resource/800/600',
+  RESOURCE_PLACEHOLDER: '/assets/placeholders/resource.svg',
 };

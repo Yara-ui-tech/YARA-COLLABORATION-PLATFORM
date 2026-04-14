@@ -69,7 +69,7 @@ export default function Ideas() {
     <div className="space-y-8 pb-12">
       <header className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl">
         <img 
-          src="https://picsum.photos/seed/ai-ideas/1200/400" 
+          src={ASSETS.DASHBOARD_HERO_BG} 
           alt="Ideas Background" 
           className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
           referrerPolicy="no-referrer"

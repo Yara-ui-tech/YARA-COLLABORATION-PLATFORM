@@ -272,7 +272,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
                 <Users className="w-6 h-6 text-indigo-600" />
-                <span>Impact Outreach: Mashwest Province</span>
+                <span>2025 Impact Outreach: Mashwest Province Gallery</span>
               </h3>
             </div>
             
@@ -401,7 +401,7 @@ export default function Home() {
         <div className="space-y-6">
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
             <Users className="w-6 h-6 text-indigo-600" />
-            <span>Community Gallery</span>
+            <span>2025 Mashwest Outreach Moments</span>
           </h3>
           <div className="bg-white rounded-[2rem] border border-slate-100 p-4 shadow-sm overflow-hidden">
             <motion.div 
@@ -436,7 +436,7 @@ export default function Home() {
               ))}
             </motion.div>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mt-4">
-              Our Community in Action
+              2025 Mashwest Outreach in Action
             </p>
           </div>
 

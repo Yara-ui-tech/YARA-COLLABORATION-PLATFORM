@@ -157,18 +157,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (error.code === 'PGRST116') {
             // Profile missing, create a default one
             const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
+            
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .upsert({
                 id: user.id,
                 display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
                 email: user.email,
-                role: user.user_metadata?.role || 'innovator',
+                role: isAdminEmail ? 'admin' : (user.user_metadata?.role || 'innovator'),
                 member_id: user.user_metadata?.member_id || generatedMemberId,
-                registration_paid: false,
-                subscription_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                registration_paid: isAdminEmail, // Admins don't need to pay
+                subscription_expires_at: new Date(Date.now() + (isAdminEmail ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
                 is_halted: false,
-                trial_ends_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+                trial_ends_at: new Date(Date.now() + (isAdminEmail ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
               }, { onConflict: 'id' })
               .select()
               .single();
@@ -180,7 +182,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         } else {
-          setProfile(data as UserProfile);
+          // Hardcode override for state to reflect admin status for these specific emails
+          const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
+          const mergedProfile = {
+            ...data,
+            role: isAdminEmail ? 'admin' : data.role
+          };
+          setProfile(mergedProfile as UserProfile);
         }
         setLoading(false);
       };
