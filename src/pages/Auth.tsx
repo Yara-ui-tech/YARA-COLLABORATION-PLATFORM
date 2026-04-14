@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
@@ -19,8 +19,24 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState('');
+  const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
   const navigate = useNavigate();
   const { user, isAuthReady } = useAuth();
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'course_fee')
+        .single();
+      
+      if (data?.value) {
+        setCourseFee(data.value);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   if (isAuthReady && user) {
     return <Navigate to="/" />;
@@ -485,7 +501,7 @@ export default function Auth() {
                   <span>Platform Access & Training</span>
                 </div>
                 <p className="text-amber-600 text-sm font-medium mb-4">
-                  To continue after your trial, the platform subscription and Virtual Training sessions cost <span className="font-black text-lg text-amber-700">USD$15</span>.
+                  {courseFee.message.includes(courseFee.amount.toString()) ? courseFee.message : `${courseFee.message} (Amount: ${courseFee.currency}$${courseFee.amount})`}
                 </p>
                 <div className="flex items-center justify-center space-x-2 text-amber-700 font-bold mb-2">
                   <Lightbulb className="w-5 h-5" />

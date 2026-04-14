@@ -80,18 +80,26 @@ export default function Projects() {
 
   return (
     <div className="space-y-8 pb-12">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Project Showcase</h2>
-          <p className="text-slate-500 font-medium">Discover and track the progress of innovative projects.</p>
+      <header className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl">
+        <img 
+          src="https://picsum.photos/seed/ai-projects/1200/400" 
+          alt="Projects Background" 
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
+          referrerPolicy="no-referrer"
+        />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Project Showcase</h2>
+            <p className="text-slate-300 font-medium mt-2">Discover and track the progress of innovative projects.</p>
+          </div>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2 whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Showcase Project</span>
+          </button>
         </div>
-        <button
-          onClick={() => setIsAdding(true)}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Showcase Project</span>
-        </button>
       </header>
 
       {/* Add Project Modal */}

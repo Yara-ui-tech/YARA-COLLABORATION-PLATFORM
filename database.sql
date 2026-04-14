@@ -503,6 +503,34 @@ USING (
 );
 
 -- =========================
+-- 14) System Settings
+-- =========================
+CREATE TABLE public.system_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view system settings" ON public.system_settings;
+CREATE POLICY "Anyone can view system settings"
+ON public.system_settings FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage system settings" ON public.system_settings;
+CREATE POLICY "Admins can manage system settings"
+ON public.system_settings FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- Initial settings
+INSERT INTO public.system_settings (key, value)
+VALUES ('course_fee', '{"amount": 15, "currency": "USD", "message": "To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15."}')
+ON CONFLICT (key) DO NOTHING;
+
+-- =========================
 -- Live Sessions (Google Meet Clone)
 -- =========================
 CREATE TABLE public.live_sessions (

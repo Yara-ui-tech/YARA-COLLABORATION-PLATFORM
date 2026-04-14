@@ -121,6 +121,12 @@ export default function Home() {
     <div className="space-y-8 pb-12">
       {/* Welcome Hero */}
       <section className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-indigo-200">
+        <img 
+          src={ASSETS.DASHBOARD_HERO_BG} 
+          alt="Hero Background" 
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
+          referrerPolicy="no-referrer"
+        />
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/20 rounded-full -ml-32 -mb-32 blur-3xl" />
         

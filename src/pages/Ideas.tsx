@@ -67,14 +67,22 @@ export default function Ideas() {
 
   return (
     <div className="space-y-8 pb-12">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Idea Board</h2>
-          <p className="text-slate-500 font-medium">Share your vision and collaborate with the community.</p>
-        </div>
-        <div className="flex items-center space-x-2 bg-indigo-50 px-4 py-2 rounded-2xl text-indigo-600 font-bold text-sm">
-          <Lightbulb className="w-4 h-4" />
-          <span>{ideas.length} Ideas Shared</span>
+      <header className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl">
+        <img 
+          src="https://picsum.photos/seed/ai-ideas/1200/400" 
+          alt="Ideas Background" 
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
+          referrerPolicy="no-referrer"
+        />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Idea Board</h2>
+            <p className="text-indigo-100 font-medium mt-2">Share your vision and collaborate with the community.</p>
+          </div>
+          <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl text-white font-bold text-sm border border-white/20">
+            <Lightbulb className="w-4 h-4" />
+            <span>{ideas.length} Ideas Shared</span>
+          </div>
         </div>
       </header>
 

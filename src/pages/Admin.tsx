@@ -70,7 +70,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings'>('members');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -87,6 +87,10 @@ export default function Admin() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showCompModal, setShowCompModal] = useState(false);
   
+  // Settings State
+  const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
   // Form States
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('innovator');
@@ -121,7 +125,50 @@ export default function Admin() {
     if (activeTab === 'mentor_req') fetchAutoMentorRequests();
     if (activeTab === 'events') fetchEvents();
     if (activeTab === 'competitions') fetchCompetitions();
+    if (activeTab === 'settings') fetchSettings();
   }, [activeTab]);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'course_fee')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data?.value) {
+        setCourseFee(data.value);
+      }
+    } catch (error: any) {
+      console.error('Error fetching settings:', error);
+      setErrorMessage('Failed to load settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'course_fee',
+          value: courseFee,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      setSuccessMessage('Settings saved successfully.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error: any) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -792,6 +839,18 @@ export default function Admin() {
             <span>Competitions</span>
           </div>
         </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={cn(
+            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'settings' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Save className="w-4 h-4" />
+            <span>Settings</span>
+          </div>
+        </button>
       </div>
 
       <AnimatePresence>
@@ -1243,6 +1302,67 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-indigo-50/50">
+            <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center space-x-3">
+              <DollarSign className="w-6 h-6 text-indigo-600" />
+              <span>Course & Platform Fees</span>
+            </h3>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Amount</label>
+                  <div className="relative group">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                    <input
+                      type="number"
+                      value={courseFee.amount}
+                      onChange={(e) => setCourseFee({ ...courseFee, amount: Number(e.target.value) })}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold pl-12"
+                      placeholder="15"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Currency</label>
+                  <input
+                    type="text"
+                    value={courseFee.currency}
+                    onChange={(e) => setCourseFee({ ...courseFee, currency: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold"
+                    placeholder="USD"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Popup Message</label>
+                <textarea
+                  value={courseFee.message}
+                  onChange={(e) => setCourseFee({ ...courseFee, message: e.target.value })}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium min-h-[120px] resize-none"
+                  placeholder="Enter the message users will see after signup..."
+                />
+                <p className="text-xs text-slate-400 font-medium ml-1">
+                  Tip: This message appears in the "Welcome to YARIA" popup immediately after a new user registers.
+                </p>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  onClick={saveSettings}
+                  disabled={isSavingSettings}
+                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  {isSavingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  <span>Save System Settings</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

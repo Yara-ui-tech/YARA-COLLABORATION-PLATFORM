@@ -206,6 +206,11 @@ export default function Mentorship() {
       let finalUrl = uploadUrl.trim();
 
       if (uploadFile) {
+        // Check file size (limit to 5MB)
+        if (uploadFile.size > 5 * 1024 * 1024) {
+          throw new Error('File is too large. Maximum size is 5MB.');
+        }
+
         const fileExt = uploadFile.name.split('.').pop();
         const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `${fileName}`; // Simplified path
@@ -216,7 +221,13 @@ export default function Mentorship() {
             upsert: true
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          // Check if error is the cryptic JSON parsing error
+          if (uploadError.message?.includes("Unexpected token 'T'") || uploadError.message?.includes("is not valid JSON")) {
+            throw new Error('Storage service returned an invalid response. This usually means the "materials" bucket does not exist or is not public. Please create it in your Supabase dashboard.');
+          }
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('materials')

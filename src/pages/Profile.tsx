@@ -42,50 +42,51 @@ export default function Profile() {
     setUploading(true);
     try {
       const file = e.target.files[0];
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Please select an image file (JPG, PNG, GIF, WebP)');
+      // Check file size (limit to 2MB for avatars)
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error('Image is too large. Maximum size is 2MB.');
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('File size must be less than 5MB');
-      }
-
-      // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`; // Simplified path
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
-          upsert: true,
+          upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        // Check if error is the cryptic JSON parsing error
+        if (uploadError.message?.includes("Unexpected token 'T'") || uploadError.message?.includes("is not valid JSON")) {
+          throw new Error('Storage service returned an invalid response. This usually means the "avatars" bucket does not exist or is not public. Please create it in your Supabase dashboard.');
+        }
+        throw uploadError;
+      }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
-      
-      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      
-      // Update profile in database immediately
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
-
+      
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
       alert('Profile picture updated successfully!');
-
     } catch (error: any) {
-      console.error('Avatar upload error:', error);
-      alert(`Upload failed: ${error.message || 'Unknown error'}`);
+      console.error('Detailed upload error:', error);
+      alert(`Upload failed: ${error.message || 'Unknown error'}. 
+      
+Possible causes:
+1. The "avatars" storage bucket does not exist in your Supabase project.
+2. The "avatars" bucket is not set to "Public".
+3. Row Level Security (RLS) policies for the "avatars" bucket are missing or restrictive.
+4. Your internet connection is unstable.`);
     } finally {
       setUploading(false);
     }
