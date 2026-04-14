@@ -42,41 +42,52 @@ export default function Profile() {
     setUploading(true);
     try {
       const file = e.target.files[0];
-      // Check file size (limit to 2MB for avatars)
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please select an image file (JPG, PNG, GIF, WebP)');
+      }
+
+      // Check file size (limit to 2MB for avatars as per remote suggestion)
       if (file.size > 2 * 1024 * 1024) {
         throw new Error('Image is too large. Maximum size is 2MB.');
       }
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`; // Simplified path
+      const filePath = `${fileName}`;
 
+      // Upload to Supabase Storage (avatars bucket)
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
-          upsert: true
+          upsert: true,
+          cacheControl: '3600'
         });
 
       if (uploadError) {
-        // Check if error is the cryptic JSON parsing error
+        // Detailed error handling merged from remote
         if (uploadError.message?.includes("Unexpected token 'T'") || uploadError.message?.includes("is not valid JSON")) {
           throw new Error('Storage service returned an invalid response. This usually means the "avatars" bucket does not exist or is not public. Please create it in your Supabase dashboard.');
         }
         throw uploadError;
       }
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
+      
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      
+      // Automatically save the profile update
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
-      
-      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      if (profileError) throw profileError;
+
       alert('Profile picture updated successfully!');
     } catch (error: any) {
       console.error('Detailed upload error:', error);
