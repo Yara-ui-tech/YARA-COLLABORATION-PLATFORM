@@ -1,0 +1,6 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#F1F5F9"/>
+  <path d="M400 250V350M350 300H450" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  <rect x="300" y="200" width="200" height="200" rx="20" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="400" y="420" text-anchor="middle" font-family="sans-serif" font-weight="bold" fill="#94A3B8" font-size="24">PROJECT PLACEHOLDER</text>
+</svg>
