@@ -16,7 +16,8 @@ import {
   AlertCircle,
   ArrowRight,
   TrendingUp,
-  Brain
+  Brain,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -123,7 +124,7 @@ export default function Curriculum() {
     }
   };
 
-  const sessionsDone = Object.values(feedbacks).filter(f => f.status === 'done').length;
+  const sessionsDone = Object.values(feedbacks).filter((f: any) => f.status === 'done').length;
   const progressPercent = Math.round((sessionsDone / CURRICULUM.length) * 100);
 
   return (

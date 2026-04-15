@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, MessageSquare, CheckCircle2, XCircle, Clock, Star, Loader2, Send, DollarSign, Award, Video, Play, ExternalLink, Calendar, Plus, FileText, Info } from 'lucide-react';
+import { Users, Search, MessageSquare, CheckCircle2, XCircle, Clock, Star, Loader2, Send, DollarSign, Award, Video, Play, ExternalLink, Calendar, Plus, FileText, Info, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';

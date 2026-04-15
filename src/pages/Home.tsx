@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight } from 'lucide-react';
+import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
