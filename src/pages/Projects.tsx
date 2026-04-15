@@ -5,6 +5,7 @@ import { Briefcase, Plus, Trash2, ExternalLink, Tag, TrendingUp, Loader2, X, Ima
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
+import { ASSETS } from '../constants/assets';
 
 export default function Projects() {
   const { user, profile } = useAuth();
