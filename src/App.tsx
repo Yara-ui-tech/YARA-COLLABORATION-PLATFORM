@@ -11,6 +11,7 @@ import Projects from './pages/Projects';
 import Mentorship from './pages/Mentorship';
 import Events from './pages/Events';
 import Resources from './pages/Resources';
+import Curriculum from './pages/Curriculum';
 import Auth from './pages/Auth';
 import Feedback from './pages/Feedback';
 import Admin from './pages/Admin';
@@ -135,6 +136,7 @@ const AppContent = () => {
           <Route path="mentorship" element={<Mentorship />} />
           <Route path="events" element={<Events />} />
           <Route path="resources" element={<Resources />} />
+          <Route path="curriculum" element={<Curriculum />} />
           <Route path="feedback" element={<Feedback />} />
           <Route path="about" element={<About />} />
           <Route path="programs" element={<Programs />} />

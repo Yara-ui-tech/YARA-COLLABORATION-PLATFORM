@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone } from 'lucide-react';
+import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/ideas', icon: Lightbulb, label: 'Ideas' },
   { path: '/projects', icon: Briefcase, label: 'Projects' },
   { path: '/mentorship', icon: Users, label: 'Mentorship' },
+  { path: '/curriculum', icon: Brain, label: 'Curriculum' },
   { path: '/events', icon: Calendar, label: 'Events' },
   { path: '/resources', icon: BookOpen, label: 'Resources' },
   { path: '/feedback', icon: MessageSquare, label: 'Feedback' },

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, Brain, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { CURRICULUM } from '../constants/curriculum';
 
 interface UserProfile {
   id: string;
@@ -70,7 +71,8 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings' | 'curriculum'>('members');
+  const [curriculumFeedbacks, setCurriculumFeedbacks] = useState<any[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -126,7 +128,29 @@ export default function Admin() {
     if (activeTab === 'events') fetchEvents();
     if (activeTab === 'competitions') fetchCompetitions();
     if (activeTab === 'settings') fetchSettings();
+    if (activeTab === 'curriculum') fetchCurriculumFeedbacks();
   }, [activeTab]);
+
+  const fetchCurriculumFeedbacks = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('curriculum_feedback')
+        .select(`
+          *,
+          profile:profiles(display_name, email)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setCurriculumFeedbacks(data || []);
+    } catch (error: any) {
+      console.error('Error fetching curriculum feedbacks:', error);
+      setErrorMessage('Failed to load curriculum feedbacks.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -840,6 +864,18 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('curriculum')}
+          className={cn(
+            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'curriculum' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Brain className="w-4 h-4" />
+            <span>Curriculum</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('settings')}
           className={cn(
             "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1305,7 +1341,106 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === 'curriculum' && (
+          <div className="space-y-8 p-8">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-bold text-slate-900">Curriculum Mastery Report</h3>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Done</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                  <Clock className="w-4 h-4" />
+                  <span>Partial</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Struggling</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6">
+              {CURRICULUM.map(session => {
+                const sessionFeedbacks = curriculumFeedbacks.filter(f => f.session_id === session.id);
+                const doneCount = sessionFeedbacks.filter(f => f.status === 'done').length;
+                const partialCount = sessionFeedbacks.filter(f => f.status === 'partially').length;
+                const struggleCount = sessionFeedbacks.filter(f => f.status === 'struggling').length;
+
+                return (
+                  <div key={session.id} className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-100 uppercase tracking-widest">{session.id}</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{session.part}</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-900">{session.topic}</h4>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Participants</p>
+                        <p className="text-xl font-black text-indigo-600">{sessionFeedbacks.length}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-emerald-600">Done</span>
+                          <span className="text-sm font-black">{doneCount}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500" style={{ width: `${sessionFeedbacks.length ? (doneCount/sessionFeedbacks.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-amber-600">Partial</span>
+                          <span className="text-sm font-black">{partialCount}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500" style={{ width: `${sessionFeedbacks.length ? (partialCount/sessionFeedbacks.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-red-600">Struggling</span>
+                          <span className="text-sm font-black">{struggleCount}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-red-500" style={{ width: `${sessionFeedbacks.length ? (struggleCount/sessionFeedbacks.length)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {sessionFeedbacks.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Learner Comments</p>
+                        <div className="grid gap-2">
+                          {sessionFeedbacks.map(fb => (
+                            <div key={fb.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-start gap-4">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                fb.status === 'done' ? "bg-emerald-500" : 
+                                fb.status === 'partially' ? "bg-amber-500" : "bg-red-500"
+                              )} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-900 mb-1">{fb.profile?.display_name || 'Anonymous'}</p>
+                                {fb.success_comment && <p className="text-xs text-slate-600 mb-1"><span className="font-bold text-emerald-600">Success:</span> {fb.success_comment}</p>}
+                                {fb.struggle_comment && <p className="text-xs text-slate-600"><span className="font-bold text-red-600">Struggle:</span> {fb.struggle_comment}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
           <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-indigo-50/50">
             <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center space-x-3">
               <DollarSign className="w-6 h-6 text-indigo-600" />
