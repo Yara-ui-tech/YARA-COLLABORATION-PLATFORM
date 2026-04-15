@@ -95,7 +95,6 @@ export default function Home() {
         innovators: profileCount || 0,
         ideas: ideaCount || 0
       });
-    };
 
       const { data: userFeedbacks } = await supabase
         .from('curriculum_feedback')
