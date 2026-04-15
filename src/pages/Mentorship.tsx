@@ -38,6 +38,10 @@ export default function Mentorship() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploadType, setUploadType] = useState<'pdf' | 'doc' | 'video' | 'other'>('pdf');
+  const [showLogSessionModal, setShowLogSessionModal] = useState(false);
+  const [logSessionId, setLogSessionId] = useState('');
+  const [logAmount, setLogAmount] = useState('');
+  const [logDescription, setLogDescription] = useState('');
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -288,6 +292,34 @@ Possible causes:
     }
   };
 
+  const handleLogSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !logSessionId.trim() || !logAmount) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('mentor_session_logs').insert({
+        mentor_id: user.id,
+        session_id: logSessionId,
+        amount_received: parseFloat(logAmount),
+        description: logDescription
+      });
+
+      if (error) throw error;
+      
+      alert('Session and commission logged successfully!');
+      setShowLogSessionModal(false);
+      setLogSessionId('');
+      setLogAmount('');
+      setLogDescription('');
+    } catch (error: any) {
+      console.error('Error logging session:', error);
+      alert('Failed to log session.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredMentors = mentors.filter(mentor => 
     mentor.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     mentor.skills?.some((skill: string) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -400,22 +432,30 @@ Possible causes:
               <p className="text-indigo-100 font-medium">You've mentored {profile.mentored_count || 0} students total.</p>
             </div>
           </div>
-          <div className="flex items-center space-x-8 bg-white/10 px-8 py-4 rounded-3xl backdrop-blur-sm">
-            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-70">Commission</p>
-              <p className="text-2xl font-bold flex items-center justify-center">
-                <DollarSign className="w-5 h-5 mr-1" />
-                {profile.total_commission || '0.00'}
-              </p>
+          <div className="flex flex-col items-end space-y-4">
+            <div className="flex flex-wrap gap-4 bg-white/10 px-8 py-4 rounded-3xl backdrop-blur-sm">
+              <div className="text-center">
+                <p className="text-xs font-bold uppercase tracking-widest opacity-70">Commission</p>
+                <p className="text-2xl font-bold flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 mr-1" />
+                  {profile.total_commission || '0.00'}
+                </p>
+              </div>
+              <div className="w-px h-10 bg-white/20 hidden md:block" />
+              <div className="text-center">
+                <p className="text-xs font-bold uppercase tracking-widest opacity-70">Rating</p>
+                <p className="text-2xl font-bold flex items-center justify-center">
+                  <Star className="w-5 h-5 mr-1 fill-white" />
+                  {profile.rating || '0.0'}
+                </p>
+              </div>
             </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-70">Rating</p>
-              <p className="text-2xl font-bold flex items-center justify-center">
-                <Star className="w-5 h-5 mr-1 fill-white" />
-                {profile.rating || '0.0'}
-              </p>
-            </div>
+            <button
+              onClick={() => setShowLogSessionModal(true)}
+              className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm text-sm"
+            >
+              Log Session & Commission
+            </button>
           </div>
         </section>
       )}
@@ -1119,6 +1159,70 @@ Possible causes:
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Log Session Modal */}
+        {showLogSessionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden text-left"
+            >
+              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Log Session</h3>
+                <button onClick={() => setShowLogSessionModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleLogSession} className="p-8 space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Session Subject / ID</label>
+                  <input
+                    type="text"
+                    value={logSessionId}
+                    onChange={(e) => setLogSessionId(e.target.value)}
+                    placeholder="e.g., Session 1, Programming Intro"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Commission Earned (USD)</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={logAmount}
+                      onChange={(e) => setLogAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 focus:outline-none focus:border-indigo-600 transition-all font-bold"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Additional Notes (Optional)</label>
+                  <textarea
+                    value={logDescription}
+                    onChange={(e) => setLogDescription(e.target.value)}
+                    placeholder="Any details about the session..."
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px] resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  <span>Submit Session Log</span>
+                </button>
+              </form>
             </motion.div>
           </div>
         )}

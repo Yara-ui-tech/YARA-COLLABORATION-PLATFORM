@@ -5,14 +5,17 @@ import { ASSETS } from '../constants/assets';
 import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
 import CountdownTimer from '../components/CountdownTimer';
 
 export default function Home() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [recentIdeas, setRecentIdeas] = useState<any[]>([]);
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
 
   const recommendations = {
     junior: [
@@ -92,6 +95,20 @@ export default function Home() {
         innovators: profileCount || 0,
         ideas: ideaCount || 0
       });
+    };
+
+      const { data: userFeedbacks } = await supabase
+        .from('curriculum_feedback')
+        .select('*')
+        .eq('user_id', user?.id);
+      
+      const feedbackMap = (userFeedbacks || []).reduce((acc, fb) => ({
+        ...acc,
+        [fb.session_id]: fb
+      }), {});
+      setFeedbacks(feedbackMap);
+
+      setLoading(false);
     };
 
     fetchRecentData();
@@ -357,7 +374,81 @@ export default function Home() {
                 ))}
               </motion.div>
             </div>
-          </section>
+         </section>
+
+      {/* Financial & Learning Quick Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Next Lesson Card */}
+        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-indigo-50/50 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full translate-x-16 -translate-y-16" />
+          <div className="relative z-10 space-y-4 flex-1">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+              <Clock className="w-3 h-3" />
+              <span>Next up in your roadmap</span>
+            </div>
+            {(() => {
+              const nextSession = CURRICULUM.find(s => !feedbacks[s.id] || feedbacks[s.id].status === 'struggling' || feedbacks[s.id].status === 'partially');
+              if (!nextSession) return (
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 mb-2">Curriculum Complete! 🏆</h3>
+                  <p className="text-slate-500 font-medium">You've mastered all 14 sessions. Great job, Innovator!</p>
+                </div>
+              );
+              return (
+                <>
+                  <h3 className="text-2xl font-black text-slate-900 leading-tight">
+                    {nextSession.id}: {nextSession.topic}
+                  </h3>
+                  <p className="text-slate-500 font-medium line-clamp-2">{nextSession.description}</p>
+                  <Link
+                    to="/curriculum"
+                    className="inline-flex items-center space-x-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all text-sm"
+                  >
+                    <span>Continue Learning</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </>
+              );
+            })()}
+          </div>
+          <div className="shrink-0 w-32 h-32 bg-slate-50 rounded-3xl flex items-center justify-center">
+            <Brain className="w-12 h-12 text-indigo-200" />
+          </div>
+        </div>
+
+        {/* Investment Account Card */}
+        <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-x-16 -translate-y-16 blur-2xl" />
+          <div className="relative z-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">Investment Account</h3>
+              <DollarSign className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Paid</p>
+                <p className="text-3xl font-black flex items-center">
+                  <span className="text-indigo-400 mr-1">$</span>
+                  {profile?.amount_paid || '0.00'}
+                </p>
+              </div>
+              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-indigo-500 transition-all duration-1000" 
+                  style={{ width: `${Math.min(100, ((profile?.amount_paid || 0) / (profile?.total_dues || 15.00)) * 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Dues: ${profile?.total_dues || '15.00'}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+                  {Math.round(((profile?.amount_paid || 0) / (profile?.total_dues || 15.00)) * 100)}% Complete
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="relative z-10 text-[10px] text-slate-400 font-medium italic mt-6">* Amounts updated by YARIA Admin</p>
+        </div>
+      </div>
 
           <div className="flex items-center justify-between pt-8">
             <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">

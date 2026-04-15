@@ -71,8 +71,12 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings' | 'curriculum'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings' | 'curriculum' | 'finances'>('members');
   const [curriculumFeedbacks, setCurriculumFeedbacks] = useState<any[]>([]);
+  const [financialLogs, setFinancialLogs] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [newAmountPaid, setNewAmountPaid] = useState('');
+  const [newTotalDues, setNewTotalDues] = useState('');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -129,7 +133,59 @@ export default function Admin() {
     if (activeTab === 'competitions') fetchCompetitions();
     if (activeTab === 'settings') fetchSettings();
     if (activeTab === 'curriculum') fetchCurriculumFeedbacks();
+    if (activeTab === 'finances') fetchFinancials();
   }, [activeTab]);
+
+  const fetchFinancials = async () => {
+    setLoading(true);
+    try {
+      const { data: logs, error: logsError } = await supabase
+        .from('mentor_session_logs')
+        .select(`
+          *,
+          mentor:profiles(display_name, email)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (logsError) throw logsError;
+      setFinancialLogs(logs || []);
+      
+      // Also fetch users for payment management
+      if (users.length === 0) fetchUsers();
+    } catch (error: any) {
+      console.error('Error fetching financials:', error);
+      setErrorMessage('Failed to load financial data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePayment = async (userId: string) => {
+    if (!newAmountPaid && !newTotalDues) return;
+    setLoading(true);
+    try {
+      const updates: any = {};
+      if (newAmountPaid) updates.amount_paid = parseFloat(newAmountPaid);
+      if (newTotalDues) updates.total_dues = parseFloat(newTotalDues);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId);
+      
+      if (error) throw error;
+      setSuccessMessage('Payment status updated successfully!');
+      setSelectedUser(null);
+      setNewAmountPaid('');
+      setNewTotalDues('');
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating payment:', error);
+      setErrorMessage('Failed to update payment.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchCurriculumFeedbacks = async () => {
     setLoading(true);
@@ -876,6 +932,18 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('finances')}
+          className={cn(
+            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'finances' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <DollarSign className="w-4 h-4" />
+            <span>Finances</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('settings')}
           className={cn(
             "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1441,6 +1509,175 @@ export default function Admin() {
             </div>
           </div>
         )}
+
+        {activeTab === 'finances' && (
+          <div className="space-y-8 p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* User Payment Management */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Learner Investment Accounts</h3>
+                  <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                    <Users className="w-3 h-3" />
+                    <span>{users.filter(u => u.role === 'innovator').length} Innovators</span>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+                  <div className="max-h-[600px] overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Innovator</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Financials</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {users.filter(u => u.role === 'innovator').map(u => (
+                          <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 text-sm font-bold text-slate-900">{u.display_name}</td>
+                            <td className="px-6 py-4">
+                              <div className="space-y-1">
+                                <p className="text-xs font-medium text-slate-500 flex items-center justify-between">
+                                  <span>Paid:</span>
+                                  <span className="font-black text-indigo-600">${u.amount_paid || '0.00'}</span>
+                                </p>
+                                <p className="text-xs font-medium text-slate-500 flex items-center justify-between">
+                                  <span>Total:</span>
+                                  <span className="font-black text-slate-900">${u.total_dues || '15.00'}</span>
+                                </p>
+                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (((u as any).amount_paid || 0) / ((u as any).total_dues || 15)) * 100)}%` }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <button 
+                                onClick={() => {
+                                  setSelectedUser(u);
+                                  setNewAmountPaid((u as any).amount_paid?.toString() || '0');
+                                  setNewTotalDues((u as any).total_dues?.toString() || '15');
+                                }}
+                                className="p-2 text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm border border-indigo-50"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mentor Commission Evaluations */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Mentor Commission Logs</h3>
+                  <div className="flex items-center space-x-2 bg-amber-50 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-amber-600">
+                    <DollarSign className="w-3 h-3" />
+                    <span>Evaluation Needed</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {financialLogs.map(log => (
+                    <div key={log.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-600 font-black">
+                          {log.mentor?.display_name?.[0]}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{log.mentor?.display_name}</p>
+                          <p className="text-xs text-slate-500 flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {log.session_id} • {new Date(log.session_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Commission</p>
+                        <p className="text-xl font-black text-emerald-600">${log.amount_received}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {financialLogs.length === 0 && (
+                    <div className="bg-slate-50 p-12 rounded-3xl text-center border-2 border-dashed border-slate-200">
+                      <p className="text-slate-400 font-medium">No mentor commission logs found.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Edit Payment Modal */}
+            <AnimatePresence>
+              {selectedUser && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl space-y-8"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="text-2xl font-black text-slate-900 leading-tight">Update Investment</h4>
+                        <p className="text-slate-500 font-medium">Managing finances for {selectedUser.display_name}</p>
+                      </div>
+                      <button onClick={() => setSelectedUser(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors">
+                        <XCircle className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Amount Paid (USD)</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newAmountPaid}
+                            onChange={(e) => setNewAmountPaid(e.target.value)}
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-10 pr-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Total Target (USD)</label>
+                        <div className="relative">
+                          <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newTotalDues}
+                            onChange={(e) => setNewTotalDues(e.target.value)}
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-10 pr-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleUpdatePayment(selectedUser.id)}
+                        disabled={loading}
+                        className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
+                      >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                        <span>Save Changes</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
           <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-indigo-50/50">
             <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center space-x-3">
               <DollarSign className="w-6 h-6 text-indigo-600" />
