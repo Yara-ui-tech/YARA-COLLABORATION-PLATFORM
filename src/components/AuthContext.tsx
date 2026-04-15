@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: user.id,
                 display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
                 email: user.email,
-                role: isAdminEmail ? 'admin' : (user.user_metadata?.role || 'innovator'),
+                role: isAdminEmail ? 'admin' : 'innovator',
                 member_id: user.user_metadata?.member_id || generatedMemberId,
                 registration_paid: isAdminEmail, // Admins don't need to pay
                 subscription_expires_at: new Date(Date.now() + (isAdminEmail ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),

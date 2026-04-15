@@ -125,14 +125,17 @@ export default function Auth() {
         
         if (data.user) {
           const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const isAdminEmail = email.toLowerCase() === 'manongwasimbarashe394@gmail.com' || email.toLowerCase() === 'goyaracorp@gmail.com';
+          const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
+          
           const { error: profileError } = await supabase.from('profiles').upsert({
             id: data.user.id,
             display_name: displayName,
             email: email,
-            role: role,
+            role: finalRole,
             member_id: generatedMemberId,
             educational_level: educationalLevel,
-            registration_paid: role === 'admin', // Admin role defaults to paid (DB will revert if unauthorized)
+            registration_paid: finalRole === 'admin', 
             trial_ends_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
           }, { onConflict: 'id' });
           
@@ -347,7 +350,7 @@ export default function Auth() {
               {!isLogin && (
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">I am a...</label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setRole('innovator')}
@@ -367,16 +370,6 @@ export default function Auth() {
                       )}
                     >
                       Mentor
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('admin')}
-                      className={cn(
-                        "py-3 rounded-2xl font-bold text-xs transition-all border-2",
-                        role === 'admin' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
-                      )}
-                    >
-                      Admin
                     </button>
                   </div>
                 </div>
