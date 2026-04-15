@@ -200,85 +200,104 @@ export default function Projects() {
       </AnimatePresence>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {projects.map((project, index) => (
-          <motion.div
-            key={project.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden hover:shadow-2xl hover:shadow-indigo-50 transition-all group"
+      {projects.length === 0 && !loading ? (
+        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 text-center">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <Briefcase className="w-10 h-10 text-slate-400" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 mb-2">No projects so far</h3>
+          <p className="text-slate-500 font-medium max-w-md mx-auto mb-8">
+            Be the first to showcase your innovative project to the community and inspire others!
+          </p>
+          <button
+            onClick={() => setIsAdding(true)}
+            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all inline-flex items-center space-x-2"
           >
-            <div className="relative h-56 overflow-hidden">
-              {project.image_url ? (
-                <img
-                  src={project.image_url}
-                  alt={project.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <PlaceholderImage text={project.title} />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="absolute top-4 right-4 flex space-x-2">
-                {user?.id === project.owner_id && (
-                  <button
-                    onClick={() => handleDelete(project.id)}
-                    className="p-2 bg-white/90 backdrop-blur-sm text-red-600 rounded-xl hover:bg-red-600 hover:text-white shadow-lg transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="p-8">
-              <div className="flex flex-wrap gap-2 mb-4">
-                {project.tags?.map((tag: string) => (
-                  <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">{project.title}</h3>
-              <p className="text-slate-600 font-medium line-clamp-3 mb-6 leading-relaxed">
-                {project.description}
-              </p>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm font-bold">
-                  <span className="text-slate-500 flex items-center">
-                    <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
-                    Progress
-                  </span>
-                  <span className="text-slate-900">{project.progress}%</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${project.progress}%` }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="h-full bg-emerald-500 rounded-full"
+            <Plus className="w-5 h-5" />
+            <span>Showcase Project</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {projects.map((project, index) => (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden hover:shadow-2xl hover:shadow-indigo-50 transition-all group"
+            >
+              <div className="relative h-56 overflow-hidden">
+                {project.image_url ? (
+                  <img
+                    src={project.image_url}
+                    alt={project.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    referrerPolicy="no-referrer"
                   />
+                ) : (
+                  <PlaceholderImage text={project.title} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute top-4 right-4 flex space-x-2">
+                  {user?.id === project.owner_id && (
+                    <button
+                      onClick={() => handleDelete(project.id)}
+                      className="p-2 bg-white/90 backdrop-blur-sm text-red-600 rounded-xl hover:bg-red-600 hover:text-white shadow-lg transition-all"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                    {project.owner_name?.[0] || 'U'}
+              <div className="p-8">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {project.tags?.map((tag: string) => (
+                    <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">{project.title}</h3>
+                <p className="text-slate-600 font-medium line-clamp-3 mb-6 leading-relaxed">
+                  {project.description}
+                </p>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm font-bold">
+                    <span className="text-slate-500 flex items-center">
+                      <TrendingUp className="w-4 h-4 mr-2 text-emerald-500" />
+                      Progress
+                    </span>
+                    <span className="text-slate-900">{project.progress}%</span>
                   </div>
-                  <span className="text-sm font-bold text-slate-700">{project.owner_name}</span>
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${project.progress}%` }}
+                      transition={{ duration: 1, delay: 0.5 }}
+                      className="h-full bg-emerald-500 rounded-full"
+                    />
+                  </div>
                 </div>
-                <button className="text-indigo-600 font-bold text-sm flex items-center space-x-1 hover:translate-x-1 transition-transform">
-                  <span>View Details</span>
-                  <ExternalLink className="w-4 h-4" />
-                </button>
+
+                <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                      {project.owner_name?.[0] || 'U'}
+                    </div>
+                    <span className="text-sm font-bold text-slate-700">{project.owner_name}</span>
+                  </div>
+                  <button className="text-indigo-600 font-bold text-sm flex items-center space-x-1 hover:translate-x-1 transition-transform">
+                    <span>View Details</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
