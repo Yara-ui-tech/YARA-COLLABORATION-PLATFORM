@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Cpu, School, GraduationCap, Trophy, Shield, Users, Lightbulb, MessageSquare } from 'lucide-react';
+import { Cpu, School, GraduationCap, Trophy, Shield, Users, Lightbulb, MessageSquare, Brain } from 'lucide-react';
 
 export default function Programs() {
   const activities = [
@@ -45,6 +45,12 @@ export default function Programs() {
       title: '7️⃣ Innovation Promotion',
       desc: 'YARA supports local innovations, youth-led projects, and global exposure of African solutions.',
       color: 'bg-orange-50 text-orange-600'
+    },
+    {
+      icon: Brain,
+      title: '8️⃣ Master Curriculum 2025-26',
+      desc: 'A revised, 14-session intensive program (Electronics, Programming, Build) where every learner builds a real robot to solve community problems.',
+      color: 'bg-purple-50 text-purple-600'
     }
   ];
 

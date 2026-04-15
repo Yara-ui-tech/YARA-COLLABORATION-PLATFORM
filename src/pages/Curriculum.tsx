@@ -34,6 +34,7 @@ export default function Curriculum() {
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<CurriculumSession | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalTab, setModalTab] = useState<'content' | 'feedback'>('content');
 
   // Form state for current selected session
   const [formData, setFormData] = useState({
@@ -77,6 +78,7 @@ export default function Curriculum() {
   const handleOpenFeedback = (session: CurriculumSession) => {
     const existing = feedbacks[session.id];
     setSelectedSession(session);
+    setModalTab('content'); // Default to lesson content
     setFormData({
       status: existing?.status || 'done',
       success_comment: existing?.success_comment || '',
@@ -293,83 +295,203 @@ export default function Curriculum() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white rounded-[2.5rem] w-full max-w-xl p-10 relative z-10 shadow-2xl"
+              className="bg-white rounded-[2.5rem] w-full max-w-2xl p-0 relative z-10 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black">
-                  {selectedSession.id}
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 leading-tight">{selectedSession.topic}</h3>
-                  <p className="text-indigo-600 text-xs font-black uppercase tracking-widest">{selectedSession.type} session</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmitFeedback} className="space-y-8">
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">How was this session?</label>
-                  <div className="grid grid-cols-3 gap-4">
-                    {[
-                      { id: 'done', label: 'Done', color: 'emerald', icon: <CheckCircle2 className="w-5 h-5" /> },
-                      { id: 'partially', label: 'Partial', color: 'amber', icon: <Clock className="w-5 h-5" /> },
-                      { id: 'struggling', label: 'Struggle', color: 'red', icon: <HelpCircle className="w-5 h-5" /> }
-                    ].map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, status: opt.id as any })}
-                        className={cn(
-                          "py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all font-bold",
-                          formData.status === opt.id 
-                            ? `bg-${opt.color}-500 border-${opt.color}-500 text-white shadow-xl shadow-${opt.color}-100` 
-                            : `bg-slate-50 border-slate-50 text-slate-400 hover:border-indigo-100`
-                        )}
-                      >
-                        {opt.icon}
-                        <span className="text-xs">{opt.label}</span>
-                      </button>
-                    ))}
+              <div className="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0">
+                    {selectedSession.id}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 leading-tight">{selectedSession.topic}</h3>
+                    <p className="text-indigo-600 text-xs font-black uppercase tracking-widest">{selectedSession.type} session</p>
                   </div>
                 </div>
+                <button 
+                  onClick={() => setSelectedSession(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <Circle className="w-6 h-6 rotate-45" />
+                </button>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">What went well? (Successful part)</label>
-                  <textarea
-                    value={formData.success_comment}
-                    onChange={(e) => setFormData({ ...formData, success_comment: e.target.value })}
-                    placeholder="e.g., I understood how to calculate the resistor for my LED."
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium h-24 resize-none"
-                  />
-                </div>
+              {/* Tabs */}
+              <div className="flex px-8 bg-slate-50/50">
+                <button
+                  onClick={() => setModalTab('content')}
+                  className={cn(
+                    "px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all",
+                    modalTab === 'content' ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400"
+                  )}
+                >
+                  Lesson Details
+                </button>
+                <button
+                  onClick={() => setModalTab('feedback')}
+                  className={cn(
+                    "px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-2",
+                    modalTab === 'feedback' ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400"
+                  )}
+                >
+                  <span>Your Feedback</span>
+                  {feedbacks[selectedSession.id] && <CheckCircle2 className="w-4 h-4" />}
+                </button>
+              </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">What didn't you understand?</label>
-                  <textarea
-                    value={formData.struggle_comment}
-                    onChange={(e) => setFormData({ ...formData, struggle_comment: e.target.value })}
-                    placeholder="e.g., I don't understand how the voltage divider works for sensors."
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium h-24 resize-none"
-                  />
-                </div>
+              <div className="flex-1 overflow-y-auto p-8">
+                {modalTab === 'content' ? (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <section>
+                      <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Core Objective</h4>
+                      <div className="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded-xl">
+                        <p className="text-indigo-900 font-bold">{selectedSession.outcome}</p>
+                      </div>
+                    </section>
 
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSession(null)}
-                    className="flex-1 py-4 font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
-                  >
-                    {isSubmitting ? <Clock className="w-5 h-5 animate-spin" /> : <MessageSquare className="w-5 h-5" />}
-                    <span>Update Progress</span>
-                  </button>
-                </div>
-              </form>
+                    {selectedSession.details?.theory && (
+                      <section>
+                        <h4 className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
+                          <BookOpen className="w-4 h-4 text-indigo-600" />
+                          <span>Key Theory & Concepts</span>
+                        </h4>
+                        <ul className="space-y-3">
+                          {selectedSession.details.theory.map((line, i) => (
+                            <li key={i} className="flex items-start gap-3 text-slate-600 font-medium text-sm">
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-200 mt-1.5 shrink-0" />
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    {selectedSession.details?.formulas && (
+                      <section>
+                        <h4 className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Essential Formulas</span>
+                        </h4>
+                        <div className="grid gap-2">
+                          {selectedSession.details.formulas.map((formula, i) => (
+                            <code key={i} className="block bg-slate-100 p-3 rounded-xl font-mono text-sm text-slate-700 border border-slate-200">
+                              {formula}
+                            </code>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {selectedSession.details?.activities && (
+                      <section>
+                        <h4 className="flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-widest mb-4">
+                          <Zap className="w-4 h-4 text-amber-500" />
+                          <span>Session Activities</span>
+                        </h4>
+                        <ul className="space-y-3">
+                          {selectedSession.details.activities.map((act, i) => (
+                            <li key={i} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-slate-700 font-bold text-sm">
+                              {act}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    {selectedSession.details?.safetyRules && (
+                      <section className="bg-red-50 p-6 rounded-[2rem] border border-red-100">
+                        <h4 className="flex items-center gap-2 text-sm font-black text-red-600 uppercase tracking-widest mb-4">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>Safety Non-Negotiables</span>
+                        </h4>
+                        <ul className="space-y-2">
+                          {selectedSession.details.safetyRules.map((rule, i) => (
+                            <li key={i} className="text-red-900 font-bold text-xs flex items-center gap-2">
+                              <span className="w-1 h-1 bg-red-400 rounded-full" />
+                              {rule}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+
+                    <div className="pt-4">
+                      <button 
+                        onClick={() => setModalTab('feedback')}
+                        className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all"
+                      >
+                        <span>Mark Session Progress</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitFeedback} className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">How was this session?</label>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { id: 'done', label: 'Done', color: 'emerald', icon: <CheckCircle2 className="w-5 h-5" /> },
+                          { id: 'partially', label: 'Partial', color: 'amber', icon: <Clock className="w-5 h-5" /> },
+                          { id: 'struggling', label: 'Struggle', color: 'red', icon: <HelpCircle className="w-5 h-5" /> }
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, status: opt.id as any })}
+                            className={cn(
+                              "py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all font-bold",
+                              formData.status === opt.id 
+                                ? `bg-${opt.color}-500 border-${opt.color}-500 text-white shadow-xl shadow-${opt.color}-100` 
+                                : `bg-slate-50 border-slate-50 text-slate-400 hover:border-indigo-100`
+                            )}
+                          >
+                            {opt.icon}
+                            <span className="text-xs">{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">What went well? (Successful part)</label>
+                      <textarea
+                        value={formData.success_comment}
+                        onChange={(e) => setFormData({ ...formData, success_comment: e.target.value })}
+                        placeholder="e.g., I understood how to calculate the resistor for my LED."
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium h-24 resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-700 uppercase tracking-widest block ml-1">What didn't you understand?</label>
+                      <textarea
+                        value={formData.struggle_comment}
+                        onChange={(e) => setFormData({ ...formData, struggle_comment: e.target.value })}
+                        placeholder="e.g., I don't understand how the voltage divider works for sensors."
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium h-24 resize-none"
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSession(null)}
+                        className="flex-1 py-4 font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
+                      >
+                        {isSubmitting ? <Clock className="w-5 h-5 animate-spin" /> : <MessageSquare className="w-5 h-5" />}
+                        <span>Update Progress</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

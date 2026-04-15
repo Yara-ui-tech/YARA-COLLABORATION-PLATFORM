@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star } from 'lucide-react';
+import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -170,6 +170,54 @@ export default function Home() {
         transition={{ delay: 0.2 }}
       >
         <CountdownTimer targetDate={new Date('2026-04-14T15:37:09-07:00')} />
+      </motion.section>
+
+      {/* Learning Roadmap Quick Access */}
+      <motion.section 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-xl shadow-indigo-50/50"
+      >
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 space-y-6 text-center md:text-left">
+            <div className="inline-flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-lg">
+              <Brain className="w-4 h-4" />
+              <span>Full Curriculum 2025—2026</span>
+            </div>
+            <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              Master the Robotics & Innovation <span className="text-indigo-600">Mastery Path.</span>
+            </h3>
+            <p className="text-slate-500 font-medium text-lg max-w-lg">
+              From the physics of electricity to building a real-world autonomous robot. Track your sessions, master concepts, and earn your certificate.
+            </p>
+            <Link
+              to="/curriculum"
+              className="inline-flex bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all items-center space-x-2"
+            >
+              <span>View Your Roadmap</span>
+              <ChevronRight className="w-5 h-5" />
+            </Link>
+          </div>
+          <div className="w-full md:w-80 grid grid-cols-2 gap-3 shrink-0">
+            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
+              <Zap className="w-8 h-8 text-amber-500" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Electronics</span>
+            </div>
+            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
+              <Code className="w-8 h-8 text-indigo-500" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Programming</span>
+            </div>
+            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
+              <Cpu className="w-8 h-8 text-emerald-500" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Build</span>
+            </div>
+            <div className="aspect-square bg-indigo-600 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 text-white shadow-lg shadow-indigo-100">
+              <TrendingUp className="w-8 h-8" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Innovate</span>
+            </div>
+          </div>
+        </div>
       </motion.section>
 
       {/* Recommended for You */}
