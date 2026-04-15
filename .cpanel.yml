@@ -1,4 +1,4 @@
 ---
 deployment:
   tasks:
-    - /bin/cp -R dist/* $HOME/public_html/
+    - /bin/cp -R dist/* $HOME/yaria.fluxisengineering.co.zw/
