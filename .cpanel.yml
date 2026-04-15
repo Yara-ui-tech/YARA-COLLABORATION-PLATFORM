@@ -1,4 +1,0 @@
----
-deployment:
-  tasks:
-    - /bin/cp -R dist/* $HOME/yaria.fluxisengineering.co.zw/
