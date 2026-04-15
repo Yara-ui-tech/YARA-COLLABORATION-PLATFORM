@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Lightbulb, Send, Trash2, Clock, MessageSquare, Share2, Heart, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { ASSETS } from '../constants/assets';
 
 export default function Ideas() {
   const { user, profile } = useAuth();
