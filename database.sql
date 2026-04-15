@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS public.mentorship_requests CASCADE;
 DROP TABLE IF EXISTS public.projects CASCADE;
 DROP TABLE IF EXISTS public.ideas CASCADE;
 DROP TABLE IF EXISTS public.live_session_mentor_requests CASCADE;
+DROP TABLE IF EXISTS public.mentor_session_logs CASCADE;
 DROP TABLE IF EXISTS public.live_sessions CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
@@ -35,6 +36,8 @@ CREATE TABLE public.profiles (
   subscription_expires_at TIMESTAMPTZ DEFAULT (now() + interval '30 days'),
   is_halted BOOLEAN DEFAULT FALSE,
   trial_ends_at TIMESTAMPTZ DEFAULT (now() + interval '4 days'),
+  amount_paid DECIMAL(10,2) DEFAULT 0.00,
+  total_dues DECIMAL(10,2) DEFAULT 15.00,
 
   -- Mentor Stats
   rating DECIMAL(3,2) DEFAULT 0.0,
@@ -615,7 +618,39 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS on_student_count_increase ON public.live_sessions;
+DROP TABLE IF EXISTS public.mentor_session_logs CASCADE;
 
 CREATE TRIGGER on_student_count_increase
 AFTER UPDATE OF student_count ON public.live_sessions
 FOR EACH ROW EXECUTE FUNCTION public.handle_auto_mentor_request();
+
+-- =========================
+-- Mentor Session Logs
+-- =========================
+CREATE TABLE public.mentor_session_logs (
+  id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id text NOT NULL, 
+  amount_received DECIMAL(10,2) NOT NULL,
+  session_date TIMESTAMPTZ DEFAULT now(),
+  description text,
+  admin_approved BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.mentor_session_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mentors can see their own logs" ON public.mentor_session_logs;
+CREATE POLICY "Mentors can see their own logs"
+  ON public.mentor_session_logs FOR SELECT
+  USING (auth.uid() = mentor_id);
+
+DROP POLICY IF EXISTS "Mentors can insert their own logs" ON public.mentor_session_logs;
+CREATE POLICY "Mentors can insert their own logs"
+  ON public.mentor_session_logs FOR INSERT
+  WITH CHECK (auth.uid() = mentor_id);
+
+DROP POLICY IF EXISTS "Admins can view and manage all logs" ON public.mentor_session_logs;
+CREATE POLICY "Admins can view and manage all logs"
+  ON public.mentor_session_logs FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
