@@ -8,7 +8,6 @@ import { motion } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
-import CountdownTimer from '../components/CountdownTimer';
 
 export default function Home() {
   const { profile, user } = useAuth();
@@ -179,14 +178,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Launch Countdown */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <CountdownTimer targetDate={new Date('2026-04-14T15:37:09-07:00')} />
-      </motion.section>
+      {/* Launch Countdown removed (component deleted) */}
 
       {/* Learning Roadmap Quick Access */}
       <motion.section 
