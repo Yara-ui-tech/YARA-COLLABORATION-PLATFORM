@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
+import PlaceholderImage from '../components/PlaceholderImage';
 
 export default function MentorDashboard() {
   const { profile } = useAuth();
@@ -56,46 +57,88 @@ export default function MentorDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Mentor Dashboard</h1>
-      <p className="text-slate-600">Tools for mentors: manage resources, view mentee requests, and submit commission requests.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold">Mentor Dashboard</h1>
+          <p className="text-slate-500 mt-1">Tools for mentors: manage resources, view mentee requests, and submit commission requests.</p>
+        </div>
+        <div className="text-sm text-slate-400">Balance due: <strong className="text-indigo-600">${commissionDue}</strong></div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/resources" className="p-6 bg-white rounded-2xl border">Manage Resources</Link>
-        <Link to="/mentorship" className="p-6 bg-white rounded-2xl border">Mentee Requests</Link>
-        <Link to="/live" className="p-6 bg-white rounded-2xl border">Live Sessions</Link>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Link to="/resources" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center">
+              <PlaceholderImage type="resource" className="w-full h-full" />
+            </div>
+            <div>
+              <h3 className="font-bold">Manage Resources</h3>
+              <p className="text-sm text-slate-500 mt-1">Upload and manage study materials.</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/mentorship" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
+              <PlaceholderImage text="Mentors" className="w-full h-full" />
+            </div>
+            <div>
+              <h3 className="font-bold">Mentee Requests</h3>
+              <p className="text-sm text-slate-500 mt-1">Respond to mentorship requests from learners.</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/live" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center">
+              <PlaceholderImage type="project" className="w-full h-full" />
+            </div>
+            <div>
+              <h3 className="font-bold">Live Sessions</h3>
+              <p className="text-sm text-slate-500 mt-1">Create and manage live teaching sessions.</p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 bg-white rounded-2xl border">
+        <div className="p-6 bg-white rounded-3xl border shadow-sm">
           <h3 className="font-bold">Commission Summary</h3>
-          <p className="mt-3">Total Commission Earned: <strong>${commissionTotal}</strong></p>
-          <p className="mt-1">Amount Paid: <strong>${amountPaid}</strong></p>
-          <p className="mt-1">Commission Due: <strong>${commissionDue}</strong></p>
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-slate-500">Total Commission Earned: <strong className="text-emerald-600">${commissionTotal}</strong></p>
+            <p className="text-sm text-slate-500">Amount Paid: <strong className="text-slate-900">${amountPaid}</strong></p>
+            <p className="text-sm text-slate-500">Commission Due: <strong className="text-indigo-600">${commissionDue}</strong></p>
+          </div>
         </div>
 
-        <div className="p-6 bg-white rounded-2xl border">
+        <div className="p-6 bg-white rounded-3xl border shadow-sm">
           <h3 className="font-bold">Submit Commission Request</h3>
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div>
               <label className="text-sm font-medium">Amount</label>
-              <input value={amount} onChange={e=>setAmount(e.target.value)} className="w-full mt-1 p-2 border rounded" />
+              <input value={amount} onChange={e=>setAmount(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
-              <input value={description} onChange={e=>setDescription(e.target.value)} className="w-full mt-1 p-2 border rounded" />
+              <input value={description} onChange={e=>setDescription(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
             </div>
             <div>
-              <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded">{loading? 'Submitting...' : 'Submit Request'}</button>
+              <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">{loading? 'Submitting...' : 'Submit Request'}</button>
             </div>
           </form>
         </div>
       </div>
 
-      <div className="p-6 bg-white rounded-2xl border">
+      <div className="p-6 bg-white rounded-3xl border shadow-sm">
         <h3 className="font-bold">Your Commission Logs</h3>
         <ul className="mt-4 space-y-3">
+          {logs.length === 0 && (
+            <div className="py-12 text-center text-slate-400">No commission logs yet — submit one above.</div>
+          )}
           {logs.map(l => (
-            <li key={l.id} className="p-3 border rounded flex justify-between">
+            <li key={l.id} className="p-3 border rounded-lg flex items-center justify-between">
               <div>
                 <div className="font-bold">${l.amount_received} — {l.description}</div>
                 <div className="text-xs text-slate-500">{new Date(l.created_at).toLocaleString()}</div>
