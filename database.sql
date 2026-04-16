@@ -204,26 +204,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at
 BEFORE UPDATE ON public.profiles
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_ideas_updated_at ON public.ideas;
 CREATE TRIGGER update_ideas_updated_at
 BEFORE UPDATE ON public.ideas
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_projects_updated_at ON public.projects;
 CREATE TRIGGER update_projects_updated_at
 BEFORE UPDATE ON public.projects
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_study_materials_updated_at ON public.study_materials;
 CREATE TRIGGER update_study_materials_updated_at
 BEFORE UPDATE ON public.study_materials
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_uploads_updated_at ON public.uploads;
 CREATE TRIGGER update_uploads_updated_at
 BEFORE UPDATE ON public.uploads
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_curriculum_feedback_updated_at ON public.curriculum_feedback;
 CREATE TRIGGER update_curriculum_feedback_updated_at
 BEFORE UPDATE ON public.curriculum_feedback
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
