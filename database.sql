@@ -245,6 +245,12 @@ CREATE TRIGGER update_curriculum_feedback_updated_at
 BEFORE UPDATE ON public.curriculum_feedback
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
+-- Trigger for mentorship_messages updated_at
+DROP TRIGGER IF EXISTS update_mentorship_messages_updated_at ON public.mentorship_messages;
+CREATE TRIGGER update_mentorship_messages_updated_at
+BEFORE UPDATE ON public.mentorship_messages
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
 -- =========================
 -- 10.5) Pre-approvals (for manual user addition)
 -- =========================
@@ -372,6 +378,7 @@ ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.curriculum_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
 
 -- =========================
 -- 13) Policies
@@ -539,6 +546,22 @@ DROP POLICY IF EXISTS "Public can view aggregated curriculum feedback" ON public
 CREATE POLICY "Public can view aggregated curriculum feedback"
 ON public.curriculum_feedback FOR SELECT
 USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Mentorship Messages (ephemeral)
+DROP POLICY IF EXISTS "Mentorship messages are readable by participants or admin" ON public.mentorship_messages;
+CREATE POLICY "Mentorship messages are readable by participants or admin"
+ON public.mentorship_messages FOR SELECT
+USING (
+  EXISTS (SELECT 1 FROM public.mentorship_requests mr WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()))
+  OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+);
+
+DROP POLICY IF EXISTS "Users can insert mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Users can insert mentorship messages"
+ON public.mentorship_messages FOR INSERT
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.mentorship_requests mr WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()))
+);
 
 ALTER TABLE public.pre_approvals ENABLE ROW LEVEL SECURITY;
 
