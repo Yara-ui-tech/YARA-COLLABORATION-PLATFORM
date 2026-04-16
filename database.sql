@@ -156,6 +156,21 @@ CREATE TABLE public.uploads (
 );
 
 -- =========================
+-- Curriculum Feedback
+-- =========================
+CREATE TABLE public.curriculum_feedback (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  session_id TEXT NOT NULL,
+  status TEXT CHECK (status IN ('done','partially','struggling')) DEFAULT 'done',
+  success_comment TEXT,
+  struggle_comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, session_id)
+);
+
+-- =========================
 -- 8) Feedback
 -- =========================
 CREATE TABLE public.feedback (
@@ -207,6 +222,10 @@ FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 CREATE TRIGGER update_uploads_updated_at
 BEFORE UPDATE ON public.uploads
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+CREATE TRIGGER update_curriculum_feedback_updated_at
+BEFORE UPDATE ON public.curriculum_feedback
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 -- =========================
@@ -335,6 +354,7 @@ ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.curriculum_feedback ENABLE ROW LEVEL SECURITY;
 
 -- =========================
 -- 13) Policies
@@ -490,6 +510,18 @@ DROP POLICY IF EXISTS "Users can delete their uploads." ON public.uploads;
 CREATE POLICY "Users can delete their uploads."
 ON public.uploads FOR DELETE
 USING (auth.uid() = uploader_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Curriculum Feedback policies
+DROP POLICY IF EXISTS "Users can manage their own curriculum feedback" ON public.curriculum_feedback;
+CREATE POLICY "Users can manage their own curriculum feedback"
+ON public.curriculum_feedback FOR ALL
+USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+WITH CHECK (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Public can view aggregated curriculum feedback" ON public.curriculum_feedback;
+CREATE POLICY "Public can view aggregated curriculum feedback"
+ON public.curriculum_feedback FOR SELECT
+USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 ALTER TABLE public.pre_approvals ENABLE ROW LEVEL SECURITY;
 
