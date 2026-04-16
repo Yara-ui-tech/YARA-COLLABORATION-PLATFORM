@@ -15,6 +15,7 @@ import Curriculum from './pages/Curriculum';
 import Auth from './pages/Auth';
 import Feedback from './pages/Feedback';
 import Admin from './pages/Admin';
+import Dashboard from './pages/Dashboard';
 import LiveRoom from './pages/LiveRoom';
 import About from './pages/About';
 import Programs from './pages/Programs';
@@ -137,6 +138,7 @@ const AppContent = () => {
           <Route path="events" element={<Events />} />
           <Route path="resources" element={<Resources />} />
           <Route path="curriculum" element={<Curriculum />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="feedback" element={<Feedback />} />
           <Route path="about" element={<About />} />
           <Route path="programs" element={<Programs />} />
