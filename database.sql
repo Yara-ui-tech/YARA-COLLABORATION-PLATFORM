@@ -22,12 +22,12 @@ DROP TABLE IF EXISTS public.ideas CASCADE;
 DROP TABLE IF EXISTS public.live_session_mentor_requests CASCADE;
 DROP TABLE IF EXISTS public.mentor_session_logs CASCADE;
 DROP TABLE IF EXISTS public.live_sessions CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
+-- Do NOT drop profiles to preserve existing users
 
 -- =========================
 -- 2) Profiles (root table for FKs)
 -- =========================
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT,
   email TEXT,
@@ -63,7 +63,7 @@ CREATE TABLE public.profiles (
 -- =========================
 -- 3) Ideas
 -- =========================
-CREATE TABLE public.ideas (
+CREATE TABLE IF NOT EXISTS public.ideas (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   author_name TEXT,
@@ -76,7 +76,7 @@ CREATE TABLE public.ideas (
 -- =========================
 -- 4) Projects
 -- =========================
-CREATE TABLE public.projects (
+CREATE TABLE IF NOT EXISTS public.projects (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   owner_name TEXT,
@@ -91,7 +91,7 @@ CREATE TABLE public.projects (
 -- =========================
 -- 5) Mentorship Requests
 -- =========================
-CREATE TABLE public.mentorship_requests (
+CREATE TABLE IF NOT EXISTS public.mentorship_requests (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   requester_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   requester_name TEXT,
@@ -104,7 +104,7 @@ CREATE TABLE public.mentorship_requests (
 -- =========================
 -- 6) Mentor Reviews
 -- =========================
-CREATE TABLE public.mentor_reviews (
+CREATE TABLE IF NOT EXISTS public.mentor_reviews (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE public.mentor_reviews (
 -- =========================
 -- 7) Study Materials
 -- =========================
-CREATE TABLE public.study_materials (
+CREATE TABLE IF NOT EXISTS public.study_materials (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   mentor_name TEXT NOT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE public.study_materials (
 );
 
 -- Generic uploads table to track all uploaded files (avatars, resources, misc)
-CREATE TABLE public.uploads (
+CREATE TABLE IF NOT EXISTS public.uploads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   uploader_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   file_name TEXT NOT NULL,
@@ -158,7 +158,7 @@ CREATE TABLE public.uploads (
 -- =========================
 -- Curriculum Feedback
 -- =========================
-CREATE TABLE public.curriculum_feedback (
+CREATE TABLE IF NOT EXISTS public.curriculum_feedback (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   session_id TEXT NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE public.curriculum_feedback (
 -- =========================
 -- 8) Feedback
 -- =========================
-CREATE TABLE public.feedback (
+CREATE TABLE IF NOT EXISTS public.feedback (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   user_name TEXT,
@@ -185,7 +185,7 @@ CREATE TABLE public.feedback (
 -- =========================
 -- 9) User Sessions
 -- =========================
-CREATE TABLE public.user_sessions (
+CREATE TABLE IF NOT EXISTS public.user_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   device_id TEXT NOT NULL,
@@ -558,7 +558,7 @@ USING (
 -- =========================
 -- 12) Events
 -- =========================
-CREATE TABLE public.events (
+CREATE TABLE IF NOT EXISTS public.events (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -589,7 +589,7 @@ USING (
 -- =========================
 -- 13) Competitions
 -- =========================
-CREATE TABLE public.competitions (
+CREATE TABLE IF NOT EXISTS public.competitions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -619,7 +619,7 @@ USING (
 -- =========================
 -- 14) System Settings
 -- =========================
-CREATE TABLE public.system_settings (
+CREATE TABLE IF NOT EXISTS public.system_settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -647,7 +647,7 @@ ON CONFLICT (key) DO NOTHING;
 -- =========================
 -- Live Sessions (Google Meet Clone)
 -- =========================
-CREATE TABLE public.live_sessions (
+CREATE TABLE IF NOT EXISTS public.live_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
@@ -692,7 +692,7 @@ WITH CHECK (
 );
 
 -- Live Session Mentor Requests
-CREATE TABLE public.live_session_mentor_requests (
+CREATE TABLE IF NOT EXISTS public.live_session_mentor_requests (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   session_id UUID REFERENCES public.live_sessions(id) ON DELETE CASCADE,
   student_count INTEGER NOT NULL,
@@ -738,7 +738,7 @@ FOR EACH ROW EXECUTE FUNCTION public.handle_auto_mentor_request();
 -- =========================
 -- Mentor Session Logs
 -- =========================
-CREATE TABLE public.mentor_session_logs (
+CREATE TABLE IF NOT EXISTS public.mentor_session_logs (
   id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
   mentor_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
   session_id text NOT NULL, 
