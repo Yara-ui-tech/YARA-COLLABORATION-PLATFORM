@@ -363,6 +363,46 @@ export default function Admin() {
     }
   };
 
+  const approveCommissionLog = async (log: any) => {
+    setUpdatingId(log.id);
+    try {
+      // Mark the log as approved
+      const { error: approveError } = await supabase
+        .from('mentor_session_logs')
+        .update({ admin_approved: true })
+        .eq('id', log.id);
+      if (approveError) throw approveError;
+
+      // Fetch mentor current amount_paid
+      const { data: mentorProfile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('amount_paid')
+        .eq('id', log.mentor_id)
+        .single();
+      if (profileErr) throw profileErr;
+
+      const currentPaid = parseFloat((mentorProfile?.amount_paid || 0).toString());
+      const newPaid = currentPaid + parseFloat(log.amount_received);
+
+      const { error: updateErr } = await supabase
+        .from('profiles')
+        .update({ amount_paid: newPaid })
+        .eq('id', log.mentor_id);
+      if (updateErr) throw updateErr;
+
+      // Refresh data
+      fetchFinancials();
+      fetchUsers();
+      setSuccessMessage('Commission log approved and mentor balance updated.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error: any) {
+      console.error('Error approving commission log:', error);
+      setErrorMessage(error.message || 'Failed to approve log');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const rejectLiveSession = async (sessionId: string) => {
     if (!window.confirm('Are you sure you want to reject and delete this live session?')) return;
     setUpdatingId(sessionId);
@@ -1600,6 +1640,19 @@ export default function Admin() {
                       <div className="text-right">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Commission</p>
                         <p className="text-xl font-black text-emerald-600">${log.amount_received}</p>
+                        <div className="mt-3 flex items-center justify-end gap-2">
+                          {log.admin_approved ? (
+                            <span className="text-xs font-semibold text-emerald-600">Approved</span>
+                          ) : (
+                            <button
+                              onClick={() => approveCommissionLog(log)}
+                              disabled={updatingId === log.id}
+                              className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-sm font-bold"
+                            >
+                              {updatingId === log.id ? 'Approving...' : 'Approve'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
