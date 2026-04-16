@@ -21,17 +21,17 @@ export default function Contact() {
             <div className="space-y-12">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
                 <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-50 flex items-center justify-center text-indigo-600 text-4xl font-black border-4 border-white shadow-xl overflow-hidden flex-shrink-0">
-                  <span className="text-4xl">SM</span>
-                </div>
-                <div className="text-center md:text-left space-y-4">
-                  <div>
-                    <h4 className="text-2xl font-bold text-slate-900">Simbarashe O. Manongwa</h4>
-                    <p className="text-indigo-600 font-bold uppercase tracking-widest text-xs mt-1">Founder | Chairperson | Legal Officer | Executive Director</p>
+                    <Users className="w-12 h-12" />
                   </div>
-                  <p className="text-slate-600 font-medium leading-relaxed italic">
-                    "Innovate Local, Build Global"
-                  </p>
-                </div>
+                  <div className="text-center md:text-left space-y-4">
+                    <div>
+                      <h4 className="text-2xl font-bold text-slate-900">Leadership Team</h4>
+                      <p className="text-indigo-600 font-bold uppercase tracking-widest text-xs mt-1">Executive Team</p>
+                    </div>
+                    <p className="text-slate-600 font-medium leading-relaxed italic">
+                      "Innovate Local, Build Global"
+                    </p>
+                  </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t border-slate-50">
