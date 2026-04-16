@@ -39,7 +39,7 @@ export default function Auth() {
   }, []);
 
   if (isAuthReady && user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
 
   const handleGoogleSignIn = async () => {
@@ -147,7 +147,7 @@ export default function Auth() {
           }
         }
       }
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
