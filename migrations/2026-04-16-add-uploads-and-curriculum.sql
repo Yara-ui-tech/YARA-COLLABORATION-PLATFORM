@@ -21,6 +21,43 @@ ALTER TABLE public.study_materials
   ADD COLUMN IF NOT EXISTS metadata JSONB,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
+-- Add whatsapp to mentorship requests so students can provide contact
+ALTER TABLE IF EXISTS public.mentorship_requests
+  ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
+
+-- Ephemeral mentorship messages: messages expire after 24 hours
+CREATE TABLE IF NOT EXISTS public.mentorship_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  request_id UUID REFERENCES public.mentorship_requests(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '24 hours')
+);
+
+-- Trigger to keep messages expired field up-to-date on update
+DROP TRIGGER IF EXISTS update_mentorship_messages_updated_at ON public.mentorship_messages;
+CREATE TRIGGER update_mentorship_messages_updated_at
+BEFORE UPDATE ON public.mentorship_messages
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+ALTER TABLE IF EXISTS public.mentorship_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mentorship messages are readable by participants or admin" ON public.mentorship_messages;
+CREATE POLICY "Mentorship messages are readable by participants or admin"
+ON public.mentorship_messages FOR SELECT
+USING (
+  EXISTS (SELECT 1 FROM public.mentorship_requests mr WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()))
+  OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin')
+);
+
+DROP POLICY IF EXISTS "Users can insert mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Users can insert mentorship messages"
+ON public.mentorship_messages FOR INSERT
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.mentorship_requests mr WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()))
+);
+
 -- Create uploads table
 CREATE TABLE IF NOT EXISTS public.uploads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import PlaceholderImage from '../components/PlaceholderImage';
 
 export default function MentorDashboard() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,8 @@ export default function MentorDashboard() {
       setAmount('');
       setDescription('');
       fetchLogs();
+      // refresh profile so commission totals show updated values if changed
+      if (refreshProfile) await refreshProfile();
       alert('Commission log submitted — admin will review.');
     } catch (err: any) {
       console.error(err);

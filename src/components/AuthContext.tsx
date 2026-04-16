@@ -35,6 +35,7 @@ interface AuthContextType {
   isSubscriptionExpired: boolean;
   isTrialExpired: boolean;
   isHalted: boolean;
+  refreshProfile?: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -46,6 +47,7 @@ const AuthContext = createContext<AuthContextType>({
   isSubscriptionExpired: false,
   isTrialExpired: false,
   isHalted: false,
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -216,8 +218,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
+  // allow on-demand refresh of the profile
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (!error && data) setProfile(data as UserProfile);
+    } catch (err) {
+      console.error('Error refreshing profile:', err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -9,7 +9,7 @@ import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
 
 export default function Mentorship() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'mentors' | 'requests' | 'live' | 'materials'>('mentors');
   const [mentors, setMentors] = useState<any[]>([]);
@@ -27,6 +27,7 @@ export default function Mentorship() {
   const [externalAnnouncement, setExternalAnnouncement] = useState('');
   const [externalLink, setExternalLink] = useState('');
   const [requestMessage, setRequestMessage] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,24 @@ export default function Mentorship() {
   const [logSessionId, setLogSessionId] = useState('');
   const [logAmount, setLogAmount] = useState('');
   const [logDescription, setLogDescription] = useState('');
+  const [messagesMap, setMessagesMap] = useState<Record<string, any[]>>({});
+
+  const fetchMessagesForRequest = async (requestId: string) => {
+    try {
+      const nowIso = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('mentorship_messages')
+        .select('*')
+        .eq('request_id', requestId)
+        .gt('expires_at', nowIso)
+        .order('created_at', { ascending: true });
+      if (!error) {
+        setMessagesMap(prev => ({ ...prev, [requestId]: data || [] }));
+      }
+    } catch (err) {
+      console.error('Error fetching messages:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -65,6 +84,15 @@ export default function Mentorship() {
       
       if (error) console.error('Error fetching requests:', error);
       else setRequests(data || []);
+    };
+
+    // after fetching requests we should also fetch ephemeral messages for each
+    const fetchRequestsAndMessages = async () => {
+      await fetchRequests();
+      if (!user) return;
+      const column = profile?.role === 'mentor' ? 'mentor_id' : 'requester_id';
+      const { data } = await supabase.from('mentorship_requests').select('*').eq(column, user.id);
+      data?.forEach((r: any) => fetchMessagesForRequest(r.id));
     };
 
     const fetchLiveSessions = async () => {
@@ -95,14 +123,21 @@ export default function Mentorship() {
     };
 
     fetchMentors();
-    fetchRequests();
+    fetchRequestsAndMessages();
     fetchLiveSessions();
     fetchStudyMaterials();
 
     const requestsSubscription = supabase
       .channel('mentorship_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, (payload) => {
         fetchRequests();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_messages' }, (payload) => {
+        // when a message is inserted/updated/deleted, re-fetch messages for the request
+        try {
+          const reqId = payload?.new?.request_id || payload?.old?.request_id;
+          if (reqId) fetchMessagesForRequest(reqId);
+        } catch (err) { console.error(err); }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
         fetchLiveSessions();
@@ -172,16 +207,22 @@ export default function Mentorship() {
     if (!user) return;
     setLoading(true);
     try {
+      if (!whatsapp?.trim()) {
+        throw new Error('Please provide your WhatsApp number for mentorship contact.');
+      }
+
       const { error } = await supabase.from('mentorship_requests').insert({
         requester_id: user.id,
         requester_name: profile?.display_name || 'Anonymous',
         mentor_id: mentorId,
         status: 'pending',
         message: requestMessage,
+        whatsapp_number: whatsapp.trim()
       });
       if (error) throw error;
       setIsRequesting(null);
       setRequestMessage('');
+      setWhatsapp('');
     } catch (error) {
       console.error('Error requesting mentorship:', error);
     } finally {
@@ -312,6 +353,7 @@ Possible causes:
       setLogSessionId('');
       setLogAmount('');
       setLogDescription('');
+      if (refreshProfile) await refreshProfile();
     } catch (error: any) {
       console.error('Error logging session:', error);
       alert('Failed to log session.');
@@ -592,6 +634,42 @@ Possible causes:
                         Complete Session
                       </button>
                     )}
+
+                    {/* Messages panel (ephemeral) */}
+                    <div className="w-full mt-4 md:mt-0 md:w-96">
+                      <div className="bg-slate-50 p-3 rounded-lg max-h-40 overflow-auto">
+                        {(messagesMap[request.id] || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">No messages yet.</div>
+                        ) : (
+                          (messagesMap[request.id] || []).map(m => (
+                            <div key={m.id} className="text-sm mb-2">
+                              <div className="text-[11px] text-slate-500">{m.sender_id === profile?.id ? 'You' : (m.sender_id ? 'Other' : 'System')} • {new Date(m.created_at).toLocaleString()}</div>
+                              <div className="text-slate-800">{m.message}</div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      {(profile?.role === 'mentor' || profile?.id === request.requester_id) && (
+                        <div className="flex items-center mt-2">
+                          <input placeholder="Write a reply (visible 24h)" className="flex-1 p-2 border rounded-l-lg" id={`msg-${request.id}`} />
+                          <button onClick={async () => {
+                            const el = document.getElementById(`msg-${request.id}`) as HTMLInputElement | null;
+                            if (!el || !el.value.trim()) return;
+                            try {
+                              await supabase.from('mentorship_messages').insert({
+                                request_id: request.id,
+                                sender_id: profile?.id || null,
+                                message: el.value.trim()
+                              });
+                              el.value = '';
+                              fetchMessagesForRequest(request.id);
+                            } catch (err) {
+                              console.error('Error sending message:', err);
+                            }
+                          }} className="px-3 py-2 bg-indigo-600 text-white rounded-r-lg">Send</button>
+                        </div>
+                      )}
+                    </div>
 
                     {profile?.role !== 'mentor' && request.status === 'completed' && (
                       <button
@@ -1075,6 +1153,10 @@ Possible causes:
                   placeholder="I'm working on a robotics project and need guidance on..."
                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium min-h-[150px] resize-none"
                 />
+                <div>
+                  <label className="text-sm font-medium">WhatsApp Number (for mentorship contact)</label>
+                  <input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="+263771234567" className="w-full mt-2 p-3 border rounded-lg" />
+                </div>
                 <div className="flex justify-end space-x-4">
                   <button
                     onClick={() => setIsRequesting(null)}

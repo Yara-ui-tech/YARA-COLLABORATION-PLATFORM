@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS public.mentorship_requests (
   mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   status TEXT CHECK (status IN ('pending', 'accepted', 'declined', 'completed')) DEFAULT 'pending',
   message TEXT,
+  whatsapp_number TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -153,6 +154,16 @@ CREATE TABLE IF NOT EXISTS public.uploads (
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ephemeral mentorship messages
+CREATE TABLE IF NOT EXISTS public.mentorship_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  request_id UUID REFERENCES public.mentorship_requests(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '24 hours')
 );
 
 -- =========================
