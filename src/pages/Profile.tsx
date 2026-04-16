@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
 export default function Profile() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -58,7 +58,7 @@ export default function Profile() {
       const filePath = `${fileName}`;
 
       // Upload to Supabase Storage (avatars bucket)
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           upsert: true,
@@ -66,20 +66,20 @@ export default function Profile() {
         });
 
       if (uploadError) {
-        // Detailed error handling merged from remote
-        if (uploadError.message?.includes("Unexpected token 'T'") || uploadError.message?.includes("is not valid JSON")) {
-          throw new Error('Storage service returned an invalid response. This usually means the "avatars" bucket does not exist or is not public. Please create it in your Supabase dashboard.');
+        // Common clearer messages
+        if (/(bucket|not found|does not exist)/i.test(uploadError.message || '')) {
+          throw new Error('Upload failed: the "avatars" storage bucket does not exist in your Supabase project. Create the bucket or ask an admin to create it.');
         }
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
+      // Get public URL (guarded extraction)
+      const publicRes = supabase.storage.from('avatars').getPublicUrl(filePath as string);
+      const publicUrl = publicRes?.data?.publicUrl || publicRes?.data?.publicURL || publicRes?.publicURL || publicRes?.publicUrl;
+      if (!publicUrl) throw new Error('Failed to obtain public URL for uploaded avatar. Check bucket/public settings.');
+
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      
+
       // Automatically save the profile update
       const { error: profileError } = await supabase
         .from('profiles')
@@ -87,6 +87,9 @@ export default function Profile() {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // refresh client-side profile cache
+      if (refreshProfile) await refreshProfile();
 
       alert('Profile picture updated successfully!');
     } catch (error: any) {
