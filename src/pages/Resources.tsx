@@ -126,6 +126,21 @@ export default function Resources() {
         finalFileUrl = publicUrl;
       }
 
+      // determine file type if using a link and no file selected
+      let finalFileType = newMaterial.file_type;
+      if (!selectedFile && finalFileUrl) {
+        const urlLower = finalFileUrl.toLowerCase();
+        if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be') || urlLower.includes('tiktok.com') || urlLower.includes('vimeo.com')) {
+          finalFileType = 'video';
+        } else if (urlLower.endsWith('.pdf')) {
+          finalFileType = 'pdf';
+        } else if (urlLower.endsWith('.doc') || urlLower.endsWith('.docx')) {
+          finalFileType = 'doc';
+        } else {
+          finalFileType = newMaterial.file_type || 'other';
+        }
+      }
+
       // 3. Save to database
       const { error: dbError } = await supabase
         .from('study_materials')
@@ -135,7 +150,7 @@ export default function Resources() {
           title: newMaterial.title,
           description: newMaterial.description,
           file_url: finalFileUrl,
-          file_type: newMaterial.file_type,
+          file_type: finalFileType,
         });
 
       if (dbError) throw dbError;
@@ -185,7 +200,7 @@ export default function Resources() {
           <p className="text-slate-500 font-medium">Access study materials, videos, and simulation tools.</p>
         </div>
         
-        {profile?.role === 'mentor' && (
+        {(profile?.role === 'mentor' || profile?.role === 'admin') && (
           <button
             onClick={() => setShowUploadModal(true)}
             className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center space-x-2 self-start"
@@ -468,7 +483,7 @@ export default function Resources() {
                   </button>
                   <button
                     type="submit"
-                    disabled={uploading || !selectedFile}
+                    disabled={uploading || (!selectedFile && !newMaterial.file_url)}
                     className="flex-1 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
                     {uploading ? (
