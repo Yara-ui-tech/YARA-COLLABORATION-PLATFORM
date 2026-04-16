@@ -10,13 +10,17 @@ export default function MentorDashboard() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
+  const [assignedSessions, setAssignedSessions] = useState<any[]>([]);
 
   const commissionTotal = profile?.total_commission || 0;
   const amountPaid = profile?.amount_paid || 0;
   const commissionDue = (Number(commissionTotal) - Number(amountPaid)).toFixed(2);
 
   useEffect(() => {
-    if (profile) fetchLogs();
+    if (profile) {
+      fetchLogs();
+      fetchAssignedSessions();
+    }
   }, [profile]);
 
   async function fetchLogs() {
@@ -28,6 +32,33 @@ export default function MentorDashboard() {
       .order('created_at', { ascending: false });
     if (!error) setLogs(data || []);
   }
+
+  async function fetchAssignedSessions() {
+    if (!profile) return;
+    try {
+      const { data, error } = await supabase
+        .from('session_assignments')
+        .select('*, session:live_sessions(*)')
+        .eq('mentor_id', profile.id)
+        .in('status', ['assigned', 'pending'])
+        .order('created_at', { ascending: true });
+      if (!error) setAssignedSessions(data || []);
+    } catch (err) {
+      console.error('Error fetching assigned sessions', err);
+    }
+  }
+
+  const markDelivered = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase.from('session_assignments').update({ status: 'delivered', mentor_marked_delivered_at: new Date().toISOString() }).eq('id', assignmentId);
+      if (error) throw error;
+      fetchAssignedSessions();
+      alert('Marked delivered');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to mark delivered');
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +96,31 @@ export default function MentorDashboard() {
           <p className="text-slate-500 mt-1">Tools for mentors: manage resources, view mentee requests, and submit commission requests.</p>
         </div>
         <div className="text-sm text-slate-400">Balance due: <strong className="text-indigo-600">${commissionDue}</strong></div>
+      </div>
+      <div className="p-6 bg-white rounded-3xl border shadow-sm">
+        <h3 className="font-bold">Assigned Sessions</h3>
+        <ul className="mt-4 space-y-3">
+          {assignedSessions.length === 0 && (
+            <div className="py-12 text-center text-slate-400">No assigned sessions.</div>
+          )}
+          {assignedSessions.map(a => (
+            <li key={a.id} className="p-3 border rounded-lg">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-bold">{a.session?.title || a.session?.name || 'Untitled session'}</div>
+                  <div className="text-xs text-slate-500">{a.session?.starts_at ? new Date(a.session.starts_at).toLocaleString() : ''}</div>
+                  <div className="text-sm text-slate-600 mt-2">{a.admin_notes || ''}</div>
+                </div>
+                <div className="space-y-2 text-right">
+                  <div className="text-sm font-semibold">Status: <span className="text-amber-600">{a.status}</span></div>
+                  {a.status !== 'delivered' && (
+                    <button onClick={() => markDelivered(a.id)} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm">Mark Delivered</button>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -83,6 +83,12 @@ export default function Admin() {
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
   const [pendingLiveSessions, setPendingLiveSessions] = useState<any[]>([]);
+  const [mentorsList, setMentorsList] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignSessionId, setAssignSessionId] = useState<string | null>(null);
+  const [assignMentorId, setAssignMentorId] = useState<string | null>(null);
+  const [assignNotes, setAssignNotes] = useState('');
   const [autoMentorRequests, setAutoMentorRequests] = useState<any[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -130,6 +136,8 @@ export default function Admin() {
     if (activeTab === 'mentorship') fetchMentorshipRequests();
     if (activeTab === 'reviews') fetchMentorReviews();
     if (activeTab === 'live') fetchPendingLiveSessions();
+    if (activeTab === 'live') fetchMentorsForAssign();
+    if (activeTab === 'live') fetchAssignments();
     if (activeTab === 'mentor_req') fetchAutoMentorRequests();
     if (activeTab === 'events') fetchEvents();
     if (activeTab === 'competitions') fetchCompetitions();
@@ -374,6 +382,32 @@ export default function Admin() {
     setLoading(false);
   };
 
+  const fetchMentorsForAssign = async () => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('id, display_name').eq('role', 'mentor').order('display_name');
+      if (error) throw error;
+      setMentorsList(data || []);
+    } catch (err) {
+      console.error('Error fetching mentors:', err);
+    }
+  };
+
+  const fetchAssignments = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('session_assignments')
+        .select(`*, session:live_sessions(*), mentor:profiles(display_name), assigned_by:profiles!assigned_by(display_name), replacement:profiles!replacement_mentor_id(display_name)`)        
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAssignments(data || []);
+    } catch (err: any) {
+      console.error('Error fetching assignments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const approveLiveSession = async (sessionId: string) => {
     setUpdatingId(sessionId);
     try {
@@ -389,6 +423,87 @@ export default function Admin() {
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const openAssignModal = (sessionId: string) => {
+    setAssignSessionId(sessionId);
+    setAssignMentorId(null);
+    setAssignNotes('');
+    setShowAssignModal(true);
+  };
+
+  const assignMentorToSession = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!assignSessionId || !assignMentorId) return alert('Select a mentor');
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('session_assignments').insert({
+        session_id: assignSessionId,
+        mentor_id: assignMentorId,
+        assigned_by: profile?.id,
+        admin_notes: assignNotes
+      });
+      if (error) throw error;
+      setShowAssignModal(false);
+      fetchAssignments();
+      setSuccessMessage('Mentor assigned to session.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to assign mentor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAssignmentDone = async (assignmentId: string, paidAmount?: number) => {
+    setUpdatingId(assignmentId);
+    try {
+      const updates: any = { status: 'completed', admin_marked_done_at: new Date().toISOString() };
+      if (typeof paidAmount === 'number') updates.paid_amount = paidAmount;
+
+      const { error } = await supabase.from('session_assignments').update(updates).eq('id', assignmentId);
+      if (error) throw error;
+
+      // If paidAmount provided, add to mentor profile amount_paid
+      if (typeof paidAmount === 'number') {
+        const { data: ass } = await supabase.from('session_assignments').select('mentor_id').eq('id', assignmentId).single();
+        const mentorId = ass?.mentor_id;
+        if (mentorId) {
+          const { data: mentorProfile } = await supabase.from('profiles').select('amount_paid').eq('id', mentorId).single();
+          const currentPaid = parseFloat((mentorProfile?.amount_paid || 0).toString());
+          const newPaid = currentPaid + paidAmount;
+          await supabase.from('profiles').update({ amount_paid: newPaid }).eq('id', mentorId);
+        }
+      }
+
+      fetchAssignments();
+      fetchFinancials();
+      setSuccessMessage('Assignment marked completed.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to mark done');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const markAssignmentFailed = async (assignmentId: string, reason?: string, replacerId?: string) => {
+    setUpdatingId(assignmentId);
+    try {
+      const updates: any = { status: 'failed', failure_reason: reason || null };
+      if (replacerId) updates.replacement_mentor_id = replacerId;
+
+      const { error } = await supabase.from('session_assignments').update(updates).eq('id', assignmentId);
+      if (error) throw error;
+
+      fetchAssignments();
+      setSuccessMessage('Assignment marked failed.');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to mark failed');
     } finally {
       setUpdatingId(null);
     }
@@ -1156,6 +1271,40 @@ export default function Admin() {
             </motion.div>
           </div>
         )}
+        {activeTab === 'live' && (
+          <div className="p-8">
+            <h3 className="text-xl font-bold mb-4">Current Assignments</h3>
+            <div className="bg-white rounded-2xl border p-4">
+              {assignments.length === 0 ? (
+                <div className="text-slate-400 p-12 text-center">No assignments yet.</div>
+              ) : (
+                <ul className="space-y-3">
+                  {assignments.map(a => (
+                    <li key={a.id} className="p-3 border rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="font-bold">{a.session?.title || a.session?.name || 'Untitled'}</div>
+                        <div className="text-xs text-slate-500">Mentor: {a.mentor?.display_name || 'Unassigned'}</div>
+                        <div className="text-xs text-slate-400">Status: {a.status}</div>
+                      </div>
+                      <div className="space-x-2">
+                        <button onClick={() => {
+                          const paid = window.prompt('Enter paid amount (leave blank if none)');
+                          const parsed = paid ? parseFloat(paid) : undefined;
+                          markAssignmentDone(a.id, parsed);
+                        }} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm">Mark Done</button>
+                        <button onClick={() => {
+                          const reason = window.prompt('Reason for failure (optional)');
+                          const replacer = window.prompt('Replacement mentor id (optional)');
+                          markAssignmentFailed(a.id, reason || undefined, replacer || undefined);
+                        }} className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-sm">Mark Failed</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
 
         {showCompModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
@@ -1323,6 +1472,46 @@ export default function Admin() {
             </motion.div>
           </div>
         )}
+
+        <AnimatePresence>
+          {showAssignModal && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl relative"
+              >
+                <button onClick={() => setShowAssignModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors">
+                  <CloseIcon className="w-6 h-6" />
+                </button>
+
+                <h3 className="text-2xl font-bold mb-2">Assign Mentor to Session</h3>
+                <p className="text-slate-500 text-sm mb-6">Select a mentor to assign for this session.</p>
+
+                <form onSubmit={(e) => { e.preventDefault(); assignMentorToSession(); }} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Mentor</label>
+                    <select required value={assignMentorId || ''} onChange={e => setAssignMentorId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4">
+                      <option value="">Select mentor</option>
+                      {mentorsList.map(m => (<option key={m.id} value={m.id}>{m.display_name}</option>))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Admin Notes (optional)</label>
+                    <textarea value={assignNotes} onChange={e => setAssignNotes(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 min-h-[80px]" />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-4 py-2 rounded-xl border">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Assign</button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </AnimatePresence>
 
       <AnimatePresence>
@@ -2062,6 +2251,14 @@ export default function Admin() {
                           >
                             <XCircle className="w-3 h-3" />
                             <span>Reject</span>
+                          </button>
+                          <button
+                            onClick={() => openAssignModal(s.id)}
+                            disabled={updatingId === s.id}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-all flex items-center space-x-1"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Assign Mentor</span>
                           </button>
                         </div>
                       </td>
