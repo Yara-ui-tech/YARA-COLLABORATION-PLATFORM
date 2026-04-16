@@ -644,6 +644,26 @@ CREATE TABLE IF NOT EXISTS public.competitions (
 
 ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
 
+-- Partners
+CREATE TABLE IF NOT EXISTS public.partners (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  website_url TEXT,
+  description TEXT,
+  logo_url TEXT,
+  contact_email TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage partners" ON public.partners;
+CREATE POLICY "Admins can manage partners"
+ON public.partners FOR ALL
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
 DROP POLICY IF EXISTS "Competitions are viewable by everyone." ON public.competitions;
 CREATE POLICY "Competitions are viewable by everyone."
 ON public.competitions FOR SELECT

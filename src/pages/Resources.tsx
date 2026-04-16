@@ -66,6 +66,7 @@ export default function Resources() {
     description: '',
     file_type: 'pdf' as const,
     file_url: '', // Added URL fallback
+    thumbnail_url: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -109,7 +110,7 @@ export default function Resources() {
 
         const { error: uploadError } = await supabase.storage
           .from('materials')
-          .upload(filePath, selectedFile);
+          .upload(filePath, selectedFile, { upsert: true });
 
         if (uploadError) {
           if (uploadError.message.includes('bucket not found')) {
@@ -122,7 +123,7 @@ export default function Resources() {
         const { data: { publicUrl } } = supabase.storage
           .from('materials')
           .getPublicUrl(filePath);
-        
+
         finalFileUrl = publicUrl;
       }
 
@@ -141,6 +142,26 @@ export default function Resources() {
         }
       }
 
+      // auto-generate thumbnail for known providers unless provided
+      let finalThumbnail = newMaterial.thumbnail_url || null;
+      if (!finalThumbnail && finalFileUrl) {
+        const u = finalFileUrl.toLowerCase();
+        if (u.includes('youtube.com') || u.includes('youtu.be')) {
+          // extract id
+          const vid = finalFileUrl.includes('youtu') ? finalFileUrl.split('v=')[1]?.split('&')[0] : finalFileUrl.split('/').pop();
+          if (vid) finalThumbnail = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+        } else if (u.includes('vimeo.com')) {
+          // vimeo thumbnails require API; skip automatic
+          finalThumbnail = null;
+        } else if (u.includes('tiktok.com')) {
+          // TikTok thumbnails aren't trivially derivable; leave for manual upload
+          finalThumbnail = null;
+        } else if (u.endsWith('.pdf')) {
+          // use generic PDF placeholder (asset can be added later)
+          finalThumbnail = ASSETS.PLACEHOLDER_PDF || null;
+        }
+      }
+
       // 3. Save to database
       const { error: dbError } = await supabase
         .from('study_materials')
@@ -151,6 +172,7 @@ export default function Resources() {
           description: newMaterial.description,
           file_url: finalFileUrl,
           file_type: finalFileType,
+          thumbnail_url: finalThumbnail,
         });
 
       if (dbError) throw dbError;
@@ -174,9 +196,14 @@ export default function Resources() {
 
     try {
       // 1. Delete from storage (extract path from URL)
-      const path = fileUrl.split('materials/').pop();
-      if (path) {
-        await supabase.storage.from('materials').remove([path]);
+      try {
+        const path = fileUrl.includes('/materials/') ? fileUrl.split('/materials/').pop() : null;
+        if (path) {
+          await supabase.storage.from('materials').remove([path]);
+        }
+      } catch (err) {
+        // ignore storage deletion errors (might be external URL)
+        console.warn('Storage deletion skipped or failed:', err);
       }
 
       // 2. Delete from database
@@ -467,6 +494,11 @@ export default function Resources() {
                     className="w-full px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-medium"
                     placeholder="https://example.com/resource.pdf"
                   />
+                  <div className="mt-3">
+                    <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Thumbnail URL (optional)</label>
+                    <input value={newMaterial.thumbnail_url} onChange={e => setNewMaterial({ ...newMaterial, thumbnail_url: e.target.value })} className="w-full px-6 py-4 rounded-2xl border border-slate-100" placeholder="https://.../thumb.jpg" />
+                    <p className="text-[10px] text-slate-400 mt-2 ml-1">Optional: provide an image URL to use as the resource thumbnail (YouTube thumbnails are auto-detected).</p>
+                  </div>
                   <p className="text-[10px] text-slate-400 mt-2 ml-1">
                     Use this if you have a link to a Google Drive file, YouTube video, or external PDF.
                   </p>

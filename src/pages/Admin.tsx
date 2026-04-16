@@ -72,6 +72,8 @@ interface Competition {
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings' | 'curriculum' | 'finances'>('members');
+  const [partners, setPartners] = useState<any[]>([]);
+  const [partnerForm, setPartnerForm] = useState({ name: '', website_url: '', description: '', logo_url: '', contact_email: '' });
   const [curriculumFeedbacks, setCurriculumFeedbacks] = useState<any[]>([]);
   const [financialLogs, setFinancialLogs] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -134,7 +136,36 @@ export default function Admin() {
     if (activeTab === 'settings') fetchSettings();
     if (activeTab === 'curriculum') fetchCurriculumFeedbacks();
     if (activeTab === 'finances') fetchFinancials();
+    if (activeTab === 'partners') fetchPartners();
   }, [activeTab]);
+
+  const fetchPartners = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setPartners(data || []);
+    } catch (err: any) {
+      console.error('Error fetching partners:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const savePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('partners').insert(partnerForm);
+      if (error) throw error;
+      setPartnerForm({ name: '', website_url: '', description: '', logo_url: '', contact_email: '' });
+      fetchPartners();
+    } catch (err: any) {
+      console.error('Error saving partner:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFinancials = async () => {
     setLoading(true);
@@ -960,6 +991,18 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('partners')}
+          className={cn(
+            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'partners' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <LinkIcon className="w-4 h-4" />
+            <span>Partners</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('curriculum')}
           className={cn(
             "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1372,6 +1415,39 @@ export default function Admin() {
             </table>
           </div>
         )}
+
+                {activeTab === 'partners' && (
+                  <div className="space-y-6">
+                    <div className="p-6 bg-white rounded-2xl border">
+                      <h3 className="text-xl font-bold mb-3">Add Partner</h3>
+                      <form onSubmit={savePartner} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input required placeholder="Name" value={partnerForm.name} onChange={e=>setPartnerForm({...partnerForm,name:e.target.value})} className="p-3 border rounded" />
+                        <input placeholder="Website URL" value={partnerForm.website_url} onChange={e=>setPartnerForm({...partnerForm,website_url:e.target.value})} className="p-3 border rounded" />
+                        <input placeholder="Contact email" value={partnerForm.contact_email} onChange={e=>setPartnerForm({...partnerForm,contact_email:e.target.value})} className="p-3 border rounded" />
+                        <input placeholder="Logo URL" value={partnerForm.logo_url} onChange={e=>setPartnerForm({...partnerForm,logo_url:e.target.value})} className="p-3 border rounded" />
+                        <textarea placeholder="Description" value={partnerForm.description} onChange={e=>setPartnerForm({...partnerForm,description:e.target.value})} className="p-3 border rounded md:col-span-2" />
+                        <div className="md:col-span-2">
+                          <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded">Save Partner</button>
+                        </div>
+                      </form>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {partners.map(p => (
+                        <div key={p.id} className="p-4 bg-white rounded shadow">
+                          <div className="flex items-center space-x-4">
+                            <img src={p.logo_url || '/assets/placeholders/partner.png'} alt={p.name} className="w-12 h-12 object-cover rounded" />
+                            <div>
+                              <div className="font-bold">{p.name}</div>
+                              {p.website_url && <a href={p.website_url} target="_blank" rel="noreferrer" className="text-sm text-indigo-600">{p.website_url}</a>}
+                            </div>
+                          </div>
+                          <p className="mt-3 text-sm text-slate-600">{p.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
         {activeTab === 'competitions' && (
           <div className="overflow-x-auto">

@@ -58,6 +58,32 @@ WITH CHECK (
   EXISTS (SELECT 1 FROM public.mentorship_requests mr WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()))
 );
 
+-- Partners table: admins can add partners/partners assets
+CREATE TABLE IF NOT EXISTS public.partners (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  website_url TEXT,
+  description TEXT,
+  logo_url TEXT,
+  contact_email TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Trigger for partners updated_at
+DROP TRIGGER IF EXISTS update_partners_updated_at ON public.partners;
+CREATE TRIGGER update_partners_updated_at
+BEFORE UPDATE ON public.partners
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+ALTER TABLE IF EXISTS public.partners ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage partners" ON public.partners;
+CREATE POLICY "Admins can manage partners"
+ON public.partners FOR ALL
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
 -- Create uploads table
 CREATE TABLE IF NOT EXISTS public.uploads (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
