@@ -1,11 +1,17 @@
 -- =========================
 -- 0) Extensions
 -- =========================
+DROP TABLE IF EXISTS public.events CASCADE;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =========================
 -- 1) Drop dependent tables first (data-loss migration)
 -- =========================
+DROP TABLE IF EXISTS public.competitions CASCADE;
+DROP TABLE IF EXISTS public.events CASCADE;
+DROP TABLE IF EXISTS public.system_settings CASCADE;
+
+
 DROP TABLE IF EXISTS public.user_sessions CASCADE;
 DROP TABLE IF EXISTS public.feedback CASCADE;
 DROP TABLE IF EXISTS public.study_materials CASCADE;
@@ -26,6 +32,11 @@ CREATE TABLE public.profiles (
   display_name TEXT,
   email TEXT,
   avatar_url TEXT,
+  avatar_storage_path TEXT,
+  avatar_size BIGINT,
+  avatar_mime_type TEXT,
+  social_links JSONB,
+  contact_phone TEXT,
   member_id TEXT UNIQUE,
   bio TEXT,
   skills TEXT[],
@@ -113,9 +124,35 @@ CREATE TABLE public.study_materials (
   title TEXT NOT NULL,
   description TEXT,
   file_url TEXT NOT NULL,
-  file_type TEXT CHECK (file_type IN ('pdf', 'doc', 'video', 'other')) DEFAULT 'pdf',
+  storage_path TEXT,
+  file_size BIGINT,
+  file_type TEXT CHECK (file_type IN ('pdf', 'doc', 'video', 'audio', 'image', 'other')) DEFAULT 'pdf',
   thumbnail_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  visibility TEXT CHECK (visibility IN ('public','private','unlisted')) DEFAULT 'public',
+  price DECIMAL(10,2) DEFAULT 0.00,
+  downloads INTEGER DEFAULT 0,
+  tags TEXT[],
+  approved BOOLEAN DEFAULT false,
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Generic uploads table to track all uploaded files (avatars, resources, misc)
+CREATE TABLE public.uploads (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  uploader_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  file_name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  storage_path TEXT,
+  mime_type TEXT,
+  size BIGINT,
+  purpose TEXT,
+  related_table TEXT,
+  related_id UUID,
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- =========================
@@ -162,6 +199,14 @@ FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 CREATE TRIGGER update_projects_updated_at
 BEFORE UPDATE ON public.projects
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+CREATE TRIGGER update_study_materials_updated_at
+BEFORE UPDATE ON public.study_materials
+FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+CREATE TRIGGER update_uploads_updated_at
+BEFORE UPDATE ON public.uploads
 FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 -- =========================
@@ -289,6 +334,7 @@ ALTER TABLE public.mentor_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.uploads ENABLE ROW LEVEL SECURITY;
 
 -- =========================
 -- 13) Policies
@@ -395,6 +441,18 @@ CREATE POLICY "Mentors can delete their own study materials."
 ON public.study_materials FOR DELETE
 USING (auth.uid() = mentor_id);
 
+DROP POLICY IF EXISTS "Mentors can update their own study materials." ON public.study_materials;
+CREATE POLICY "Mentors can update their own study materials."
+ON public.study_materials FOR UPDATE
+USING (auth.uid() = mentor_id)
+WITH CHECK (auth.uid() = mentor_id);
+
+DROP POLICY IF EXISTS "Admins can approve study materials." ON public.study_materials;
+CREATE POLICY "Admins can approve study materials."
+ON public.study_materials FOR UPDATE
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+
 -- Feedback
 DROP POLICY IF EXISTS "Feedback is viewable by everyone." ON public.feedback;
 CREATE POLICY "Feedback is viewable by everyone."
@@ -411,6 +469,27 @@ DROP POLICY IF EXISTS "Users can manage their own sessions." ON public.user_sess
 CREATE POLICY "Users can manage their own sessions."
 ON public.user_sessions FOR ALL
 USING (auth.uid() = user_id);
+
+-- Uploads
+DROP POLICY IF EXISTS "Uploads are viewable by uploader or admin." ON public.uploads;
+CREATE POLICY "Uploads are viewable by uploader or admin."
+ON public.uploads FOR SELECT
+USING (auth.uid() = uploader_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Users can insert uploads." ON public.uploads;
+CREATE POLICY "Users can insert uploads."
+ON public.uploads FOR INSERT
+WITH CHECK (auth.uid() = uploader_id);
+
+DROP POLICY IF EXISTS "Users can update their uploads." ON public.uploads;
+CREATE POLICY "Users can update their uploads."
+ON public.uploads FOR UPDATE
+USING (auth.uid() = uploader_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Users can delete their uploads." ON public.uploads;
+CREATE POLICY "Users can delete their uploads."
+ON public.uploads FOR DELETE
+USING (auth.uid() = uploader_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 ALTER TABLE public.pre_approvals ENABLE ROW LEVEL SECURITY;
 
