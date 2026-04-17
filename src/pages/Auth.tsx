@@ -15,7 +15,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<'innovator' | 'mentor' | 'admin'>('innovator');
-  const [educationalLevel, setEducationalLevel] = useState<'junior' | 'intermediate' | 'senior' | 'tertiary' | 'teacher'>('junior');
+  const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState('');
@@ -118,6 +118,7 @@ export default function Auth() {
             data: {
               display_name: displayName,
               role: role,
+              tier: role === 'mentor' || role === 'admin' ? null : tier,
             },
           },
         });
@@ -127,23 +128,50 @@ export default function Auth() {
           const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
           const isAdminEmail = email.toLowerCase() === 'manongwasimbarashe394@gmail.com' || email.toLowerCase() === 'goyaracorp@gmail.com';
           const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
-          
-          const { error: profileError } = await supabase.from('profiles').upsert({
-            id: data.user.id,
-            display_name: displayName,
-            email: email,
-            role: finalRole,
-            member_id: generatedMemberId,
-            educational_level: educationalLevel,
-            registration_paid: finalRole === 'admin', 
-            trial_ends_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-          }, { onConflict: 'id' });
-          
-          if (profileError) {
-            console.error('Profile setup error:', profileError);
-          } else {
-            setShowSuccessModal(true);
-            return; // Don't navigate yet, show modal
+          // Wait for the client session to be established before attempting
+          // a profiles.upsert. RLS on `profiles` requires auth.uid() = id
+          // for INSERT, so trying to upsert immediately after signUp can
+          // fail if the session isn't active yet.
+          let sessionUserId: string | null = null;
+          const start = Date.now();
+          while (Date.now() - start < 5000) { // wait up to 5s
+            try {
+              const { data: sessionData } = await supabase.auth.getSession();
+              sessionUserId = sessionData?.session?.user?.id || null;
+              if (sessionUserId) break;
+            } catch (e) {
+              // ignore and retry
+            }
+            await new Promise(r => setTimeout(r, 300));
+          }
+
+          // If no session yet, still attempt upsert but warn (server triggers
+          // may also create profiles automatically). This reduces failed
+          // client-side attempts when RLS is active.
+          try {
+            const { error: profileError } = await supabase.from('profiles').upsert({
+              id: data.user.id,
+              display_name: displayName,
+              email: email,
+              role: finalRole,
+              tier: finalRole === 'mentor' || finalRole === 'admin' ? null : tier,
+              member_id: generatedMemberId,
+              registration_paid: finalRole === 'admin', 
+              trial_ends_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+              educational_level: null,
+            }, { onConflict: 'id' });
+
+            if (profileError) {
+              // If this fails due to RLS (no session), log for debugging and
+              // continue: the DB trigger `handle_new_user()` should create a
+              // profile server-side when the auth user is created.
+              console.warn('Profile setup warning (non-fatal):', profileError);
+            } else {
+              setShowSuccessModal(true);
+              return; // Don't navigate yet, show modal
+            }
+          } catch (err) {
+            console.warn('Profile upsert attempt failed:', err);
           }
         }
       }
@@ -375,25 +403,21 @@ export default function Auth() {
                 </div>
               )}
 
-              {!isLogin && (
+              {!isLogin && role !== 'mentor' && role !== 'admin' && (
                 <div className="space-y-3 pt-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Learning Category</label>
+                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Choose Tier</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(['junior', 'intermediate', 'senior', 'tertiary', 'teacher'] as const).map((level) => (
+                    {(['T1','T2','T3','T4','T5','T6'] as const).map((t) => (
                       <button
-                        key={level}
+                        key={t}
                         type="button"
-                        onClick={() => setEducationalLevel(level)}
+                        onClick={() => setTier(t)}
                         className={cn(
                           "py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all border-2",
-                          educationalLevel === level ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100" : "bg-slate-50 border-slate-100 text-slate-500 hover:border-indigo-200"
+                          tier === t ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100" : "bg-slate-50 border-slate-100 text-slate-500 hover:border-indigo-200"
                         )}
                       >
-                        {level === 'junior' && 'Junior (Form 1-2)'}
-                        {level === 'intermediate' && 'Intermediate (Form 3-4)'}
-                        {level === 'senior' && 'Senior (Form 5-6)'}
-                        {level === 'tertiary' && 'Tertiary'}
-                        {level === 'teacher' && 'Teacher'}
+                        {t} {t === 'T1' && ' — Teachers'}{t === 'T2' && ' — Explorers'}{t === 'T3' && ' — Juniors'}{t === 'T4' && ' — Lower Seniors'}{t === 'T5' && ' — Upper Seniors'}{t === 'T6' && ' — Tertiary'}
                       </button>
                     ))}
                   </div>
@@ -485,7 +509,7 @@ export default function Auth() {
               </div>
               <h3 className="text-3xl font-bold text-slate-900 mb-2">Welcome to YARIA!</h3>
               <p className="text-slate-600 mb-6">
-                You have been registered as a <span className="font-bold text-indigo-600 uppercase">{educationalLevel}</span>.
+                You have been registered as <span className="font-bold text-indigo-600 uppercase">{role === 'mentor' || role === 'admin' ? role : tier}</span>.
               </p>
               
               <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-6 mb-8">
