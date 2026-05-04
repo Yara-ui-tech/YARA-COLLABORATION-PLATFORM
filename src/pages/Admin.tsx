@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, Brain, HelpCircle } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { CURRICULUM } from '../constants/curriculum';
 
 interface UserProfile {
   id: string;
@@ -71,24 +70,11 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings' | 'curriculum' | 'finances'>('members');
-  const [partners, setPartners] = useState<any[]>([]);
-  const [partnerForm, setPartnerForm] = useState({ name: '', website_url: '', description: '', logo_url: '', contact_email: '' });
-  const [curriculumFeedbacks, setCurriculumFeedbacks] = useState<any[]>([]);
-  const [financialLogs, setFinancialLogs] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [newAmountPaid, setNewAmountPaid] = useState('');
-  const [newTotalDues, setNewTotalDues] = useState('');
+  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings'>('members');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
   const [pendingLiveSessions, setPendingLiveSessions] = useState<any[]>([]);
-  const [mentorsList, setMentorsList] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignSessionId, setAssignSessionId] = useState<string | null>(null);
-  const [assignMentorId, setAssignMentorId] = useState<string | null>(null);
-  const [assignNotes, setAssignNotes] = useState('');
   const [autoMentorRequests, setAutoMentorRequests] = useState<any[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -136,116 +122,11 @@ export default function Admin() {
     if (activeTab === 'mentorship') fetchMentorshipRequests();
     if (activeTab === 'reviews') fetchMentorReviews();
     if (activeTab === 'live') fetchPendingLiveSessions();
-    if (activeTab === 'live') fetchMentorsForAssign();
-    if (activeTab === 'live') fetchAssignments();
     if (activeTab === 'mentor_req') fetchAutoMentorRequests();
     if (activeTab === 'events') fetchEvents();
     if (activeTab === 'competitions') fetchCompetitions();
     if (activeTab === 'settings') fetchSettings();
-    if (activeTab === 'curriculum') fetchCurriculumFeedbacks();
-    if (activeTab === 'finances') fetchFinancials();
-    if (activeTab === 'partners') fetchPartners();
   }, [activeTab]);
-
-  const fetchPartners = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.from('partners').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setPartners(data || []);
-    } catch (err: any) {
-      console.error('Error fetching partners:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const savePartner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('partners').insert(partnerForm);
-      if (error) throw error;
-      setPartnerForm({ name: '', website_url: '', description: '', logo_url: '', contact_email: '' });
-      fetchPartners();
-    } catch (err: any) {
-      console.error('Error saving partner:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFinancials = async () => {
-    setLoading(true);
-    try {
-      const { data: logs, error: logsError } = await supabase
-        .from('mentor_session_logs')
-        .select(`
-          *,
-          mentor:profiles(display_name, email)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (logsError) throw logsError;
-      setFinancialLogs(logs || []);
-      
-      // Also fetch users for payment management
-      if (users.length === 0) fetchUsers();
-    } catch (error: any) {
-      console.error('Error fetching financials:', error);
-      setErrorMessage('Failed to load financial data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdatePayment = async (userId: string) => {
-    if (!newAmountPaid && !newTotalDues) return;
-    setLoading(true);
-    try {
-      const updates: any = {};
-      if (newAmountPaid) updates.amount_paid = parseFloat(newAmountPaid);
-      if (newTotalDues) updates.total_dues = parseFloat(newTotalDues);
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId);
-      
-      if (error) throw error;
-      setSuccessMessage('Payment status updated successfully!');
-      setSelectedUser(null);
-      setNewAmountPaid('');
-      setNewTotalDues('');
-      fetchUsers();
-    } catch (error: any) {
-      console.error('Error updating payment:', error);
-      setErrorMessage('Failed to update payment.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCurriculumFeedbacks = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('curriculum_feedback')
-        .select(`
-          *,
-          profile:profiles(display_name, email)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setCurriculumFeedbacks(data || []);
-    } catch (error: any) {
-      console.error('Error fetching curriculum feedbacks:', error);
-      setErrorMessage('Failed to load curriculum feedbacks.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -382,32 +263,6 @@ export default function Admin() {
     setLoading(false);
   };
 
-  const fetchMentorsForAssign = async () => {
-    try {
-      const { data, error } = await supabase.from('profiles').select('id, display_name').eq('role', 'mentor').order('display_name');
-      if (error) throw error;
-      setMentorsList(data || []);
-    } catch (err) {
-      console.error('Error fetching mentors:', err);
-    }
-  };
-
-  const fetchAssignments = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('session_assignments')
-        .select(`*, session:live_sessions(*), mentor:profiles(display_name), assigned_by:profiles!assigned_by(display_name), replacement:profiles!replacement_mentor_id(display_name)`)        
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setAssignments(data || []);
-    } catch (err: any) {
-      console.error('Error fetching assignments:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const approveLiveSession = async (sessionId: string) => {
     setUpdatingId(sessionId);
     try {
@@ -423,127 +278,6 @@ export default function Admin() {
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const openAssignModal = (sessionId: string) => {
-    setAssignSessionId(sessionId);
-    setAssignMentorId(null);
-    setAssignNotes('');
-    setShowAssignModal(true);
-  };
-
-  const assignMentorToSession = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!assignSessionId || !assignMentorId) return alert('Select a mentor');
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('session_assignments').insert({
-        session_id: assignSessionId,
-        mentor_id: assignMentorId,
-        assigned_by: profile?.id,
-        admin_notes: assignNotes
-      });
-      if (error) throw error;
-      setShowAssignModal(false);
-      fetchAssignments();
-      setSuccessMessage('Mentor assigned to session.');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to assign mentor');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAssignmentDone = async (assignmentId: string, paidAmount?: number) => {
-    setUpdatingId(assignmentId);
-    try {
-      const updates: any = { status: 'completed', admin_marked_done_at: new Date().toISOString() };
-      if (typeof paidAmount === 'number') updates.paid_amount = paidAmount;
-
-      const { error } = await supabase.from('session_assignments').update(updates).eq('id', assignmentId);
-      if (error) throw error;
-
-      // If paidAmount provided, add to mentor profile amount_paid
-      if (typeof paidAmount === 'number') {
-        const { data: ass } = await supabase.from('session_assignments').select('mentor_id').eq('id', assignmentId).single();
-        const mentorId = ass?.mentor_id;
-        if (mentorId) {
-          const { data: mentorProfile } = await supabase.from('profiles').select('amount_paid').eq('id', mentorId).single();
-          const currentPaid = parseFloat((mentorProfile?.amount_paid || 0).toString());
-          const newPaid = currentPaid + paidAmount;
-          await supabase.from('profiles').update({ amount_paid: newPaid }).eq('id', mentorId);
-        }
-      }
-
-      fetchAssignments();
-      fetchFinancials();
-      setSuccessMessage('Assignment marked completed.');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to mark done');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const markAssignmentFailed = async (assignmentId: string, reason?: string, replacerId?: string) => {
-    setUpdatingId(assignmentId);
-    try {
-      const updates: any = { status: 'failed', failure_reason: reason || null };
-      if (replacerId) updates.replacement_mentor_id = replacerId;
-
-      const { error } = await supabase.from('session_assignments').update(updates).eq('id', assignmentId);
-      if (error) throw error;
-
-      fetchAssignments();
-      setSuccessMessage('Assignment marked failed.');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to mark failed');
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const approveCommissionLog = async (log: any) => {
-    setUpdatingId(log.id);
-    try {
-      // Mark the log as approved
-      const { error: approveError } = await supabase
-        .from('mentor_session_logs')
-        .update({ admin_approved: true })
-        .eq('id', log.id);
-      if (approveError) throw approveError;
-
-      // Fetch mentor current amount_paid
-      const { data: mentorProfile, error: profileErr } = await supabase
-        .from('profiles')
-        .select('amount_paid')
-        .eq('id', log.mentor_id)
-        .single();
-      if (profileErr) throw profileErr;
-
-      const currentPaid = parseFloat((mentorProfile?.amount_paid || 0).toString());
-      const newPaid = currentPaid + parseFloat(log.amount_received);
-
-      const { error: updateErr } = await supabase
-        .from('profiles')
-        .update({ amount_paid: newPaid })
-        .eq('id', log.mentor_id);
-      if (updateErr) throw updateErr;
-
-      // Refresh data
-      fetchFinancials();
-      fetchUsers();
-      setSuccessMessage('Commission log approved and mentor balance updated.');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error: any) {
-      console.error('Error approving commission log:', error);
-      setErrorMessage(error.message || 'Failed to approve log');
     } finally {
       setUpdatingId(null);
     }
@@ -874,7 +608,7 @@ export default function Admin() {
     setErrorMessage(null);
     try {
       // 1. Clear Storage Buckets
-      const buckets = ['avatars', 'materials'];
+      const buckets = ['avatars', 'materials', 'resources', 'event-banners', 'project-images'];
       for (const bucket of buckets) {
         try {
           const { data: files } = await supabase.storage.from(bucket).list();
@@ -1106,42 +840,6 @@ export default function Admin() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('partners')}
-          className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'partners' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <LinkIcon className="w-4 h-4" />
-            <span>Partners</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('curriculum')}
-          className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'curriculum' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Brain className="w-4 h-4" />
-            <span>Curriculum</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('finances')}
-          className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'finances' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4" />
-            <span>Finances</span>
-          </div>
-        </button>
-        <button
           onClick={() => setActiveTab('settings')}
           className={cn(
             "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1269,40 +967,6 @@ export default function Admin() {
                 </button>
               </form>
             </motion.div>
-          </div>
-        )}
-        {activeTab === 'live' && (
-          <div className="p-8">
-            <h3 className="text-xl font-bold mb-4">Current Assignments</h3>
-            <div className="bg-white rounded-2xl border p-4">
-              {assignments.length === 0 ? (
-                <div className="text-slate-400 p-12 text-center">No assignments yet.</div>
-              ) : (
-                <ul className="space-y-3">
-                  {assignments.map(a => (
-                    <li key={a.id} className="p-3 border rounded-lg flex items-center justify-between">
-                      <div>
-                        <div className="font-bold">{a.session?.title || a.session?.name || 'Untitled'}</div>
-                        <div className="text-xs text-slate-500">Mentor: {a.mentor?.display_name || 'Unassigned'}</div>
-                        <div className="text-xs text-slate-400">Status: {a.status}</div>
-                      </div>
-                      <div className="space-x-2">
-                        <button onClick={() => {
-                          const paid = window.prompt('Enter paid amount (leave blank if none)');
-                          const parsed = paid ? parseFloat(paid) : undefined;
-                          markAssignmentDone(a.id, parsed);
-                        }} className="bg-emerald-600 text-white px-3 py-1 rounded-lg text-sm">Mark Done</button>
-                        <button onClick={() => {
-                          const reason = window.prompt('Reason for failure (optional)');
-                          const replacer = window.prompt('Replacement mentor id (optional)');
-                          markAssignmentFailed(a.id, reason || undefined, replacer || undefined);
-                        }} className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-sm">Mark Failed</button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
         )}
 
@@ -1472,46 +1136,6 @@ export default function Admin() {
             </motion.div>
           </div>
         )}
-
-        <AnimatePresence>
-          {showAssignModal && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl relative"
-              >
-                <button onClick={() => setShowAssignModal(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors">
-                  <CloseIcon className="w-6 h-6" />
-                </button>
-
-                <h3 className="text-2xl font-bold mb-2">Assign Mentor to Session</h3>
-                <p className="text-slate-500 text-sm mb-6">Select a mentor to assign for this session.</p>
-
-                <form onSubmit={(e) => { e.preventDefault(); assignMentorToSession(); }} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Mentor</label>
-                    <select required value={assignMentorId || ''} onChange={e => setAssignMentorId(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4">
-                      <option value="">Select mentor</option>
-                      {mentorsList.map(m => (<option key={m.id} value={m.id}>{m.display_name}</option>))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Admin Notes (optional)</label>
-                    <textarea value={assignNotes} onChange={e => setAssignNotes(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 min-h-[80px]" />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3">
-                    <button type="button" onClick={() => setShowAssignModal(false)} className="px-4 py-2 rounded-xl border">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Assign</button>
-                  </div>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </AnimatePresence>
 
       <AnimatePresence>
@@ -1605,39 +1229,6 @@ export default function Admin() {
           </div>
         )}
 
-                {activeTab === 'partners' && (
-                  <div className="space-y-6">
-                    <div className="p-6 bg-white rounded-2xl border">
-                      <h3 className="text-xl font-bold mb-3">Add Partner</h3>
-                      <form onSubmit={savePartner} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input required placeholder="Name" value={partnerForm.name} onChange={e=>setPartnerForm({...partnerForm,name:e.target.value})} className="p-3 border rounded" />
-                        <input placeholder="Website URL" value={partnerForm.website_url} onChange={e=>setPartnerForm({...partnerForm,website_url:e.target.value})} className="p-3 border rounded" />
-                        <input placeholder="Contact email" value={partnerForm.contact_email} onChange={e=>setPartnerForm({...partnerForm,contact_email:e.target.value})} className="p-3 border rounded" />
-                        <input placeholder="Logo URL" value={partnerForm.logo_url} onChange={e=>setPartnerForm({...partnerForm,logo_url:e.target.value})} className="p-3 border rounded" />
-                        <textarea placeholder="Description" value={partnerForm.description} onChange={e=>setPartnerForm({...partnerForm,description:e.target.value})} className="p-3 border rounded md:col-span-2" />
-                        <div className="md:col-span-2">
-                          <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded">Save Partner</button>
-                        </div>
-                      </form>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {partners.map(p => (
-                        <div key={p.id} className="p-4 bg-white rounded shadow">
-                          <div className="flex items-center space-x-4">
-                            <img src={p.logo_url || '/assets/placeholders/partner.png'} alt={p.name} className="w-12 h-12 object-cover rounded" />
-                            <div>
-                              <div className="font-bold">{p.name}</div>
-                              {p.website_url && <a href={p.website_url} target="_blank" rel="noreferrer" className="text-sm text-indigo-600">{p.website_url}</a>}
-                            </div>
-                          </div>
-                          <p className="mt-3 text-sm text-slate-600">{p.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
         {activeTab === 'competitions' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -1711,287 +1302,6 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {activeTab === 'curriculum' && (
-          <div className="space-y-8 p-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-slate-900">Curriculum Mastery Report</h3>
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Done</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                  <Clock className="w-4 h-4" />
-                  <span>Partial</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
-                  <HelpCircle className="w-4 h-4" />
-                  <span>Struggling</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-6">
-              {CURRICULUM.map(session => {
-                const sessionFeedbacks = curriculumFeedbacks.filter(f => f.session_id === session.id);
-                const doneCount = sessionFeedbacks.filter(f => f.status === 'done').length;
-                const partialCount = sessionFeedbacks.filter(f => f.status === 'partially').length;
-                const struggleCount = sessionFeedbacks.filter(f => f.status === 'struggling').length;
-
-                return (
-                  <div key={session.id} className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-md border border-indigo-100 uppercase tracking-widest">{session.id}</span>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{session.part}</span>
-                        </div>
-                        <h4 className="text-lg font-bold text-slate-900">{session.topic}</h4>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Participants</p>
-                        <p className="text-xl font-black text-indigo-600">{sessionFeedbacks.length}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-emerald-600">Done</span>
-                          <span className="text-sm font-black">{doneCount}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-emerald-500" style={{ width: `${sessionFeedbacks.length ? (doneCount/sessionFeedbacks.length)*100 : 0}%` }} />
-                        </div>
-                      </div>
-                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-amber-600">Partial</span>
-                          <span className="text-sm font-black">{partialCount}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-500" style={{ width: `${sessionFeedbacks.length ? (partialCount/sessionFeedbacks.length)*100 : 0}%` }} />
-                        </div>
-                      </div>
-                      <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-red-600">Struggling</span>
-                          <span className="text-sm font-black">{struggleCount}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-red-500" style={{ width: `${sessionFeedbacks.length ? (struggleCount/sessionFeedbacks.length)*100 : 0}%` }} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {sessionFeedbacks.length > 0 && (
-                      <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Learner Comments</p>
-                        <div className="grid gap-2">
-                          {sessionFeedbacks.map(fb => (
-                            <div key={fb.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-start gap-4">
-                              <div className={cn(
-                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
-                                fb.status === 'done' ? "bg-emerald-500" : 
-                                fb.status === 'partially' ? "bg-amber-500" : "bg-red-500"
-                              )} />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-slate-900 mb-1">{fb.profile?.display_name || 'Anonymous'}</p>
-                                {fb.success_comment && <p className="text-xs text-slate-600 mb-1"><span className="font-bold text-emerald-600">Success:</span> {fb.success_comment}</p>}
-                                {fb.struggle_comment && <p className="text-xs text-slate-600"><span className="font-bold text-red-600">Struggle:</span> {fb.struggle_comment}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'finances' && (
-          <div className="space-y-8 p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* User Payment Management */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Learner Investment Accounts</h3>
-                  <div className="flex items-center space-x-2 bg-indigo-50 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-indigo-600">
-                    <Users className="w-3 h-3" />
-                    <span>{users.filter(u => u.role === 'innovator').length} Innovators</span>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                  <div className="max-h-[600px] overflow-y-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Innovator</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Financials</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {users.filter(u => u.role === 'innovator').map(u => (
-                          <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 text-sm font-bold text-slate-900">{u.display_name}</td>
-                            <td className="px-6 py-4">
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-slate-500 flex items-center justify-between">
-                                  <span>Paid:</span>
-                                  <span className="font-black text-indigo-600">${u.amount_paid || '0.00'}</span>
-                                </p>
-                                <p className="text-xs font-medium text-slate-500 flex items-center justify-between">
-                                  <span>Total:</span>
-                                  <span className="font-black text-slate-900">${u.total_dues || '15.00'}</span>
-                                </p>
-                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (((u as any).amount_paid || 0) / ((u as any).total_dues || 15)) * 100)}%` }} />
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <button 
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setNewAmountPaid((u as any).amount_paid?.toString() || '0');
-                                  setNewTotalDues((u as any).total_dues?.toString() || '15');
-                                }}
-                                className="p-2 text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm border border-indigo-50"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mentor Commission Evaluations */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-slate-900 leading-tight">Mentor Commission Logs</h3>
-                  <div className="flex items-center space-x-2 bg-amber-50 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-amber-600">
-                    <DollarSign className="w-3 h-3" />
-                    <span>Evaluation Needed</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-4">
-                  {financialLogs.map(log => (
-                    <div key={log.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-600 font-black">
-                          {log.mentor?.display_name?.[0]}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900">{log.mentor?.display_name}</p>
-                          <p className="text-xs text-slate-500 flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {log.session_id} • {new Date(log.session_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Commission</p>
-                        <p className="text-xl font-black text-emerald-600">${log.amount_received}</p>
-                        <div className="mt-3 flex items-center justify-end gap-2">
-                          {log.admin_approved ? (
-                            <span className="text-xs font-semibold text-emerald-600">Approved</span>
-                          ) : (
-                            <button
-                              onClick={() => approveCommissionLog(log)}
-                              disabled={updatingId === log.id}
-                              className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-sm font-bold"
-                            >
-                              {updatingId === log.id ? 'Approving...' : 'Approve'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {financialLogs.length === 0 && (
-                    <div className="bg-slate-50 p-12 rounded-3xl text-center border-2 border-dashed border-slate-200">
-                      <p className="text-slate-400 font-medium">No mentor commission logs found.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Edit Payment Modal */}
-            <AnimatePresence>
-              {selectedUser && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl space-y-8"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-2xl font-black text-slate-900 leading-tight">Update Investment</h4>
-                        <p className="text-slate-500 font-medium">Managing finances for {selectedUser.display_name}</p>
-                      </div>
-                      <button onClick={() => setSelectedUser(null)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors">
-                        <XCircle className="w-6 h-6" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Amount Paid (USD)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={newAmountPaid}
-                            onChange={(e) => setNewAmountPaid(e.target.value)}
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-10 pr-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Total Target (USD)</label>
-                        <div className="relative">
-                          <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={newTotalDues}
-                            onChange={(e) => setNewTotalDues(e.target.value)}
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-10 pr-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleUpdatePayment(selectedUser.id)}
-                        disabled={loading}
-                        className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
-                      >
-                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        <span>Save Changes</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
           </div>
         )}
 
@@ -2251,14 +1561,6 @@ export default function Admin() {
                           >
                             <XCircle className="w-3 h-3" />
                             <span>Reject</span>
-                          </button>
-                          <button
-                            onClick={() => openAssignModal(s.id)}
-                            disabled={updatingId === s.id}
-                            className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-all flex items-center space-x-1"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Assign Mentor</span>
                           </button>
                         </div>
                       </td>
