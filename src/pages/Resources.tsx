@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
+import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
 
 interface StudyMaterial {
@@ -66,7 +67,6 @@ export default function Resources() {
     description: '',
     file_type: 'pdf' as const,
     file_url: '', // Added URL fallback
-    thumbnail_url: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -109,57 +109,22 @@ export default function Resources() {
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('materials')
-          .upload(filePath, selectedFile, { upsert: true });
+          .from('resources')
+          .upload(filePath, selectedFile);
 
         if (uploadError) {
           if (uploadError.message.includes('bucket not found')) {
-            throw new Error('The "materials" storage bucket has not been created in Supabase yet. Please use the "Resource URL" field instead or contact an admin.');
+            throw new Error('The "resources" storage bucket has not been created in Supabase yet. Please use the "Resource URL" field instead or contact an admin.');
           }
           throw uploadError;
         }
 
         // 2. Get public URL
         const { data: { publicUrl } } = supabase.storage
-          .from('materials')
+          .from('resources')
           .getPublicUrl(filePath);
-
+        
         finalFileUrl = publicUrl;
-      }
-
-      // determine file type if using a link and no file selected
-      let finalFileType = newMaterial.file_type;
-      if (!selectedFile && finalFileUrl) {
-        const urlLower = finalFileUrl.toLowerCase();
-        if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be') || urlLower.includes('tiktok.com') || urlLower.includes('vimeo.com')) {
-          finalFileType = 'video';
-        } else if (urlLower.endsWith('.pdf')) {
-          finalFileType = 'pdf';
-        } else if (urlLower.endsWith('.doc') || urlLower.endsWith('.docx')) {
-          finalFileType = 'doc';
-        } else {
-          finalFileType = newMaterial.file_type || 'other';
-        }
-      }
-
-      // auto-generate thumbnail for known providers unless provided
-      let finalThumbnail = newMaterial.thumbnail_url || null;
-      if (!finalThumbnail && finalFileUrl) {
-        const u = finalFileUrl.toLowerCase();
-        if (u.includes('youtube.com') || u.includes('youtu.be')) {
-          // extract id
-          const vid = finalFileUrl.includes('youtu') ? finalFileUrl.split('v=')[1]?.split('&')[0] : finalFileUrl.split('/').pop();
-          if (vid) finalThumbnail = `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
-        } else if (u.includes('vimeo.com')) {
-          // vimeo thumbnails require API; skip automatic
-          finalThumbnail = null;
-        } else if (u.includes('tiktok.com')) {
-          // TikTok thumbnails aren't trivially derivable; leave for manual upload
-          finalThumbnail = null;
-        } else if (u.endsWith('.pdf')) {
-          // use generic PDF placeholder (asset can be added later)
-          finalThumbnail = ASSETS.PLACEHOLDER_PDF || null;
-        }
       }
 
       // 3. Save to database
@@ -171,8 +136,7 @@ export default function Resources() {
           title: newMaterial.title,
           description: newMaterial.description,
           file_url: finalFileUrl,
-          file_type: finalFileType,
-          thumbnail_url: finalThumbnail,
+          file_type: newMaterial.file_type,
         });
 
       if (dbError) throw dbError;
@@ -196,14 +160,10 @@ export default function Resources() {
 
     try {
       // 1. Delete from storage (extract path from URL)
-      try {
-        const path = fileUrl.includes('/materials/') ? fileUrl.split('/materials/').pop() : null;
-        if (path) {
-          await supabase.storage.from('materials').remove([path]);
-        }
-      } catch (err) {
-        // ignore storage deletion errors (might be external URL)
-        console.warn('Storage deletion skipped or failed:', err);
+      const path = fileUrl.split('resources/').pop() || fileUrl.split('materials/').pop();
+      if (path) {
+        await supabase.storage.from('resources').remove([path]);
+        await supabase.storage.from('materials').remove([path]);
       }
 
       // 2. Delete from database
@@ -221,22 +181,33 @@ export default function Resources() {
 
   return (
     <div className="space-y-12 pb-12">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Learning Hub</h2>
-          <p className="text-slate-500 font-medium">Access study materials, videos, and simulation tools.</p>
+      <section className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl mb-12">
+        <img 
+          src={ASSETS.DASHBOARD_HERO_BG} 
+          alt="Hero Background" 
+          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="max-w-xl">
+            <h2 className="text-4xl font-bold tracking-tight mb-4">📚 Learning Resources</h2>
+            <p className="text-indigo-50 text-lg font-medium opacity-90">
+              Access study materials, simulation tools, and technical documentation to fuel your innovation.
+            </p>
+          </div>
+          
+          {(profile?.role === 'admin' || profile?.role === 'mentor') && (
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-50 transition-all flex items-center space-x-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Upload Resource</span>
+            </button>
+          )}
         </div>
-        
-        {(profile?.role === 'mentor' || profile?.role === 'admin') && (
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center space-x-2 self-start"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Upload Resource</span>
-          </button>
-        )}
-      </header>
+      </section>
 
       {/* Mentor Materials Section */}
       <section className="space-y-8">
@@ -494,11 +465,6 @@ export default function Resources() {
                     className="w-full px-6 py-4 rounded-2xl border border-slate-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-medium"
                     placeholder="https://example.com/resource.pdf"
                   />
-                  <div className="mt-3">
-                    <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">Thumbnail URL (optional)</label>
-                    <input value={newMaterial.thumbnail_url} onChange={e => setNewMaterial({ ...newMaterial, thumbnail_url: e.target.value })} className="w-full px-6 py-4 rounded-2xl border border-slate-100" placeholder="https://.../thumb.jpg" />
-                    <p className="text-[10px] text-slate-400 mt-2 ml-1">Optional: provide an image URL to use as the resource thumbnail (YouTube thumbnails are auto-detected).</p>
-                  </div>
                   <p className="text-[10px] text-slate-400 mt-2 ml-1">
                     Use this if you have a link to a Google Drive file, YouTube video, or external PDF.
                   </p>
