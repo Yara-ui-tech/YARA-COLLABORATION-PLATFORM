@@ -67,4 +67,8 @@ export const ASSETS = {
 
   // Resource Placeholders
   RESOURCE_PLACEHOLDER: '/assets/placeholders/resource.svg',
+
+  // Signatures
+  EXECUTIVE_SIGNATURE: '/assets/executive-signature.jpg',
 };
+

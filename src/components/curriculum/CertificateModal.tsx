@@ -143,12 +143,20 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
 
             {/* Signatures & Seal */}
             <div className="grid grid-cols-3 items-end gap-4 pt-6 border-t border-slate-200 text-xs">
-              <div className="space-y-1">
-                <div className="font-serif italic font-bold text-slate-800 text-sm">Simbarashe Manongwa</div>
-                <div className="h-0.5 bg-slate-300 w-32 mx-auto"></div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase">President & Lead Instructor</p>
-                <p className="text-[9px] text-slate-400">YARIA Robotics Council</p>
+              <div className="flex flex-col items-center justify-end space-y-1">
+                <div className="h-12 flex items-end justify-center mb-1">
+                  <img 
+                    src={ASSETS.EXECUTIVE_SIGNATURE} 
+                    alt="Simbarashe O Manongwa Signature" 
+                    className="h-10 object-contain mix-blend-multiply contrast-125" 
+                  />
+                </div>
+                <div className="h-0.5 bg-slate-300 w-36 mx-auto"></div>
+                <p className="font-bold text-slate-800 text-xs font-serif">Simbarashe O. Manongwa</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Executive Director</p>
+                <p className="text-[9px] text-slate-400">YARA Robotics Directorate</p>
               </div>
+
 
               {/* Gold Verification Seal */}
               <div className="flex flex-col items-center">
