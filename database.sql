@@ -701,8 +701,10 @@ USING (
 
 -- Initial settings
 INSERT INTO public.system_settings (key, value)
-VALUES ('course_fee', '{"amount": 15, "currency": "USD", "message": "To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15."}')
-ON CONFLICT (key) DO NOTHING;
+VALUES 
+  ('course_fee', '{"amount": 15, "currency": "USD", "message": "To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15."}'),
+  ('launch_time', '{"duration_hours": 72, "launch_date": "2026-04-20T12:00:00.000Z", "title": "Official YARIA Global Launch", "is_enabled": true, "banner_text": "Countdown to the Official YARIA Platform Launch — 72 Hours to Global Innovation!"}')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- =========================
 -- Live Sessions (Google Meet Clone)
@@ -825,3 +827,360 @@ DROP POLICY IF EXISTS "Admins can view and manage all logs" ON public.mentor_ses
 CREATE POLICY "Admins can view and manage all logs"
   ON public.mentor_session_logs FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- CURRICULUM LMS, VIRTUAL COMPETITIONS, CAPSTONE & CERTIFICATION SYSTEM
+-- =========================================================================
+
+-- 1. Curriculum Sessions (Admin dynamic materials, video URLs, questions, assignments)
+CREATE TABLE IF NOT EXISTS public.curriculum_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  session_id TEXT UNIQUE NOT NULL, -- e.g. 'L01', 'L02'
+  topic TEXT NOT NULL,
+  part TEXT,
+  type TEXT,
+  video_url TEXT,
+  resources JSONB DEFAULT '[]'::jsonb,
+  questions JSONB DEFAULT '[]'::jsonb,
+  assignments JSONB DEFAULT '[]'::jsonb,
+  projects JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.curriculum_sessions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can read curriculum sessions" ON public.curriculum_sessions;
+CREATE POLICY "Anyone can read curriculum sessions"
+  ON public.curriculum_sessions FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage curriculum sessions" ON public.curriculum_sessions;
+CREATE POLICY "Admins can manage curriculum sessions"
+  ON public.curriculum_sessions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 2. Curriculum Submissions (Student session assignments and mini-projects)
+CREATE TABLE IF NOT EXISTS public.curriculum_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  session_id TEXT NOT NULL,
+  submission_type TEXT CHECK (submission_type IN ('assignment', 'project')) NOT NULL,
+  submission_id TEXT NOT NULL, -- specific assignment/project identifier
+  content TEXT,
+  submission_link TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  grade_score INTEGER,
+  mentor_feedback TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, session_id, submission_type, submission_id)
+);
+
+ALTER TABLE public.curriculum_submissions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Students can view their own submissions" ON public.curriculum_submissions;
+CREATE POLICY "Students can view their own submissions"
+  ON public.curriculum_submissions FOR SELECT
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'mentor')));
+
+DROP POLICY IF EXISTS "Students can insert their own submissions" ON public.curriculum_submissions;
+CREATE POLICY "Students can insert their own submissions"
+  ON public.curriculum_submissions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Students can update their own submissions" ON public.curriculum_submissions;
+CREATE POLICY "Students can update their own submissions"
+  ON public.curriculum_submissions FOR UPDATE
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'mentor')));
+
+-- 3. Final Exam Attempts
+CREATE TABLE IF NOT EXISTS public.final_exam_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  score INTEGER NOT NULL,
+  passed BOOLEAN NOT NULL DEFAULT false,
+  answers JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.final_exam_attempts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users view own exam attempts" ON public.final_exam_attempts;
+CREATE POLICY "Users view own exam attempts"
+  ON public.final_exam_attempts FOR SELECT
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Users insert exam attempts" ON public.final_exam_attempts;
+CREATE POLICY "Users insert exam attempts"
+  ON public.final_exam_attempts FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- 4. Final Project Submissions (Capstone Project)
+CREATE TABLE IF NOT EXISTS public.final_project_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  project_title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  simulation_url TEXT,
+  code_url TEXT,
+  video_url TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  score INTEGER,
+  feedback TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.final_project_submissions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users view own final project" ON public.final_project_submissions;
+CREATE POLICY "Users view own final project"
+  ON public.final_project_submissions FOR SELECT
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'mentor')));
+
+DROP POLICY IF EXISTS "Users insert final project" ON public.final_project_submissions;
+CREATE POLICY "Users insert final project"
+  ON public.final_project_submissions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users and admins update final project" ON public.final_project_submissions;
+CREATE POLICY "Users and admins update final project"
+  ON public.final_project_submissions FOR UPDATE
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 5. Certificates Table (Verified graduation credentials)
+CREATE TABLE IF NOT EXISTS public.certificates (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  certificate_number TEXT UNIQUE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  student_name TEXT NOT NULL,
+  course_title TEXT NOT NULL DEFAULT 'Full Robotics & Embedded Systems Mastery',
+  issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  exam_score INTEGER NOT NULL,
+  project_title TEXT,
+  instructor_signature TEXT DEFAULT 'Eng. YARIA Director of Robotics',
+  is_verified BOOLEAN DEFAULT true,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can verify and view certificates" ON public.certificates;
+CREATE POLICY "Public can verify and view certificates"
+  ON public.certificates FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage certificates" ON public.certificates;
+CREATE POLICY "Admins can manage certificates"
+  ON public.certificates FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 6. Virtual Competitions & Online Simulation Challenges
+CREATE TABLE IF NOT EXISTS public.virtual_competitions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'robot_simulation',
+  category_label TEXT,
+  description TEXT NOT NULL,
+  duration_hours INTEGER DEFAULT 48,
+  starter_url TEXT,
+  rules TEXT,
+  criteria JSONB DEFAULT '[]'::jsonb,
+  max_score INTEGER DEFAULT 100,
+  prize TEXT,
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.virtual_competitions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view active virtual competitions" ON public.virtual_competitions;
+CREATE POLICY "Anyone can view active virtual competitions"
+  ON public.virtual_competitions FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage virtual competitions" ON public.virtual_competitions;
+CREATE POLICY "Admins can manage virtual competitions"
+  ON public.virtual_competitions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 7. Virtual Competition Submissions
+CREATE TABLE IF NOT EXISTS public.virtual_competition_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  competition_id TEXT NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_name TEXT,
+  user_email TEXT,
+  simulation_url TEXT,
+  repo_url TEXT,
+  video_url TEXT,
+  writeup TEXT,
+  score INTEGER,
+  feedback TEXT,
+  status TEXT CHECK (status IN ('submitted', 'evaluated')) DEFAULT 'submitted',
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(competition_id, user_id)
+);
+
+ALTER TABLE public.virtual_competition_submissions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view leaderboard submissions" ON public.virtual_competition_submissions;
+CREATE POLICY "Anyone can view leaderboard submissions"
+  ON public.virtual_competition_submissions FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Students can submit to competitions" ON public.virtual_competition_submissions;
+CREATE POLICY "Students can submit to competitions"
+  ON public.virtual_competition_submissions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Students and admins update submissions" ON public.virtual_competition_submissions;
+CREATE POLICY "Students and admins update submissions"
+  ON public.virtual_competition_submissions FOR UPDATE
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Seed Initial Virtual Competitions
+INSERT INTO public.virtual_competitions (title, category, category_label, description, duration_hours, starter_url, rules, criteria, max_score, prize)
+VALUES
+(
+  'Autonomous Maze Solver Simulation Sprint',
+  'robot_simulation',
+  'Robot Simulation Sprint',
+  'Program a differential-drive robot in Wokwi with ultrasonic & IR sensors to traverse and map an unknown randomized maze in under 45 seconds.',
+  48,
+  'https://wokwi.com/projects/new/arduino-uno',
+  'Must use standard Arduino C++. No external hardware modules beyond standard servo & ultrasonic.',
+  '["Wall-following precision (35%)", "Non-blocking execution time (35%)", "Memory efficiency & clean code (30%)"]'::jsonb,
+  100,
+  '$100 Hardware Grant + Verified Gold Badge'
+),
+(
+  'Ultra-Low Power IoT Telemetry PCB Sprint',
+  'pcb_design',
+  'PCB Design & Circuitry',
+  'Design an ESP32 power-optimized node with solar harvesting circuitry, deep-sleep triggers, and LiFePO4 battery protection.',
+  72,
+  'https://easyeda.com/editor',
+  'Schematic and 2-layer PCB layout must pass DRC check without clearance errors.',
+  '["Power integrity & decoupling (40%)", "Trace routing & thermal relief (30%)", "BOM cost optimization (30%)"]'::jsonb,
+  100,
+  '$150 PCB Prototyping Voucher + Verified Hardware Badge'
+),
+(
+  'PID Line Tracker & Dynamic Speed Control',
+  'embedded_c',
+  'Embedded Algorithm Sprint',
+  'Implement a deterministic Proportional-Integral-Derivative (PID) loop for an 8-array optical sensor line following robot on simulated tracks with acute hairpins.',
+  36,
+  'https://wokwi.com/projects/new/arduino-uno',
+  'Sampling rate must exceed 100Hz with zero oscillation on sharp 90-degree transitions.',
+  '["PID tuning stability (40%)", "Lap completion velocity (35%)", "Noise filtering implementation (25%)"]'::jsonb,
+  100,
+  '$75 Hardware Voucher + Verified Algorithm Badge'
+)
+-- 8. Brainstorming & Critical Thinking Image Quizzes
+CREATE TABLE IF NOT EXISTS public.brainstorming_questions (
+  id TEXT PRIMARY KEY,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  options JSONB NOT NULL,
+  correct_index INTEGER NOT NULL,
+  explanation TEXT NOT NULL,
+  difficulty TEXT CHECK (difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'medium',
+  points INTEGER DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.brainstorming_questions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view brainstorming questions" ON public.brainstorming_questions;
+CREATE POLICY "Anyone can view brainstorming questions"
+  ON public.brainstorming_questions FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage brainstorming questions" ON public.brainstorming_questions;
+CREATE POLICY "Admins can manage brainstorming questions"
+  ON public.brainstorming_questions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 9. Brainstorming Attempts
+CREATE TABLE IF NOT EXISTS public.brainstorming_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  score INTEGER NOT NULL,
+  total_questions INTEGER NOT NULL,
+  time_spent_seconds INTEGER,
+  answers JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.brainstorming_attempts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own attempts" ON public.brainstorming_attempts;
+CREATE POLICY "Users can view own attempts"
+  ON public.brainstorming_attempts FOR SELECT
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Users can insert own attempts" ON public.brainstorming_attempts;
+CREATE POLICY "Users can insert own attempts"
+  ON public.brainstorming_attempts FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- 10. Finance: Investments & Grants
+CREATE TABLE IF NOT EXISTS public.finance_investments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  source_name TEXT NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  category TEXT CHECK (category IN ('grant', 'venture', 'angel', 'sponsorship', 'equipment', 'other')) DEFAULT 'grant',
+  date TIMESTAMPTZ NOT NULL,
+  description TEXT,
+  target_project TEXT,
+  reference_code TEXT,
+  status TEXT CHECK (status IN ('received', 'pledged', 'processing')) DEFAULT 'received',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.finance_investments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage finance investments" ON public.finance_investments;
+CREATE POLICY "Admins can manage finance investments"
+  ON public.finance_investments FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 11. Finance: Mentor Payouts & Commissions
+CREATE TABLE IF NOT EXISTS public.finance_mentor_payouts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  mentor_name TEXT,
+  mentor_email TEXT,
+  amount DECIMAL(10,2) NOT NULL,
+  sessions_covered INTEGER DEFAULT 1,
+  payment_method TEXT NOT NULL,
+  status TEXT CHECK (status IN ('paid', 'pending', 'cancelled')) DEFAULT 'pending',
+  notes TEXT,
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.finance_mentor_payouts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins and mentors can view payouts" ON public.finance_mentor_payouts;
+CREATE POLICY "Admins and mentors can view payouts"
+  ON public.finance_mentor_payouts FOR SELECT
+  USING (auth.uid() = mentor_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins can manage mentor payouts" ON public.finance_mentor_payouts;
+CREATE POLICY "Admins can manage mentor payouts"
+  ON public.finance_mentor_payouts FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+

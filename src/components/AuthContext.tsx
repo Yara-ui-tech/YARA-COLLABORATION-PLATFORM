@@ -81,13 +81,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [profile]);
 
   const isTrialExpired = useMemo(() => {
-    if (!profile?.trial_ends_at || profile.registration_paid || profile.role === 'admin') return false;
+    if (!profile) return false;
+    if (profile.role === 'admin' || profile.registration_paid) return false;
+    if (!profile.trial_ends_at) return false;
     return new Date(profile.trial_ends_at) < new Date();
   }, [profile]);
 
   const isHalted = useMemo(() => {
-    return !!profile?.is_halted || isTrialExpired;
-  }, [profile, isTrialExpired]);
+    return !!profile?.is_halted;
+  }, [profile]);
 
   const isAccountActive = useMemo(() => {
     if (!profile) return false;
@@ -96,11 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check for halt or expiry
     if (profile.is_halted) return false;
-    if (isSubscriptionExpired) return false;
-    if (isTrialExpired) return false;
+    if (isTrialExpired && !profile.registration_paid) return false;
+    if (isSubscriptionExpired && !profile.registration_paid) return false;
 
-    // Innovators need member_id
-    return !!profile.member_id;
+    return true;
   }, [profile, isSubscriptionExpired, isTrialExpired]);
 
   useEffect(() => {

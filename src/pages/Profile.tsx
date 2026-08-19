@@ -73,9 +73,8 @@ export default function Profile() {
         throw uploadError;
       }
 
-      // Get public URL (guarded extraction)
-      const publicRes = supabase.storage.from('avatars').getPublicUrl(filePath as string);
-      const publicUrl = publicRes?.data?.publicUrl || publicRes?.data?.publicURL || publicRes?.publicURL || publicRes?.publicUrl;
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath as string);
       if (!publicUrl) throw new Error('Failed to obtain public URL for uploaded avatar. Check bucket/public settings.');
 
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));

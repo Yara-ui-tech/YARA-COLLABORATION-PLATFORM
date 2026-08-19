@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
+import VirtualCompetitionAdminTab from '../components/admin/VirtualCompetitionAdminTab';
+import FinanceAdminTab from '../components/admin/FinanceAdminTab';
+import BrainstormingAdminTab from '../components/admin/BrainstormingAdminTab';
 
 interface UserProfile {
   id: string;
@@ -70,7 +74,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'events' | 'competitions' | 'settings'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('members');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -78,6 +82,8 @@ export default function Admin() {
   const [autoMentorRequests, setAutoMentorRequests] = useState<any[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingCompId, setEditingCompId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -89,6 +95,13 @@ export default function Admin() {
   
   // Settings State
   const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
+  const [launchConfig, setLaunchConfig] = useState({
+    duration_hours: 72,
+    launch_date: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    title: 'Official YARIA Global Launch',
+    is_enabled: true,
+    banner_text: 'Countdown to the Official YARIA Platform Launch — 72 Hours of Innovation & Robotics'
+  });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Form States
@@ -131,15 +144,31 @@ export default function Admin() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: feeData } = await supabase
         .from('system_settings')
         .select('value')
         .eq('key', 'course_fee')
         .single();
       
-      if (error && error.code !== 'PGRST116') throw error;
-      if (data?.value) {
-        setCourseFee(data.value);
+      if (feeData?.value) {
+        setCourseFee(feeData.value);
+      }
+
+      const { data: launchData } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'launch_time')
+        .single();
+      
+      if (launchData?.value) {
+        const val = launchData.value;
+        setLaunchConfig({
+          duration_hours: val.duration_hours || 72,
+          launch_date: val.launch_date ? new Date(val.launch_date).toISOString().slice(0, 16) : new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().slice(0, 16),
+          title: val.title || 'Official YARIA Global Launch',
+          is_enabled: val.is_enabled !== false,
+          banner_text: val.banner_text || 'Countdown to the Official YARIA Platform Launch — 72 Hours of Innovation & Robotics'
+        });
       }
     } catch (error: any) {
       console.error('Error fetching settings:', error);
@@ -152,7 +181,7 @@ export default function Admin() {
   const saveSettings = async () => {
     setIsSavingSettings(true);
     try {
-      const { error } = await supabase
+      const { error: feeError } = await supabase
         .from('system_settings')
         .upsert({
           key: 'course_fee',
@@ -160,13 +189,55 @@ export default function Admin() {
           updated_at: new Date().toISOString()
         });
 
-      if (error) throw error;
-      setSuccessMessage('Settings saved successfully.');
+      if (feeError) throw feeError;
+
+      const { error: launchError } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'launch_time',
+          value: {
+            ...launchConfig,
+            launch_date: new Date(launchConfig.launch_date).toISOString()
+          },
+          updated_at: new Date().toISOString()
+        });
+
+      if (launchError) throw launchError;
+
+      setSuccessMessage('All settings and launch timer updated successfully.');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const reset72HoursLaunch = async () => {
+    const newTarget = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const updated = {
+      ...launchConfig,
+      duration_hours: 72,
+      launch_date: newTarget.toISOString().slice(0, 16),
+      is_enabled: true
+    };
+    setLaunchConfig(updated);
+    
+    try {
+      await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'launch_time',
+          value: {
+            ...updated,
+            launch_date: newTarget.toISOString()
+          },
+          updated_at: new Date().toISOString()
+        });
+      setSuccessMessage('Launch countdown has been officially reset to 72 hours!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (e: any) {
+      setErrorMessage('Could not reset timer: ' + e.message);
     }
   };
 
@@ -335,28 +406,90 @@ export default function Admin() {
     setLoading(false);
   };
 
+  const openCreateEventModal = () => {
+    setEditingEventId(null);
+    setEventForm({
+      title: '',
+      description: '',
+      date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      location: '',
+      image_url: '',
+      registration_link: '',
+      is_upcoming: true,
+      category: 'other'
+    });
+    setShowEventModal(true);
+  };
+
+  const openEditEventModal = (event: Event) => {
+    setEditingEventId(event.id);
+    setEventForm({
+      title: event.title || '',
+      description: event.description || '',
+      date: event.date ? new Date(event.date).toISOString().slice(0, 16) : '',
+      location: event.location || '',
+      image_url: event.image_url || '',
+      registration_link: event.registration_link || '',
+      is_upcoming: event.is_upcoming !== false,
+      category: event.category || 'other'
+    });
+    setShowEventModal(true);
+  };
+
+  const openCreateCompModal = () => {
+    setEditingCompId(null);
+    setCompForm({
+      title: '',
+      description: '',
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      registration_link: '',
+      image_url: '',
+      status: 'upcoming'
+    });
+    setShowCompModal(true);
+  };
+
+  const openEditCompModal = (comp: Competition) => {
+    setEditingCompId(comp.id);
+    setCompForm({
+      title: comp.title || '',
+      description: comp.description || '',
+      start_date: comp.start_date ? new Date(comp.start_date).toISOString().split('T')[0] : '',
+      end_date: comp.end_date ? new Date(comp.end_date).toISOString().split('T')[0] : '',
+      registration_link: comp.registration_link || '',
+      image_url: comp.image_url || '',
+      status: comp.status || 'upcoming'
+    });
+    setShowCompModal(true);
+  };
+
   const saveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('events')
-        .insert(eventForm);
+      if (editingEventId) {
+        const { error } = await supabase
+          .from('events')
+          .update({
+            ...eventForm,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingEventId);
 
-      if (error) throw error;
+        if (error) throw error;
+        setSuccessMessage('Event updated successfully.');
+      } else {
+        const { error } = await supabase
+          .from('events')
+          .insert(eventForm);
 
-      setSuccessMessage('Event created successfully.');
+        if (error) throw error;
+        setSuccessMessage('Event created successfully.');
+      }
+
       setShowEventModal(false);
-      setEventForm({
-        title: '',
-        description: '',
-        date: '',
-        location: '',
-        image_url: '',
-        registration_link: '',
-        is_upcoming: true,
-        category: 'other'
-      });
+      setEditingEventId(null);
       fetchEvents();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
@@ -370,23 +503,28 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('competitions')
-        .insert(compForm);
+      if (editingCompId) {
+        const { error } = await supabase
+          .from('competitions')
+          .update({
+            ...compForm,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingCompId);
 
-      if (error) throw error;
+        if (error) throw error;
+        setSuccessMessage('Competition updated successfully.');
+      } else {
+        const { error } = await supabase
+          .from('competitions')
+          .insert(compForm);
 
-      setSuccessMessage('Competition created successfully.');
+        if (error) throw error;
+        setSuccessMessage('Competition created successfully.');
+      }
+
       setShowCompModal(false);
-      setCompForm({
-        title: '',
-        description: '',
-        start_date: '',
-        end_date: '',
-        registration_link: '',
-        image_url: '',
-        status: 'upcoming'
-      });
+      setEditingCompId(null);
       fetchCompetitions();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
@@ -737,8 +875,8 @@ export default function Admin() {
           </button>
           <button
             onClick={() => {
-              if (activeTab === 'events') setShowEventModal(true);
-              else if (activeTab === 'competitions') setShowCompModal(true);
+              if (activeTab === 'events') openCreateEventModal();
+              else if (activeTab === 'competitions') openCreateCompModal();
               else setShowAddModal(true);
             }}
             className="flex items-center space-x-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
@@ -754,11 +892,11 @@ export default function Admin() {
       </header>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit max-w-full">
         <button
           onClick={() => setActiveTab('members')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
             activeTab === 'members' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
@@ -768,57 +906,57 @@ export default function Admin() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('mentorship')}
+          onClick={() => setActiveTab('curriculum')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'mentorship' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'curriculum' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <div className="flex items-center space-x-2">
-            <MessageSquare className="w-4 h-4" />
-            <span>Mentorship</span>
+            <BookOpen className="w-4 h-4" />
+            <span>Curriculum & LMS</span>
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('reviews')}
+          onClick={() => setActiveTab('virtual_comp')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'reviews' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'virtual_comp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <div className="flex items-center space-x-2">
-            <Star className="w-4 h-4" />
-            <span>Reviews</span>
+            <Zap className="w-4 h-4" />
+            <span>Virtual Arena</span>
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('live')}
+          onClick={() => setActiveTab('brainstorming')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'live' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'brainstorming' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <div className="flex items-center space-x-2">
-            <Video className="w-4 h-4" />
-            <span>Live Approvals</span>
+            <Brain className="w-4 h-4 text-amber-500" />
+            <span>Image Quizzes</span>
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('mentor_req')}
+          onClick={() => setActiveTab('finance')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'mentor_req' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'finance' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <div className="flex items-center space-x-2">
-            <UserPlus className="w-4 h-4" />
-            <span>Mentor Requests</span>
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            <span>Finance & Mentor Payouts</span>
           </div>
         </button>
         <button
           onClick={() => setActiveTab('events')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
             activeTab === 'events' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
@@ -830,7 +968,7 @@ export default function Admin() {
         <button
           onClick={() => setActiveTab('competitions')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
             activeTab === 'competitions' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
@@ -840,9 +978,57 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('mentorship')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'mentorship' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <MessageSquare className="w-4 h-4" />
+            <span>Mentorship</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('reviews')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'reviews' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Star className="w-4 h-4" />
+            <span>Reviews</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('live')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'live' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Video className="w-4 h-4" />
+            <span>Live Approvals</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('mentor_req')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'mentor_req' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <UserPlus className="w-4 h-4" />
+            <span>Mentor Requests</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('settings')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
             activeTab === 'settings' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
@@ -863,14 +1049,21 @@ export default function Admin() {
               className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative my-8"
             >
               <button 
-                onClick={() => setShowEventModal(false)}
+                onClick={() => {
+                  setShowEventModal(false);
+                  setEditingEventId(null);
+                }}
                 className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors"
               >
                 <CloseIcon className="w-6 h-6" />
               </button>
 
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Create New Event</h3>
-              <p className="text-slate-500 text-sm mb-8">Add an upcoming event or outreach program.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                {editingEventId ? 'Edit Event Details' : 'Create New Event'}
+              </h3>
+              <p className="text-slate-500 text-sm mb-8">
+                {editingEventId ? 'Update event information and registration link.' : 'Add an upcoming event or outreach program.'}
+              </p>
 
               <form onSubmit={saveEvent} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -958,12 +1151,25 @@ export default function Admin() {
                   </div>
                 </div>
 
+                <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <input
+                    type="checkbox"
+                    id="is_upcoming_event"
+                    checked={eventForm.is_upcoming}
+                    onChange={(e) => setEventForm({ ...eventForm, is_upcoming: e.target.checked })}
+                    className="w-5 h-5 text-indigo-600 rounded-lg focus:ring-indigo-500 border-slate-300"
+                  />
+                  <label htmlFor="is_upcoming_event" className="text-sm font-bold text-slate-700 cursor-pointer">
+                    Show in Upcoming Events section
+                  </label>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Event</span>}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>{editingEventId ? 'Save Event Changes' : 'Create Event'}</span>}
                 </button>
               </form>
             </motion.div>
@@ -979,14 +1185,21 @@ export default function Admin() {
               className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative my-8"
             >
               <button 
-                onClick={() => setShowCompModal(false)}
+                onClick={() => {
+                  setShowCompModal(false);
+                  setEditingCompId(null);
+                }}
                 className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors"
               >
                 <CloseIcon className="w-6 h-6" />
               </button>
 
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Create New Competition</h3>
-              <p className="text-slate-500 text-sm mb-8">Add a new competition with registration links.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                {editingCompId ? 'Edit Competition Details' : 'Create New Competition'}
+              </h3>
+              <p className="text-slate-500 text-sm mb-8">
+                {editingCompId ? 'Update dates, registration status, and guidelines.' : 'Add a new competition with registration links.'}
+              </p>
 
               <form onSubmit={saveCompetition} className="space-y-6">
                 <div>
@@ -1012,7 +1225,7 @@ export default function Admin() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Start Date</label>
                     <input
@@ -1032,6 +1245,18 @@ export default function Admin() {
                       onChange={(e) => setCompForm({ ...compForm, end_date: e.target.value })}
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Status</label>
+                    <select
+                      value={compForm.status}
+                      onChange={(e) => setCompForm({ ...compForm, status: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    >
+                      <option value="upcoming">Upcoming</option>
+                      <option value="active">Active (Ongoing)</option>
+                      <option value="completed">Completed</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1063,7 +1288,7 @@ export default function Admin() {
                   disabled={loading}
                   className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Competition</span>}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>{editingCompId ? 'Save Competition Changes' : 'Create Competition'}</span>}
                 </button>
               </form>
             </motion.div>
@@ -1214,12 +1439,22 @@ export default function Admin() {
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button 
-                          onClick={() => deleteEvent(e.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => openEditEventModal(e)}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                            title="Edit Event"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => deleteEvent(e.id)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            title="Delete Event"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1290,12 +1525,22 @@ export default function Admin() {
                         )}
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button 
-                          onClick={() => deleteCompetition(c.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => openEditCompModal(c)}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                            title="Edit Competition"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => deleteCompetition(c.id)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            title="Delete Competition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1306,61 +1551,134 @@ export default function Admin() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-xl shadow-indigo-50/50">
-            <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center space-x-3">
-              <DollarSign className="w-6 h-6 text-indigo-600" />
-              <span>Course & Platform Fees</span>
-            </h3>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Amount</label>
-                  <div className="relative group">
-                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+          <div className="p-8 md:p-12 space-y-10">
+            {/* Launch Timer Configuration */}
+            <div className="max-w-3xl bg-slate-50/70 rounded-[2.5rem] p-8 md:p-10 border border-slate-200/80 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900 flex items-center space-x-3">
+                    <Clock className="w-6 h-6 text-indigo-600" />
+                    <span>Official 72-Hour Platform Launch Countdown</span>
+                  </h3>
+                  <p className="text-slate-500 text-sm font-medium mt-1">
+                    Control the global launch countdown timer displayed on the homepage.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={reset72HoursLaunch}
+                  className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-5 py-2.5 rounded-2xl font-bold text-xs border border-indigo-200 transition-all flex items-center space-x-2 self-start md:self-auto"
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>Reset to 72 Hours from Now</span>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Launch Title</label>
                     <input
-                      type="number"
-                      value={courseFee.amount}
-                      onChange={(e) => setCourseFee({ ...courseFee, amount: Number(e.target.value) })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold pl-12"
-                      placeholder="15"
+                      type="text"
+                      value={launchConfig.title}
+                      onChange={(e) => setLaunchConfig({ ...launchConfig, title: e.target.value })}
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all text-slate-900 font-bold"
+                      placeholder="Official YARIA Global Launch"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Target Launch Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={launchConfig.launch_date}
+                      onChange={(e) => setLaunchConfig({ ...launchConfig, launch_date: e.target.value })}
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all text-slate-900 font-bold"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Currency</label>
-                  <input
-                    type="text"
-                    value={courseFee.currency}
-                    onChange={(e) => setCourseFee({ ...courseFee, currency: e.target.value })}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold"
-                    placeholder="USD"
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Banner Announcement Text</label>
+                  <textarea
+                    value={launchConfig.banner_text}
+                    onChange={(e) => setLaunchConfig({ ...launchConfig, banner_text: e.target.value })}
+                    className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all text-slate-900 font-medium min-h-[80px]"
+                    placeholder="Announcement message displayed to users..."
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Popup Message</label>
-                <textarea
-                  value={courseFee.message}
-                  onChange={(e) => setCourseFee({ ...courseFee, message: e.target.value })}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium min-h-[120px] resize-none"
-                  placeholder="Enter the message users will see after signup..."
-                />
-                <p className="text-xs text-slate-400 font-medium ml-1">
-                  Tip: This message appears in the "Welcome to YARIA" popup immediately after a new user registers.
-                </p>
+                <div className="flex items-center space-x-3 p-4 bg-white rounded-2xl border border-slate-200">
+                  <input
+                    type="checkbox"
+                    id="launch_enabled"
+                    checked={launchConfig.is_enabled}
+                    onChange={(e) => setLaunchConfig({ ...launchConfig, is_enabled: e.target.checked })}
+                    className="w-5 h-5 text-indigo-600 rounded-lg focus:ring-indigo-500 border-slate-300"
+                  />
+                  <label htmlFor="launch_enabled" className="text-sm font-bold text-slate-700 cursor-pointer">
+                    Enable Launch Countdown Banner on Homepage
+                  </label>
+                </div>
               </div>
+            </div>
 
-              <div className="pt-4">
-                <button
-                  onClick={saveSettings}
-                  disabled={isSavingSettings}
-                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-                >
-                  {isSavingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                  <span>Save System Settings</span>
-                </button>
+            {/* Course & Platform Fees */}
+            <div className="max-w-3xl bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-xl shadow-indigo-50/50">
+              <h3 className="text-2xl font-bold text-slate-900 mb-8 flex items-center space-x-3">
+                <DollarSign className="w-6 h-6 text-indigo-600" />
+                <span>Course & Platform Fees</span>
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Amount</label>
+                    <div className="relative group">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                      <input
+                        type="number"
+                        value={courseFee.amount}
+                        onChange={(e) => setCourseFee({ ...courseFee, amount: Number(e.target.value) })}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold pl-12"
+                        placeholder="15"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Currency</label>
+                    <input
+                      type="text"
+                      value={courseFee.currency}
+                      onChange={(e) => setCourseFee({ ...courseFee, currency: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold"
+                      placeholder="USD"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Popup Message</label>
+                  <textarea
+                    value={courseFee.message}
+                    onChange={(e) => setCourseFee({ ...courseFee, message: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium min-h-[100px] resize-none"
+                    placeholder="Enter the message users will see after signup..."
+                  />
+                  <p className="text-xs text-slate-400 font-medium ml-1">
+                    Tip: This message appears in the "Welcome to YARIA" popup immediately after a new user registers.
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    onClick={saveSettings}
+                    disabled={isSavingSettings}
+                    className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                  >
+                    {isSavingSettings ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    <span>Save All System Settings</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1630,6 +1948,26 @@ export default function Admin() {
             </table>
           </div>
         )}
+        {activeTab === 'curriculum' && (
+          <div className="p-8">
+            <CurriculumAdminTab />
+          </div>
+        )}
+        {activeTab === 'virtual_comp' && (
+          <div className="p-8">
+            <VirtualCompetitionAdminTab />
+          </div>
+        )}
+        {activeTab === 'brainstorming' && (
+          <div className="p-8">
+            <BrainstormingAdminTab />
+          </div>
+        )}
+        {activeTab === 'finance' && (
+          <div className="p-8">
+            <FinanceAdminTab />
+          </div>
+        )}
       </section>
     </div>
   );
@@ -1648,7 +1986,26 @@ interface UserRowProps {
 
 function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateRole, onRevoke, isUpdating }: UserRowProps) {
   const [newId, setNewId] = useState(user.member_id || '');
+  const [copied, setCopied] = useState(false);
   const [expiryDate, setExpiryDate] = useState(user.subscription_expires_at ? new Date(user.subscription_expires_at).toISOString().split('T')[0] : '');
+
+  // Synchronize internal newId state whenever user prop updates
+  useEffect(() => {
+    setNewId(user.member_id || '');
+  }, [user.member_id]);
+
+  const generateAutoId = () => {
+    const year = new Date().getFullYear();
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const generated = `YARIA-${year}-${randomDigits}`;
+    setNewId(generated);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <tr className="hover:bg-slate-50/50 transition-colors group">
@@ -1725,29 +2082,61 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
         </div>
       </td>
       <td className="px-8 py-6">
-        <div className="flex items-center space-x-2">
-          <div className="relative group/input max-w-[160px]">
-            <input
-              type="text"
-              value={newId}
-              onChange={(e) => setNewId(e.target.value)}
-              className="w-full bg-white border-2 border-slate-200 rounded-xl py-2 px-4 focus:outline-none focus:border-indigo-600 transition-all font-mono text-xs font-bold text-slate-900"
-              placeholder="ID Number"
-            />
-          </div>
-          <button
-            onClick={() => onUpdate(user.id, user.email, user.display_name, newId)}
-            disabled={isUpdating || newId === user.member_id || !newId.trim()}
-            className={cn(
-              "p-2 rounded-xl transition-all",
-              newId === user.member_id || !newId.trim()
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:bg-indigo-700"
+        <div className="space-y-1.5">
+          {/* Active Member ID Status Badge */}
+          <div className="flex items-center space-x-2">
+            {user.member_id ? (
+              <div className="flex items-center space-x-1.5 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
+                <span className="font-mono text-[11px] font-black text-indigo-700">{user.member_id}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(user.member_id!)}
+                  className="text-indigo-400 hover:text-indigo-700 transition-colors"
+                  title="Copy ID"
+                >
+                  {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+            ) : (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
+                No ID Assigned
+              </span>
             )}
-            title="Update ID"
-          >
-            <Save className="w-4 h-4" />
-          </button>
+          </div>
+
+          {/* Edit / Assign ID input bar */}
+          <div className="flex items-center space-x-1.5">
+            <div className="relative group/input max-w-[150px]">
+              <input
+                type="text"
+                value={newId}
+                onChange={(e) => setNewId(e.target.value)}
+                className="w-full bg-white border-2 border-slate-200 rounded-xl py-1.5 px-3 focus:outline-none focus:border-indigo-600 transition-all font-mono text-xs font-bold text-slate-900"
+                placeholder="e.g. YARIA-2026-..."
+              />
+            </div>
+            <button
+              type="button"
+              onClick={generateAutoId}
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"
+              title="Generate Random ID"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onUpdate(user.id, user.email, user.display_name, newId)}
+              disabled={isUpdating || newId === user.member_id || !newId.trim()}
+              className={cn(
+                "p-1.5 rounded-xl transition-all",
+                newId === user.member_id || !newId.trim()
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-indigo-600 text-white shadow-md shadow-indigo-100 hover:bg-indigo-700"
+              )}
+              title="Save Member ID"
+            >
+              <Save className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </td>
       <td className="px-8 py-6">
@@ -1779,3 +2168,4 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
     </tr>
   );
 }
+

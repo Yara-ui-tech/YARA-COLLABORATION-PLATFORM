@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
+import { INITIAL_COMPETITIONS, INITIAL_EVENTS } from '../constants/eventsData';
+import { VirtualCompetition } from '../types/competition';
+import { INITIAL_VIRTUAL_COMPETITIONS } from '../constants/curriculum';
+import VirtualCompetitionCard from '../components/competition/VirtualCompetitionCard';
+import VirtualCompetitionModal from '../components/competition/VirtualCompetitionModal';
 
 interface Event {
   id: string;
@@ -30,9 +35,15 @@ interface Competition {
 }
 
 export default function Events() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS as Event[]);
+  const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
+  const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');
+
+  // Modal for Virtual Challenge
+  const [selectedVirtualComp, setSelectedVirtualComp] = useState<VirtualCompetition | null>(null);
+  const [isVirtualModalOpen, setIsVirtualModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,234 +63,340 @@ export default function Events() {
         .select('*')
         .order('start_date', { ascending: true });
 
-      setEvents(eventsData || []);
-      setCompetitions(compsData || []);
+      const { data: vCompsData } = await supabase
+        .from('virtual_competitions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (eventsData && eventsData.length > 0) {
+        setEvents(eventsData);
+      } else {
+        setEvents(INITIAL_EVENTS as Event[]);
+      }
+
+      if (compsData && compsData.length > 0) {
+        setCompetitions(compsData);
+      } else {
+        setCompetitions(INITIAL_COMPETITIONS as Competition[]);
+      }
+      
+      if (vCompsData && vCompsData.length > 0) {
+        setVirtualCompetitions(vCompsData);
+      } else {
+        setVirtualCompetitions(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
+      }
     } catch (error) {
       console.error('Error fetching events:', error);
+      setEvents(INITIAL_EVENTS as Event[]);
+      setCompetitions(INITIAL_COMPETITIONS as Competition[]);
     } finally {
       setLoading(false);
     }
   }
 
+  const handleOpenVirtualChallenge = (vComp: VirtualCompetition) => {
+    setSelectedVirtualComp(vComp);
+    setIsVirtualModalOpen(true);
+  };
+
   return (
-    <div className="space-y-8 pb-12">
-      <header>
-        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Events & Competitions</h2>
-        <p className="text-slate-500 font-medium">Join our upcoming events and showcase your skills.</p>
+    <div className="space-y-8 pb-16">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest">
+            <Trophy className="w-4 h-4" />
+            <span>Competitive Arena & Hackathons</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+            Events & Competitions
+          </h2>
+          <p className="text-slate-500 font-medium text-sm max-w-xl">
+            Compete in virtual simulation sprints, PCB design challenges, hardware showcases, and robotics hackathons.
+          </p>
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center space-x-2 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm shrink-0">
+          {[
+            { id: 'all', label: 'All Arena Events' },
+            { id: 'virtual', label: 'Virtual Challenges', badge: virtualCompetitions.length },
+            { id: 'physical', label: 'Physical Events', badge: events.length + competitions.length }
+          ].map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id as any)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                activeFilter === filter.id
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <span>{filter.label}</span>
+              {filter.badge !== undefined && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  activeFilter === filter.id ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {filter.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </header>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-          <p className="text-slate-500 font-bold">Loading upcoming events...</p>
+          <p className="text-slate-500 font-bold text-sm">Loading arena events...</p>
         </div>
       ) : (
-        <div className="grid gap-12">
-          {events.length === 0 && competitions.length === 0 && (
-            <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100">
-              <Calendar className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-slate-900 mb-2">No Upcoming Events</h3>
-              <p className="text-slate-500">Check back later for new workshops and competitions!</p>
-            </div>
+        <div className="space-y-12">
+          {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
+          {(activeFilter === 'all' || activeFilter === 'virtual') && (
+            <section className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                      Virtual Online Challenges & Sprints
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Simulate, wire, and code in Wokwi, Tinkercad, or EasyEDA within timed windows
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {virtualCompetitions.map(vComp => (
+                  <VirtualCompetitionCard
+                    key={vComp.id}
+                    competition={vComp}
+                    onOpen={handleOpenVirtualChallenge}
+                  />
+                ))}
+              </div>
+            </section>
           )}
 
-          {/* Render Competitions First */}
-          {competitions.map((comp, index) => (
-            <motion.div
-              key={comp.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-indigo-50/50 group"
-            >
-              <div className="relative h-64 md:h-80 overflow-hidden">
-                {comp.image_url ? (
-                  <img
-                    src={comp.image_url}
-                    alt={comp.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
-                    }}
-                  />
-                ) : (
-                  <PlaceholderImage type="project" text={comp.title} />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                <div className="absolute bottom-8 left-8 right-8">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                      Competition
-                    </span>
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                      {comp.status}
-                    </span>
-                  </div>
-                  <h3 className="text-3xl font-bold text-white tracking-tight">{comp.title}</h3>
+          {/* SECTION 2: PHYSICAL COMPETITIONS & EVENTS */}
+          {(activeFilter === 'all' || activeFilter === 'physical') && (
+            <section className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Calendar className="w-5 h-5" />
                 </div>
-              </div>
-
-              <div className="p-8 md:p-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Duration</p>
-                      <p className="text-sm font-bold text-slate-700">
-                        {new Date(comp.start_date).toLocaleDateString()} - {new Date(comp.end_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-                      <Trophy className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Status</p>
-                      <p className="text-sm font-bold text-slate-700 capitalize">{comp.status}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <p className="text-slate-600 font-medium leading-relaxed text-lg">
-                    {comp.description}
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                    On-Site Events & Community Hackathons
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Hands-on build days, showcase pitches, and regional robotics exhibitions
                   </p>
-
-                  <div className="pt-8 flex flex-wrap gap-4">
-                    {comp.registration_link && (
-                      <a 
-                        href={comp.registration_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
-                      >
-                        <span>Register Now</span>
-                        <ArrowRight className="w-5 h-5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Render Events */}
-          {events.map((event, index) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-indigo-50/50 group"
-            >
-              <div className="relative h-64 md:h-80 overflow-hidden">
-                {event.image_url ? (
-                  <img
-                    src={event.image_url}
-                    alt={event.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
-                    }}
-                  />
-                ) : (
-                  <PlaceholderImage type="project" text={event.title} />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                <div className="absolute bottom-8 left-8 right-8">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                      {event.category}
-                    </span>
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                      {new Date(event.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h3 className="text-3xl font-bold text-white tracking-tight">{event.title}</h3>
                 </div>
               </div>
 
-              <div className="p-8 md:p-12">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Date</p>
-                      <p className="text-sm font-bold text-slate-700">{new Date(event.date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Location</p>
-                      <p className="text-sm font-bold text-slate-700">{event.location}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Participants</p>
-                      <p className="text-sm font-bold text-slate-700">Open to All</p>
-                    </div>
-                  </div>
+              {events.length === 0 && competitions.length === 0 ? (
+                <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100">
+                  <Calendar className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">No Upcoming Physical Events</h3>
+                  <p className="text-slate-500 text-sm">Check back later for new workshops and exhibitions!</p>
                 </div>
+              ) : (
+                <div className="grid gap-8">
+                  {/* Competitions */}
+                  {competitions.map((comp, index) => (
+                    <motion.div
+                      key={comp.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-indigo-50/50 group"
+                    >
+                      <div className="relative h-64 md:h-80 overflow-hidden">
+                        {comp.image_url ? (
+                          <img
+                            src={comp.image_url}
+                            alt={comp.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
+                            }}
+                          />
+                        ) : (
+                          <PlaceholderImage type="project" text={comp.title} />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                        <div className="absolute bottom-8 left-8 right-8">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold uppercase tracking-wider">
+                              Competition
+                            </span>
+                            <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-bold uppercase tracking-wider">
+                              {comp.status}
+                            </span>
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{comp.title}</h3>
+                        </div>
+                      </div>
 
-                <div className="space-y-6">
-                  <p className="text-slate-600 font-medium leading-relaxed text-lg">
-                    {event.description}
-                  </p>
+                      <div className="p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Duration</p>
+                              <p className="text-sm font-bold text-slate-700">
+                                {new Date(comp.start_date).toLocaleDateString()} - {new Date(comp.end_date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                              <Trophy className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Status</p>
+                              <p className="text-sm font-bold text-slate-700 capitalize">{comp.status}</p>
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="pt-8 flex flex-wrap gap-4">
-                    {event.registration_link && (
-                      <a 
-                        href={event.registration_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
-                      >
-                        <span>Register Now</span>
-                        <ArrowRight className="w-5 h-5" />
-                      </a>
-                    )}
-                  </div>
+                        <div className="space-y-6">
+                          <p className="text-slate-600 font-medium leading-relaxed text-sm md:text-base">
+                            {comp.description}
+                          </p>
+
+                          {comp.registration_link && (
+                            <div className="pt-4 flex flex-wrap gap-4">
+                              <a 
+                                href={comp.registration_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
+                              >
+                                <span>Register For Competition</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {/* Events */}
+                  {events.map((event, index) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-indigo-50/50 group"
+                    >
+                      <div className="relative h-64 md:h-80 overflow-hidden">
+                        {event.image_url ? (
+                          <img
+                            src={event.image_url}
+                            alt={event.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
+                            }}
+                          />
+                        ) : (
+                          <PlaceholderImage type="project" text={event.title} />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+                        <div className="absolute bottom-8 left-8 right-8">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-xs font-bold uppercase tracking-wider">
+                              {event.category}
+                            </span>
+                            <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-bold uppercase tracking-wider">
+                              {new Date(event.date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{event.title}</h3>
+                        </div>
+                      </div>
+
+                      <div className="p-8 md:p-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <MapPin className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Location</p>
+                              <p className="text-sm font-bold text-slate-700">{event.location}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Date & Time</p>
+                              <p className="text-sm font-bold text-slate-700">
+                                {new Date(event.date).toLocaleDateString(undefined, { 
+                                  weekday: 'long', 
+                                  year: 'numeric', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          <p className="text-slate-600 font-medium leading-relaxed text-sm md:text-base">
+                            {event.description}
+                          </p>
+
+                          {event.registration_link && (
+                            <div className="pt-4 flex flex-wrap gap-4">
+                              <a 
+                                href={event.registration_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
+                              >
+                                <span>Register For Event</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              )}
+            </section>
+          )}
         </div>
       )}
 
-      {/* Past Events / Gallery */}
-      <section className="pt-12">
-        <h3 className="text-2xl font-bold text-slate-900 mb-8 tracking-tight">Past Highlights</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {ASSETS.GALLERY.slice(0, 8).map((img, i) => (
-            <div key={i} className="aspect-square rounded-3xl overflow-hidden group relative bg-slate-100">
-              <img 
-                src={img} 
-                alt={`Highlight ${i + 1}`} 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
-                }}
-              />
-              <div className="absolute inset-0 bg-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Virtual Challenge Modal */}
+      <VirtualCompetitionModal
+        competition={selectedVirtualComp}
+        isOpen={isVirtualModalOpen}
+        onClose={() => {
+          setIsVirtualModalOpen(false);
+          setSelectedVirtualComp(null);
+        }}
+        onSubmissionSuccess={fetchData}
+      />
     </div>
   );
 }

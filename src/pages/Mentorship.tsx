@@ -132,7 +132,7 @@ export default function Mentorship() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, (payload) => {
         fetchRequests();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_messages' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_messages' }, (payload: any) => {
         // when a message is inserted/updated/deleted, re-fetch messages for the request
         try {
           const reqId = payload?.new?.request_id || payload?.old?.request_id;

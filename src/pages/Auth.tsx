@@ -66,28 +66,29 @@ export default function Auth() {
     setError('');
     try {
       if (isLogin) {
-        let loginEmail = email;
+        let loginEmail = email.trim();
         
         if (loginMethod === 'memberId') {
           // 1. Look up email by Member ID
+          const cleanMemberId = memberId.trim();
           const { data: profileData, error: lookupError } = await supabase
             .from('profiles')
-            .select('email, registration_paid')
-            .eq('member_id', memberId)
+            .select('email, is_halted')
+            .ilike('member_id', cleanMemberId)
             .single();
 
-          if (lookupError || !profileData) {
-            throw new Error('Invalid Member ID. Please check and try again or use Email Login.');
+          if (lookupError || !profileData || !profileData.email) {
+            throw new Error('Member ID not found. Please verify your ID or switch to Email login.');
           }
           
-          if (!profileData.registration_paid) {
-            throw new Error('Your account is not yet activated. Please contact an administrator after making your payment.');
+          if (profileData.is_halted) {
+            throw new Error('Your account has been temporarily halted by an administrator. Please contact support.');
           }
           
           loginEmail = profileData.email;
         }
 
-        // 2. Sign in with the email
+        // 2. Sign in with password
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
           email: loginEmail, 
           password 
@@ -95,89 +96,66 @@ export default function Auth() {
         
         if (signInError) throw signInError;
 
-        // 3. Check if account is activated (for email login)
-        if (loginMethod === 'email' && signInData.user) {
+        if (signInData.user) {
+          // Verify account is not halted
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('registration_paid, role')
+            .select('is_halted')
             .eq('id', signInData.user.id)
             .single();
           
-          const isAdminRole = profileData?.role === 'admin';
-          
-          if (profileData && !profileData.registration_paid && !isAdminRole) {
+          if (profileData?.is_halted) {
             await supabase.auth.signOut();
-            throw new Error('Your account is not yet activated. Please contact an administrator after making your payment.');
+            throw new Error('Your account has been halted by an administrator. Please contact support.');
           }
         }
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
+        // Sign Up Flow
+        const cleanEmail = email.trim().toLowerCase();
+        const isAdminEmail = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com';
+        const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
+        const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: cleanEmail,
           password,
           options: {
             data: {
-              display_name: displayName,
-              role: role,
-              tier: role === 'mentor' || role === 'admin' ? null : tier,
+              display_name: displayName.trim(),
+              role: finalRole,
+              tier: finalRole === 'mentor' || finalRole === 'admin' ? null : tier,
+              member_id: generatedMemberId,
             },
           },
         });
-        if (error) throw error;
+
+        if (signUpError) throw signUpError;
         
         if (data.user) {
-          const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-          const isAdminEmail = email.toLowerCase() === 'manongwasimbarashe394@gmail.com' || email.toLowerCase() === 'goyaracorp@gmail.com';
-          const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
-          // Wait for the client session to be established before attempting
-          // a profiles.upsert. RLS on `profiles` requires auth.uid() = id
-          // for INSERT, so trying to upsert immediately after signUp can
-          // fail if the session isn't active yet.
-          let sessionUserId: string | null = null;
-          const start = Date.now();
-          while (Date.now() - start < 5000) { // wait up to 5s
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              sessionUserId = sessionData?.session?.user?.id || null;
-              if (sessionUserId) break;
-            } catch (e) {
-              // ignore and retry
-            }
-            await new Promise(r => setTimeout(r, 300));
-          }
-
-          // If no session yet, still attempt upsert but warn (server triggers
-          // may also create profiles automatically). This reduces failed
-          // client-side attempts when RLS is active.
           try {
-            const { error: profileError } = await supabase.from('profiles').upsert({
+            await supabase.from('profiles').upsert({
               id: data.user.id,
-              display_name: displayName,
-              email: email,
+              display_name: displayName.trim(),
+              email: cleanEmail,
               role: finalRole,
               tier: finalRole === 'mentor' || finalRole === 'admin' ? null : tier,
               member_id: generatedMemberId,
               registration_paid: finalRole === 'admin', 
-              trial_ends_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
-              educational_level: null,
+              trial_ends_at: new Date(Date.now() + (isAdminEmail ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
+              subscription_expires_at: new Date(Date.now() + (isAdminEmail ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
+              is_halted: false,
             }, { onConflict: 'id' });
-
-            if (profileError) {
-              // If this fails due to RLS (no session), log for debugging and
-              // continue: the DB trigger `handle_new_user()` should create a
-              // profile server-side when the auth user is created.
-              console.warn('Profile setup warning (non-fatal):', profileError);
-            } else {
-              setShowSuccessModal(true);
-              return; // Don't navigate yet, show modal
-            }
           } catch (err) {
-            console.warn('Profile upsert attempt failed:', err);
+            console.warn('Profile upsert notice:', err);
           }
+
+          setShowSuccessModal(true);
+          return;
         }
       }
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An error occurred during authentication.');
     } finally {
       setLoading(false);
     }
