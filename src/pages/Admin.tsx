@@ -655,6 +655,34 @@ export default function Admin() {
     }
   };
 
+  const updateEmail = async (userId: string, newEmail: string) => {
+    if (!newEmail.trim() || !newEmail.includes('@')) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    setUpdatingId(userId);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ email: newEmail.toLowerCase().trim() })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, email: newEmail.toLowerCase().trim() } : u));
+      setSuccessMessage(`Email address updated to ${newEmail}.`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (error: any) {
+      console.error('Error updating email:', error);
+      setErrorMessage(error.message || 'Failed to update email address.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const updateMemberId = async (userId: string, currentEmail: string, currentName: string, newMemberId: string) => {
     if (!newMemberId.trim()) return;
     
@@ -686,6 +714,7 @@ export default function Admin() {
       setUpdatingId(null);
     }
   };
+
 
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
@@ -1751,6 +1780,7 @@ export default function Admin() {
                         key={user.id} 
                         user={user} 
                         onUpdate={updateMemberId}
+                        onUpdateEmail={updateEmail}
                         onToggleHalt={toggleHalt}
                         onUpdateSubscription={updateSubscription}
                         onUpdateRole={updateUserRole}
@@ -1758,6 +1788,7 @@ export default function Admin() {
                         isUpdating={updatingId === user.id}
                       />
                     ))
+
                   )}
                 </tbody>
               </table>
@@ -1997,6 +2028,7 @@ interface UserRowProps {
   key?: string;
   user: UserProfile;
   onUpdate: (id: string, email: string, name: string, newId: string) => Promise<void>;
+  onUpdateEmail: (id: string, newEmail: string) => Promise<void>;
   onToggleHalt: (id: string, currentHalt: boolean) => Promise<void>;
   onUpdateSubscription: (id: string, newExpiry: string) => Promise<void>;
   onUpdateRole: (id: string, role: string) => Promise<void>;
@@ -2004,15 +2036,18 @@ interface UserRowProps {
   isUpdating: boolean;
 }
 
-function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateRole, onRevoke, isUpdating }: UserRowProps) {
+function UserRow({ user, onUpdate, onUpdateEmail, onToggleHalt, onUpdateSubscription, onUpdateRole, onRevoke, isUpdating }: UserRowProps) {
   const [newId, setNewId] = useState(user.member_id || '');
+  const [editingEmail, setEditingEmail] = useState(user.email || '');
+  const [isEditingEmailActive, setIsEditingEmailActive] = useState(false);
   const [copied, setCopied] = useState(false);
   const [expiryDate, setExpiryDate] = useState(user.subscription_expires_at ? new Date(user.subscription_expires_at).toISOString().split('T')[0] : '');
 
-  // Synchronize internal newId state whenever user prop updates
+  // Synchronize internal state whenever user prop updates
   useEffect(() => {
     setNewId(user.member_id || '');
-  }, [user.member_id]);
+    setEditingEmail(user.email || '');
+  }, [user.member_id, user.email]);
 
   const generateAutoId = () => {
     const year = new Date().getFullYear();
@@ -2031,22 +2066,65 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
     <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-8 py-6">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-lg overflow-hidden border-2 border-white shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-lg overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
               user.display_name?.[0] || 'U'
             )}
           </div>
-          <div>
+          <div className="space-y-1">
             <p className="font-bold text-slate-900">{user.display_name}</p>
-            <p className="text-sm text-slate-500 flex items-center">
-              <Mail className="w-3 h-3 mr-1" />
-              {user.email}
-            </p>
+            {isEditingEmailActive ? (
+              <div className="flex items-center space-x-1.5">
+                <input
+                  type="email"
+                  value={editingEmail}
+                  onChange={(e) => setEditingEmail(e.target.value)}
+                  className="bg-white border-2 border-indigo-300 rounded-lg px-2 py-1 text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-600"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await onUpdateEmail(user.id, editingEmail);
+                    setIsEditingEmailActive(false);
+                  }}
+                  disabled={isUpdating || !editingEmail.trim() || editingEmail === user.email}
+                  className="p-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-40"
+                  title="Save Email"
+                >
+                  <Save className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEmail(user.email);
+                    setIsEditingEmailActive(false);
+                  }}
+                  className="p-1 bg-slate-100 text-slate-500 rounded-md hover:bg-slate-200"
+                  title="Cancel"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1.5 group/email">
+                <Mail className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                <span className="text-xs text-slate-500 font-medium">{user.email}</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingEmailActive(true)}
+                  className="text-slate-400 hover:text-indigo-600 opacity-0 group-hover/email:opacity-100 transition-opacity p-0.5"
+                  title="Edit email"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </td>
+
       <td className="px-8 py-6">
         <select
           value={user.role}
