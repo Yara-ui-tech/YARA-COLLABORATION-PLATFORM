@@ -10,6 +10,8 @@ import { VirtualCompetition } from '../types/competition';
 import { INITIAL_VIRTUAL_COMPETITIONS } from '../constants/curriculum';
 import VirtualCompetitionCard from '../components/competition/VirtualCompetitionCard';
 import VirtualCompetitionModal from '../components/competition/VirtualCompetitionModal';
+import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
+import PublicTeamsList from '../components/competition/PublicTeamsList';
 
 interface Event {
   id: string;
@@ -39,11 +41,16 @@ export default function Events() {
   const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
   const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical' | 'public_teams'>('all');
 
   // Modal for Virtual Challenge
   const [selectedVirtualComp, setSelectedVirtualComp] = useState<VirtualCompetition | null>(null);
   const [isVirtualModalOpen, setIsVirtualModalOpen] = useState(false);
+
+  // Modal for Team Registration
+  const [registeringComp, setRegisteringComp] = useState<{ id: string; title: string } | null>(null);
+  const [isTeamRegModalOpen, setIsTeamRegModalOpen] = useState(false);
+
 
   useEffect(() => {
     fetchData();
@@ -119,25 +126,32 @@ export default function Events() {
         {/* Filter Pills */}
         <div className="flex items-center space-x-2 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm shrink-0">
           {[
-            { id: 'all', label: 'All Arena Events' },
+            { id: 'all', label: 'All Events & Challenges', badge: virtualCompetitions.length + events.length + competitions.length },
             { id: 'virtual', label: 'Virtual Challenges', badge: virtualCompetitions.length },
-            { id: 'physical', label: 'Physical Events', badge: events.length + competitions.length }
-          ].map(filter => (
+            { id: 'physical', label: 'Physical Events', badge: events.length + competitions.length },
+            { id: 'public_teams', label: 'Registered Teams Directory' }
+          ].map((tab) => (
             <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id as any)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                activeFilter === filter.id
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+              key={tab.id}
+              onClick={() => setActiveFilter(tab.id as any)}
+              className={cn(
+                'px-6 py-3 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2',
+                activeFilter === tab.id
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
+              )}
             >
-              <span>{filter.label}</span>
-              {filter.badge !== undefined && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeFilter === filter.id ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {filter.badge}
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[10px]',
+                    activeFilter === tab.id
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-slate-100 text-slate-500'
+                  )}
+                >
+                  {tab.badge}
                 </span>
               )}
             </button>
@@ -145,13 +159,34 @@ export default function Events() {
         </div>
       </header>
 
+      {/* LOADING STATE */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="py-20 text-center flex flex-col items-center justify-center">
           <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
           <p className="text-slate-500 font-bold text-sm">Loading arena events...</p>
         </div>
       ) : (
         <div className="space-y-12">
+          {/* PUBLIC TEAMS DIRECTORY TAB */}
+          {activeFilter === 'public_teams' && (
+            <section className="space-y-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                    Participating Teams Directory
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">
+                    Publicly verified teams competing in YARA STEM Challenges (Privacy Compliant)
+                  </p>
+                </div>
+              </div>
+              <PublicTeamsList />
+            </section>
+          )}
+
           {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
           {(activeFilter === 'all' || activeFilter === 'virtual') && (
             <section className="space-y-6">
@@ -274,19 +309,19 @@ export default function Events() {
                             {comp.description}
                           </p>
 
-                          {comp.registration_link && (
-                            <div className="pt-4 flex flex-wrap gap-4">
-                              <a 
-                                href={comp.registration_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
-                              >
-                                <span>Register For Competition</span>
-                                <ArrowRight className="w-4 h-4" />
-                              </a>
-                            </div>
-                          )}
+                          <div className="pt-4 flex flex-wrap gap-4">
+                            <button 
+                              onClick={() => {
+                                setRegisteringComp({ id: comp.id, title: comp.title });
+                                setIsTeamRegModalOpen(true);
+                              }}
+                              className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              <span>Register Team (2 Boys + 2 Girls Min)</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -397,6 +432,21 @@ export default function Events() {
         }}
         onSubmissionSuccess={fetchData}
       />
+
+      {/* Team Registration Modal */}
+      {registeringComp && (
+        <TeamRegistrationModal
+          competitionId={registeringComp.id}
+          competitionTitle={registeringComp.title}
+          isOpen={isTeamRegModalOpen}
+          onClose={() => {
+            setIsTeamRegModalOpen(false);
+            setRegisteringComp(null);
+          }}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }
+

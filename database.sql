@@ -644,6 +644,66 @@ CREATE TABLE IF NOT EXISTS public.competitions (
 
 ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Competitions are viewable by everyone." ON public.competitions;
+CREATE POLICY "Competitions are viewable by everyone." ON public.competitions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage competitions." ON public.competitions;
+CREATE POLICY "Admins can manage competitions." ON public.competitions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Competition Teams
+CREATE TABLE IF NOT EXISTS public.competition_teams (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  competition_id TEXT NOT NULL,
+  team_name TEXT NOT NULL,
+  school_organization TEXT NOT NULL,
+  category TEXT NOT NULL,
+  province TEXT NOT NULL,
+  mentor_name TEXT,
+  mentor_email TEXT,
+  mentor_phone TEXT,
+  captain_id TEXT,
+  is_eligible BOOLEAN DEFAULT false,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.competition_teams ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view competition teams" ON public.competition_teams;
+CREATE POLICY "Anyone can view competition teams" ON public.competition_teams FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can register competition team" ON public.competition_teams;
+CREATE POLICY "Anyone can register competition team" ON public.competition_teams FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can update competition teams" ON public.competition_teams;
+CREATE POLICY "Admins can update competition teams" ON public.competition_teams FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Competition Team Members
+CREATE TABLE IF NOT EXISTS public.competition_team_members (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  gender TEXT CHECK (gender IN ('boy', 'girl')) NOT NULL,
+  age INTEGER,
+  email TEXT,
+  phone TEXT,
+  is_captain BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.competition_team_members ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view all team members" ON public.competition_team_members;
+CREATE POLICY "Admins can view all team members" ON public.competition_team_members FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Anyone can insert team members" ON public.competition_team_members;
+CREATE POLICY "Anyone can insert team members" ON public.competition_team_members FOR INSERT WITH CHECK (true);
+
+
 -- Partners
 CREATE TABLE IF NOT EXISTS public.partners (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -1085,7 +1145,7 @@ VALUES
   '["PID tuning stability (40%)", "Lap completion velocity (35%)", "Noise filtering implementation (25%)"]'::jsonb,
   100,
   '$75 Hardware Voucher + Verified Algorithm Badge'
-)
+) ON CONFLICT DO NOTHING;
 -- 8. Brainstorming & Critical Thinking Image Quizzes
 CREATE TABLE IF NOT EXISTS public.brainstorming_questions (
   id TEXT PRIMARY KEY,

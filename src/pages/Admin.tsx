@@ -8,6 +8,7 @@ import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
 import VirtualCompetitionAdminTab from '../components/admin/VirtualCompetitionAdminTab';
 import FinanceAdminTab from '../components/admin/FinanceAdminTab';
 import BrainstormingAdminTab from '../components/admin/BrainstormingAdminTab';
+import TeamAdminTab from '../components/admin/TeamAdminTab';
 
 interface UserProfile {
   id: string;
@@ -74,7 +75,8 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'team_validation' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('members');
+
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -906,6 +908,19 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('team_validation')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'team_validation' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span>Team Validation</span>
+          </div>
+        </button>
+
+        <button
           onClick={() => setActiveTab('curriculum')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1388,9 +1403,14 @@ export default function Admin() {
         )}
       </AnimatePresence>
 
-      <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-indigo-50/50 overflow-hidden">
+      <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-indigo-50/50 overflow-hidden p-6">
+        {activeTab === 'team_validation' && (
+          <TeamAdminTab />
+        )}
+
         {activeTab === 'events' && (
           <div className="overflow-x-auto">
+
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 text-slate-500 text-xs font-black uppercase tracking-widest">

@@ -36,3 +36,43 @@ export interface VirtualSubmission {
   rank?: number;
   created_at?: string;
 }
+
+export interface CompetitionTeamMember {
+  id?: string;
+  team_id?: string;
+  full_name: string;
+  gender: 'boy' | 'girl';
+  age?: number;
+  email?: string;
+  phone?: string;
+  is_captain?: boolean;
+}
+
+export interface CompetitionTeam {
+  id: string;
+  competition_id: string;
+  team_name: string;
+  school_organization: string;
+  category: string;
+  province: string;
+  mentor_name?: string;
+  mentor_email?: string;
+  mentor_phone?: string;
+  captain_id?: string;
+  is_eligible: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_notes?: string;
+  created_at?: string;
+  members?: CompetitionTeamMember[];
+}
+
+export interface TeamEligibilityCheck {
+  totalMembers: number;
+  boysCount: number;
+  girlsCount: number;
+  hasMinMembers: boolean;
+  hasMinBoys: boolean;
+  hasMinGirls: boolean;
+  isEligible: boolean;
+}
+
