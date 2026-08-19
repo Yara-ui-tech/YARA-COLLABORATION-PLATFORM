@@ -119,7 +119,7 @@ export default function PublicTeamsList() {
                 <th className="py-4 px-6 font-bold">Team Name</th>
                 <th className="py-4 px-6 font-bold">School / Organization</th>
                 <th className="py-4 px-6 font-bold">Competition Category</th>
-                <th className="py-4 px-6 font-bold">Province</th>
+                <th className="py-4 px-6 font-bold">Country & Region</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -151,7 +151,7 @@ export default function PublicTeamsList() {
                     <td className="py-4 px-6 text-slate-300">
                       <div className="flex items-center space-x-1.5">
                         <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                        <span>{team.province}</span>
+                        <span>{team.country || 'South Africa'} • {team.province}</span>
                       </div>
                     </td>
                   </tr>
@@ -159,6 +159,7 @@ export default function PublicTeamsList() {
               )}
             </tbody>
           </table>
+
         </div>
       </div>
     </div>

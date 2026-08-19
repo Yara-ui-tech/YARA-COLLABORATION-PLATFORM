@@ -54,7 +54,10 @@ export interface CompetitionTeam {
   team_name: string;
   school_organization: string;
   category: string;
+  country?: string;
   province: string;
+  district?: string;
+  city?: string;
   mentor_name?: string;
   mentor_email?: string;
   mentor_phone?: string;
@@ -65,6 +68,7 @@ export interface CompetitionTeam {
   created_at?: string;
   members?: CompetitionTeamMember[];
 }
+
 
 export interface TeamEligibilityCheck {
   totalMembers: number;

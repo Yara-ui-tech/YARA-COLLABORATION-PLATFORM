@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CompetitionTeamMember } from '../../types/competition';
-import { evaluateTeamEligibility, SOUTH_AFRICAN_PROVINCES } from '../../utils/teamValidation';
+import { evaluateTeamEligibility, SOUTH_AFRICAN_PROVINCES, AFRICAN_COUNTRIES } from '../../utils/teamValidation';
 import { supabase } from '../../lib/supabase';
 
 interface TeamRegistrationModalProps {
@@ -38,7 +38,11 @@ export default function TeamRegistrationModal({
   const [teamName, setTeamName] = useState('');
   const [schoolOrg, setSchoolOrg] = useState('');
   const [category, setCategory] = useState('Autonomous Robotics');
+  const [country, setCountry] = useState('South Africa');
   const [province, setProvince] = useState(SOUTH_AFRICAN_PROVINCES[2]); // Gauteng default
+  const [district, setDistrict] = useState('');
+  const [city, setCity] = useState('');
+
 
   // Mentor / Teacher (Excluded from 4-member count)
   const [mentorName, setMentorName] = useState('');
@@ -117,13 +121,17 @@ export default function TeamRegistrationModal({
           team_name: teamName.trim(),
           school_organization: schoolOrg.trim(),
           category,
+          country,
           province,
+          district: district.trim() || null,
+          city: city.trim() || null,
           mentor_name: mentorName.trim() || null,
           mentor_email: mentorEmail.trim() || null,
           mentor_phone: mentorPhone.trim() || null,
           is_eligible: true,
           status: 'pending'
         }])
+
         .select()
         .single();
 
@@ -300,19 +308,64 @@ export default function TeamRegistrationModal({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Province *</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Country *</label>
                 <select 
-                  value={province}
-                  onChange={e => setProvince(e.target.value)}
+                  value={country}
+                  onChange={e => setCountry(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
                 >
-                  {SOUTH_AFRICAN_PROVINCES.map(p => (
-                    <option key={p} value={p}>{p}</option>
+                  {AFRICAN_COUNTRIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">State / Province / Region *</label>
+                {country === 'South Africa' ? (
+                  <select 
+                    value={province}
+                    onChange={e => setProvince(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    {SOUTH_AFRICAN_PROVINCES.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input 
+                    type="text"
+                    required
+                    value={province}
+                    onChange={e => setProvince(e.target.value)}
+                    placeholder="e.g. Lagos State / Nairobi County"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">District / Sub-region</label>
+                <input 
+                  type="text" 
+                  value={district}
+                  onChange={e => setDistrict(e.target.value)}
+                  placeholder="e.g. Tshwane District / Ikeja"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Town / City *</label>
+                <input 
+                  type="text" 
+                  required
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="e.g. Pretoria / Nairobi / Accra"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
             </div>
           </div>
+
 
 
           <hr className="border-slate-800" />
