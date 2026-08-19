@@ -272,16 +272,32 @@ export default function TeamRegistrationModal({
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Competition Category *</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  placeholder="e.g. Autonomous Mobile Rover Sprint"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-                />
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-300 mb-2">Select Competition Challenges *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { id: 'underwater', name: 'Underwater Drone Mission' },
+                    { id: 'maze', name: 'Autonomous Maze Solving' },
+                    { id: 'pitch', name: 'Innovation Pitch Challenge' }
+                  ].map(ch => (
+                    <label key={ch.id} className="flex items-center space-x-2 bg-slate-800/80 border border-slate-700 p-3 rounded-xl cursor-pointer hover:border-indigo-500 transition">
+                      <input 
+                        type="checkbox"
+                        checked={category.includes(ch.name)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCategory(prev => prev === 'Autonomous Robotics' ? ch.name : `${prev}, ${ch.name}`);
+                          } else {
+                            const updated = category.split(', ').filter(c => c !== ch.name).join(', ');
+                            setCategory(updated || 'Autonomous Robotics');
+                          }
+                        }}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                      />
+                      <span className="text-xs font-bold text-slate-200">{ch.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">Province *</label>
@@ -297,6 +313,7 @@ export default function TeamRegistrationModal({
               </div>
             </div>
           </div>
+
 
           <hr className="border-slate-800" />
 

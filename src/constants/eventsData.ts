@@ -23,8 +23,19 @@ export interface FallbackEvent {
 
 export const INITIAL_COMPETITIONS: FallbackCompetition[] = [
   {
+    id: 'yara_rc_2026',
+    title: 'YARA Educational Robotics Competition 2026',
+    description: 'Theme: "Engineering Opportunity: Robotics and Innovation for Underserved Youth" | Tagline: "Innovate for Inclusion. Build for Impact." Compete across Underwater Drone Mission, Autonomous Maze Solving, and Innovation Pitch Challenges for overall championship honors and track awards.',
+    start_date: new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString(),
+    end_date: new Date(Date.now() + 18 * 24 * 3600 * 1000).toISOString(),
+    registration_link: '#',
+    image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
+    status: 'upcoming'
+  },
+  {
     id: 'comp_01',
     title: 'Pan-African Youth Robotics Grand Prix 2026',
+
     description: 'The premier championship for young African tech builders. Compete across Autonomous Line-Tracing, Obstacle Navigation, and Agri-Robotics arenas for $5,000 in prototyping grants and international recognition.',
     start_date: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
     end_date: new Date(Date.now() + 8 * 24 * 3600 * 1000).toISOString(),

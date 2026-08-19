@@ -187,8 +187,72 @@ export default function Events() {
             </section>
           )}
 
+          {/* FEATURED EVENT BANNER */}
+          {(activeFilter === 'all' || activeFilter === 'physical') && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white border border-indigo-500/20 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+              
+              <div className="relative z-10 space-y-6 max-w-3xl">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3.5 py-1 bg-amber-500 text-slate-950 font-black text-xs rounded-full uppercase tracking-wider shadow-lg shadow-amber-500/20 flex items-center space-x-1.5">
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Featured Championship</span>
+                  </span>
+                  <span className="px-3.5 py-1 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold text-xs rounded-full uppercase tracking-wider">
+                    YARA 2026
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+                    YARA Educational Robotics Competition 2026
+                  </h3>
+                  <p className="text-indigo-300 font-bold text-base md:text-lg">
+                    “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
+                  </p>
+                  <p className="text-amber-400 font-medium text-xs md:text-sm uppercase tracking-widest">
+                    “Innovate for Inclusion. Build for Impact.”
+                  </p>
+                </div>
+
+                <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                  Compete across three core categories: <strong>Underwater Drone Mission</strong>, <strong>Autonomous Maze Solving</strong>, and <strong>Innovation Pitch Challenge</strong>. Compete for overall championship ranking (35% Underwater + 35% Maze + 30% Pitch) and track awards.
+                </p>
+
+                <div className="pt-2 flex flex-wrap gap-4 items-center">
+                  <button
+                    onClick={() => {
+                      setRegisteringComp({
+                        id: 'yara_rc_2026',
+                        title: 'YARA Educational Robotics Competition 2026'
+                      });
+                      setIsTeamRegModalOpen(true);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-wider shadow-xl shadow-indigo-600/30 transition-all flex items-center space-x-2.5"
+                  >
+                    <Users className="w-5 h-5 text-indigo-200" />
+                    <span>Register Team Now (2B + 2G Min)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveFilter('public_teams')}
+                    className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 px-6 py-4 rounded-2xl font-bold text-sm transition-all"
+                  >
+                    View Registered Teams
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
           {(activeFilter === 'all' || activeFilter === 'virtual') && (
+
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
