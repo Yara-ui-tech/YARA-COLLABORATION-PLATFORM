@@ -3,38 +3,12 @@ import { Building2, MapPin, Trophy, ShieldCheck, Search, Users } from 'lucide-re
 import { CompetitionTeam } from '../../types/competition';
 import { supabase } from '../../lib/supabase';
 
-const INITIAL_PUBLIC_TEAMS: Partial<CompetitionTeam>[] = [
-  {
-    id: 'team_01',
-    team_name: 'RoboKnights SA',
-    school_organization: 'Pretoria Technical High',
-    category: 'Pan-African Youth Robotics Grand Prix',
-    province: 'Gauteng',
-    status: 'approved'
-  },
-  {
-    id: 'team_02',
-    team_name: 'Cape Innovators',
-    school_organization: 'Rondebosch Boys & Girls Tech Club',
-    category: 'Autonomous Mobile Rover Circuit Sprint',
-    province: 'Western Cape',
-    status: 'approved'
-  },
-  {
-    id: 'team_03',
-    team_name: 'Durban CyberGrid',
-    school_organization: 'KZN Youth Robotics Academy',
-    category: 'Smart Agricultural IoT & Drone Hackathon',
-    province: 'KwaZulu-Natal',
-    status: 'approved'
-  }
-];
-
 export default function PublicTeamsList() {
-  const [teams, setTeams] = useState<Partial<CompetitionTeam>[]>(INITIAL_PUBLIC_TEAMS);
+  const [teams, setTeams] = useState<Partial<CompetitionTeam>[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('all');
+
 
   useEffect(() => {
     fetchTeams();

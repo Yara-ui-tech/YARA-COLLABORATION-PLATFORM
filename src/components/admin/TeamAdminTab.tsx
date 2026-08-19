@@ -20,52 +20,13 @@ import { CompetitionTeam, CompetitionTeamMember } from '../../types/competition'
 import { evaluateTeamEligibility } from '../../utils/teamValidation';
 import { supabase } from '../../lib/supabase';
 
-// Mock initial data in case database is not populated yet
-const MOCK_TEAMS: CompetitionTeam[] = [
-  {
-    id: 'team_01',
-    competition_id: 'comp_01',
-    team_name: 'Apex Robotics',
-    school_organization: 'Soweto STEM Academy',
-    category: 'Pan-African Youth Robotics Grand Prix 2026',
-    province: 'Gauteng',
-    mentor_name: 'Ms. Thandi Ndlovu',
-    mentor_email: 'mentor@sowetostem.co.za',
-    is_eligible: true,
-    status: 'pending',
-    members: [
-      { full_name: 'Kabo Dlamini', gender: 'boy', is_captain: true },
-      { full_name: 'Sipho Zulu', gender: 'boy', is_captain: false },
-      { full_name: 'Lerato Molefe', gender: 'girl', is_captain: false },
-      { full_name: 'Zinhle Khumalo', gender: 'girl', is_captain: false }
-    ]
-  },
-  {
-    id: 'team_02',
-    competition_id: 'comp_01',
-    team_name: 'Titan Mechanics',
-    school_organization: 'East London High',
-    category: 'Pan-African Youth Robotics Grand Prix 2026',
-    province: 'Eastern Cape',
-    mentor_name: 'Mr. Pieter Coetzee',
-    mentor_email: 'pieter@eastlondon.edu.za',
-    is_eligible: false,
-    status: 'pending',
-    members: [
-      { full_name: 'David Botha', gender: 'boy', is_captain: true },
-      { full_name: 'Mark Taylor', gender: 'boy', is_captain: false },
-      { full_name: 'Jason Reed', gender: 'boy', is_captain: false },
-      { full_name: 'Sarah Jenkins', gender: 'girl', is_captain: false }
-    ]
-  }
-];
-
 export default function TeamAdminTab() {
-  const [teams, setTeams] = useState<CompetitionTeam[]>(MOCK_TEAMS);
+  const [teams, setTeams] = useState<CompetitionTeam[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+
 
   useEffect(() => {
     fetchTeams();
@@ -105,12 +66,14 @@ export default function TeamAdminTab() {
 
   const handleUpdateStatus = async (team: CompetitionTeam, newStatus: 'approved' | 'rejected') => {
     const members = team.members || [];
-    const check = evaluateTeamEligibility(members);
+    const isYara2026 = team.competition_id === 'yara_rc_2026' || team.category.toLowerCase().includes('yara educational robotics competition 2026');
+    const check = evaluateTeamEligibility(members, isYara2026);
 
     if (newStatus === 'approved' && !check.isEligible) {
-      alert(`❌ CANNOT APPROVE TEAM: Team "${team.team_name}" is NOT ELIGIBLE. It requires at least 4 members with a minimum of 2 boys and 2 girls.`);
+      alert(`❌ CANNOT APPROVE TEAM: Team "${team.team_name}" is NOT ELIGIBLE.`);
       return;
     }
+
 
     try {
       const { error } = await supabase
@@ -189,8 +152,10 @@ export default function TeamAdminTab() {
         ) : (
           filteredTeams.map(team => {
             const members = team.members || [];
-            const check = evaluateTeamEligibility(members);
+            const isYara2026 = team.competition_id === 'yara_rc_2026' || team.category.toLowerCase().includes('yara educational robotics competition 2026');
+            const check = evaluateTeamEligibility(members, isYara2026);
             const isExpanded = expandedTeamId === team.id;
+
 
             return (
               <div 

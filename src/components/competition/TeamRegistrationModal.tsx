@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CompetitionTeamMember } from '../../types/competition';
-import { evaluateTeamEligibility, SOUTH_AFRICAN_PROVINCES, AFRICAN_COUNTRIES } from '../../utils/teamValidation';
+import { evaluateTeamEligibility, AFRICAN_COUNTRIES, AFRICAN_PROVINCES } from '../../utils/teamValidation';
 import { supabase } from '../../lib/supabase';
 
 interface TeamRegistrationModalProps {
@@ -34,15 +34,17 @@ export default function TeamRegistrationModal({
   onClose,
   onSuccess
 }: TeamRegistrationModalProps) {
+  // Check if competition requires mandatory 2 boys + 2 girls (YARA Educational Robotics Competition 2026)
+  const isYara2026Comp = competitionId === 'yara_rc_2026' || competitionTitle.toLowerCase().includes('yara educational robotics competition 2026');
+
   // General Info
   const [teamName, setTeamName] = useState('');
   const [schoolOrg, setSchoolOrg] = useState('');
   const [category, setCategory] = useState('Autonomous Robotics');
   const [country, setCountry] = useState('South Africa');
-  const [province, setProvince] = useState(SOUTH_AFRICAN_PROVINCES[2]); // Gauteng default
+  const [province, setProvince] = useState(AFRICAN_PROVINCES['South Africa'][0]);
   const [district, setDistrict] = useState('');
   const [city, setCity] = useState('');
-
 
   // Mentor / Teacher (Excluded from 4-member count)
   const [mentorName, setMentorName] = useState('');
@@ -50,19 +52,24 @@ export default function TeamRegistrationModal({
   const [mentorPhone, setMentorPhone] = useState('');
 
   // Team Members
-  const [members, setMembers] = useState<CompetitionTeamMember[]>([
-    { full_name: '', gender: 'boy', is_captain: true },
-    { full_name: '', gender: 'boy', is_captain: false },
-    { full_name: '', gender: 'girl', is_captain: false },
-    { full_name: '', gender: 'girl', is_captain: false }
-  ]);
+  const [members, setMembers] = useState<CompetitionTeamMember[]>(
+    isYara2026Comp ? [
+      { full_name: '', gender: 'boy', is_captain: true },
+      { full_name: '', gender: 'boy', is_captain: false },
+      { full_name: '', gender: 'girl', is_captain: false },
+      { full_name: '', gender: 'girl', is_captain: false }
+    ] : [
+      { full_name: '', gender: 'boy', is_captain: true }
+    ]
+  );
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   if (!isOpen) return null;
 
-  const eligibility = evaluateTeamEligibility(members.filter(m => m.full_name.trim() !== ''));
+  const eligibility = evaluateTeamEligibility(members.filter(m => m.full_name.trim() !== ''), isYara2026Comp);
+
 
   const handleMemberChange = (index: number, field: keyof CompetitionTeamMember, value: any) => {
     const updated = [...members];
@@ -82,8 +89,12 @@ export default function TeamRegistrationModal({
   };
 
   const removeMember = (index: number) => {
-    if (members.length <= 4) {
-      alert('A minimum of 4 team members must be listed in the registration form.');
+    if (isYara2026Comp && members.length <= 4) {
+      alert('A minimum of 4 team members must be listed for the YARA Educational Robotics Competition 2026.');
+      return;
+    }
+    if (!isYara2026Comp && members.length <= 1) {
+      alert('At least 1 member must be listed.');
       return;
     }
     const wasCaptain = members[index].is_captain;
@@ -104,7 +115,8 @@ export default function TeamRegistrationModal({
     }
 
     const validMembers = members.filter(m => m.full_name.trim() !== '');
-    const currentEligibility = evaluateTeamEligibility(validMembers);
+    const currentEligibility = evaluateTeamEligibility(validMembers, isYara2026Comp);
+
 
     if (!currentEligibility.isEligible) {
       setErrorMsg('Your team must include at least 2 boys and 2 girls across at least 4 members before registration can be submitted.');
@@ -321,13 +333,13 @@ export default function TeamRegistrationModal({
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">State / Province / Region *</label>
-                {country === 'South Africa' ? (
+                {AFRICAN_PROVINCES[country] ? (
                   <select 
                     value={province}
                     onChange={e => setProvince(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
                   >
-                    {SOUTH_AFRICAN_PROVINCES.map(p => (
+                    {AFRICAN_PROVINCES[country].map(p => (
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
@@ -337,11 +349,12 @@ export default function TeamRegistrationModal({
                     required
                     value={province}
                     onChange={e => setProvince(e.target.value)}
-                    placeholder="e.g. Lagos State / Nairobi County"
+                    placeholder="e.g. State / Province / Region"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
                   />
                 )}
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">District / Sub-region</label>
                 <input 
