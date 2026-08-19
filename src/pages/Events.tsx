@@ -208,15 +208,27 @@ export default function Events() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {virtualCompetitions.map(vComp => (
-                  <VirtualCompetitionCard
-                    key={vComp.id}
-                    competition={vComp}
-                    onOpen={handleOpenVirtualChallenge}
-                  />
+                  <div key={vComp.id} className="flex flex-col space-y-2">
+                    <VirtualCompetitionCard
+                      competition={vComp}
+                      onOpen={handleOpenVirtualChallenge}
+                    />
+                    <button
+                      onClick={() => {
+                        setRegisteringComp({ id: vComp.id, title: vComp.title });
+                        setIsTeamRegModalOpen(true);
+                      }}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-2xl transition border border-slate-800 flex items-center justify-center space-x-2"
+                    >
+                      <Users className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Register Team (2B + 2G Required)</span>
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
           )}
+
 
           {/* SECTION 2: PHYSICAL COMPETITIONS & EVENTS */}
           {(activeFilter === 'all' || activeFilter === 'physical') && (
