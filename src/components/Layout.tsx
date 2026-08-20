@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone, Brain, Trophy } from 'lucide-react';
+import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone, Brain, Trophy, Heart, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
@@ -21,6 +21,8 @@ const navItems = [
   { path: '/programs', icon: Cpu, label: 'Programs' },
   { path: '/impact', icon: BarChart3, label: 'Impact' },
   { path: '/partners', icon: Handshake, label: 'Partners' },
+  { path: '/donate', icon: Heart, label: 'Donate & Sponsor' },
+  { path: '/volunteer', icon: UserCheck, label: 'Volunteer' },
   { path: '/contact', icon: Phone, label: 'Contact' },
   { path: '/profile', icon: User, label: 'Profile' },
   { path: '/admin', icon: ShieldCheck, label: 'Admin', adminOnly: true },

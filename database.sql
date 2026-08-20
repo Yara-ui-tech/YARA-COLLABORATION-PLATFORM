@@ -1244,3 +1244,157 @@ CREATE POLICY "Admins can manage mentor payouts"
   ON public.finance_mentor_payouts FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
+-- =========================================================================
+-- 12. SUBSCRIPTIONS & PAYMENT VERIFICATION
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  user_name TEXT,
+  member_id TEXT,
+  plan_type TEXT DEFAULT 'monthly',
+  amount DECIMAL(10,2) DEFAULT 15.00,
+  currency TEXT DEFAULT 'USD',
+  payment_method TEXT NOT NULL, -- 'ecocash_0788953986', 'bank_transfer', 'usd_cash', 'card'
+  payment_reference TEXT NOT NULL,
+  proof_url TEXT,
+  status TEXT CHECK (status IN ('active', 'pending_verification', 'expired', 'rejected')) DEFAULT 'pending_verification',
+  starts_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '30 days'),
+  verified_by UUID REFERENCES public.profiles(id),
+  verified_at TIMESTAMPTZ,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view and create their own subscriptions" ON public.subscriptions;
+CREATE POLICY "Users can view and create their own subscriptions"
+  ON public.subscriptions FOR SELECT
+  USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Anyone authenticated can submit subscription payment" ON public.subscriptions;
+CREATE POLICY "Anyone authenticated can submit subscription payment"
+  ON public.subscriptions FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can manage all subscriptions" ON public.subscriptions;
+CREATE POLICY "Admins can manage all subscriptions"
+  ON public.subscriptions FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 13. PARTNERSHIP REQUESTS & COLLABORATION PORTAL
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.partnership_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  organization_name TEXT NOT NULL,
+  contact_person TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  specialty_area TEXT NOT NULL, -- 'Robotics & Hardware', 'AI & Software', 'STEM Education', 'Renewable Energy', 'Government & Policy', 'Corporate Social Responsibility', 'Media & Outreach', 'Other'
+  partnership_type TEXT NOT NULL, -- 'Technical Partner', 'Equipment Sponsor', 'Venue & Pool Facility', 'Curriculum Co-Developer', 'Prize Sponsor', 'Funding Partner', 'Academic Partner'
+  logo_url TEXT,
+  expectations TEXT NOT NULL,
+  website_url TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  display_on_website BOOLEAN DEFAULT false,
+  admin_notes TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.partnership_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view approved partners" ON public.partnership_requests;
+CREATE POLICY "Public can view approved partners"
+  ON public.partnership_requests FOR SELECT
+  USING (status = 'approved' OR display_on_website = true OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Anyone can submit partnership request" ON public.partnership_requests;
+CREATE POLICY "Anyone can submit partnership request"
+  ON public.partnership_requests FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can manage all partnership requests" ON public.partnership_requests;
+CREATE POLICY "Admins can manage all partnership requests"
+  ON public.partnership_requests FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 14. DONATIONS & SPONSORSHIPS PORTAL (EcoCash 0788953986 & In-Kind Support)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.donations_sponsorships (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  donor_name TEXT NOT NULL,
+  organization TEXT,
+  email TEXT,
+  phone TEXT,
+  support_type TEXT NOT NULL, -- 'financial', 'in_kind_hardware', 'venue_pool_facility', 'mentorship_coaching', 'student_meals_transport', 'other'
+  amount DECIMAL(12,2),
+  currency TEXT DEFAULT 'USD',
+  payment_method TEXT, -- 'ecocash_0788953986', 'bank_transfer', 'usd_cash', 'card', 'in_kind_delivery'
+  transaction_reference TEXT,
+  in_kind_description TEXT,
+  message TEXT,
+  is_anonymous BOOLEAN DEFAULT false,
+  status TEXT CHECK (status IN ('pending', 'approved', 'received')) DEFAULT 'pending',
+  pop_on_homepage BOOLEAN DEFAULT true,
+  display_on_wall BOOLEAN DEFAULT true,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.donations_sponsorships ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view approved donations and sponsorships" ON public.donations_sponsorships;
+CREATE POLICY "Public can view approved donations and sponsorships"
+  ON public.donations_sponsorships FOR SELECT
+  USING (status IN ('approved', 'received') OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Anyone can submit a donation or sponsorship" ON public.donations_sponsorships;
+CREATE POLICY "Anyone can submit a donation or sponsorship"
+  ON public.donations_sponsorships FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can manage donations and sponsorships" ON public.donations_sponsorships;
+CREATE POLICY "Admins can manage donations and sponsorships"
+  ON public.donations_sponsorships FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 15. VOLUNTEER RECRUITMENT PORTAL
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.volunteers (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  category TEXT NOT NULL, -- 'judge_technical', 'robotics_mentor', 'event_logistics', 'media_photo_video', 'underwater_drone_safety', 'community_outreach', 'medical_first_aid'
+  country TEXT DEFAULT 'Zimbabwe',
+  province TEXT,
+  district TEXT,
+  skills_background TEXT,
+  availability TEXT,
+  motivation TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.volunteers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can apply to volunteer" ON public.volunteers;
+CREATE POLICY "Anyone can apply to volunteer"
+  ON public.volunteers FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins can manage volunteers" ON public.volunteers;
+CREATE POLICY "Admins can manage volunteers"
+  ON public.volunteers FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+

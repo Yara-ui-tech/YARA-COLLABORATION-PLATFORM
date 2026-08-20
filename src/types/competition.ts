@@ -48,11 +48,24 @@ export interface TeamMember {
   phone?: string;
 }
 
+export type CompetitionTeamMember = TeamMember;
+
+export interface TeamEligibilityCheck {
+  totalMembers: number;
+  boysCount: number;
+  girlsCount: number;
+  hasMinMembers: boolean;
+  hasMinBoys: boolean;
+  hasMinGirls: boolean;
+  isEligible: boolean;
+}
+
 export interface CompetitionTeam {
   id: string;
   competition_id: string;
   competition_title: string;
   competition_category: string;
+  category?: string;
   team_name: string;
   school_organization: string;
   province: string;

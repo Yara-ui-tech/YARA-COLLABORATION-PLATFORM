@@ -10,6 +10,7 @@ import FinanceAdminTab from '../components/admin/FinanceAdminTab';
 import BrainstormingAdminTab from '../components/admin/BrainstormingAdminTab';
 import CompetitionTeamsAdminTab from '../components/admin/CompetitionTeamsAdminTab';
 import YaraCompetitionAdminTab from '../components/admin/YaraCompetitionAdminTab';
+import DonationsPartnersAdminTab from '../components/admin/DonationsPartnersAdminTab';
 
 interface UserProfile {
   id: string;
@@ -968,6 +969,18 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('donations_partners')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'donations_partners' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <CreditCard className="w-4 h-4 text-rose-500" />
+            <span>Donations, Sponsors & Fees</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('events')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1582,6 +1595,12 @@ export default function Admin() {
 
         {activeTab === 'competition_teams' && (
           <CompetitionTeamsAdminTab />
+        )}
+
+        {activeTab === 'donations_partners' && (
+          <div className="p-6 md:p-8">
+            <DonationsPartnersAdminTab />
+          </div>
         )}
 
         {activeTab === 'settings' && (

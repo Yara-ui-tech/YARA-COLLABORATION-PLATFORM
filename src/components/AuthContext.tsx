@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  // allow on-demand refresh of the profile
+  // allow on-demand refresh of the profile and cross-check subscriptions table
   const refreshProfile = async () => {
     if (!user) return;
     try {
@@ -239,7 +239,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', user.id)
         .single();
-      if (!error && data) setProfile(data as UserProfile);
+      
+      let currentProfile = data as UserProfile;
+
+      // Also check subscriptions table if user is currently marked unpaid or expired
+      if (currentProfile && !currentProfile.registration_paid && currentProfile.role !== 'admin' && currentProfile.role !== 'mentor') {
+        const { data: subData } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .or(`user_id.eq.${user.id},user_email.eq.${user.email}`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (subData && subData.length > 0) {
+          const sub = subData[0];
+          if (sub.status === 'active' && new Date(sub.expires_at) > new Date()) {
+            await supabase
+              .from('profiles')
+              .update({
+                registration_paid: true,
+                subscription_expires_at: sub.expires_at
+              })
+              .eq('id', user.id);
+
+            currentProfile = {
+              ...currentProfile,
+              registration_paid: true,
+              subscription_expires_at: sub.expires_at
+            };
+          }
+        }
+      }
+
+      if (currentProfile) {
+        const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
+        setProfile({
+          ...currentProfile,
+          role: isAdminEmail ? 'admin' : currentProfile.role
+        });
+      }
     } catch (err) {
       console.error('Error refreshing profile:', err);
     }
