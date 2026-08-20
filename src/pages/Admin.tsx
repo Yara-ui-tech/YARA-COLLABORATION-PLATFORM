@@ -11,6 +11,7 @@ import BrainstormingAdminTab from '../components/admin/BrainstormingAdminTab';
 import CompetitionTeamsAdminTab from '../components/admin/CompetitionTeamsAdminTab';
 import YaraCompetitionAdminTab from '../components/admin/YaraCompetitionAdminTab';
 import DonationsPartnersAdminTab from '../components/admin/DonationsPartnersAdminTab';
+import { LmsAdminTab } from '../components/admin/LmsAdminTab';
 
 interface UserProfile {
   id: string;
@@ -77,7 +78,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('yara_competition');
+  const [activeTab, setActiveTab] = useState<'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('yara_competition');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -906,6 +907,18 @@ export default function Admin() {
           <div className="flex items-center space-x-2">
             <Trophy className="w-4 h-4 text-amber-500" />
             <span>YARA 2026 Competition Hub</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('lms_evaluations')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'lms_evaluations' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <span>LMS Capstones & Grading</span>
           </div>
         </button>
         <button
@@ -1999,6 +2012,11 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        {activeTab === 'lms_evaluations' && (
+          <div className="p-6 md:p-8">
+            <LmsAdminTab adminUserId={authUser?.id || 'admin'} />
           </div>
         )}
         {activeTab === 'curriculum' && (

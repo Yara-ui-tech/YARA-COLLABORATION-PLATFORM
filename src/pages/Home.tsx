@@ -55,83 +55,104 @@ export default function Home() {
   const [latestEvent, setLatestEvent] = useState<any>(null);
 
   useEffect(() => {
+    let isSubscribed = true;
     const fetchRecentData = async () => {
-      const { data: ideas } = await supabase
-        .from('ideas')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      setRecentIdeas(ideas || []);
+      try {
+        const { data: ideas } = await supabase
+          .from('ideas')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        if (isSubscribed) setRecentIdeas(ideas || []);
 
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      setRecentProjects(projects || []);
+        const { data: projects } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3);
+        if (isSubscribed) setRecentProjects(projects || []);
 
-      const { data: mentors } = await supabase
-        .from('profiles')
-        .select('avatar_url, display_name, rating, mentored_count')
-        .eq('role', 'mentor')
-        .limit(5);
-      setFeaturedMentors(mentors || []);
+        const { data: mentors } = await supabase
+          .from('profiles')
+          .select('avatar_url, display_name, rating, mentored_count')
+          .eq('role', 'mentor')
+          .limit(5);
+        if (isSubscribed) setFeaturedMentors(mentors || []);
 
-      const { data: events } = await supabase
-        .from('events')
-        .select('*')
-        .eq('is_upcoming', true)
-        .order('date', { ascending: true })
-        .limit(1);
-      if (events && events.length > 0) setLatestEvent(events[0]);
+        const { data: events } = await supabase
+          .from('events')
+          .select('*')
+          .eq('is_upcoming', true)
+          .order('date', { ascending: true })
+          .limit(1);
+        if (isSubscribed && events && events.length > 0) setLatestEvent(events[0]);
 
-      // Fetch stats
-      const { count: projectCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
-      const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      const { count: ideaCount } = await supabase.from('ideas').select('*', { count: 'exact', head: true });
-      
-      setStats({
-        projects: projectCount || 0,
-        innovators: profileCount || 0,
-        ideas: ideaCount || 0
-      });
+        // Fetch stats
+        const { count: projectCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
+        const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+        const { count: ideaCount } = await supabase.from('ideas').select('*', { count: 'exact', head: true });
+        
+        if (isSubscribed) {
+          setStats({
+            projects: projectCount || 0,
+            innovators: profileCount || 0,
+            ideas: ideaCount || 0
+          });
+        }
 
-      const { data: userFeedbacks } = await supabase
-        .from('curriculum_feedback')
-        .select('*')
-        .eq('user_id', user?.id);
-      
-      const feedbackMap = (userFeedbacks || []).reduce((acc, fb) => ({
-        ...acc,
-        [fb.session_id]: fb
-      }), {});
-      setFeedbacks(feedbackMap);
-
-      setLoading(false);
+        if (user?.id) {
+          const { data: userFeedbacks } = await supabase
+            .from('curriculum_feedback')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          const feedbackMap = (userFeedbacks || []).reduce((acc, fb) => ({
+            ...acc,
+            [fb.session_id]: fb
+          }), {});
+          if (isSubscribed) setFeedbacks(feedbackMap);
+        }
+      } catch (err) {
+        console.warn('Note loading home dashboard data:', err);
+      } finally {
+        if (isSubscribed) setLoading(false);
+      }
     };
 
     fetchRecentData();
 
     // Real-time subscriptions
-    const ideasSubscription = supabase
-      .channel('ideas_home')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ideas' }, (payload) => {
-        setRecentIdeas(prev => [payload.new, ...prev.slice(0, 2)]);
-      })
-      .subscribe();
+    let ideasSubscription: any = null;
+    let projectsSubscription: any = null;
 
-    const projectsSubscription = supabase
-      .channel('projects_home')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, (payload) => {
-        setRecentProjects(prev => [payload.new, ...prev.slice(0, 2)]);
-      })
-      .subscribe();
+    try {
+      ideasSubscription = supabase
+        .channel('ideas_home')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ideas' }, (payload) => {
+          setRecentIdeas(prev => [payload.new, ...prev.slice(0, 2)]);
+        })
+        .subscribe();
+
+      projectsSubscription = supabase
+        .channel('projects_home')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, (payload) => {
+          setRecentProjects(prev => [payload.new, ...prev.slice(0, 2)]);
+        })
+        .subscribe();
+    } catch {
+      // Safe realtime fallback
+    }
 
     return () => {
-      supabase.removeChannel(ideasSubscription);
-      supabase.removeChannel(projectsSubscription);
+      isSubscribed = false;
+      if (ideasSubscription) {
+        try { supabase.removeChannel(ideasSubscription); } catch {}
+      }
+      if (projectsSubscription) {
+        try { supabase.removeChannel(projectsSubscription); } catch {}
+      }
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="space-y-8 pb-12">

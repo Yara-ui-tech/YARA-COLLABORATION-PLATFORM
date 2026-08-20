@@ -23,18 +23,24 @@ function DashboardHero({ name, role }: { name?: string; role?: string }) {
 }
 
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
 
-  if (!profile) return <div>Loading...</div>;
+  if (loading && !profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
 
-  if (profile.role === 'admin') {
+  if (profile?.role === 'admin') {
     return <Navigate to="/admin" replace />;
   }
 
-  if (profile.role === 'mentor') {
+  if (profile?.role === 'mentor') {
     return (
       <div className="space-y-6">
-        <DashboardHero name={profile.display_name} role={profile.role} />
+        <DashboardHero name={profile?.display_name} role={profile?.role} />
         <MentorDashboard />
       </div>
     );
@@ -43,7 +49,7 @@ export default function Dashboard() {
   // default to learner/innovator
   return (
     <div className="space-y-6">
-      <DashboardHero name={profile.display_name} role={profile.role} />
+      <DashboardHero name={profile?.display_name || 'Innovator'} role={profile?.role || 'innovator'} />
       <LearnerDashboard />
     </div>
   );

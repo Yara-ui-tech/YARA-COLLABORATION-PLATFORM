@@ -33,6 +33,7 @@ import FinalExamModal from '../components/curriculum/FinalExamModal';
 import FinalProjectModal from '../components/curriculum/FinalProjectModal';
 import CertificateModal from '../components/curriculum/CertificateModal';
 import BrainstormingQuizModal from '../components/brainstorming/BrainstormingQuizModal';
+import { YaraLmsDashboard } from '../components/lms/YaraLmsDashboard';
 import { FinalExamAttempt, FinalProjectSubmission, Certificate } from '../types/curriculum';
 
 interface SessionFeedback {

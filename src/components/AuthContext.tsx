@@ -52,6 +52,64 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const PROFILE_STORAGE_PREFIX = 'yaria_cached_profile_';
+
+const isUserAdmin = (email?: string, userRole?: string): boolean => {
+  if (!email) return false;
+  const cleanEmail = email.toLowerCase().trim();
+  return (
+    cleanEmail === 'manongwasimbarashe394@gmail.com' ||
+    cleanEmail === 'goyaracorp@gmail.com' ||
+    userRole === 'admin'
+  );
+};
+
+const buildFallbackProfile = (authUser: User): UserProfile => {
+  const isAdmin = isUserAdmin(authUser.email, authUser.user_metadata?.role);
+  const rawRole = authUser.user_metadata?.role;
+  const resolvedRole: 'innovator' | 'mentor' | 'admin' = isAdmin
+    ? 'admin'
+    : rawRole === 'mentor'
+    ? 'mentor'
+    : 'innovator';
+
+  const defaultMemberId =
+    authUser.user_metadata?.member_id ||
+    `YARIA-${new Date().getFullYear()}-${authUser.id.substring(0, 4).toUpperCase()}`;
+
+  const displayName =
+    authUser.user_metadata?.display_name ||
+    authUser.user_metadata?.full_name ||
+    authUser.email?.split('@')[0] ||
+    (isAdmin ? 'YARA Admin' : 'Innovator');
+
+  return {
+    id: authUser.id,
+    display_name: displayName,
+    email: authUser.email || '',
+    avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
+    member_id: defaultMemberId,
+    bio: authUser.user_metadata?.bio || 'Passionate about robotics, electronics, and African innovation.',
+    skills: authUser.user_metadata?.skills || ['Robotics', 'MicroPython', 'Arduino'],
+    interests: authUser.user_metadata?.interests || ['Hardware Design', 'Automation'],
+    role: resolvedRole,
+    educational_level: authUser.user_metadata?.educational_level || (isAdmin ? 'tertiary' : 'junior'),
+    registration_paid: isAdmin || resolvedRole === 'mentor',
+    subscription_expires_at: new Date(
+      Date.now() + (isAdmin ? 3650 : 365) * 24 * 60 * 60 * 1000
+    ).toISOString(),
+    trial_ends_at: new Date(
+      Date.now() + (isAdmin ? 3650 : 30) * 24 * 60 * 60 * 1000
+    ).toISOString(),
+    is_halted: false,
+    created_at: authUser.created_at || new Date().toISOString(),
+    rating: 5.0,
+    mentored_count: 0,
+    total_commission: 0,
+    commission_rate: 0.1,
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -79,7 +137,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor') return false;
     if (profile.registration_paid) return false;
-    // If still in active trial period, subscription is not expired
     if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return false;
     if (!profile.subscription_expires_at) return false;
     return new Date(profile.subscription_expires_at) < new Date();
@@ -89,7 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor') return false;
     if (profile.registration_paid) return false;
-    // If user has an active future subscription, trial is NOT expired
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return false;
     if (!profile.trial_ends_at) return false;
     return new Date(profile.trial_ends_at) < new Date();
@@ -101,10 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAccountActive = useMemo(() => {
     if (!profile) return false;
-    // Admins and Mentors are always active
     if (profile.role === 'admin' || profile.role === 'mentor') return true;
-    
-    // Check for halt or expiry
     if (profile.is_halted) return false;
     if (profile.registration_paid) return true;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return true;
@@ -115,20 +168,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   }, [profile, isSubscriptionExpired, isTrialExpired]);
 
+  // Helper to persist profile in localStorage
+  const persistProfileLocally = (p: UserProfile) => {
+    try {
+      localStorage.setItem(`${PROFILE_STORAGE_PREFIX}${p.id}`, JSON.stringify(p));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Helper to load profile from localStorage
+  const getCachedProfile = (userId: string): UserProfile | null => {
+    try {
+      const stored = localStorage.getItem(`${PROFILE_STORAGE_PREFIX}${userId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+
   useEffect(() => {
+    let mounted = true;
+
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Session error:', error.message);
-        // If the refresh token is invalid, clear the session to stop the error loop
-        if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
-          supabase.auth.signOut();
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn('Session check note:', error.message);
+          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+            try {
+              await supabase.auth.signOut();
+            } catch {
+              // ignore
+            }
+          }
+        }
+
+        if (mounted) {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+          if (currentUser) {
+            const cached = getCachedProfile(currentUser.id);
+            if (cached) {
+              const isAdmin = isUserAdmin(currentUser.email, cached.role);
+              setProfile({
+                ...cached,
+                role: isAdmin ? 'admin' : cached.role
+              });
+            }
+          }
+          setIsAuthReady(true);
+          if (!currentUser) setLoading(false);
+        }
+      } catch (err) {
+        console.warn('Authentication initialization warning:', err);
+        if (mounted) {
+          setIsAuthReady(true);
+          setLoading(false);
         }
       }
-      setUser(session?.user ?? null);
-      setIsAuthReady(true);
-      if (!session) setLoading(false);
-    });
+    };
+
+    checkSession();
 
     // Auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -136,8 +241,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setProfile(null);
         setLoading(false);
-      } else if (session) {
+      } else if (session?.user) {
         setUser(session.user);
+        const cached = getCachedProfile(session.user.id);
+        if (cached) {
+          const isAdmin = isUserAdmin(session.user.email, cached.role);
+          setProfile({
+            ...cached,
+            role: isAdmin ? 'admin' : cached.role
+          });
+        }
       } else {
         setUser(null);
         setProfile(null);
@@ -145,72 +258,95 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        const deviceId = getDeviceId();
-        
-        // Register/Update session (useful for analytics/security but no limit enforced)
+    if (!user) return;
+
+    let isSubscribed = true;
+
+    const fetchProfile = async () => {
+      const deviceId = getDeviceId();
+      
+      // Attempt to register session quietly
+      try {
         await supabase.from('user_sessions').upsert({
           user_id: user.id,
           device_id: deviceId,
           last_active: new Date().toISOString()
         }, { onConflict: 'user_id,device_id' });
+      } catch {
+        // user_sessions logging is optional
+      }
 
+      let resolvedProfile: UserProfile | null = null;
+
+      try {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('Error fetching profile:', error);
-          if (error.code === 'PGRST116') {
-            // Profile missing, create a default one
-            const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-            const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
-            
-            const { data: newProfile, error: createError } = await supabase
+        if (!error && data) {
+          const isAdmin = isUserAdmin(user.email, data.role);
+          resolvedProfile = {
+            ...data,
+            role: isAdmin ? 'admin' : data.role,
+            registration_paid: isAdmin ? true : !!data.registration_paid
+          } as UserProfile;
+        } else if (error && error.code === 'PGRST116') {
+          // Profile not yet created in table, create it
+          const fallback = buildFallbackProfile(user);
+          try {
+            const { data: newProfile } = await supabase
               .from('profiles')
-              .upsert({
-                id: user.id,
-                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
-                email: user.email,
-                role: isAdminEmail ? 'admin' : 'innovator',
-                member_id: user.user_metadata?.member_id || generatedMemberId,
-                registration_paid: isAdminEmail, // Admins don't need to pay
-                subscription_expires_at: new Date(Date.now() + (isAdminEmail ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
-                is_halted: false,
-                trial_ends_at: new Date(Date.now() + (isAdminEmail ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
-              }, { onConflict: 'id' })
+              .upsert(fallback, { onConflict: 'id' })
               .select()
               .single();
             
-            if (createError) {
-              console.error('Error creating default profile:', createError);
+            if (newProfile) {
+              resolvedProfile = newProfile as UserProfile;
             } else {
-              setProfile(newProfile as UserProfile);
+              resolvedProfile = fallback;
             }
+          } catch {
+            resolvedProfile = fallback;
           }
         } else {
-          // Hardcode override for state to reflect admin status for these specific emails
-          const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
-          const mergedProfile = {
-            ...data,
-            role: isAdminEmail ? 'admin' : data.role
-          };
-          setProfile(mergedProfile as UserProfile);
+          // Supabase network or schema error: use cache or fallback
+          const cached = getCachedProfile(user.id);
+          resolvedProfile = cached || buildFallbackProfile(user);
         }
+      } catch {
+        // Complete offline/network failure handling
+        const cached = getCachedProfile(user.id);
+        resolvedProfile = cached || buildFallbackProfile(user);
+      }
+
+      if (isSubscribed && resolvedProfile) {
+        const isAdmin = isUserAdmin(user.email, resolvedProfile.role);
+        const finalProfile = {
+          ...resolvedProfile,
+          role: isAdmin ? 'admin' : resolvedProfile.role,
+          registration_paid: isAdmin ? true : !!resolvedProfile.registration_paid
+        };
+        setProfile(finalProfile);
+        persistProfileLocally(finalProfile);
         setLoading(false);
-      };
+      }
+    };
 
-      fetchProfile();
+    fetchProfile();
 
-      // Real-time profile updates
-      const profileSubscription = supabase
+    // Real-time profile updates with safe error catching
+    let profileChannel: any = null;
+    try {
+      profileChannel = supabase
         .channel(`profile:${user.id}`)
         .on('postgres_changes', { 
           event: '*', 
@@ -218,16 +354,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           table: 'profiles', 
           filter: `id=eq.${user.id}` 
         }, (payload) => {
-          if (payload.new) {
-            setProfile(payload.new as UserProfile);
+          if (payload.new && isSubscribed) {
+            const isAdmin = isUserAdmin(user.email, (payload.new as any).role);
+            const updated = {
+              ...(payload.new as UserProfile),
+              role: isAdmin ? 'admin' : (payload.new as any).role,
+              registration_paid: isAdmin ? true : !!(payload.new as any).registration_paid
+            };
+            setProfile(updated);
+            persistProfileLocally(updated);
           }
         })
         .subscribe();
-
-      return () => {
-        supabase.removeChannel(profileSubscription);
-      };
+    } catch {
+      // Safe realtime fallback
     }
+
+    return () => {
+      isSubscribed = false;
+      if (profileChannel) {
+        try {
+          supabase.removeChannel(profileChannel);
+        } catch {
+          // ignore
+        }
+      }
+    };
   }, [user]);
 
   // allow on-demand refresh of the profile and cross-check subscriptions table
@@ -240,46 +392,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id)
         .single();
       
-      let currentProfile = data as UserProfile;
+      let currentProfile: UserProfile | null = data ? (data as UserProfile) : null;
 
-      // Also check subscriptions table if user is currently marked unpaid or expired
+      if (!currentProfile) {
+        currentProfile = getCachedProfile(user.id) || buildFallbackProfile(user);
+      }
+
+      // Check subscriptions table if not admin or mentor
       if (currentProfile && !currentProfile.registration_paid && currentProfile.role !== 'admin' && currentProfile.role !== 'mentor') {
-        const { data: subData } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .or(`user_id.eq.${user.id},user_email.eq.${user.email}`)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        try {
+          const { data: subData } = await supabase
+            .from('subscriptions')
+            .select('*')
+            .or(`user_id.eq.${user.id},user_email.eq.${user.email}`)
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-        if (subData && subData.length > 0) {
-          const sub = subData[0];
-          if (sub.status === 'active' && new Date(sub.expires_at) > new Date()) {
-            await supabase
-              .from('profiles')
-              .update({
+          if (subData && subData.length > 0) {
+            const sub = subData[0];
+            if (sub.status === 'active' && new Date(sub.expires_at) > new Date()) {
+              currentProfile = {
+                ...currentProfile,
                 registration_paid: true,
                 subscription_expires_at: sub.expires_at
-              })
-              .eq('id', user.id);
-
-            currentProfile = {
-              ...currentProfile,
-              registration_paid: true,
-              subscription_expires_at: sub.expires_at
-            };
+              };
+              try {
+                await supabase
+                  .from('profiles')
+                  .update({
+                    registration_paid: true,
+                    subscription_expires_at: sub.expires_at
+                  })
+                  .eq('id', user.id);
+              } catch {
+                // ignore
+              }
+            }
           }
+        } catch {
+          // ignore
         }
       }
 
       if (currentProfile) {
-        const isAdminEmail = user.email === 'manongwasimbarashe394@gmail.com' || user.email === 'goyaracorp@gmail.com';
-        setProfile({
+        const isAdmin = isUserAdmin(user.email, currentProfile.role);
+        const finalProfile = {
           ...currentProfile,
-          role: isAdminEmail ? 'admin' : currentProfile.role
-        });
+          role: isAdmin ? 'admin' : currentProfile.role,
+          registration_paid: isAdmin ? true : !!currentProfile.registration_paid
+        };
+        setProfile(finalProfile);
+        persistProfileLocally(finalProfile);
       }
-    } catch (err) {
-      console.error('Error refreshing profile:', err);
+    } catch {
+      // If network fails during refresh, retain existing state
     }
   };
 
