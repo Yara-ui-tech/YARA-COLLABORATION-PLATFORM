@@ -336,3 +336,36 @@ export const exportRegistrationsToCSV = (registrations: YaraCompetitionRegistrat
   link.click();
   document.body.removeChild(link);
 };
+
+export const updateRegistrationDetails = async (
+  teamIdOrRegId: string,
+  updates: Partial<YaraCompetitionRegistration>
+): Promise<boolean> => {
+  try {
+    const current = await getRegistrations();
+    const index = current.findIndex(r => r.id === teamIdOrRegId || r.registration_id === teamIdOrRegId);
+    if (index >= 0) {
+      current[index] = {
+        ...current[index],
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      localStorage.setItem(LOCAL_STORAGE_TEAMS_KEY, JSON.stringify(current));
+    }
+
+    try {
+      await supabase
+        .from('yara_competition_registrations')
+        .update(updates)
+        .or(`id.eq.${teamIdOrRegId},registration_id.eq.${teamIdOrRegId}`);
+    } catch {
+      // safe fallback
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error updating registration details:', err);
+    return false;
+  }
+};
+

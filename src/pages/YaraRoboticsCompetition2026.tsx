@@ -3,23 +3,26 @@ import { motion } from 'motion/react';
 import { 
   Trophy, Calendar, MapPin, Clock, ArrowRight, ShieldCheck, 
   Sparkles, Waves, Compass, Lightbulb, Users, CheckCircle2, 
-  Award, HelpCircle, Layers, FileText, ChevronRight, Share2, Info
+  Award, HelpCircle, Layers, FileText, ChevronRight, Share2, 
+  Info, Heart, DollarSign, UserCheck, QrCode, MonitorPlay, BarChart3
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { ASSETS } from '../constants/assets';
 import { getEventConfig, getRegistrations } from '../services/yaraCompetitionService';
-import { CompetitionEventConfig, CompetitionCategoryType, YaraCompetitionRegistration } from '../types/yaraCompetition';
+import { CompetitionEventConfig, CompetitionCategoryType } from '../types/yaraCompetition';
 import { COMPETITION_AWARDS } from '../constants/yaraCompetitionData';
 import MultiStepRegistrationModal from '../components/competition/MultiStepRegistrationModal';
 import CompetitionLeaderboard from '../components/competition/CompetitionLeaderboard';
 import PublicTeamsList from '../components/competition/PublicTeamsList';
+import LiveCountdownTimer from '../components/competition/LiveCountdownTimer';
 
 export default function YaraRoboticsCompetition2026() {
   const [config, setConfig] = useState<CompetitionEventConfig | null>(null);
   const [registeredTeamsCount, setRegisteredTeamsCount] = useState<number>(0);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [selectedInitialCategory, setSelectedInitialCategory] = useState<CompetitionCategoryType | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'awards' | 'leaderboard' | 'teams'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'awards' | 'leaderboard' | 'teams' | 'rules'>('overview');
 
   const fetchEventInfo = async () => {
     const [c, teams] = await Promise.all([
@@ -51,7 +54,6 @@ export default function YaraRoboticsCompetition2026() {
     <div className="space-y-10 pb-16">
       {/* 1. HERO EVENT BANNER */}
       <div className="relative overflow-hidden rounded-3xl md:rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-2xl p-6 md:p-12">
-        {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 -mt-16 -mr-16 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -93,7 +95,7 @@ export default function YaraRoboticsCompetition2026() {
             {config.description}
           </p>
 
-          {/* Event Details Grid (Dynamic & Editable in Admin) */}
+          {/* Event Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center space-x-2 text-indigo-300 text-xs font-bold mb-1">
@@ -120,28 +122,58 @@ export default function YaraRoboticsCompetition2026() {
             </div>
           </div>
 
-          {/* Primary Action Button */}
-          <div className="flex flex-wrap items-center gap-4 pt-4">
+          {/* Primary Action Buttons Ecosystem */}
+          <div className="flex flex-wrap items-center gap-3 pt-4">
             <button
               onClick={() => openRegistration()}
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center space-x-2"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center space-x-2"
             >
-              <span>Register Team Now</span>
+              <span>Register Your Team</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <button
-              onClick={() => setActiveTab('leaderboard')}
-              className="px-6 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center space-x-2 transition-all"
+            <Link
+              to="/competition/sponsors"
+              className="px-5 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center space-x-2 shadow-md transition-all"
             >
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span>View Live Championship Standings</span>
-            </button>
+              <Heart className="w-4 h-4 text-pink-400" />
+              <span>Become a Sponsor</span>
+            </Link>
+
+            <Link
+              to="/volunteer"
+              className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center space-x-2 transition-all"
+            >
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span>Volunteer</span>
+            </Link>
+
+            <Link
+              to="/competition/judges"
+              className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center space-x-2 transition-all"
+            >
+              <Award className="w-4 h-4 text-purple-400" />
+              <span>Become a Judge</span>
+            </Link>
+
+            <Link
+              to="/competition/live-results"
+              className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-amber-300 font-bold text-xs flex items-center space-x-2 transition-all border border-amber-400/30"
+            >
+              <MonitorPlay className="w-4 h-4" />
+              <span>Live Arena Screen</span>
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* 2. MANDATORY TEAM COMPOSITION REQUIREMENT BANNER */}
+      {/* 2. LIVE DUAL COUNTDOWN COMPONENT */}
+      <LiveCountdownTimer
+        targetDate="2026-10-16T08:00:00"
+        registrationDeadline="2026-09-20T23:59:59"
+      />
+
+      {/* 3. MANDATORY TEAM COMPOSITION REQUIREMENT BANNER */}
       <div className="p-5 bg-indigo-50/80 border border-indigo-200 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
@@ -152,7 +184,7 @@ export default function YaraRoboticsCompetition2026() {
               Mandatory Team Composition Rule (2 Boys + 2 Girls)
             </h3>
             <p className="text-xs text-indigo-800/80">
-              Every team must register at least <strong>4 participants</strong> comprising a minimum of <strong>2 boys and 2 girls</strong>.
+              Every team must register at least <strong>4 participants</strong> comprising a minimum of <strong>2 boys and 2 girls</strong> for gender inclusion.
             </p>
           </div>
         </div>
@@ -164,14 +196,72 @@ export default function YaraRoboticsCompetition2026() {
         </div>
       </div>
 
-      {/* 3. SECTION NAVIGATION TABS */}
+      {/* 4. ECOSYSTEM QUICK ACCESS NAVIGATION BAR */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Link
+          to="/competition/participant"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <Users className="w-5 h-5 text-indigo-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Team Portal</span>
+          <span className="block text-[10px] text-slate-400">Dossier & Badges</span>
+        </Link>
+
+        <Link
+          to="/competition/sponsors"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <DollarSign className="w-5 h-5 text-amber-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Sponsor Hub</span>
+          <span className="block text-[10px] text-slate-400">Tiers & Packages</span>
+        </Link>
+
+        <Link
+          to="/volunteer"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <UserCheck className="w-5 h-5 text-emerald-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Volunteer Corps</span>
+          <span className="block text-[10px] text-slate-400">15 Departments</span>
+        </Link>
+
+        <Link
+          to="/competition/judges"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-purple-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <Award className="w-5 h-5 text-purple-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Judge Panel</span>
+          <span className="block text-[10px] text-slate-400">Digital Rubric</span>
+        </Link>
+
+        <Link
+          to="/competition/impact"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-blue-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <BarChart3 className="w-5 h-5 text-blue-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Impact Ledger</span>
+          <span className="block text-[10px] text-slate-400">Transparency</span>
+        </Link>
+
+        <Link
+          to="/verify"
+          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-400 text-center space-y-1 transition-all group shadow-2xs"
+        >
+          <QrCode className="w-5 h-5 text-teal-600 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-slate-900">Verify Creds</span>
+          <span className="block text-[10px] text-slate-400">Digital Certs</span>
+        </Link>
+      </div>
+
+      {/* 5. SECTION NAVIGATION TABS */}
       <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
         {[
           { id: 'overview' as const, label: 'Overview & Format' },
           { id: 'challenges' as const, label: 'Competition Challenges (3)' },
           { id: 'awards' as const, label: 'Championship & Awards' },
           { id: 'leaderboard' as const, label: 'Live Leaderboard' },
-          { id: 'teams' as const, label: 'Registered Teams Registry' }
+          { id: 'teams' as const, label: 'Registered Teams Registry' },
+          { id: 'rules' as const, label: 'Rules & Guidelines' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -335,6 +425,27 @@ export default function YaraRoboticsCompetition2026() {
       {/* TAB 5: PUBLIC TEAMS LIST */}
       {activeTab === 'teams' && (
         <PublicTeamsList onRegisterClick={() => openRegistration()} />
+      )}
+
+      {/* TAB 6: RULES & GUIDELINES */}
+      {activeTab === 'rules' && (
+        <div className="p-6 md:p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6 text-xs text-slate-700 leading-relaxed">
+          <h3 className="text-xl font-bold text-slate-900">Official Championship Regulations</h3>
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <strong className="block text-slate-900 font-bold mb-1">1. Eligibility & Age Brackets</strong>
+              Participants must be between the ages of 12 and 22 years on the competition date. Open to secondary school students, vocational colleges, and community youth clubs.
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <strong className="block text-slate-900 font-bold mb-1">2. Team Parity Rule (2 Boys + 2 Girls)</strong>
+              All teams must maintain a minimum ratio of at least 2 female and 2 male members actively participating during both arena trials and technical presentations.
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <strong className="block text-slate-900 font-bold mb-1">3. Original Work & Code Authorship</strong>
+              While mentors may provide guidance, robot construction, wire routing, and algorithm coding must be executed and defended solely by student team members.
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 7-STEP REGISTRATION MODAL */}

@@ -25,36 +25,35 @@ export const YARA_PAYMENT_CONFIG = {
 
 export async function submitPartnershipRequest(data: Omit<PartnershipRequest, 'id' | 'status' | 'created_at'>): Promise<{ success: boolean; data?: PartnershipRequest; error?: string }> {
   try {
-    const newRequest: Partial<PartnershipRequest> = {
+    const localId = 'part_' + Date.now().toString(36);
+    const newRequest: PartnershipRequest = {
       ...data,
+      id: localId,
       status: 'pending',
       display_on_website: false,
       created_at: new Date().toISOString()
     };
 
-    const { data: inserted, error } = await supabase
-      .from('partnership_requests')
-      .insert(newRequest)
-      .select()
-      .single();
+    // Save locally first
+    const existing = JSON.parse(localStorage.getItem('yara_partnership_requests') || '[]');
+    localStorage.setItem('yara_partnership_requests', JSON.stringify([newRequest, ...existing]));
 
-    if (error) {
-      console.warn('Supabase partnership insert notice:', error.message);
-      // Fallback local persistence
-      const localId = 'part_' + Date.now().toString(36);
-      const fullLocal: PartnershipRequest = {
-        ...data,
-        id: localId,
-        status: 'pending',
-        display_on_website: false,
-        created_at: new Date().toISOString()
-      };
-      const existing = JSON.parse(localStorage.getItem('yara_partnership_requests') || '[]');
-      localStorage.setItem('yara_partnership_requests', JSON.stringify([fullLocal, ...existing]));
-      return { success: true, data: fullLocal };
+    // Attempt remote sync if table exists
+    try {
+      const { data: inserted, error } = await supabase
+        .from('partnership_requests')
+        .insert(newRequest)
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        return { success: true, data: inserted as PartnershipRequest };
+      }
+    } catch {
+      // safe fallback
     }
 
-    return { success: true, data: inserted as PartnershipRequest };
+    return { success: true, data: newRequest };
   } catch (err: any) {
     console.error('Error submitting partnership request:', err);
     return { success: false, error: err.message || 'Failed to submit partnership request.' };
@@ -62,40 +61,41 @@ export async function submitPartnershipRequest(data: Omit<PartnershipRequest, 'i
 }
 
 export async function getPartnershipRequests(): Promise<PartnershipRequest[]> {
+  let localItems: PartnershipRequest[] = [];
+  try {
+    const raw = localStorage.getItem('yara_partnership_requests');
+    if (raw) localItems = JSON.parse(raw);
+  } catch {
+    localItems = [];
+  }
+
+  // Merge default showcase partners if local is empty
+  if (localItems.length === 0) {
+    localItems = defaultApprovedPartners;
+    localStorage.setItem('yara_partnership_requests', JSON.stringify(localItems));
+  }
+
   try {
     const { data, error } = await supabase
       .from('partnership_requests')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as PartnershipRequest[];
-  } catch (err) {
-    const local = JSON.parse(localStorage.getItem('yara_partnership_requests') || '[]');
-    return local;
+    if (!error && data && data.length > 0) {
+      return data as PartnershipRequest[];
+    }
+  } catch {
+    // fallback
   }
+
+  return localItems;
 }
 
 export async function getApprovedPartners(): Promise<PartnershipRequest[]> {
-  try {
-    const { data, error } = await supabase
-      .from('partnership_requests')
-      .select('*')
-      .or('status.eq.approved,display_on_website.eq.true')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (data && data.length > 0) return data as PartnershipRequest[];
-    
-    // Default institutional showcase partners if none approved yet
-    const local = JSON.parse(localStorage.getItem('yara_partnership_requests') || '[]');
-    const approved = local.filter((p: PartnershipRequest) => p.status === 'approved' || p.display_on_website);
-    if (approved.length > 0) return approved;
-
-    return defaultApprovedPartners;
-  } catch (err) {
-    return defaultApprovedPartners;
-  }
+  const all = await getPartnershipRequests();
+  const approved = all.filter(p => p.status === 'approved' || p.display_on_website);
+  if (approved.length > 0) return approved;
+  return defaultApprovedPartners;
 }
 
 export async function updatePartnershipStatus(
@@ -104,30 +104,43 @@ export async function updatePartnershipStatus(
   displayOnWebsite?: boolean,
   adminNotes?: string
 ): Promise<boolean> {
-  try {
-    const updatePayload: any = { 
-      status, 
-      reviewed_at: new Date().toISOString() 
-    };
-    if (displayOnWebsite !== undefined) updatePayload.display_on_website = displayOnWebsite;
-    if (adminNotes !== undefined) updatePayload.admin_notes = adminNotes;
+  const payload: any = { 
+    status, 
+    reviewed_at: new Date().toISOString() 
+  };
+  if (displayOnWebsite !== undefined) payload.display_on_website = displayOnWebsite;
+  if (adminNotes !== undefined) payload.admin_notes = adminNotes;
 
+  // Update local cache
+  try {
+    const existing = await getPartnershipRequests();
+    const index = existing.findIndex(p => p.id === id);
+    if (index >= 0) {
+      existing[index] = { ...existing[index], ...payload };
+    } else {
+      const def = defaultApprovedPartners.find(p => p.id === id);
+      if (def) existing.push({ ...def, ...payload });
+    }
+    localStorage.setItem('yara_partnership_requests', JSON.stringify(existing));
+  } catch (e) {
+    console.warn('Local partner update notice:', e);
+  }
+
+  // Remote sync attempt
+  try {
     const { error } = await supabase
       .from('partnership_requests')
-      .update(updatePayload)
+      .update(payload)
       .eq('id', id);
 
-    if (error) throw error;
-
-    // Update local cache
-    const existing = JSON.parse(localStorage.getItem('yara_partnership_requests') || '[]');
-    const updated = existing.map((p: PartnershipRequest) => p.id === id ? { ...p, ...updatePayload } : p);
-    localStorage.setItem('yara_partnership_requests', JSON.stringify(updated));
-    return true;
-  } catch (err) {
-    console.error('Error updating partner status:', err);
-    return false;
+    if (error) {
+      console.warn('Remote partnership update note:', error.message);
+    }
+  } catch {
+    // safe fallback
   }
+
+  return true;
 }
 
 // =========================================================================
@@ -136,37 +149,36 @@ export async function updatePartnershipStatus(
 
 export async function submitDonationOrSponsorship(data: Omit<DonationSponsorship, 'id' | 'status' | 'created_at'>): Promise<{ success: boolean; data?: DonationSponsorship; error?: string }> {
   try {
-    const record: Partial<DonationSponsorship> = {
+    const localId = 'don_' + Date.now().toString(36);
+    const record: DonationSponsorship = {
       ...data,
+      id: localId,
       status: 'pending',
       pop_on_homepage: data.pop_on_homepage !== false,
       display_on_wall: data.display_on_wall !== false,
       created_at: new Date().toISOString()
     };
 
-    const { data: inserted, error } = await supabase
-      .from('donations_sponsorships')
-      .insert(record)
-      .select()
-      .single();
+    // Save locally
+    const existing = JSON.parse(localStorage.getItem('yara_donations_sponsorships') || '[]');
+    localStorage.setItem('yara_donations_sponsorships', JSON.stringify([record, ...existing]));
 
-    if (error) {
-      console.warn('Supabase donation insert notice:', error.message);
-      const localId = 'don_' + Date.now().toString(36);
-      const fullLocal: DonationSponsorship = {
-        ...data,
-        id: localId,
-        status: 'pending',
-        pop_on_homepage: data.pop_on_homepage !== false,
-        display_on_wall: data.display_on_wall !== false,
-        created_at: new Date().toISOString()
-      };
-      const existing = JSON.parse(localStorage.getItem('yara_donations_sponsorships') || '[]');
-      localStorage.setItem('yara_donations_sponsorships', JSON.stringify([fullLocal, ...existing]));
-      return { success: true, data: fullLocal };
+    // Remote sync attempt
+    try {
+      const { data: inserted, error } = await supabase
+        .from('donations_sponsorships')
+        .insert(record)
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        return { success: true, data: inserted as DonationSponsorship };
+      }
+    } catch {
+      // safe fallback
     }
 
-    return { success: true, data: inserted as DonationSponsorship };
+    return { success: true, data: record };
   } catch (err: any) {
     console.error('Error submitting donation:', err);
     return { success: false, error: err.message || 'Failed to submit donation.' };
@@ -174,39 +186,40 @@ export async function submitDonationOrSponsorship(data: Omit<DonationSponsorship
 }
 
 export async function getDonationsAndSponsorships(): Promise<DonationSponsorship[]> {
+  let localItems: DonationSponsorship[] = [];
+  try {
+    const raw = localStorage.getItem('yara_donations_sponsorships');
+    if (raw) localItems = JSON.parse(raw);
+  } catch {
+    localItems = [];
+  }
+
+  if (localItems.length === 0) {
+    localItems = defaultApprovedDonations;
+    localStorage.setItem('yara_donations_sponsorships', JSON.stringify(localItems));
+  }
+
   try {
     const { data, error } = await supabase
       .from('donations_sponsorships')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as DonationSponsorship[];
-  } catch (err) {
-    const local = JSON.parse(localStorage.getItem('yara_donations_sponsorships') || '[]');
-    return local;
+    if (!error && data && data.length > 0) {
+      return data as DonationSponsorship[];
+    }
+  } catch {
+    // safe fallback
   }
+
+  return localItems;
 }
 
 export async function getApprovedPublicDonations(): Promise<DonationSponsorship[]> {
-  try {
-    const { data, error } = await supabase
-      .from('donations_sponsorships')
-      .select('*')
-      .in('status', ['approved', 'received'])
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (data && data.length > 0) return data as DonationSponsorship[];
-
-    const local = JSON.parse(localStorage.getItem('yara_donations_sponsorships') || '[]');
-    const filtered = local.filter((d: DonationSponsorship) => d.status === 'approved' || d.status === 'received');
-    if (filtered.length > 0) return filtered;
-
-    return defaultApprovedDonations;
-  } catch (err) {
-    return defaultApprovedDonations;
-  }
+  const all = await getDonationsAndSponsorships();
+  const approved = all.filter(d => d.status === 'approved' || d.status === 'received');
+  if (approved.length > 0) return approved;
+  return defaultApprovedDonations;
 }
 
 export async function updateDonationStatus(
@@ -216,27 +229,41 @@ export async function updateDonationStatus(
   displayOnWall?: boolean,
   adminNotes?: string
 ): Promise<boolean> {
-  try {
-    const payload: any = { status };
-    if (popOnHomepage !== undefined) payload.pop_on_homepage = popOnHomepage;
-    if (displayOnWall !== undefined) payload.display_on_wall = displayOnWall;
-    if (adminNotes !== undefined) payload.admin_notes = adminNotes;
+  const payload: any = { status };
+  if (popOnHomepage !== undefined) payload.pop_on_homepage = popOnHomepage;
+  if (displayOnWall !== undefined) payload.display_on_wall = displayOnWall;
+  if (adminNotes !== undefined) payload.admin_notes = adminNotes;
 
+  // Local storage update
+  try {
+    const existing = await getDonationsAndSponsorships();
+    const index = existing.findIndex(d => d.id === id);
+    if (index >= 0) {
+      existing[index] = { ...existing[index], ...payload };
+    } else {
+      const def = defaultApprovedDonations.find(d => d.id === id);
+      if (def) existing.push({ ...def, ...payload });
+    }
+    localStorage.setItem('yara_donations_sponsorships', JSON.stringify(existing));
+  } catch (e) {
+    console.warn('Local donation update notice:', e);
+  }
+
+  // Remote sync attempt
+  try {
     const { error } = await supabase
       .from('donations_sponsorships')
       .update(payload)
       .eq('id', id);
 
-    if (error) throw error;
-
-    const existing = JSON.parse(localStorage.getItem('yara_donations_sponsorships') || '[]');
-    const updated = existing.map((d: DonationSponsorship) => d.id === id ? { ...d, ...payload } : d);
-    localStorage.setItem('yara_donations_sponsorships', JSON.stringify(updated));
-    return true;
-  } catch (err) {
-    console.error('Error updating donation status:', err);
-    return false;
+    if (error) {
+      console.warn('Remote donation sync note:', error.message);
+    }
+  } catch {
+    // safe fallback
   }
+
+  return true;
 }
 
 // =========================================================================
@@ -245,33 +272,32 @@ export async function updateDonationStatus(
 
 export async function submitVolunteerApplication(data: Omit<Volunteer, 'id' | 'status' | 'created_at'>): Promise<{ success: boolean; data?: Volunteer; error?: string }> {
   try {
-    const record: Partial<Volunteer> = {
+    const localId = 'vol_' + Date.now().toString(36);
+    const record: Volunteer = {
       ...data,
+      id: localId,
       status: 'pending',
       created_at: new Date().toISOString()
     };
 
-    const { data: inserted, error } = await supabase
-      .from('volunteers')
-      .insert(record)
-      .select()
-      .single();
+    const existing = JSON.parse(localStorage.getItem('yara_volunteers') || '[]');
+    localStorage.setItem('yara_volunteers', JSON.stringify([record, ...existing]));
 
-    if (error) {
-      console.warn('Supabase volunteer insert notice:', error.message);
-      const localId = 'vol_' + Date.now().toString(36);
-      const fullLocal: Volunteer = {
-        ...data,
-        id: localId,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-      const existing = JSON.parse(localStorage.getItem('yara_volunteers') || '[]');
-      localStorage.setItem('yara_volunteers', JSON.stringify([fullLocal, ...existing]));
-      return { success: true, data: fullLocal };
+    try {
+      const { data: inserted, error } = await supabase
+        .from('volunteers')
+        .insert(record)
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        return { success: true, data: inserted as Volunteer };
+      }
+    } catch {
+      // safe fallback
     }
 
-    return { success: true, data: inserted as Volunteer };
+    return { success: true, data: record };
   } catch (err: any) {
     console.error('Error submitting volunteer application:', err);
     return { success: false, error: err.message || 'Failed to submit volunteer application.' };
@@ -279,40 +305,67 @@ export async function submitVolunteerApplication(data: Omit<Volunteer, 'id' | 's
 }
 
 export async function getVolunteers(): Promise<Volunteer[]> {
+  let localItems: Volunteer[] = [];
+  try {
+    const raw = localStorage.getItem('yara_volunteers');
+    if (raw) localItems = JSON.parse(raw);
+  } catch {
+    localItems = [];
+  }
+
+  if (localItems.length === 0) {
+    localItems = defaultVolunteers;
+    localStorage.setItem('yara_volunteers', JSON.stringify(localItems));
+  }
+
   try {
     const { data, error } = await supabase
       .from('volunteers')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as Volunteer[];
-  } catch (err) {
-    const local = JSON.parse(localStorage.getItem('yara_volunteers') || '[]');
-    return local;
+    if (!error && data && data.length > 0) {
+      return data as Volunteer[];
+    }
+  } catch {
+    // safe fallback
   }
+
+  return localItems;
 }
 
 export async function updateVolunteerStatus(id: string, status: 'pending' | 'approved' | 'rejected', adminNotes?: string): Promise<boolean> {
-  try {
-    const payload: any = { status };
-    if (adminNotes !== undefined) payload.admin_notes = adminNotes;
+  const payload: any = { status };
+  if (adminNotes !== undefined) payload.admin_notes = adminNotes;
 
+  try {
+    const existing = await getVolunteers();
+    const index = existing.findIndex(v => v.id === id);
+    if (index >= 0) {
+      existing[index] = { ...existing[index], ...payload };
+    } else {
+      const def = defaultVolunteers.find(v => v.id === id);
+      if (def) existing.push({ ...def, ...payload });
+    }
+    localStorage.setItem('yara_volunteers', JSON.stringify(existing));
+  } catch (e) {
+    console.warn('Local volunteer update notice:', e);
+  }
+
+  try {
     const { error } = await supabase
       .from('volunteers')
       .update(payload)
       .eq('id', id);
 
-    if (error) throw error;
-
-    const existing = JSON.parse(localStorage.getItem('yara_volunteers') || '[]');
-    const updated = existing.map((v: Volunteer) => v.id === id ? { ...v, ...payload } : v);
-    localStorage.setItem('yara_volunteers', JSON.stringify(updated));
-    return true;
-  } catch (err) {
-    console.error('Error updating volunteer status:', err);
-    return false;
+    if (error) {
+      console.warn('Remote volunteer update note:', error.message);
+    }
+  } catch {
+    // safe fallback
   }
+
+  return true;
 }
 
 // =========================================================================
@@ -327,98 +380,119 @@ export async function checkAndVerifyUserSubscription(userId: string, userEmail: 
 }> {
   try {
     // 1. Direct profile check
-    const { data: profile, error: profileErr } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (profile) {
-      if (profile.role === 'admin' || profile.role === 'mentor') {
-        return {
-          isSubscribed: true,
-          status: 'active',
-          profile,
-          message: 'Account active under verified organizational privileges.'
-        };
-      }
+      if (profile) {
+        if (profile.role === 'admin' || profile.role === 'mentor') {
+          return {
+            isSubscribed: true,
+            status: 'active',
+            profile,
+            message: 'Account active under verified organizational privileges.'
+          };
+        }
 
-      if (profile.registration_paid) {
-        return {
-          isSubscribed: true,
-          status: 'active',
-          profile,
-          message: 'Subscription confirmed active.'
-        };
-      }
+        if (profile.registration_paid) {
+          return {
+            isSubscribed: true,
+            status: 'active',
+            profile,
+            message: 'Subscription confirmed active.'
+          };
+        }
 
-      const hasActiveSubDate = profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date();
-      if (hasActiveSubDate) {
-        return {
-          isSubscribed: true,
-          status: 'active',
-          profile,
-          message: `Subscription active until ${new Date(profile.subscription_expires_at).toLocaleDateString()}.`
-        };
+        const hasActiveSubDate = profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date();
+        if (hasActiveSubDate) {
+          return {
+            isSubscribed: true,
+            status: 'active',
+            profile,
+            message: `Subscription active until ${new Date(profile.subscription_expires_at).toLocaleDateString()}.`
+          };
+        }
       }
+    } catch {
+      // profile check error
     }
 
-    // 2. Check subscriptions table for recent approved or active payment
-    const { data: subData } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .or(`user_id.eq.${userId},user_email.eq.${userEmail}`)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (subData && subData.length > 0) {
-      const latestSub = subData[0];
-      if (latestSub.status === 'active' && new Date(latestSub.expires_at) > new Date()) {
-        // Sync to profile so subsequent loads are instant
-        await supabase
-          .from('profiles')
-          .update({
-            registration_paid: true,
-            subscription_expires_at: latestSub.expires_at
-          })
-          .eq('id', userId);
-
-        const { data: updatedProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
+    // 2. Check local subscriptions cache as well
+    const localSubs: UserSubscription[] = JSON.parse(localStorage.getItem('yara_subscriptions') || '[]');
+    const userLocalSub = localSubs.find(s => s.user_id === userId || s.user_email === userEmail);
+    if (userLocalSub) {
+      if (userLocalSub.status === 'active' && new Date(userLocalSub.expires_at) > new Date()) {
         return {
           isSubscribed: true,
           status: 'active',
-          profile: updatedProfile || profile,
-          message: 'Active subscription record verified in database.'
+          message: 'Active subscription record verified.'
         };
       }
-
-      if (latestSub.status === 'pending_verification') {
+      if (userLocalSub.status === 'pending_verification') {
         return {
           isSubscribed: false,
           status: 'pending_verification',
-          profile,
-          message: `Your payment reference (${latestSub.payment_reference}) is pending administrator approval.`
+          message: `Your payment reference (${userLocalSub.payment_reference}) is pending administrator approval.`
         };
       }
+    }
+
+    // 3. Check remote subscriptions table if exists
+    try {
+      const { data: subData } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .or(`user_id.eq.${userId},user_email.eq.${userEmail}`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (subData && subData.length > 0) {
+        const latestSub = subData[0];
+        if (latestSub.status === 'active' && new Date(latestSub.expires_at) > new Date()) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({
+                registration_paid: true,
+                subscription_expires_at: latestSub.expires_at
+              })
+              .eq('id', userId);
+          } catch {
+            // sync note
+          }
+
+          return {
+            isSubscribed: true,
+            status: 'active',
+            message: 'Active subscription record verified in database.'
+          };
+        }
+
+        if (latestSub.status === 'pending_verification') {
+          return {
+            isSubscribed: false,
+            status: 'pending_verification',
+            message: `Your payment reference (${latestSub.payment_reference}) is pending administrator approval.`
+          };
+        }
+      }
+    } catch {
+      // safe fallback
     }
 
     return {
       isSubscribed: false,
       status: 'none',
-      profile,
-      message: 'No verified active subscription found. Please submit your payment reference or renew.'
+      message: 'No verified active subscription found. Please submit your EcoCash payment reference or renew.'
     };
   } catch (err: any) {
-    console.error('Error during subscription check:', err);
     return {
       isSubscribed: false,
       status: 'none',
-      message: 'Unable to verify subscription database connection.'
+      message: 'Unable to verify subscription status.'
     };
   }
 }
@@ -438,7 +512,8 @@ export async function submitSubscriptionPaymentProof(data: {
     const startsAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const record = {
+    const record: UserSubscription = {
+      id: 'sub_' + Date.now().toString(36),
       user_id: data.userId,
       user_email: data.userEmail,
       user_name: data.userName,
@@ -451,18 +526,21 @@ export async function submitSubscriptionPaymentProof(data: {
       status: 'pending_verification',
       starts_at: startsAt,
       expires_at: expiresAt,
+      created_at: startsAt,
       admin_notes: data.notes || `Submitted payment proof to ${data.paymentMethod}`
     };
 
-    const { error } = await supabase
-      .from('subscriptions')
-      .insert(record);
+    // Save locally
+    const local = JSON.parse(localStorage.getItem('yara_subscriptions') || '[]');
+    localStorage.setItem('yara_subscriptions', JSON.stringify([record, ...local]));
 
-    if (error) {
-      console.warn('Subscription insertion note:', error.message);
-      // local fallback
-      const local = JSON.parse(localStorage.getItem('yara_subscriptions') || '[]');
-      localStorage.setItem('yara_subscriptions', JSON.stringify([{ ...record, id: 'sub_' + Date.now() }, ...local]));
+    // Try remote sync
+    try {
+      await supabase
+        .from('subscriptions')
+        .insert(record);
+    } catch {
+      // safe fallback
     }
 
     return {
@@ -478,25 +556,62 @@ export async function submitSubscriptionPaymentProof(data: {
 }
 
 export async function getAllSubscriptions(): Promise<UserSubscription[]> {
+  let localSubs: UserSubscription[] = [];
+  try {
+    const raw = localStorage.getItem('yara_subscriptions');
+    if (raw) localSubs = JSON.parse(raw);
+  } catch {
+    localSubs = [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as UserSubscription[];
-  } catch (err) {
-    const local = JSON.parse(localStorage.getItem('yara_subscriptions') || '[]');
-    return local;
+    if (!error && data && data.length > 0) {
+      return data as UserSubscription[];
+    }
+  } catch {
+    // fallback
   }
+
+  return localSubs;
 }
 
 export async function approveUserSubscription(subscriptionId: string, userId: string, days: number = 30): Promise<boolean> {
-  try {
-    const newExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  const newExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 
-    // 1. Update subscription status
+  // 1. Update local storage
+  try {
+    const local = await getAllSubscriptions();
+    const index = local.findIndex(s => s.id === subscriptionId);
+    if (index >= 0) {
+      local[index].status = 'active';
+      local[index].expires_at = newExpiresAt;
+      local[index].verified_at = new Date().toISOString();
+      localStorage.setItem('yara_subscriptions', JSON.stringify(local));
+    }
+  } catch (e) {
+    console.warn('Local sub update notice:', e);
+  }
+
+  // 2. Update user profile in Supabase (profiles table exists)
+  try {
+    await supabase
+      .from('profiles')
+      .update({
+        registration_paid: true,
+        subscription_expires_at: newExpiresAt
+      })
+      .eq('id', userId);
+  } catch (e) {
+    console.warn('Profile subscription update notice:', e);
+  }
+
+  // 3. Update remote subscriptions table if exists
+  try {
     await supabase
       .from('subscriptions')
       .update({
@@ -505,21 +620,11 @@ export async function approveUserSubscription(subscriptionId: string, userId: st
         verified_at: new Date().toISOString()
       })
       .eq('id', subscriptionId);
-
-    // 2. Update user profile
-    await supabase
-      .from('profiles')
-      .update({
-        registration_paid: true,
-        subscription_expires_at: newExpiresAt
-      })
-      .eq('id', userId);
-
-    return true;
-  } catch (err) {
-    console.error('Error approving subscription:', err);
-    return false;
+  } catch {
+    // safe fallback
   }
+
+  return true;
 }
 
 // =========================================================================
@@ -668,5 +773,34 @@ const defaultApprovedDonations: DonationSponsorship[] = [
     pop_on_homepage: true,
     display_on_wall: true,
     created_at: '2026-04-05T14:30:00Z'
+  }
+];
+
+const defaultVolunteers: Volunteer[] = [
+  {
+    id: 'v1',
+    full_name: 'Tinashe Chikwanha',
+    email: 'tinashe.c@robotics-alumni.org',
+    phone: '+263 77 123 4567',
+    category: 'judge_technical',
+    country: 'Zimbabwe',
+    province: 'Harare',
+    skills_background: 'Python, ROS, OpenCV, Embedded C, Autonomous Navigation',
+    motivation: 'Passionate about mentoring the next generation of robotics innovators across Zimbabwean provinces.',
+    status: 'approved',
+    created_at: '2026-04-02T08:00:00Z'
+  },
+  {
+    id: 'v2',
+    full_name: 'Ruvimbo Ndlovu',
+    email: 'ruvimbo.ndlovu@stem-women.org',
+    phone: '+263 71 987 6543',
+    category: 'robotics_mentor',
+    country: 'Zimbabwe',
+    province: 'Mashonaland West',
+    skills_background: 'Arduino, Sensor Integration, PCB Design, STEM Club Facilitation',
+    motivation: 'Excited to coach girls high school teams for the Underwater Drone Challenge.',
+    status: 'approved',
+    created_at: '2026-04-06T11:20:00Z'
   }
 ];

@@ -25,6 +25,12 @@ import Partners from './pages/Partners';
 import Contact from './pages/Contact';
 import DonationsAndSponsorships from './pages/DonationsAndSponsorships';
 import VolunteerPortal from './pages/VolunteerPortal';
+import ParticipantPortal from './pages/competition/ParticipantPortal';
+import SponsorPortal from './pages/competition/SponsorPortal';
+import JudgePortal from './pages/competition/JudgePortal';
+import LiveResultsScreen from './pages/competition/LiveResultsScreen';
+import CertificateVerification from './pages/competition/CertificateVerification';
+import ImpactAndFinancials from './pages/competition/ImpactAndFinancials';
 import SubscriptionLockoutView from './components/auth/SubscriptionLockoutView';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -92,9 +98,25 @@ const AppContent = () => {
           <Route path="projects" element={<Projects />} />
           <Route path="mentorship" element={<Mentorship />} />
           <Route path="events" element={<Events />} />
+
+          {/* YARA Robotics Competition 2026 Ecosystem */}
           <Route path="competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
           <Route path="yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
           <Route path="competition" element={<YaraRoboticsCompetition2026 />} />
+          <Route path="competition/participant" element={<ParticipantPortal />} />
+          <Route path="competition/sponsors" element={<SponsorPortal />} />
+          <Route path="sponsors" element={<SponsorPortal />} />
+          <Route path="competition/volunteers" element={<VolunteerPortal />} />
+          <Route path="volunteer" element={<VolunteerPortal />} />
+          <Route path="volunteers" element={<VolunteerPortal />} />
+          <Route path="competition/judges" element={<JudgePortal />} />
+          <Route path="judges" element={<JudgePortal />} />
+          <Route path="competition/live-results" element={<LiveResultsScreen />} />
+          <Route path="live-results" element={<LiveResultsScreen />} />
+          <Route path="competition/impact" element={<ImpactAndFinancials />} />
+          <Route path="verify" element={<CertificateVerification />} />
+          <Route path="verify-certificate" element={<CertificateVerification />} />
+
           <Route path="resources" element={<Resources />} />
           <Route path="curriculum" element={<Curriculum />} />
           <Route path="dashboard" element={<Dashboard />} />
@@ -105,8 +127,6 @@ const AppContent = () => {
           <Route path="partners" element={<Partners />} />
           <Route path="donate" element={<DonationsAndSponsorships />} />
           <Route path="sponsorship" element={<DonationsAndSponsorships />} />
-          <Route path="volunteer" element={<VolunteerPortal />} />
-          <Route path="volunteers" element={<VolunteerPortal />} />
           <Route path="contact" element={<Contact />} />
           <Route path="admin" element={<Admin />} />
           <Route path="live/:roomId" element={<LiveRoom />} />
