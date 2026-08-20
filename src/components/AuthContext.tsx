@@ -76,13 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isSubscriptionExpired = useMemo(() => {
-    if (!profile?.subscription_expires_at) return false;
+    if (!profile) return false;
+    if (profile.role === 'admin' || profile.role === 'mentor') return false;
+    if (profile.registration_paid) return false;
+    // If still in active trial period, subscription is not expired
+    if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return false;
+    if (!profile.subscription_expires_at) return false;
     return new Date(profile.subscription_expires_at) < new Date();
   }, [profile]);
 
   const isTrialExpired = useMemo(() => {
     if (!profile) return false;
-    if (profile.role === 'admin' || profile.registration_paid) return false;
+    if (profile.role === 'admin' || profile.role === 'mentor') return false;
+    if (profile.registration_paid) return false;
+    // If user has an active future subscription, trial is NOT expired
+    if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return false;
     if (!profile.trial_ends_at) return false;
     return new Date(profile.trial_ends_at) < new Date();
   }, [profile]);
@@ -93,13 +101,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAccountActive = useMemo(() => {
     if (!profile) return false;
-    // Admins are always active
-    if (profile.role === 'admin') return true;
+    // Admins and Mentors are always active
+    if (profile.role === 'admin' || profile.role === 'mentor') return true;
     
     // Check for halt or expiry
     if (profile.is_halted) return false;
-    if (isTrialExpired && !profile.registration_paid) return false;
-    if (isSubscriptionExpired && !profile.registration_paid) return false;
+    if (profile.registration_paid) return true;
+    if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return true;
+    if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return true;
+    if (isTrialExpired) return false;
+    if (isSubscriptionExpired) return false;
 
     return true;
   }, [profile, isSubscriptionExpired, isTrialExpired]);

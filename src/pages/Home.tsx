@@ -182,6 +182,56 @@ export default function Home() {
       {/* 72-Hour Official Launch Countdown */}
       <LaunchCountdown />
 
+      {/* Flagship Event: YARA Educational Robotics Competition 2026 */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 text-white p-8 md:p-10 shadow-2xl"
+      >
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
+                Young Africans Robotics Association (YARA)
+              </span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                ● Registration Open
+              </span>
+            </div>
+
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-snug">
+              YARA Educational Robotics Competition 2026
+            </h3>
+            
+            <p className="text-amber-300 text-sm sm:text-base font-bold">
+              Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
+            </p>
+            
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls team composition.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+            <Link
+              to="/competitions/yara-2026"
+              className="px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center space-x-2 transition-all hover:scale-105"
+            >
+              <span>Explore Arena & Register Team</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/events"
+              className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center space-x-2 transition-all"
+            >
+              <span>View All Events & Standings</span>
+            </Link>
+          </div>
+        </div>
+      </motion.section>
+
       {/* Learning Roadmap Quick Access */}
       <motion.section 
         initial={{ opacity: 0, y: 30 }}

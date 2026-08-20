@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone, Brain } from 'lucide-react';
+import { Home, User, Lightbulb, Briefcase, Users, CreditCard, LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, MessageSquare, ShieldCheck, Info, Cpu, BarChart3, Handshake, Phone, Brain, Trophy } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
@@ -9,6 +9,7 @@ import { ASSETS } from '../constants/assets';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/competitions/yara-2026', icon: Trophy, label: 'YARA 2026 Arena' },
   { path: '/ideas', icon: Lightbulb, label: 'Ideas' },
   { path: '/projects', icon: Briefcase, label: 'Projects' },
   { path: '/mentorship', icon: Users, label: 'Mentorship' },
