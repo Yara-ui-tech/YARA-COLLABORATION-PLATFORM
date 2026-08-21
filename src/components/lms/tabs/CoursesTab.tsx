@@ -19,12 +19,15 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  AlertCircle
+  AlertCircle,
+  Film
 } from 'lucide-react';
 import { YARALmsSession, LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
 import { YARA_LMS_LEVELS } from '../../../constants/yaraLmsData';
 import { checkSessionPrerequisites } from '../../../services/yaraLmsService';
+import { useAuth } from '../../AuthContext';
+import { AdminSessionVideoModal } from '../AdminSessionVideoModal';
 
 interface Props {
   userId: string;
@@ -39,10 +42,14 @@ export const CoursesTab: React.FC<Props> = ({
   onSelectSession,
   onNavigateTab
 }) => {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'online' | 'practical' | 'hardware'>('all');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [adminVideoModalSession, setAdminVideoModalSession] = useState<{ id: string; title: string } | null>(null);
 
   // Filter sessions
   const filteredSessions = COMPLETE_YARA_SESSIONS.filter(session => {
@@ -227,7 +234,18 @@ export const CoursesTab: React.FC<Props> = ({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                  <div className="flex items-center gap-2.5 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 flex-wrap">
+                    {isAdmin && (
+                      <button
+                        onClick={() => setAdminVideoModalSession({ id: session.id, title: session.title })}
+                        className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 rounded-xl transition"
+                        title="Manage course videos for this session"
+                      >
+                        <Film className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Manage Videos</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => toggleExpand(session.id)}
                       className="px-3 py-2 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center gap-1 rounded-xl hover:bg-slate-100 transition"
@@ -312,6 +330,17 @@ export const CoursesTab: React.FC<Props> = ({
           })
         )}
       </div>
+
+      {/* Admin Video Modal */}
+      {isAdmin && adminVideoModalSession && (
+        <AdminSessionVideoModal
+          sessionId={adminVideoModalSession.id}
+          sessionTitle={adminVideoModalSession.title}
+          isOpen={true}
+          onClose={() => setAdminVideoModalSession(null)}
+          onVideosUpdated={() => {}}
+        />
+      )}
     </div>
   );
 };

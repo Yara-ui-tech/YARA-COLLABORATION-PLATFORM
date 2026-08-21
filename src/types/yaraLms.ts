@@ -31,6 +31,16 @@ export interface RequiredComponentItem {
   inStarterKit?: boolean;
 }
 
+export interface SessionVideoClip {
+  id: string;
+  title: string;
+  durationSeconds: number; // e.g. 240 (4 mins), 360 (6 mins) -> max 7 mins (<= 420s)
+  videoUrl: string; // YouTube embed, Vimeo, Google Drive, direct MP4, or cloud link
+  clipType?: 'concept' | 'demonstration' | 'troubleshooting' | 'recap' | 'walkthrough';
+  description?: string;
+  order: number;
+}
+
 export interface YARALmsSession {
   id: string; // e.g. 'S00', 'S01', ... 'P01', 'P05'
   levelNumber: LearnerLevelNumber;
@@ -52,6 +62,7 @@ export interface YARALmsSession {
   // Instructional Content
   video_url: string;
   video_duration_seconds: number;
+  videoClips?: SessionVideoClip[]; // Bite-sized modular video micro-lessons (max ~5-7 mins each)
   reading_markdown: string;
   simulation_embed_url?: string;
   simulation_platform?: 'Tinkercad' | 'Wokwi' | 'Falstad' | 'Scratch' | 'Custom';

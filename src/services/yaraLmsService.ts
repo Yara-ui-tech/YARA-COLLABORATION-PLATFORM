@@ -7,7 +7,8 @@ import {
   CapstoneProjectSubmission, 
   CertificateEligibilityCheck,
   LearnerPortfolio,
-  LearnerLevelNumber
+  LearnerLevelNumber,
+  SessionVideoClip
 } from '../types/yaraLms';
 import { Certificate } from '../types/curriculum';
 import { checkAndVerifyUserSubscription } from './partnershipDonationService';
@@ -16,6 +17,8 @@ import { checkAndVerifyUserSubscription } from './partnershipDonationService';
 const STORAGE_KEYS = {
   COMPLETIONS: 'yara_lms_completions',
   VIDEO_WATCH: 'yara_lms_video_watch',
+  SESSION_VIDEOS: 'yara_lms_session_videos',
+  CLIP_WATCH: 'yara_lms_clip_watch',
   QUIZ_ATTEMPTS: 'yara_lms_quiz_attempts',
   CAPSTONES: 'yara_lms_capstones',
   CERTIFICATES: 'yara_lms_certificates',
@@ -93,6 +96,256 @@ export function getVideoProgress(userId: string, sessionId: string): VideoWatchP
     return allWatch[`${userId}_${sessionId}`] || null;
   } catch {
     return null;
+  }
+}
+
+// ============================================================================
+// 1B. BITE-SIZED VIDEO MICRO-LESSONS & ADMIN VIDEO MANAGEMENT (MAX 7 MIN EACH)
+// ============================================================================
+
+/**
+ * Generates default modular micro-lessons (each <= 7 minutes) for a session.
+ */
+function generateDefaultModularVideos(session: any): SessionVideoClip[] {
+  if (session?.videoClips && session.videoClips.length > 0) {
+    return session.videoClips;
+  }
+
+  const baseEmbed = session?.video_url || 'https://www.youtube.com/watch?v=FCMxA3m_Imc';
+  const title = session?.title || 'Robotics & Innovation';
+
+  return [
+    {
+      id: `${session?.id || 'S00'}_clip_1`,
+      order: 1,
+      title: `Part 1: Core Principles & Concepts — ${title}`,
+      durationSeconds: 240, // 4:00 (Max <= 7 min)
+      videoUrl: baseEmbed,
+      clipType: 'concept',
+      description: `Understand the fundamental theoretical framework and scientific principles of ${title}.`
+    },
+    {
+      id: `${session?.id || 'S00'}_clip_2`,
+      order: 2,
+      title: `Part 2: Step-by-Step Practical Demonstration & Wiring`,
+      durationSeconds: 330, // 5:30 (Max <= 7 min)
+      videoUrl: baseEmbed,
+      clipType: 'demonstration',
+      description: `Detailed hands-on lab demonstration showing hardware connections, pinout mappings, and circuit assembly.`
+    },
+    {
+      id: `${session?.id || 'S00'}_clip_3`,
+      order: 3,
+      title: `Part 3: Code Logic, Simulation & Debugging Walkthrough`,
+      durationSeconds: 290, // 4:50 (Max <= 7 min)
+      videoUrl: baseEmbed,
+      clipType: 'walkthrough',
+      description: `Step-by-step firmware breakdown, real-time simulator execution, and hardware troubleshooting techniques.`
+    },
+    {
+      id: `${session?.id || 'S00'}_clip_4`,
+      order: 4,
+      title: `Part 4: Real-World Innovations & Engineering Takeaways`,
+      durationSeconds: 195, // 3:15 (Max <= 7 min)
+      videoUrl: baseEmbed,
+      clipType: 'recap',
+      description: `Synthesizing takeaways for community engineering impact, capstone ideas, and design challenges.`
+    }
+  ];
+}
+
+/**
+ * Retrieve current video clips for a specific session (merging Admin customizations if present).
+ */
+export function getSessionVideos(sessionId: string): SessionVideoClip[] {
+  try {
+    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
+    );
+
+    if (customVideosMap[sessionId] && Array.isArray(customVideosMap[sessionId]) && customVideosMap[sessionId].length > 0) {
+      return customVideosMap[sessionId].sort((a, b) => a.order - b.order);
+    }
+
+    const session = getSessionById(sessionId);
+    return generateDefaultModularVideos(session);
+  } catch (e) {
+    console.error('Error fetching session videos:', e);
+    const session = getSessionById(sessionId);
+    return generateDefaultModularVideos(session);
+  }
+}
+
+/**
+ * Save custom video clips list for a specific course session (Admin action).
+ */
+export function saveSessionVideos(sessionId: string, clips: SessionVideoClip[]): void {
+  try {
+    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
+    );
+    customVideosMap[sessionId] = clips.map((c, i) => ({ ...c, order: i + 1 }));
+    localStorage.setItem(STORAGE_KEYS.SESSION_VIDEOS, JSON.stringify(customVideosMap));
+  } catch (e) {
+    console.error('Error saving session videos:', e);
+  }
+}
+
+/**
+ * Admin: Add a new video clip or external link to a course session (Max 7 mins / 420s).
+ */
+export function addSessionVideoClip(
+  sessionId: string,
+  clip: Omit<SessionVideoClip, 'id' | 'order'>
+): SessionVideoClip {
+  const currentClips = getSessionVideos(sessionId);
+  // Enforce max 7 minutes cap (420 seconds) for micro-lesson learning effectiveness
+  const duration = Math.min(420, Math.max(30, clip.durationSeconds || 240));
+
+  const newClip: SessionVideoClip = {
+    id: `${sessionId}_clip_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    title: clip.title.trim() || `Micro-Lesson Part ${currentClips.length + 1}`,
+    durationSeconds: duration,
+    videoUrl: clip.videoUrl.trim() || 'https://www.youtube.com/watch?v=FCMxA3m_Imc',
+    clipType: clip.clipType || 'concept',
+    description: clip.description?.trim() || 'Bite-sized micro-lesson (max 7 minutes).',
+    order: currentClips.length + 1
+  };
+
+  const updatedClips = [...currentClips, newClip];
+  saveSessionVideos(sessionId, updatedClips);
+  return newClip;
+}
+
+/**
+ * Admin: Update an existing video clip in a course session.
+ */
+export function updateSessionVideoClip(
+  sessionId: string,
+  clipId: string,
+  updates: Partial<SessionVideoClip>
+): boolean {
+  const currentClips = getSessionVideos(sessionId);
+  const index = currentClips.findIndex(c => c.id === clipId);
+  if (index === -1) return false;
+
+  const duration = updates.durationSeconds 
+    ? Math.min(420, Math.max(30, updates.durationSeconds)) 
+    : currentClips[index].durationSeconds;
+
+  currentClips[index] = {
+    ...currentClips[index],
+    ...updates,
+    durationSeconds: duration
+  };
+
+  saveSessionVideos(sessionId, currentClips);
+  return true;
+}
+
+/**
+ * Admin: Remove a video clip or link from a course session.
+ */
+export function removeSessionVideoClip(sessionId: string, clipId: string): boolean {
+  const currentClips = getSessionVideos(sessionId);
+  const filtered = currentClips.filter(c => c.id !== clipId);
+  if (filtered.length === currentClips.length) return false;
+
+  saveSessionVideos(sessionId, filtered);
+  return true;
+}
+
+/**
+ * Admin: Reorder video clips for a session.
+ */
+export function reorderSessionVideoClips(sessionId: string, orderedClipIds: string[]): boolean {
+  const currentClips = getSessionVideos(sessionId);
+  const reordered: SessionVideoClip[] = [];
+
+  orderedClipIds.forEach((id, idx) => {
+    const found = currentClips.find(c => c.id === id);
+    if (found) {
+      reordered.push({ ...found, order: idx + 1 });
+    }
+  });
+
+  if (reordered.length > 0) {
+    saveSessionVideos(sessionId, reordered);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Admin: Reset a course session's videos back to factory defaults.
+ */
+export function resetSessionVideosToDefault(sessionId: string): void {
+  try {
+    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
+    );
+    delete customVideosMap[sessionId];
+    localStorage.setItem(STORAGE_KEYS.SESSION_VIDEOS, JSON.stringify(customVideosMap));
+  } catch (e) {
+    console.error('Error resetting session videos:', e);
+  }
+}
+
+/**
+ * Track and get watch progress for an individual modular video clip.
+ */
+export function getClipWatchProgress(
+  userId: string,
+  sessionId: string,
+  clipId: string
+): { watchedSeconds: number; durationSeconds: number; percent: number; isCompleted: boolean } {
+  try {
+    const allClipWatch: Record<string, any> = JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.CLIP_WATCH) || '{}'
+    );
+    const key = `${userId}_${sessionId}_${clipId}`;
+    const data = allClipWatch[key];
+    if (!data) {
+      return { watchedSeconds: 0, durationSeconds: 240, percent: 0, isCompleted: false };
+    }
+    return data;
+  } catch {
+    return { watchedSeconds: 0, durationSeconds: 240, percent: 0, isCompleted: false };
+  }
+}
+
+export function updateClipWatchProgress(
+  userId: string,
+  sessionId: string,
+  clipId: string,
+  watchedSeconds: number,
+  durationSeconds: number
+): { percent: number; isCompleted: boolean } {
+  try {
+    const dur = Math.max(30, durationSeconds || 240);
+    const percent = Math.min(100, Math.round((watchedSeconds / dur) * 100));
+    const isCompleted = percent >= 85;
+
+    const allClipWatch: Record<string, any> = JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.CLIP_WATCH) || '{}'
+    );
+    const key = `${userId}_${sessionId}_${clipId}`;
+    allClipWatch[key] = {
+      sessionId,
+      clipId,
+      userId,
+      watchedSeconds,
+      durationSeconds: dur,
+      percent,
+      isCompleted,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEYS.CLIP_WATCH, JSON.stringify(allClipWatch));
+
+    return { percent, isCompleted };
+  } catch (e) {
+    console.error('Error updating clip progress:', e);
+    return { percent: 0, isCompleted: false };
   }
 }
 
