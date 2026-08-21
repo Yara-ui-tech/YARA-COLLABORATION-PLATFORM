@@ -649,3 +649,6 @@ export const YARA_ROBOTICS_STARTER_KIT: YARAKitItem = {
   inStock: true,
   contactInquiryPhone: '0717468236'
 };
+
+export const YARA_LMS_LEVELS = YARA_LEARNING_LEVELS;
+

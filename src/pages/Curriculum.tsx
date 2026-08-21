@@ -237,6 +237,26 @@ export default function Curriculum() {
         </div>
       </header>
 
+      {/* New Platform Promotion Banner */}
+      <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
+            <Sparkles className="w-3.5 h-3.5" /> Full Academy Platform Available
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black">YARA Robotics & Innovation Learning Platform</h3>
+          <p className="text-xs sm:text-sm text-slate-300">
+            Access the complete Level 0 to Level 8 progression pathway, video progress tracking, randomized quizzes, maker-lab kits, capstone project grading, and 8-point accredited graduation certificate.
+          </p>
+        </div>
+        <a
+          href="/learning"
+          className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-2xl flex items-center gap-2 transition shadow-lg shadow-emerald-500/20 shrink-0"
+        >
+          <span>Launch Level 0–8 Academy</span>
+          <ArrowRight className="w-4 h-4" />
+        </a>
+      </div>
+
       {/* Course Level Switcher & Brainstorming Banner */}
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-100 p-2 rounded-3xl">

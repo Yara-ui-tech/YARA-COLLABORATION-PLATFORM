@@ -2,6 +2,10 @@ import { SessionQuestion, SessionAssignment, SessionProject, SessionStudyResourc
 
 export type LearnerLevelNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
+export type CapstoneThematicArea = 
+  | 'agriculture' | 'water' | 'education' | 'environment' | 'accessibility' | 'healthcare' | 'energy' | 'safety' | 'transport' | 'community' | 'empowerment'
+  | 'Agriculture' | 'Water' | 'Education' | 'Environment' | 'Accessibility' | 'Healthcare' | 'Energy' | 'Safety' | 'Transport' | 'Community Development' | 'Youth Empowerment';
+
 export interface YARACourseLevel {
   levelNumber: LearnerLevelNumber;
   code: string;
@@ -12,6 +16,7 @@ export interface YARACourseLevel {
   badgeIcon: string;
   color: string;
   targetOutcome: string;
+  targetAudience?: string;
   sessions: string[]; // array of session IDs (e.g. ['S00'], ['S01', 'S02', ...], ['P01'])
   prerequisiteLevel?: LearnerLevelNumber;
 }
@@ -113,34 +118,38 @@ export interface QuizAttemptRecord {
 export interface CapstoneProjectSubmission {
   id: string;
   userId: string;
-  userEmail: string;
+  userEmail?: string;
   studentName: string;
-  thematicArea: 'Agriculture' | 'Water' | 'Education' | 'Environment' | 'Accessibility' | 'Healthcare' | 'Energy' | 'Safety' | 'Transport' | 'Community Development' | 'Youth Empowerment';
+  thematicArea: CapstoneThematicArea;
   
   // 21-point comprehensive documentation fields
   title: string;
   problemStatement: string;
-  backgroundResearch: string;
-  objectives: string[];
-  targetUsers: string;
-  proposedSolution: string;
-  systemArchitectureDescription: string;
+  backgroundResearch?: string;
+  researchSummary?: string;
+  objectives?: string[];
+  quantitativeRequirements?: string[];
+  targetUsers?: string;
+  proposedSolution?: string;
+  systemArchitectureDescription?: string;
   circuitDiagramUrl?: string;
-  bomItems: { component: string; quantity: number; unitCost: number; totalCost: number; purpose: string }[];
-  totalBomCostUsd: number;
+  bomItems?: { component: string; quantity: number; unitCost: number; totalCost: number; purpose: string }[];
+  totalBomCostUsd?: number;
+  bomCostUsd?: number;
   softwareRepoUrl?: string;
   sourceCodeSnippet?: string;
-  mechanicalDesignDescription: string;
-  buildProcessSteps: string[];
-  testingProcedureAndResults: string;
-  challengesEncountered: string;
-  improvementsAndFutureWork: string;
-  socialImpactStatement: string;
-  researchReferences: string[];
-  photos: string[];
+  mechanicalDesignDescription?: string;
+  buildProcessSteps?: string[];
+  testingProcedureAndResults?: string;
+  challengesEncountered?: string;
+  improvementsAndFutureWork?: string;
+  socialImpactStatement?: string;
+  researchReferences?: string[];
+  photos?: string[];
   prototypeVideoUrl: string;
-  pitchDurationSeconds: number;
-  pitchVideoUrl: string;
+  pitchDurationSeconds?: number;
+  pitchVideoUrl?: string;
+  technicalReportPdfUrl?: string;
 
   // Evaluation & Grading
   status: 'draft' | 'submitted' | 'under_review' | 'revision_requested' | 'approved' | 'rejected';

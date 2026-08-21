@@ -5,10 +5,11 @@ import { submitCapstoneProject } from '../../services/yaraLmsService';
 
 interface Props {
   userId: string;
-  studentName: string;
+  studentName?: string;
   isOpen: boolean;
   onClose: () => void;
-  onSubmitted: () => void;
+  onSubmitted?: () => void;
+  onSubmissionSuccess?: () => void;
 }
 
 const THEMATIC_AREAS: { id: CapstoneThematicArea; label: string; icon: string }[] = [
@@ -27,10 +28,11 @@ const THEMATIC_AREAS: { id: CapstoneThematicArea; label: string; icon: string }[
 
 export const YaraLmsCapstoneSubmissionModal: React.FC<Props> = ({
   userId,
-  studentName,
+  studentName = 'YARA Learner',
   isOpen,
   onClose,
-  onSubmitted
+  onSubmitted,
+  onSubmissionSuccess
 }) => {
   const [thematicArea, setThematicArea] = useState<CapstoneThematicArea>('agriculture');
   const [title, setTitle] = useState('');
@@ -71,7 +73,8 @@ export const YaraLmsCapstoneSubmissionModal: React.FC<Props> = ({
 
       setSubmittedSuccess(true);
       setTimeout(() => {
-        onSubmitted();
+        if (onSubmitted) onSubmitted();
+        if (onSubmissionSuccess) onSubmissionSuccess();
         onClose();
       }, 2500);
     } catch (err) {

@@ -736,6 +736,9 @@ export function getPublicCertificateByNumber(certNumber: string): Certificate | 
   return null;
 }
 
+export const getPublicCertificate = getPublicCertificateByNumber;
+export const getLearnerPortfolio = buildLearnerPortfolio;
+
 // ============================================================================
 // 6. LEARNER PORTFOLIO GENERATOR
 // ============================================================================

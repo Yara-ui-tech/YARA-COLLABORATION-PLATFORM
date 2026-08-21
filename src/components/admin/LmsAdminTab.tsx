@@ -68,7 +68,7 @@ export const LmsAdminTab: React.FC<Props> = ({ adminUserId }) => {
   };
 
   const calculateTotalScore = () => {
-    const total = Object.values(rubricScores).reduce((a, b) => a + b, 0);
+    const total = (Object.values(rubricScores) as number[]).reduce((a: number, b: number) => a + (Number(b) || 0), 0);
     return Math.round((total / 120) * 100);
   };
 

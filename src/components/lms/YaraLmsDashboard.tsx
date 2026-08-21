@@ -321,7 +321,7 @@ export const YaraLmsDashboard: React.FC<Props> = ({
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 uppercase tracking-wider">
                             LEVEL {lvl.levelNumber}
                           </span>
-                          <span className="text-xs text-slate-400">• {lvl.targetAudience}</span>
+                          <span className="text-xs text-slate-400">• {lvl.targetAudience || lvl.tagline}</span>
                         </div>
                         <h2 className="text-lg sm:text-xl font-bold text-white mt-0.5">{lvl.title}</h2>
                       </div>

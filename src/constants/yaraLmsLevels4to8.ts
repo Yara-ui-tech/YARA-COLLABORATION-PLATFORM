@@ -151,7 +151,7 @@ $$\textbf{Mechanical (Body)} + \textbf{Electrical (Power \& Senses)} + \textbf{S
     reading_markdown: `# Robot Electrical Power & Noise Decoupling
 
 ### 1. Dual-Rail Power Distribution
-$$\textbf{Battery (7.4V - 9V)} \begin{cases} \xrightarrow{\quad\text{Direct (High Current)}\quad} \text{Motor Driver (L298N)} \to \text{Motors} \\ \xrightarrow{\quad\text{Regulated 5V Step-Down}\quad} \text{Microcontroller (Arduino/ESP32)} \to \text{Sensors} \end{cases}$$
+$$\\textbf{Battery (7.4V - 9V)} \\begin{cases} \\xrightarrow{\\quad\\text{Direct (High Current)}\\quad} \\text{Motor Driver (L298N)} \\to \\text{Motors} \\\\ \\xrightarrow{\\quad\\text{Regulated 5V Step-Down}\\quad} \\text{Microcontroller (Arduino/ESP32)} \\to \\text{Sensors} \\end{cases}$$
 
 ### 2. Common Ground Rule
 All grounds ($GND$) MUST be connected at a single star point to prevent ground loops and erratic signal references.`,

@@ -23,6 +23,7 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/learning', icon: Brain, label: 'Learning Academy', badge: 'L0-L8' },
   { path: '/competitions/yara-2026', icon: Trophy, label: 'YARA 2026 Arena', badge: 'Flagship' },
   { path: '/competition/participant', icon: Users, label: 'Team Portal' },
   { path: '/competition/sponsors', icon: DollarSign, label: 'Sponsors & Tiers' },
@@ -30,11 +31,11 @@ const mainNavItems: NavItem[] = [
   { path: '/competition/judges', icon: Award, label: 'Judge Panel' },
   { path: '/competition/live-results', icon: MonitorPlay, label: 'Live Arena Screen' },
   { path: '/competition/impact', icon: BarChart3, label: 'Impact & Ledger' },
-  { path: '/verify', icon: QrCode, label: 'Verify Credentials' },
+  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials' },
   { path: '/ideas', icon: Lightbulb, label: 'Ideas Hub' },
   { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
   { path: '/mentorship', icon: Users, label: 'Mentorship' },
-  { path: '/curriculum', icon: Brain, label: 'Curriculum' },
+  { path: '/curriculum', icon: BookOpen, label: 'Legacy Curriculum' },
   { path: '/events', icon: Calendar, label: 'Events' },
   { path: '/resources', icon: BookOpen, label: 'Resources' },
   { path: '/about', icon: Info, label: 'About YARA' },

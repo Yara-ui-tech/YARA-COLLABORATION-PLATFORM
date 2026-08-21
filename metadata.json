@@ -1,6 +1,6 @@
 {
   "name": "YARIA Collaboration Platform",
-  "description": "A platform for young African robotics and tech innovators to collaborate, share ideas, find mentorship, and showcase projects.",
+  "description": "Comprehensive collaboration, mentorship, innovation, and accredited robotics learning platform taking African learners from curious beginners to robotics innovators with practical hardware labs, IoT, AI, design thinking, and capstones.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

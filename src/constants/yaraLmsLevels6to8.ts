@@ -24,7 +24,7 @@ export const YARA_SESSIONS_LEVELS_6_TO_8: YARALmsSession[] = [
     reading_markdown: `# Internet of Things (IoT) in Robotics
 
 ### 1. The IoT Robotics Architecture
-$$\textbf{Robot Sensors \& ESP32} \xrightarrow{\quad\text{Wi-Fi / MQTT / WebSocket}\quad} \textbf{Cloud Broker / Server} \xrightarrow{\quad\text{JSON}\quad} \textbf{Web / Mobile Dashboard}$$
+$$\\textbf{Robot Sensors \\& ESP32} \\xrightarrow{\\quad\\text{Wi-Fi / MQTT / WebSocket}\\quad} \\textbf{Cloud Broker / Server} \\xrightarrow{\\quad\\text{JSON}\\quad} \\textbf{Web / Mobile Dashboard}$$
 
 ### 2. MQTT (Message Queuing Telemetry Transport)
 - Extremely lightweight, publish/subscribe protocol designed for low-bandwidth, high-latency wireless networks.

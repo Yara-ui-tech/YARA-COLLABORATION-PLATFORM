@@ -32,6 +32,8 @@ import LiveResultsScreen from './pages/competition/LiveResultsScreen';
 import CertificateVerification from './pages/competition/CertificateVerification';
 import ImpactAndFinancials from './pages/competition/ImpactAndFinancials';
 import SubscriptionLockoutView from './components/auth/SubscriptionLockoutView';
+import YaraLearning from './pages/YaraLearning';
+import VerifyCertificate from './pages/VerifyCertificate';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -99,6 +101,12 @@ const AppContent = () => {
           <Route path="mentorship" element={<Mentorship />} />
           <Route path="events" element={<Events />} />
 
+          {/* YARA Learning Academy */}
+          <Route path="learning" element={<YaraLearning />} />
+          <Route path="learning/*" element={<YaraLearning />} />
+          <Route path="lms" element={<Navigate to="/learning" replace />} />
+          <Route path="academy" element={<Navigate to="/learning" replace />} />
+
           {/* YARA Robotics Competition 2026 Ecosystem */}
           <Route path="competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
           <Route path="yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
@@ -114,8 +122,8 @@ const AppContent = () => {
           <Route path="competition/live-results" element={<LiveResultsScreen />} />
           <Route path="live-results" element={<LiveResultsScreen />} />
           <Route path="competition/impact" element={<ImpactAndFinancials />} />
-          <Route path="verify" element={<CertificateVerification />} />
-          <Route path="verify-certificate" element={<CertificateVerification />} />
+          <Route path="verify" element={<VerifyCertificate />} />
+          <Route path="verify-certificate" element={<VerifyCertificate />} />
 
           <Route path="resources" element={<Resources />} />
           <Route path="curriculum" element={<Curriculum />} />
