@@ -31,7 +31,7 @@ export default function BrainstormingAdminTab() {
   // Form State
   const [form, setForm] = useState<Omit<BrainstormingQuestion, 'id'>>({
     title: '',
-    category: 'circuit_fault',
+    category: 'cause_and_effect',
     difficulty: 'beginner',
     image_url: '',
     question: '',
@@ -72,9 +72,9 @@ export default function BrainstormingAdminTab() {
     setEditingId(null);
     setForm({
       title: '',
-      category: 'circuit_fault',
+      category: 'cause_and_effect',
       difficulty: 'beginner',
-      image_url: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
+      image_url: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=800&q=80',
       question: '',
       options: ['Option A', 'Option B', 'Option C', 'Option D'],
       correctIndex: 0,
@@ -177,7 +177,7 @@ export default function BrainstormingAdminTab() {
             <span>Brainstorming & Critical Thinking Image Quizzes</span>
           </h3>
           <p className="text-slate-500 text-sm font-medium mt-1">
-            Create visual diagnostics, circuit fault challenges, and algorithm puzzles with diagrams.
+            Create visual logic puzzles, cause-and-effect challenges, spatial reasoning problems, and lateral thinking riddles.
           </p>
         </div>
 
@@ -186,7 +186,7 @@ export default function BrainstormingAdminTab() {
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-2xl shadow-lg shadow-indigo-100 flex items-center space-x-2 text-sm transition-all"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Visual Quiz Question</span>
+          <span>Add Critical Thinking Challenge</span>
         </button>
       </div>
 
@@ -303,17 +303,19 @@ export default function BrainstormingAdminTab() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Category</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Critical Thinking Category</label>
                     <select
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value as BrainstormingCategory })}
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 font-bold text-sm text-slate-900"
                     >
-                      <option value="circuit_fault">Circuit Diagnostics</option>
-                      <option value="robot_navigation">Rover Kinematics</option>
-                      <option value="code_tracing">Embedded Logic</option>
-                      <option value="mechanical_logic">Power & Dynamics</option>
-                      <option value="schematic_analysis">Schematics & EMF</option>
+                      <option value="cause_and_effect">Cause & Effect / Mechanics</option>
+                      <option value="pattern_recognition">Patterns & Sequences</option>
+                      <option value="spatial_reasoning">Spatial & 3D Reasoning</option>
+                      <option value="logic_deduction">Logic & Deduction</option>
+                      <option value="lateral_thinking">Lateral Thinking & Riddles</option>
+                      <option value="everyday_physics">Everyday Physics & Intuition</option>
+                      <option value="circuit_fault">Systems & Diagnostics (Legacy)</option>
                     </select>
                   </div>
                   <div>

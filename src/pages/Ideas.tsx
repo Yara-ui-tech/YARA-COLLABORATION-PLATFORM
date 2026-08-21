@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Lightbulb, Send, Trash2, Clock, MessageSquare, Share2, Heart, Loader2 } from 'lucide-react';
+import { Lightbulb, Send, Trash2, Clock, MessageSquare, Share2, Heart, Loader2, Brain, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ASSETS } from '../constants/assets';
+import BrainstormingQuizModal from '../components/brainstorming/BrainstormingQuizModal';
 
 export default function Ideas() {
   const { user, profile } = useAuth();
   const [ideas, setIdeas] = useState<any[]>([]);
   const [newIdea, setNewIdea] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
 
   useEffect(() => {
     const fetchIdeas = async () => {
@@ -77,15 +79,55 @@ export default function Ideas() {
         />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Idea Board</h2>
-            <p className="text-indigo-100 font-medium mt-2">Share your vision and collaborate with the community.</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Idea & Innovation Board</h2>
+            <p className="text-indigo-100 font-medium mt-2">Share visionary concepts, collaborate, and sharpen critical thinking.</p>
           </div>
-          <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl text-white font-bold text-sm border border-white/20">
-            <Lightbulb className="w-4 h-4" />
-            <span>{ideas.length} Ideas Shared</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowQuizModal(true)}
+              className="flex items-center space-x-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-6 py-3 rounded-2xl text-sm shadow-xl shadow-amber-400/20 transition-all hover:scale-105"
+            >
+              <Brain className="w-4 h-4 text-slate-950" />
+              <span>Critical Thinking Image Quiz</span>
+              <span className="px-2 py-0.5 bg-slate-900/20 rounded-full text-[10px] uppercase tracking-wider">Live</span>
+            </button>
+            <div className="flex items-center space-x-2 bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl text-white font-bold text-sm border border-white/20">
+              <Lightbulb className="w-4 h-4 text-amber-300" />
+              <span>{ideas.length} Ideas Shared</span>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Critical Thinking Feature Highlight Card */}
+      <section className="bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-indigo-100/60 rounded-[2rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center space-x-4">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-lg shadow-amber-500/30 shrink-0">
+            <Brain className="w-7 h-7" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                Cognitive Enhancement
+              </span>
+              <span className="text-xs font-bold text-indigo-700">10 General Visual Challenges</span>
+            </div>
+            <h3 className="text-lg md:text-xl font-black text-slate-900 mt-1">
+              Brainstorming & Visual Critical Thinking Arena
+            </h3>
+            <p className="text-xs md:text-sm text-slate-600 font-medium mt-0.5">
+              Practice pattern recognition, cause-and-effect mechanics, spatial 3D reasoning, logic deduction, and lateral thinking riddles.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowQuizModal(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3.5 rounded-2xl text-xs md:text-sm shadow-xl shadow-indigo-100 whitespace-nowrap flex items-center space-x-2 shrink-0 transition-all"
+        >
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>Launch Image Quiz Arena</span>
+        </button>
+      </section>
 
       {/* Post New Idea */}
       <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-indigo-50/50">
@@ -191,6 +233,11 @@ export default function Ideas() {
           </AnimatePresence>
         </div>
       )}
+      {/* Brainstorming & Critical Thinking Quiz Modal */}
+      <BrainstormingQuizModal
+        isOpen={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+      />
     </div>
   );
 }

@@ -1,8 +1,14 @@
 export type BrainstormingCategory = 
-  | 'circuit_fault' 
-  | 'robot_navigation' 
-  | 'code_tracing' 
-  | 'mechanical_logic' 
+  | 'pattern_recognition'
+  | 'cause_and_effect'
+  | 'spatial_reasoning'
+  | 'logic_deduction'
+  | 'lateral_thinking'
+  | 'everyday_physics'
+  | 'circuit_fault'
+  | 'robot_navigation'
+  | 'code_tracing'
+  | 'mechanical_logic'
   | 'schematic_analysis';
 
 export interface BrainstormingQuestion {
@@ -27,6 +33,8 @@ export interface BrainstormingAttempt {
   score: number;
   total_questions: number;
   streak: number;
-  category_breakdown: Record<string, number>;
+  category_breakdown?: Record<string, number>;
+  category?: string;
   created_at?: string;
 }
+

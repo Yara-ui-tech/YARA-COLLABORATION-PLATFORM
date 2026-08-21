@@ -108,11 +108,17 @@ export default function BrainstormingQuizModal({ isOpen, onClose }: Brainstormin
   };
 
   const categoryLabels: Record<string, { label: string; icon: any; color: string }> = {
-    circuit_fault: { label: 'Circuit Diagnostics', icon: Zap, color: 'text-amber-500 bg-amber-500/10' },
-    robot_navigation: { label: 'Rover Kinematics', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10' },
-    code_tracing: { label: 'Embedded Logic', icon: Cpu, color: 'text-emerald-500 bg-emerald-500/10' },
-    mechanical_logic: { label: 'Power & Dynamics', icon: Layers, color: 'text-rose-500 bg-rose-500/10' },
-    schematic_analysis: { label: 'Schematics & EMF', icon: Brain, color: 'text-cyan-500 bg-cyan-500/10' }
+    pattern_recognition: { label: 'Patterns & Sequences', icon: Sparkles, color: 'text-purple-500 bg-purple-500/10' },
+    cause_and_effect: { label: 'Cause & Effect', icon: Layers, color: 'text-blue-500 bg-blue-500/10' },
+    spatial_reasoning: { label: 'Spatial & 3D Reasoning', icon: Eye, color: 'text-cyan-500 bg-cyan-500/10' },
+    logic_deduction: { label: 'Logic & Deduction', icon: Brain, color: 'text-emerald-500 bg-emerald-500/10' },
+    lateral_thinking: { label: 'Lateral Thinking & Riddles', icon: Lightbulb, color: 'text-amber-500 bg-amber-500/10' },
+    everyday_physics: { label: 'Everyday Physics & Intuition', icon: Zap, color: 'text-rose-500 bg-rose-500/10' },
+    circuit_fault: { label: 'Systems & Diagnostics', icon: Zap, color: 'text-amber-500 bg-amber-500/10' },
+    robot_navigation: { label: 'Kinematics & Paths', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10' },
+    code_tracing: { label: 'Flow & Sequences', icon: Cpu, color: 'text-emerald-500 bg-emerald-500/10' },
+    mechanical_logic: { label: 'Mechanisms & Levers', icon: Layers, color: 'text-rose-500 bg-rose-500/10' },
+    schematic_analysis: { label: 'Diagrams & Analysis', icon: Brain, color: 'text-cyan-500 bg-cyan-500/10' }
   };
 
   return (

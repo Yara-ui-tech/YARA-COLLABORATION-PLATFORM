@@ -12,6 +12,7 @@ import CompetitionTeamsAdminTab from '../components/admin/CompetitionTeamsAdminT
 import YaraCompetitionAdminTab from '../components/admin/YaraCompetitionAdminTab';
 import DonationsPartnersAdminTab from '../components/admin/DonationsPartnersAdminTab';
 import { LmsAdminTab } from '../components/admin/LmsAdminTab';
+import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
 
 interface UserProfile {
   id: string;
@@ -78,7 +79,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('yara_competition');
+  const [activeTab, setActiveTab] = useState<'learning_academy' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -898,6 +899,23 @@ export default function Admin() {
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit max-w-full">
         <button
+          onClick={() => setActiveTab('learning_academy')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'learning_academy' 
+              ? "bg-indigo-600 text-white shadow-indigo-200" 
+              : "bg-white/80 text-indigo-700 hover:bg-white hover:text-indigo-900 border border-indigo-100"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <BookOpen className="w-4 h-4 text-indigo-300" />
+            <span className="font-extrabold">Learning Academy & LMS</span>
+            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] uppercase font-black tracking-wider">
+              16 Courses + Videos
+            </span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('yara_competition')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -966,7 +984,7 @@ export default function Admin() {
         >
           <div className="flex items-center space-x-2">
             <Brain className="w-4 h-4 text-amber-500" />
-            <span>Image Quizzes</span>
+            <span>Critical Thinking Quizzes</span>
           </div>
         </button>
         <button
@@ -2014,14 +2032,19 @@ export default function Admin() {
             </table>
           </div>
         )}
+        {activeTab === 'learning_academy' && (
+          <div className="p-6 md:p-8">
+            <LearningAcademyAdminCenter adminUserId={authUser?.id || 'admin'} />
+          </div>
+        )}
         {activeTab === 'lms_evaluations' && (
           <div className="p-6 md:p-8">
-            <LmsAdminTab adminUserId={authUser?.id || 'admin'} />
+            <LearningAcademyAdminCenter adminUserId={authUser?.id || 'admin'} />
           </div>
         )}
         {activeTab === 'curriculum' && (
-          <div className="p-8">
-            <CurriculumAdminTab />
+          <div className="p-6 md:p-8">
+            <LearningAcademyAdminCenter adminUserId={authUser?.id || 'admin'} />
           </div>
         )}
         {activeTab === 'virtual_comp' && (
