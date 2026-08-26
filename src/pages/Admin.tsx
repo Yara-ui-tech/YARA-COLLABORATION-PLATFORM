@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
@@ -10,7 +10,10 @@ import FinanceAdminTab from '../components/admin/FinanceAdminTab';
 import BrainstormingAdminTab from '../components/admin/BrainstormingAdminTab';
 import CompetitionTeamsAdminTab from '../components/admin/CompetitionTeamsAdminTab';
 import YaraCompetitionAdminTab from '../components/admin/YaraCompetitionAdminTab';
+import CompetitionsAdminTab from '../components/admin/CompetitionsAdminTab';
 import DonationsPartnersAdminTab from '../components/admin/DonationsPartnersAdminTab';
+import OrganizationPostsAdminTab from '../components/admin/OrganizationPostsAdminTab';
+import ChaptersAdminTab from '../components/admin/ChaptersAdminTab';
 import { LmsAdminTab } from '../components/admin/LmsAdminTab';
 import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
 
@@ -79,7 +82,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'learning_academy' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
+  const [activeTab, setActiveTab] = useState<'learning_academy' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -916,15 +919,29 @@ export default function Admin() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('yara_competition')}
+          onClick={() => setActiveTab('chapters')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'yara_competition' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+            activeTab === 'chapters' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
           <div className="flex items-center space-x-2">
-            <Trophy className="w-4 h-4 text-amber-500" />
-            <span>YARA 2026 Competition Hub</span>
+            <Building2 className="w-4 h-4 text-indigo-600" />
+            <span>YARA Chapters & Secretaries</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('competitions')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            (activeTab === 'competitions' || activeTab === 'yara_competition')
+              ? "bg-amber-500 text-slate-950 font-black shadow-amber-200" 
+              : "text-slate-600 hover:text-slate-900 bg-white/70"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Trophy className="w-4 h-4 text-slate-950" />
+            <span>Competitions & YARA 2026 Hub</span>
           </div>
         </button>
         <button
@@ -1012,6 +1029,18 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('org_posts')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
+            activeTab === 'org_posts' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Send className="w-4 h-4 text-indigo-600" />
+            <span>Posts & Social Syndication</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('events')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1021,18 +1050,6 @@ export default function Admin() {
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4" />
             <span>Events</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('competitions')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'competitions' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Trophy className="w-4 h-4" />
-            <span>Competitions</span>
           </div>
         </button>
         <button
@@ -1534,94 +1551,16 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === 'competitions' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-500 text-xs font-black uppercase tracking-widest">
-                  <th className="px-8 py-4">Competition</th>
-                  <th className="px-8 py-4">Status</th>
-                  <th className="px-8 py-4">Dates</th>
-                  <th className="px-8 py-4">Reg. Link</th>
-                  <th className="px-8 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {loading ? (
-                  <tr><td colSpan={5} className="p-12 text-center"><Loader2 className="animate-spin mx-auto" /></td></tr>
-                ) : competitions.length === 0 ? (
-                  <tr><td colSpan={5} className="p-12 text-center text-slate-400">No competitions found.</td></tr>
-                ) : (
-                  competitions.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden">
-                            {c.image_url ? (
-                              <img src={c.image_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <Trophy className="w-5 h-5 m-2.5 text-slate-400" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900">{c.title}</p>
-                            <p className="text-xs text-slate-500 truncate max-w-[200px]">{c.description}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                          c.status === 'active' ? "bg-emerald-50 text-emerald-600" :
-                          c.status === 'upcoming' ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-600"
-                        )}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-xs font-medium text-slate-600">
-                        {new Date(c.start_date).toLocaleDateString()} - {new Date(c.end_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-8 py-6">
-                        {c.registration_link && (
-                          <a 
-                            href={c.registration_link} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-indigo-600 hover:underline flex items-center space-x-1"
-                          >
-                            <LinkIcon className="w-3 h-3" />
-                            <span className="text-xs font-bold">Link</span>
-                          </a>
-                        )}
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button 
-                            onClick={() => openEditCompModal(c)}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                            title="Edit Competition"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => deleteCompetition(c.id)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                            title="Delete Competition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {(activeTab === 'competitions' || activeTab === 'yara_competition') && (
+          <div className="p-6 md:p-8">
+            <CompetitionsAdminTab />
           </div>
         )}
 
-        {activeTab === 'yara_competition' && (
-          <YaraCompetitionAdminTab />
+        {activeTab === 'chapters' && (
+          <div className="p-6 md:p-8">
+            <ChaptersAdminTab />
+          </div>
         )}
 
         {activeTab === 'competition_teams' && (
@@ -1632,6 +1571,10 @@ export default function Admin() {
           <div className="p-6 md:p-8">
             <DonationsPartnersAdminTab />
           </div>
+        )}
+
+        {activeTab === 'org_posts' && (
+          <OrganizationPostsAdminTab />
         )}
 
         {activeTab === 'settings' && (

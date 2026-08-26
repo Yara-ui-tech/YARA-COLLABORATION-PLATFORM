@@ -259,6 +259,29 @@ export default function JudgePortal() {
                 </div>
               )}
 
+              {/* Locked Warning / Admin Notice */}
+              {currentScoreRecord?.is_locked ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-start space-x-3 text-xs">
+                  <Lock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block">🔒 Scorecard Officially Locked & Sealed</span>
+                    <p className="text-amber-800 font-medium leading-relaxed">
+                      This score has been submitted and locked into the official championship results ledger. As per YARA Championship regulations, judges cannot unlock their own submitted scores. To make corrections or re-evaluate, please request a <strong>National Administrator</strong> to unlock this scorecard.
+                    </p>
+                  </div>
+                </div>
+              ) : currentScoreRecord && !currentScoreRecord.is_locked ? (
+                <div className="p-4 bg-blue-50 border border-blue-200 text-blue-900 rounded-2xl flex items-start space-x-3 text-xs">
+                  <Unlock className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block">🔓 Scorecard Unlocked by Administrator</span>
+                    <p className="text-blue-800 font-medium">
+                      An administrator has unlocked this scorecard for you to adjust rubric points and feedback. Click "Submit & Lock Score" when finished to re-seal.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
               {/* Rubric Sliders Form */}
               <form onSubmit={handleSubmitScore} className="space-y-6">
                 <div className="space-y-5">
@@ -402,25 +425,19 @@ export default function JudgePortal() {
 
                 {/* Submission & Locking Controls */}
                 <div className="flex items-center justify-between pt-2">
-                  {currentScoreRecord && (
-                    <button
-                      type="button"
-                      onClick={handleToggleLock}
-                      className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-100"
-                    >
-                      {currentScoreRecord.is_locked ? (
-                        <>
-                          <Unlock className="w-4 h-4 text-amber-600" />
-                          <span>Reopen Score for Edit</span>
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4 text-slate-600" />
-                          <span>Lock Scores</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <div className="text-xs font-bold">
+                    {currentScoreRecord?.is_locked ? (
+                      <span className="flex items-center space-x-1.5 text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                        <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Locked • Contact Admin to unlock for edits</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center space-x-1.5 text-slate-500">
+                        <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span>Live Evaluation in Progress</span>
+                      </span>
+                    )}
+                  </div>
 
                   <button
                     type="submit"
@@ -428,7 +445,7 @@ export default function JudgePortal() {
                     className="ml-auto px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md disabled:opacity-50 flex items-center space-x-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{saving ? 'Submitting...' : 'Submit & Lock Score'}</span>
+                    <span>{saving ? 'Submitting...' : currentScoreRecord?.is_locked ? 'Scorecard Locked' : 'Submit & Lock Score'}</span>
                   </button>
                 </div>
               </form>

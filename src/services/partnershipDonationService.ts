@@ -69,12 +69,6 @@ export async function getPartnershipRequests(): Promise<PartnershipRequest[]> {
     localItems = [];
   }
 
-  // Merge default showcase partners if local is empty
-  if (localItems.length === 0) {
-    localItems = defaultApprovedPartners;
-    localStorage.setItem('yara_partnership_requests', JSON.stringify(localItems));
-  }
-
   try {
     const { data, error } = await supabase
       .from('partnership_requests')
@@ -93,9 +87,7 @@ export async function getPartnershipRequests(): Promise<PartnershipRequest[]> {
 
 export async function getApprovedPartners(): Promise<PartnershipRequest[]> {
   const all = await getPartnershipRequests();
-  const approved = all.filter(p => p.status === 'approved' || p.display_on_website);
-  if (approved.length > 0) return approved;
-  return defaultApprovedPartners;
+  return all.filter(p => p.status === 'approved' || p.display_on_website);
 }
 
 export async function updatePartnershipStatus(
@@ -217,9 +209,7 @@ export async function getDonationsAndSponsorships(): Promise<DonationSponsorship
 
 export async function getApprovedPublicDonations(): Promise<DonationSponsorship[]> {
   const all = await getDonationsAndSponsorships();
-  const approved = all.filter(d => d.status === 'approved' || d.status === 'received');
-  if (approved.length > 0) return approved;
-  return defaultApprovedDonations;
+  return all.filter(d => d.status === 'approved' || d.status === 'received');
 }
 
 export async function updateDonationStatus(
@@ -701,106 +691,7 @@ export async function saveChallengeFeesConfig(config: ChallengeFeeConfig[]): Pro
   }
 }
 
-// Sample fallback institutional showcase partners
-const defaultApprovedPartners: PartnershipRequest[] = [
-  {
-    id: 'p1',
-    organization_name: 'Harare Institute of Technology (HIT)',
-    contact_person: 'Faculty of Mechatronics',
-    email: 'mechatronics@hit.ac.zw',
-    specialty_area: 'Robotics & Hardware',
-    partnership_type: 'Technical Partner',
-    expectations: 'Providing robotic fabrication lab access, CNC tooling, and technical judges for YARA 2026.',
-    country: 'Zimbabwe',
-    status: 'approved',
-    display_on_website: true,
-    created_at: '2026-03-01T00:00:00Z'
-  },
-  {
-    id: 'p2',
-    organization_name: 'African STEM Accelerator Network',
-    contact_person: 'Director of Programs',
-    email: 'partnerships@stem-africa.org',
-    specialty_area: 'STEM & TVET Education',
-    partnership_type: 'Curriculum Co-Developer',
-    expectations: 'Sponsoring 50 Arduino starter kits for rural youth squads and providing certified mentor hours.',
-    country: 'Pan-African',
-    status: 'approved',
-    display_on_website: true,
-    created_at: '2026-03-10T00:00:00Z'
-  },
-  {
-    id: 'p3',
-    organization_name: 'EcoEnergy Systems Africa',
-    contact_person: 'Corporate Social Responsibility Lead',
-    email: 'csr@ecoenergy-africa.com',
-    specialty_area: 'Renewable Energy & IoT',
-    partnership_type: 'Prize & Scholarship Sponsor',
-    expectations: 'Granting $1,500 in clean tech innovation scholarships for the top youth agricultural robotics projects.',
-    country: 'Zimbabwe',
-    status: 'approved',
-    display_on_website: true,
-    created_at: '2026-03-15T00:00:00Z'
-  }
-];
-
-const defaultApprovedDonations: DonationSponsorship[] = [
-  {
-    id: 'd1',
-    donor_name: 'Eng. Farai Makoni',
-    organization: 'Diaspora Robotics Alumni',
-    support_type: 'financial',
-    amount: 250,
-    currency: 'USD',
-    payment_method: 'ecocash_0788953986',
-    transaction_reference: 'MP2603-99482',
-    message: 'Empowering young Zimbabwean innovators to build the future of robotics!',
-    is_anonymous: false,
-    status: 'approved',
-    pop_on_homepage: true,
-    display_on_wall: true,
-    created_at: '2026-04-01T10:00:00Z'
-  },
-  {
-    id: 'd2',
-    donor_name: 'TechBridge Foundation',
-    organization: 'TechBridge Global',
-    support_type: 'in_kind_hardware',
-    in_kind_description: '20x ESP32-CAM boards, 15x L298N motor drivers, and 10x ultrasonic range finders for rural school teams.',
-    message: 'Dedicated to closing the hardware barrier for underserved youth.',
-    is_anonymous: false,
-    status: 'approved',
-    pop_on_homepage: true,
-    display_on_wall: true,
-    created_at: '2026-04-05T14:30:00Z'
-  }
-];
-
-const defaultVolunteers: Volunteer[] = [
-  {
-    id: 'v1',
-    full_name: 'Tinashe Chikwanha',
-    email: 'tinashe.c@robotics-alumni.org',
-    phone: '+263 77 123 4567',
-    category: 'judge_technical',
-    country: 'Zimbabwe',
-    province: 'Harare',
-    skills_background: 'Python, ROS, OpenCV, Embedded C, Autonomous Navigation',
-    motivation: 'Passionate about mentoring the next generation of robotics innovators across Zimbabwean provinces.',
-    status: 'approved',
-    created_at: '2026-04-02T08:00:00Z'
-  },
-  {
-    id: 'v2',
-    full_name: 'Ruvimbo Ndlovu',
-    email: 'ruvimbo.ndlovu@stem-women.org',
-    phone: '+263 71 987 6543',
-    category: 'robotics_mentor',
-    country: 'Zimbabwe',
-    province: 'Mashonaland West',
-    skills_background: 'Arduino, Sensor Integration, PCB Design, STEM Club Facilitation',
-    motivation: 'Excited to coach girls high school teams for the Underwater Drone Challenge.',
-    status: 'approved',
-    created_at: '2026-04-06T11:20:00Z'
-  }
-];
+// Clean initial arrays - no mock partners or mock sponsors
+const defaultApprovedPartners: PartnershipRequest[] = [];
+const defaultApprovedDonations: DonationSponsorship[] = [];
+const defaultVolunteers: Volunteer[] = [];

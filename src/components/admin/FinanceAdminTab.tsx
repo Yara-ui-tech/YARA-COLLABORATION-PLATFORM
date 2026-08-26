@@ -35,16 +35,16 @@ export default function FinanceAdminTab() {
   const [selectedMentor, setSelectedMentor] = useState<any | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // New Investment Form State
+  // New Investment  // Form State
   const [investForm, setInvestForm] = useState<Omit<Investment, 'id'>>({
     source_name: '',
-    amount: 5000,
+    amount: 1000,
     currency: 'USD',
     investment_type: 'grant',
     purpose: 'Robotics Hardware Kits & Microcontroller Lab Equipment',
     date_received: new Date().toISOString().split('T')[0],
     status: 'received',
-    notes: 'Support for young African youth engineering programs'
+    notes: ''
   });
 
   // Disburse Form State
@@ -55,74 +55,6 @@ export default function FinanceAdminTab() {
     notes: 'Bi-weekly mentorship stipend for live coaching & hardware review'
   });
 
-  // Default mock investments and payouts for instant visual satisfaction if db is fresh
-  const initialInvestments: Investment[] = [
-    {
-      id: 'inv_1',
-      source_name: 'Pan-African STEM Education Endowment Fund',
-      amount: 15000,
-      currency: 'USD',
-      investment_type: 'grant',
-      purpose: 'Lab Hardware, 3D Printers & Arduino Kits for 100 Students',
-      date_received: '2026-03-10',
-      status: 'received',
-      notes: 'Institutional STEM accelerator grant'
-    },
-    {
-      id: 'inv_2',
-      source_name: 'Global Robotics Angel Syndicate',
-      amount: 8500,
-      currency: 'USD',
-      investment_type: 'angel',
-      purpose: 'Platform Cloud Servers, Wokwi Simulation Licenses & Mentor Compensation',
-      date_received: '2026-03-25',
-      status: 'received',
-      notes: 'Seed allocation for mentorship incentives'
-    },
-    {
-      id: 'inv_3',
-      source_name: 'African Tech Diaspora Partnership',
-      amount: 5000,
-      currency: 'USD',
-      investment_type: 'sponsor',
-      purpose: 'Virtual Hackathon Prize Pool & Hardware Vouchers',
-      date_received: '2026-04-01',
-      status: 'pledged',
-      notes: 'Scheduled for release upon launch date'
-    }
-  ];
-
-  const initialPayouts: MentorPayout[] = [
-    {
-      id: 'pay_1',
-      mentor_id: 'm1',
-      mentor_name: 'Eng. Kwame Mensah',
-      mentor_email: 'kwame.robotics@yaria.org',
-      amount: 240,
-      currency: 'USD',
-      sessions_completed: 12,
-      payment_method: 'mobile_money',
-      payment_reference: 'MM-GH-884920',
-      status: 'completed',
-      payout_date: '2026-04-02',
-      notes: 'Completed 12 live circuit diagnostics and robot troubleshooting sessions.'
-    },
-    {
-      id: 'pay_2',
-      mentor_id: 'm2',
-      mentor_name: 'Dr. Amina Diallo',
-      mentor_email: 'amina.iot@yaria.org',
-      amount: 320,
-      currency: 'USD',
-      sessions_completed: 16,
-      payment_method: 'bank_transfer',
-      payment_reference: 'WIRE-AFR-44910',
-      status: 'completed',
-      payout_date: '2026-04-05',
-      notes: 'Embedded C++ masterclass guidance and PCB review.'
-    }
-  ];
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -130,28 +62,46 @@ export default function FinanceAdminTab() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch investments
-      const { data: invData } = await supabase
+      // 1. Fetch investments (DB first, fallback to localStorage)
+      let storedInv: Investment[] = [];
+      try {
+        const rawInv = localStorage.getItem('yaria_investments');
+        if (rawInv) storedInv = JSON.parse(rawInv);
+      } catch {
+        storedInv = [];
+      }
+
+      const { data: invData, error: invError } = await supabase
         .from('investments')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (invData && invData.length > 0) {
+      if (!invError && invData && invData.length > 0) {
         setInvestments(invData);
+        localStorage.setItem('yaria_investments', JSON.stringify(invData));
       } else {
-        setInvestments(initialInvestments);
+        setInvestments(storedInv);
       }
 
       // 2. Fetch payouts
-      const { data: payData } = await supabase
+      let storedPay: MentorPayout[] = [];
+      try {
+        const rawPay = localStorage.getItem('yaria_mentor_payouts');
+        if (rawPay) storedPay = JSON.parse(rawPay);
+      } catch {
+        storedPay = [];
+      }
+
+      const { data: payData, error: payError } = await supabase
         .from('mentor_payouts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (payData && payData.length > 0) {
+      if (!payError && payData && payData.length > 0) {
         setPayouts(payData);
+        localStorage.setItem('yaria_mentor_payouts', JSON.stringify(payData));
       } else {
-        setPayouts(initialPayouts);
+        setPayouts(storedPay);
       }
 
       // 3. Fetch mentors from profiles
@@ -164,16 +114,10 @@ export default function FinanceAdminTab() {
       if (mentorProfiles && mentorProfiles.length > 0) {
         setMentors(mentorProfiles);
       } else {
-        setMentors([
-          { id: 'm1', display_name: 'Eng. Kwame Mensah', email: 'kwame.robotics@yaria.org', rating: 4.9, mentored_count: 18, total_commission: 240, commission_rate: 20 },
-          { id: 'm2', display_name: 'Dr. Amina Diallo', email: 'amina.iot@yaria.org', rating: 5.0, mentored_count: 22, total_commission: 320, commission_rate: 20 },
-          { id: 'm3', display_name: 'Tinashe Moyo', email: 'tinashe.ai@yaria.org', rating: 4.8, mentored_count: 14, total_commission: 180, commission_rate: 20 }
-        ]);
+        setMentors([]);
       }
     } catch (err) {
-      console.error('Error fetching finance data:', err);
-      setInvestments(initialInvestments);
-      setPayouts(initialPayouts);
+      console.warn('Finance data load status:', err);
     } finally {
       setLoading(false);
     }
@@ -188,24 +132,78 @@ export default function FinanceAdminTab() {
     e.preventDefault();
     setLoading(true);
     try {
-      const newRecord = {
+      const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'inv_' + Date.now().toString(36);
+      const newRecord: Investment = {
         ...investForm,
-        id: 'inv_' + Date.now().toString(36)
+        id: generatedId,
+        amount: Number(investForm.amount)
       };
 
-      await supabase.from('investments').insert(newRecord);
-      setInvestments(prev => [newRecord, ...prev]);
+      // Save locally immediately
+      const updated = [newRecord, ...investments];
+      setInvestments(updated);
+      localStorage.setItem('yaria_investments', JSON.stringify(updated));
+
+      // Try Supabase insert
+      try {
+        await supabase.from('investments').insert({
+          id: generatedId,
+          source_name: newRecord.source_name,
+          amount: newRecord.amount,
+          currency: newRecord.currency,
+          investment_type: newRecord.investment_type,
+          purpose: newRecord.purpose,
+          date_received: newRecord.date_received,
+          status: newRecord.status,
+          notes: newRecord.notes
+        });
+      } catch (dbErr) {
+        console.warn('DB investment save notice:', dbErr);
+      }
+
       setShowAddInvestModal(false);
+      setInvestForm({
+        source_name: '',
+        amount: 1000,
+        currency: 'USD',
+        investment_type: 'grant',
+        purpose: 'Robotics Hardware Kits & Microcontroller Lab Equipment',
+        date_received: new Date().toISOString().split('T')[0],
+        status: 'received',
+        notes: ''
+      });
       setMessage({ type: 'success', text: 'Investment / Grant record added successfully.' });
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      const newRecord = { ...investForm, id: 'inv_' + Date.now().toString(36) };
-      setInvestments(prev => [newRecord, ...prev]);
-      setShowAddInvestModal(false);
-      setMessage({ type: 'success', text: 'Investment record saved.' });
-      setTimeout(() => setMessage(null), 3000);
+      setMessage({ type: 'error', text: 'Could not record investment: ' + (err.message || 'Unknown error') });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteInvestment = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this investment record?')) return;
+    const updated = investments.filter(inv => inv.id !== id);
+    setInvestments(updated);
+    localStorage.setItem('yaria_investments', JSON.stringify(updated));
+    try {
+      await supabase.from('investments').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Investment deletion notice:', e);
+    }
+    setMessage({ type: 'success', text: 'Investment record removed.' });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleToggleInvestmentStatus = async (id: string, currentStatus: 'received' | 'pledged') => {
+    const nextStatus = currentStatus === 'received' ? 'pledged' : 'received';
+    const updated = investments.map(inv => inv.id === id ? { ...inv, status: nextStatus } : inv);
+    setInvestments(updated);
+    localStorage.setItem('yaria_investments', JSON.stringify(updated));
+    try {
+      await supabase.from('investments').update({ status: nextStatus }).eq('id', id);
+    } catch (e) {
+      console.warn('Investment status toggle notice:', e);
     }
   };
 
@@ -447,86 +445,146 @@ export default function FinanceAdminTab() {
       {activeSubTab === 'investments' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-slate-900">Grants, Angel Capital & Corporate Sponsorships</h4>
+            <div>
+              <h4 className="text-lg font-bold text-slate-900">Grants, Angel Capital & Corporate Sponsorships</h4>
+              <p className="text-xs text-slate-400">All registered institutional grant allocations & treasury records.</p>
+            </div>
+            <button
+              onClick={() => setShowAddInvestModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 shadow-md shadow-emerald-100"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Record Investment</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {investments.map(inv => (
-              <div 
-                key={inv.id}
-                className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4 flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider">
-                      {inv.investment_type}
-                    </span>
-                    <span className={cn(
-                      "px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize",
-                      inv.status === 'received' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                    )}>
-                      {inv.status}
-                    </span>
-                  </div>
-                  <h5 className="font-bold text-slate-900 text-base">{inv.source_name}</h5>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed">{inv.purpose}</p>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Funding Amount</p>
-                    <p className="text-xl font-black text-slate-900 mt-0.5">
-                      ${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <span className="text-xs text-slate-400 font-bold">{inv.date_received}</span>
-                </div>
+          {investments.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                <Building className="w-7 h-7" />
               </div>
-            ))}
-          </div>
+              <div className="space-y-1 max-w-sm mx-auto">
+                <h5 className="font-bold text-slate-900">No Investments or Grants Recorded Yet</h5>
+                <p className="text-xs text-slate-400">
+                  Your organization account currently has 0 sponsors and 0 active grants. Click below to add funding rounds as they are received.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddInvestModal(true)}
+                className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add First Investment / Grant</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {investments.map(inv => (
+                <div 
+                  key={inv.id}
+                  className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4 flex flex-col justify-between hover:border-slate-200 transition-all group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        {inv.investment_type}
+                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          onClick={() => handleToggleInvestmentStatus(inv.id, inv.status)}
+                          className={cn(
+                            "px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize transition-colors",
+                            inv.status === 'received' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          )}
+                          title="Click to toggle status"
+                        >
+                          {inv.status}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInvestment(inv.id)}
+                          className="p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete investment record"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <h5 className="font-bold text-slate-900 text-base">{inv.source_name}</h5>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">{inv.purpose}</p>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Funding Amount</p>
+                      <p className="text-xl font-black text-slate-900 mt-0.5">
+                        ${Number(inv.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400 font-bold">{inv.date_received}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* SUB-TAB 3: DISBURSEMENT HISTORY */}
       {activeSubTab === 'mentor_payouts' && (
         <div className="space-y-6">
-          <h4 className="text-lg font-bold text-slate-900">Executed Mentor Payout History</h4>
-          <div className="overflow-x-auto bg-white rounded-3xl border border-slate-100 shadow-sm">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
-                  <th className="px-6 py-4">Recipient</th>
-                  <th className="px-6 py-4">Amount</th>
-                  <th className="px-6 py-4">Method & Reference</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {payouts.map(pay => (
-                  <tr key={pay.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-900">{pay.mentor_name}</p>
-                      <p className="text-[11px] text-slate-400">{pay.notes}</p>
-                    </td>
-                    <td className="px-6 py-4 font-black text-emerald-600 text-sm">
-                      ${pay.amount}.00
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-slate-700 capitalize">{pay.payment_method.replace('_', ' ')}</span>
-                      <p className="text-[10px] text-slate-400 font-mono">{pay.payment_reference}</p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 font-medium">{pay.payout_date}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider">
-                        {pay.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-bold text-slate-900">Executed Mentor Payout History</h4>
+            <span className="text-xs text-slate-400 font-medium">Official disbursement audit trail</span>
           </div>
+
+          {payouts.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
+              </div>
+              <h5 className="font-bold text-slate-900">No Disbursements Executed Yet</h5>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                When verified mentors complete coaching sessions and milestones, use the Mentor Compensation Hub tab to disburse their stipends.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto bg-white rounded-3xl border border-slate-100 shadow-sm">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                    <th className="px-6 py-4">Recipient</th>
+                    <th className="px-6 py-4">Amount</th>
+                    <th className="px-6 py-4">Method & Reference</th>
+                    <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {payouts.map(pay => (
+                    <tr key={pay.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-slate-900">{pay.mentor_name}</p>
+                        <p className="text-[11px] text-slate-400">{pay.notes}</p>
+                      </td>
+                      <td className="px-6 py-4 font-black text-emerald-600 text-sm">
+                        ${pay.amount}.00
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-700 capitalize">{pay.payment_method.replace('_', ' ')}</span>
+                        <p className="text-[10px] text-slate-400 font-mono">{pay.payment_reference}</p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 font-medium">{pay.payout_date}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                          {pay.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

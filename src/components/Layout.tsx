@@ -5,7 +5,7 @@ import {
   LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, 
   MessageSquare, ShieldCheck, Info, Cpu, BarChart3, 
   Handshake, Phone, Brain, Trophy, Heart, UserCheck,
-  Award, MonitorPlay, QrCode, DollarSign
+  Award, MonitorPlay, QrCode, DollarSign, Radio, Building2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -24,15 +24,18 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/learning', icon: Brain, label: 'Learning Academy', badge: 'L0-L8' },
-  { path: '/competitions/yara-2026', icon: Trophy, label: 'YARA 2026 Arena', badge: 'Flagship' },
-  { path: '/competition/participant', icon: Users, label: 'Team Portal' },
-  { path: '/competition/sponsors', icon: DollarSign, label: 'Sponsors & Tiers' },
-  { path: '/volunteer', icon: UserCheck, label: 'Volunteer Corps' },
-  { path: '/competition/judges', icon: Award, label: 'Judge Panel' },
-  { path: '/competition/live-results', icon: MonitorPlay, label: 'Live Arena Screen' },
-  { path: '/competition/impact', icon: BarChart3, label: 'Impact & Ledger' },
+  { path: '/chapters', icon: Building2, label: 'YARA Chapters', badge: 'Nationwide' },
+  { path: '/competitions', icon: Trophy, label: 'Competitions', badge: 'Hub' },
+  { path: '/competitions/yara-2026', icon: Trophy, label: '↳ YARA 2026 Arena', badge: 'Flagship' },
+  { path: '/competition/participant', icon: Users, label: '↳ Team Portal (2B+2G)' },
+  { path: '/competition/sponsors', icon: DollarSign, label: '↳ Sponsors & Tiers' },
+  { path: '/volunteer', icon: UserCheck, label: '↳ Volunteer Corps' },
+  { path: '/competition/judges', icon: Award, label: '↳ Judge Panel' },
+  { path: '/competition/live-results', icon: MonitorPlay, label: '↳ Live Arena Screen' },
+  { path: '/competition/impact', icon: BarChart3, label: '↳ Impact & Ledger' },
   { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials' },
   { path: '/ideas', icon: Lightbulb, label: 'Ideas Hub' },
+  { path: '/posts', icon: Radio, label: 'Organization Feed', badge: 'Live' },
   { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
   { path: '/mentorship', icon: Users, label: 'Mentorship' },
   { path: '/curriculum', icon: BookOpen, label: 'Legacy Curriculum' },

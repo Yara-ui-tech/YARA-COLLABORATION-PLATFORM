@@ -34,6 +34,9 @@ import ImpactAndFinancials from './pages/competition/ImpactAndFinancials';
 import SubscriptionLockoutView from './components/auth/SubscriptionLockoutView';
 import YaraLearning from './pages/YaraLearning';
 import VerifyCertificate from './pages/VerifyCertificate';
+import Posts from './pages/Posts';
+import Chapters from './pages/Chapters';
+import Competitions from './pages/Competitions';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -100,6 +103,11 @@ const AppContent = () => {
           <Route path="projects" element={<Projects />} />
           <Route path="mentorship" element={<Mentorship />} />
           <Route path="events" element={<Events />} />
+          <Route path="posts" element={<Posts />} />
+          <Route path="news" element={<Posts />} />
+          <Route path="announcements" element={<Posts />} />
+          <Route path="chapters" element={<Chapters />} />
+          <Route path="yara-chapters" element={<Chapters />} />
 
           {/* YARA Learning Academy */}
           <Route path="learning" element={<YaraLearning />} />
@@ -107,7 +115,9 @@ const AppContent = () => {
           <Route path="lms" element={<Navigate to="/learning" replace />} />
           <Route path="academy" element={<Navigate to="/learning" replace />} />
 
-          {/* YARA Robotics Competition 2026 Ecosystem */}
+          {/* YARA Competitions Ecosystem & Hub */}
+          <Route path="competitions" element={<Competitions />} />
+          <Route path="all-competitions" element={<Competitions />} />
           <Route path="competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
           <Route path="yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
           <Route path="competition" element={<YaraRoboticsCompetition2026 />} />

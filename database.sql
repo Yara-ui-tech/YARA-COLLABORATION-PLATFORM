@@ -631,13 +631,31 @@ USING (
 -- =========================
 CREATE TABLE IF NOT EXISTS public.competitions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  slug TEXT UNIQUE,
   title TEXT NOT NULL,
-  description TEXT,
+  subtitle TEXT,
+  description TEXT NOT NULL,
+  category TEXT DEFAULT 'flagship_robotics',
+  format TEXT CHECK (format IN ('in_person', 'virtual', 'hybrid')) DEFAULT 'hybrid',
+  status TEXT CHECK (status IN ('upcoming', 'active', 'completed', 'archived')) DEFAULT 'upcoming',
   start_date TIMESTAMPTZ,
   end_date TIMESTAMPTZ,
-  registration_link TEXT,
+  registration_deadline TIMESTAMPTZ,
+  location TEXT DEFAULT 'Harare, Zimbabwe',
   image_url TEXT,
-  status TEXT CHECK (status IN ('upcoming', 'active', 'completed')) DEFAULT 'upcoming',
+  banner_url TEXT,
+  registration_link TEXT,
+  internal_route TEXT,
+  prize_pool TEXT DEFAULT '$10,000 + Tech Grants',
+  entry_fee DECIMAL(10,2) DEFAULT 0.00,
+  currency TEXT DEFAULT 'USD',
+  max_teams INTEGER DEFAULT 50,
+  registered_teams_count INTEGER DEFAULT 0,
+  eligibility TEXT DEFAULT 'Open to High Schools, Universities, and Youth Clubs (2 Boys + 2 Girls per team)',
+  rules_summary TEXT,
+  is_featured BOOLEAN DEFAULT false,
+  display_order INTEGER DEFAULT 0,
+  tags TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -649,7 +667,13 @@ CREATE POLICY "Competitions are viewable by everyone." ON public.competitions FO
 
 DROP POLICY IF EXISTS "Admins can manage competitions." ON public.competitions;
 CREATE POLICY "Admins can manage competitions." ON public.competitions FOR ALL
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP TRIGGER IF EXISTS update_competitions_updated_at ON public.competitions;
+CREATE TRIGGER update_competitions_updated_at
+  BEFORE UPDATE ON public.competitions
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 -- Competition Teams
 CREATE TABLE IF NOT EXISTS public.competition_teams (
@@ -1594,5 +1618,339 @@ DROP POLICY IF EXISTS "Admins can manage volunteers" ON public.volunteers;
 CREATE POLICY "Admins can manage volunteers"
   ON public.volunteers FOR ALL
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 16. INVESTMENTS & MENTOR PAYOUTS (FINANCE ENGINE)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.investments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  source_name TEXT NOT NULL,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  investment_type TEXT CHECK (investment_type IN ('grant', 'angel', 'sponsor', 'venture', 'equipment', 'other')) DEFAULT 'grant',
+  purpose TEXT NOT NULL,
+  date_received DATE DEFAULT CURRENT_DATE,
+  status TEXT CHECK (status IN ('received', 'pledged', 'processing')) DEFAULT 'received',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.investments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage investments" ON public.investments;
+CREATE POLICY "Admins can manage investments"
+  ON public.investments FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE TABLE IF NOT EXISTS public.mentor_payouts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  mentor_name TEXT NOT NULL,
+  mentor_email TEXT,
+  amount DECIMAL(10,2) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  sessions_completed INTEGER DEFAULT 1,
+  payment_method TEXT NOT NULL DEFAULT 'mobile_money',
+  payment_reference TEXT,
+  status TEXT CHECK (status IN ('completed', 'pending', 'cancelled')) DEFAULT 'completed',
+  payout_date DATE DEFAULT CURRENT_DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.mentor_payouts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can manage mentor payouts" ON public.mentor_payouts;
+CREATE POLICY "Admins can manage mentor payouts"
+  ON public.mentor_payouts FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 17. IDEA REACTIONS & COMMENTS (COLLABORATIVE INNOVATION)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.idea_reactions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  idea_id UUID REFERENCES public.ideas(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  user_name TEXT,
+  reaction_type TEXT CHECK (reaction_type IN ('like', 'love', 'insightful', 'rocket', 'fire')) DEFAULT 'like',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(idea_id, user_id, reaction_type)
+);
+
+ALTER TABLE public.idea_reactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view idea reactions" ON public.idea_reactions;
+CREATE POLICY "Anyone can view idea reactions"
+  ON public.idea_reactions FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can manage own reactions" ON public.idea_reactions;
+CREATE POLICY "Authenticated users can manage own reactions"
+  ON public.idea_reactions FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.idea_comments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  idea_id UUID REFERENCES public.ideas(id) ON DELETE CASCADE NOT NULL,
+  author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  author_name TEXT NOT NULL,
+  author_avatar TEXT,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.idea_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view idea comments" ON public.idea_comments;
+CREATE POLICY "Anyone can view idea comments"
+  ON public.idea_comments FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can insert comments" ON public.idea_comments;
+CREATE POLICY "Authenticated users can insert comments"
+  ON public.idea_comments FOR INSERT
+  WITH CHECK (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS "Authors and admins can delete comments" ON public.idea_comments;
+CREATE POLICY "Authors and admins can delete comments"
+  ON public.idea_comments FOR DELETE
+  USING (auth.uid() = author_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 19. YARA CHAPTERS, SECRETARIES & CONFIDENTIAL REPORTING ENGINE
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.chapters (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  category TEXT CHECK (category IN ('university', 'high_school', 'primary_school', 'community_youth', 'corporate_hub', 'other')) DEFAULT 'university',
+  institution_name TEXT,
+  province TEXT NOT NULL DEFAULT 'Harare',
+  district TEXT,
+  lead_name TEXT,
+  lead_email TEXT,
+  lead_phone TEXT,
+  secretary_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  secretary_name TEXT,
+  secretary_email TEXT,
+  secretary_phone TEXT,
+  member_count INTEGER DEFAULT 0,
+  logo_url TEXT,
+  banner_url TEXT,
+  description TEXT,
+  meeting_schedule TEXT,
+  status TEXT CHECK (status IN ('active', 'pending_approval', 'suspended', 'archived')) DEFAULT 'active',
+  is_public BOOLEAN DEFAULT true,
+  confidential_notes TEXT, -- Admin & National Executive only
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view public chapters" ON public.chapters;
+CREATE POLICY "Anyone can view public chapters"
+  ON public.chapters FOR SELECT
+  USING (is_public = true OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins can manage chapters" ON public.chapters;
+CREATE POLICY "Admins can manage chapters"
+  ON public.chapters FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Reports for National Executive review
+CREATE TABLE IF NOT EXISTS public.chapter_reports (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  chapter_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  reporting_period TEXT NOT NULL, -- e.g. "Q1 2026", "March 2026"
+  report_type TEXT CHECK (report_type IN ('monthly_progress', 'quarterly_audit', 'activity_summary', 'financial_statement', 'project_milestone', 'incident_report')) DEFAULT 'monthly_progress',
+  report_link TEXT NOT NULL, -- Drive/Dropbox/Doc URL or submission link
+  summary TEXT,
+  submitted_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  submitted_by_name TEXT,
+  submitted_by_role TEXT DEFAULT 'secretary',
+  is_confidential BOOLEAN DEFAULT false, -- If true, hidden from public chapter view
+  status TEXT CHECK (status IN ('submitted', 'under_review', 'assessed', 'needs_revision', 'archived')) DEFAULT 'submitted',
+  executive_feedback TEXT,
+  executive_rating INTEGER CHECK (executive_rating >= 1 AND executive_rating <= 5),
+  reviewed_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_by_name TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.chapter_reports ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view non-confidential reports" ON public.chapter_reports;
+CREATE POLICY "Public can view non-confidential reports"
+  ON public.chapter_reports FOR SELECT
+  USING (
+    is_confidential = false 
+    OR auth.uid() = submitted_by_id 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Chapter secretaries and members can submit reports" ON public.chapter_reports;
+CREATE POLICY "Chapter secretaries and members can submit reports"
+  ON public.chapter_reports FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins and submitters can manage reports" ON public.chapter_reports;
+CREATE POLICY "Admins and submitters can manage reports"
+  ON public.chapter_reports FOR ALL
+  USING (
+    auth.uid() = submitted_by_id 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Chapter Activities & Showcase
+CREATE TABLE IF NOT EXISTS public.chapter_activities (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  activity_date DATE DEFAULT CURRENT_DATE,
+  participants_count INTEGER DEFAULT 0,
+  image_url TEXT,
+  is_highlight BOOLEAN DEFAULT false,
+  is_confidential BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.chapter_activities ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view non-confidential chapter activities" ON public.chapter_activities;
+CREATE POLICY "Public can view non-confidential chapter activities"
+  ON public.chapter_activities FOR SELECT
+  USING (is_confidential = false OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins can manage chapter activities" ON public.chapter_activities;
+CREATE POLICY "Admins can manage chapter activities"
+  ON public.chapter_activities FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 20. COMPETITION JUDGES, SCORING & STRICT ADMIN-ONLY UNLOCK MECHANISM
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.competition_judges (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  institution TEXT,
+  technical_domain TEXT DEFAULT 'Robotics & Embedded Systems', -- e.g., 'Aquatic Robotics', 'Autonomous Algorithms', 'Hardware Engineering', 'Sustainability Pitch'
+  assigned_categories TEXT[] DEFAULT '{"flagship_robotics", "underwater_rov", "autonomous_vehicles"}',
+  pin_code TEXT DEFAULT '2026', -- Verification passcode
+  is_approved BOOLEAN DEFAULT true,
+  can_unlock_scores BOOLEAN DEFAULT false, -- Strict security: Only true for admin role
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.competition_judges ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view approved judges" ON public.competition_judges;
+CREATE POLICY "Anyone can view approved judges"
+  ON public.competition_judges FOR SELECT
+  USING (is_approved = true OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins can manage judges" ON public.competition_judges;
+CREATE POLICY "Admins can manage judges"
+  ON public.competition_judges FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Competition Scores with Locking Mechanism
+CREATE TABLE IF NOT EXISTS public.competition_scores (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  competition_id TEXT NOT NULL, -- e.g. 'yara-2026-flagship' or UUID
+  team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE NOT NULL,
+  team_name TEXT NOT NULL,
+  judge_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  judge_name TEXT NOT NULL,
+  
+  -- 3 Core Scoring Pillars (0-100 total)
+  underwater_score DECIMAL(5,2) DEFAULT 0.00, -- Pillar 1 (35%)
+  autonomous_score DECIMAL(5,2) DEFAULT 0.00, -- Pillar 2 (35%)
+  presentation_score DECIMAL(5,2) DEFAULT 0.00, -- Pillar 3 (30%)
+  total_score DECIMAL(5,2) DEFAULT 0.00,
+  
+  rubric_breakdown JSONB DEFAULT '{}'::jsonb,
+  feedback_notes TEXT,
+  
+  -- Locking Controls
+  is_locked BOOLEAN DEFAULT false,
+  locked_at TIMESTAMPTZ,
+  locked_by TEXT, -- Judge name
+  
+  -- Admin-only Unlock Audit Trail
+  unlocked_by UUID REFERENCES public.profiles(id),
+  unlocked_by_name TEXT,
+  unlocked_at TIMESTAMPTZ,
+  unlock_reason TEXT,
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.competition_scores ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view scores" ON public.competition_scores;
+CREATE POLICY "Public can view scores"
+  ON public.competition_scores FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Judges can insert scores" ON public.competition_scores;
+CREATE POLICY "Judges can insert scores"
+  ON public.competition_scores FOR INSERT
+  WITH CHECK (true);
+
+-- CRITICAL RULE: A locked score cannot be updated by normal judges. ONLY Admins can modify locked records!
+DROP POLICY IF EXISTS "Judges can update unlocked scores, admins can update any" ON public.competition_scores;
+CREATE POLICY "Judges can update unlocked scores, admins can update any"
+  ON public.competition_scores FOR UPDATE
+  USING (
+    (is_locked = false) 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    (is_locked = false) 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Admins can delete scores" ON public.competition_scores;
+CREATE POLICY "Admins can delete scores"
+  ON public.competition_scores FOR DELETE
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Trigger to recalculate total score
+CREATE OR REPLACE FUNCTION public.calculate_competition_total_score()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.total_score = (
+    COALESCE(NEW.underwater_score, 0) * 0.35 +
+    COALESCE(NEW.autonomous_score, 0) * 0.35 +
+    COALESCE(NEW.presentation_score, 0) * 0.30
+  );
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS on_competition_score_update ON public.competition_scores;
+CREATE TRIGGER on_competition_score_update
+BEFORE INSERT OR UPDATE ON public.competition_scores
+FOR EACH ROW EXECUTE FUNCTION public.calculate_competition_total_score();
+
+
 
 

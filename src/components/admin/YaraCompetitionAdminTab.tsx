@@ -13,6 +13,7 @@ import {
   CompetitionCategoryType, 
   CategoryScoreSheet 
 } from '../../types/yaraCompetition';
+import { DigitalScoreSubmission, JudgeRecord } from '../../types/competitionEcosystem';
 import { 
   getRegistrations, 
   updateRegistrationStatus, 
@@ -22,6 +23,7 @@ import {
   getScoreSheets,
   getEmailNotifications
 } from '../../services/yaraCompetitionService';
+import { getDigitalScores, toggleScoreLock, getJudges } from '../../services/competitionEcosystemService';
 import { ZIMBABWE_PROVINCES_AND_DISTRICTS } from '../../constants/yaraCompetitionData';
 import JudgeScoringModal from '../competition/JudgeScoringModal';
 
@@ -29,13 +31,17 @@ export default function YaraCompetitionAdminTab() {
   const [registrations, setRegistrations] = useState<YaraCompetitionRegistration[]>([]);
   const [eventConfig, setEventConfig] = useState<CompetitionEventConfig | null>(null);
   const [scoreSheets, setScoreSheets] = useState<CategoryScoreSheet[]>([]);
+  const [digitalScores, setDigitalScores] = useState<DigitalScoreSubmission[]>([]);
+  const [judgesList, setJudgesList] = useState<JudgeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scoreActionNotice, setScoreActionNotice] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [provinceFilter, setProvinceFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [judgeLockFilter, setJudgeLockFilter] = useState<'ALL' | 'locked' | 'unlocked'>('ALL');
 
   // Selected Team for Detail Dossier Modal
   const [selectedTeam, setSelectedTeam] = useState<YaraCompetitionRegistration | null>(null);
@@ -52,19 +58,23 @@ export default function YaraCompetitionAdminTab() {
   const [settingsForm, setSettingsForm] = useState<CompetitionEventConfig | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const [activeSubTab, setActiveSubTab] = useState<'teams' | 'settings' | 'notifications'>('teams');
+  const [activeSubTab, setActiveSubTab] = useState<'teams' | 'judges_scores' | 'settings' | 'notifications'>('teams');
 
   const fetchData = async () => {
     setLoading(true);
-    const [regs, config, scores] = await Promise.all([
+    const [regs, config, scores, digScores, judges] = await Promise.all([
       getRegistrations(),
       getEventConfig(),
-      getScoreSheets()
+      getScoreSheets(),
+      getDigitalScores(),
+      getJudges()
     ]);
     setRegistrations(regs);
     setEventConfig(config);
     setSettingsForm(config);
     setScoreSheets(scores);
+    setDigitalScores(digScores);
+    setJudgesList(judges);
     setLoading(false);
   };
 
@@ -130,6 +140,35 @@ export default function YaraCompetitionAdminTab() {
     setIsEditingSettings(false);
     setSavingSettings(false);
   };
+
+  const handleToggleScoreLock = async (score: DigitalScoreSubmission) => {
+    const newLockState = !score.is_locked;
+    await toggleScoreLock(score.id, newLockState);
+    if (newLockState) {
+      setScoreActionNotice(`Scorecard for "${score.team_name}" has been locked.`);
+    } else {
+      setScoreActionNotice(`Scorecard for "${score.team_name}" unlocked! Judge ${score.judge_name} can now modify their score in the Judge Portal.`);
+    }
+    setTimeout(() => setScoreActionNotice(null), 5000);
+    fetchData();
+  };
+
+  const filteredDigitalScores = useMemo(() => {
+    return digitalScores.filter(s => {
+      const matchSearch = 
+        s.team_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.judge_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.registration_id.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchCat = categoryFilter === 'ALL' || s.category === categoryFilter;
+      const matchLock = 
+        judgeLockFilter === 'ALL' || 
+        (judgeLockFilter === 'locked' && s.is_locked) || 
+        (judgeLockFilter === 'unlocked' && !s.is_locked);
+
+      return matchSearch && matchCat && matchLock;
+    });
+  }, [digitalScores, searchQuery, categoryFilter, judgeLockFilter]);
 
   const emailLogs = getEmailNotifications();
 
@@ -218,7 +257,7 @@ export default function YaraCompetitionAdminTab() {
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex space-x-2 border-b border-slate-200 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveSubTab('teams')}
           className={cn(
@@ -227,7 +266,18 @@ export default function YaraCompetitionAdminTab() {
           )}
         >
           <Users className="w-4 h-4" />
-          <span>Registered Teams & Scores ({registrations.length})</span>
+          <span>Registered Teams ({registrations.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('judges_scores')}
+          className={cn(
+            "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2",
+            activeSubTab === 'judges_scores' ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "text-slate-600 hover:bg-slate-100"
+          )}
+        >
+          <Award className="w-4 h-4" />
+          <span>⚖️ Judge Scorecards & Unlock Control ({digitalScores.length})</span>
         </button>
 
         <button
@@ -249,7 +299,7 @@ export default function YaraCompetitionAdminTab() {
           )}
         >
           <Send className="w-4 h-4" />
-          <span>Email Notifications Dispatch Logs ({emailLogs.length})</span>
+          <span>Email Notifications ({emailLogs.length})</span>
         </button>
       </div>
 
@@ -403,6 +453,179 @@ export default function YaraCompetitionAdminTab() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Notice Banner for Score Actions */}
+      {scoreActionNotice && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center space-x-2 text-xs font-bold shadow-xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{scoreActionNotice}</span>
+        </div>
+      )}
+
+      {/* SUBTAB: JUDGE SCORECARDS & UNLOCK CONTROL */}
+      {activeSubTab === 'judges_scores' && (
+        <div className="space-y-6">
+          <div className="p-6 bg-slate-900 text-white rounded-3xl space-y-2">
+            <div className="flex items-center space-x-2 text-amber-400 text-xs font-black uppercase tracking-wider">
+              <ShieldCheck className="w-4 h-4" />
+              <span>National Championship Technical Scoring Ledger</span>
+            </div>
+            <h3 className="text-xl md:text-2xl font-black">Official Judge Scorecards & Lock Controls</h3>
+            <p className="text-slate-300 text-xs max-w-3xl leading-relaxed">
+              In accordance with YARA Championship regulations, when judges submit evaluations, the scorecards are locked to prevent unauthorized tampering. 
+              Only authorized National Administrators can unlock a scorecard to permit a judge to re-score or adjust rubric marks in the live portal.
+            </p>
+          </div>
+
+          {/* Filters for Judge Scorecards */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-slate-500">Lock State:</span>
+              {(['ALL', 'locked', 'unlocked'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setJudgeLockFilter(mode)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl font-bold transition-all",
+                    judgeLockFilter === mode ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {mode === 'ALL' ? 'All Scorecards' : mode === 'locked' ? '🔒 Locked Only' : '🔓 Unlocked Only'}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-slate-500">Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="p-1.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 text-xs"
+              >
+                <option value="ALL">All Categories</option>
+                <option value="underwater_drone">Underwater Robotics</option>
+                <option value="autonomous_maze">Autonomous Maze Navigation</option>
+                <option value="innovation_pitch">Innovation & Pitch</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Scores List */}
+          {filteredDigitalScores.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 text-slate-400">
+              No judge scorecards recorded matching current filters.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredDigitalScores.map(score => {
+                const totalScore = 
+                  (score.engineering_design_points || 0) +
+                  (score.innovation_points || 0) +
+                  (score.mission_performance_points || 0) +
+                  (score.safety_compliance_points || 0) +
+                  (score.teamwork_presentation_points || 0);
+
+                return (
+                  <div
+                    key={score.id}
+                    className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-mono font-bold text-indigo-600 uppercase tracking-wider block">
+                            {score.registration_id} • {score.category.replace('_', ' ')}
+                          </span>
+                          <h4 className="text-base font-black text-slate-900">{score.team_name}</h4>
+                          <p className="text-xs text-slate-500">
+                            Evaluated by: <strong className="text-slate-800">{score.judge_name}</strong>
+                          </p>
+                        </div>
+
+                        {/* Lock Status Badge */}
+                        <span className={cn(
+                          "px-3 py-1 rounded-xl text-xs font-black uppercase flex items-center space-x-1",
+                          score.is_locked ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"
+                        )}>
+                          {score.is_locked ? <Lock className="w-3.5 h-3.5 mr-1" /> : <Unlock className="w-3.5 h-3.5 mr-1" />}
+                          <span>{score.is_locked ? 'Locked' : 'Unlocked (Editable)'}</span>
+                        </span>
+                      </div>
+
+                      {/* Rubric Breakdown Grid */}
+                      <div className="grid grid-cols-5 gap-1.5 p-3 bg-slate-50 rounded-2xl text-center text-[10px]">
+                        <div className="p-1 bg-white rounded-lg border border-slate-200/60">
+                          <span className="text-slate-400 block font-bold">Design</span>
+                          <span className="font-mono font-black text-slate-800">{score.engineering_design_points}/20</span>
+                        </div>
+                        <div className="p-1 bg-white rounded-lg border border-slate-200/60">
+                          <span className="text-slate-400 block font-bold">Innov</span>
+                          <span className="font-mono font-black text-slate-800">{score.innovation_points}/20</span>
+                        </div>
+                        <div className="p-1 bg-white rounded-lg border border-slate-200/60">
+                          <span className="text-slate-400 block font-bold">Perf</span>
+                          <span className="font-mono font-black text-slate-800">{score.mission_performance_points}/40</span>
+                        </div>
+                        <div className="p-1 bg-white rounded-lg border border-slate-200/60">
+                          <span className="text-slate-400 block font-bold">Safety</span>
+                          <span className="font-mono font-black text-slate-800">{score.safety_compliance_points}/10</span>
+                        </div>
+                        <div className="p-1 bg-white rounded-lg border border-slate-200/60">
+                          <span className="text-slate-400 block font-bold">Team</span>
+                          <span className="font-mono font-black text-slate-800">{score.teamwork_presentation_points}/10</span>
+                        </div>
+                      </div>
+
+                      {/* Total Score & Feedback */}
+                      <div className="flex items-center justify-between p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs">
+                        <span className="font-bold text-indigo-900">Total Evaluated Score</span>
+                        <span className="text-lg font-black font-mono text-indigo-950">{totalScore} / 100</span>
+                      </div>
+
+                      {score.judge_notes && (
+                        <p className="text-xs text-slate-600 font-medium italic bg-slate-50 p-3 rounded-xl border border-slate-100">
+                          "{score.judge_notes}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Admin Unlock Action */}
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Updated: {new Date(score.updated_at || score.submitted_at || Date.now()).toLocaleTimeString()}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleScoreLock(score)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-xs transition-all",
+                          score.is_locked
+                            ? "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20"
+                            : "bg-slate-900 hover:bg-slate-800 text-white"
+                        )}
+                      >
+                        {score.is_locked ? (
+                          <>
+                            <Unlock className="w-3.5 h-3.5" />
+                            <span>Unlock for Judge Edit</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Re-Lock Scorecard</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

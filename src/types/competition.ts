@@ -100,3 +100,35 @@ export interface TeamCompositionStatus {
   reasons: string[];
 }
 
+export interface Competition {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  category: string;
+  format: 'in_person' | 'virtual' | 'hybrid';
+  status: 'upcoming' | 'active' | 'completed' | 'archived';
+  start_date: string;
+  end_date: string;
+  registration_deadline?: string;
+  location?: string;
+  image_url?: string;
+  banner_url?: string;
+  registration_link?: string;
+  internal_route?: string;
+  prize_pool?: string;
+  entry_fee?: number;
+  currency?: string;
+  max_teams?: number;
+  registered_teams_count?: number;
+  eligibility?: string;
+  rules_summary?: string;
+  is_featured?: boolean;
+  display_order?: number;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+

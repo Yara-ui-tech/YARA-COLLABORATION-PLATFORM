@@ -74,6 +74,14 @@ export default function Events() {
         .select('*')
         .order('created_at', { ascending: false });
 
+      let deletedCompIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('yaria_deleted_competitions');
+        if (raw) deletedCompIds = JSON.parse(raw);
+      } catch {
+        deletedCompIds = [];
+      }
+
       if (eventsData && eventsData.length > 0) {
         setEvents(eventsData);
       } else {
@@ -81,9 +89,10 @@ export default function Events() {
       }
 
       if (compsData && compsData.length > 0) {
-        setCompetitions(compsData);
+        setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id)));
       } else {
-        setCompetitions(INITIAL_COMPETITIONS as Competition[]);
+        const filtered = (INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id));
+        setCompetitions(filtered);
       }
       
       if (vCompsData && vCompsData.length > 0) {
@@ -93,8 +102,15 @@ export default function Events() {
       }
     } catch (error) {
       console.error('Error fetching events:', error);
+      let deletedCompIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('yaria_deleted_competitions');
+        if (raw) deletedCompIds = JSON.parse(raw);
+      } catch {
+        deletedCompIds = [];
+      }
       setEvents(INITIAL_EVENTS as Event[]);
-      setCompetitions(INITIAL_COMPETITIONS as Competition[]);
+      setCompetitions((INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id)));
     } finally {
       setLoading(false);
     }
