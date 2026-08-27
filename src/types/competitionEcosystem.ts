@@ -38,23 +38,32 @@ export interface SponsorRecord {
   created_at: string;
 }
 
-// Volunteer Departments (15 Departments)
+// Volunteer Departments & Roles (Organizational & Competition Duties)
 export type VolunteerDepartment =
-  | 'registration'
-  | 'competition_operations'
-  | 'technical_support'
-  | 'underwater_challenge'
-  | 'maze_challenge'
-  | 'innovation_pitch'
-  | 'media_photography'
-  | 'social_media'
-  | 'hospitality'
-  | 'logistics'
-  | 'crowd_management'
-  | 'first_aid_safety'
-  | 'it_support'
-  | 'protocol'
-  | 'judging_support';
+  | 'regional_representative'          // Regional / Provincial YARA Representative
+  | 'grants_donations_specialist'      // Grants, Funding & Donations Applications Volunteer
+  | 'voluntary_internship'             // Voluntary Internship (Robotics R&D, STEM Software, Ops)
+  | 'voluntary_driver_logistics'       // Voluntary Driving & Fleet Logistics
+  | 'educator_trainer_facilitator'     // Educator STEM Training & AI Bootcamp Facilitator
+  | 'chapter_patron_mentor'            // School / University Chapter Mentor & Patron
+  | 'curriculum_translator'            // STEM Curriculum & Indigenous Language Translator
+  | 'hardware_assembly_lab'            // Robotics Kit Assembly & Soldering Lab Assistant
+  | 'registration'                     // Registration & Participant Welcome
+  | 'competition_operations'           // Competition Operations & Field Marshals
+  | 'technical_support'                // Technical Pit Support & Electronics
+  | 'underwater_challenge'             // Underwater Drone & Aquatic Challenge Marshal
+  | 'maze_challenge'                   // Maze & Autonomous Robotics Marshal
+  | 'innovation_pitch'                 // Innovation Pitch Staging & Presentation
+  | 'media_photography'                // Media, Videography & Photography
+  | 'social_media'                     // Social Media, PR & Live Broadcasts
+  | 'hospitality'                      // Hospitality & Catering
+  | 'logistics'                        // Logistics, Venue Setup & Heavy Equipment
+  | 'crowd_management'                 // Crowd Management & Safety Lines
+  | 'first_aid_safety'                 // First Aid & Emergency Medical Support
+  | 'it_support'                       // IT, Arena Wi-Fi & Live Scoring Server Support
+  | 'protocol'                         // VIP Protocol & Dignitary Hosting
+  | 'judging_support'                  // Judging Secretariat & Score Collation
+  | 'custom_voluntary_duty';           // Custom / Open Voluntary Duty Specification
 
 export interface VolunteerApplication {
   id: string;
@@ -63,9 +72,11 @@ export interface VolunteerApplication {
   email: string;
   phone: string;
   organization_school: string;
+  province?: string;
+  custom_role_description?: string;
   skills: string[];
   previous_experience: string;
-  availability: 'all_days' | 'day_1' | 'day_2' | 'day_3' | 'virtual_prep';
+  availability: 'all_days' | 'day_1' | 'day_2' | 'day_3' | 'virtual_prep' | 'weekends' | 'flexible_ongoing';
   preferred_department: VolunteerDepartment;
   secondary_department?: VolunteerDepartment;
   emergency_contact: string;

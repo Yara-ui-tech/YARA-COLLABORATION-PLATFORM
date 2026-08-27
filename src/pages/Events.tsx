@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
@@ -174,6 +175,73 @@ export default function Events() {
         </div>
       ) : (
         <div className="space-y-12">
+          {/* FEATURED EVENT: AI FOR EDUCATORS ONLINE BOOTCAMP */}
+          <div className="p-8 md:p-10 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border-2 border-indigo-500/30 text-white shadow-2xl relative overflow-hidden">
+            <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    ★ Featured YARA Event
+                  </span>
+                  <span className="px-3 py-1 bg-white/10 text-slate-200 border border-white/15 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    Live Online Training
+                  </span>
+                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    31 Aug – 4 Sep 2026
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest">
+                    Young Africans Robotics Association (YARA) • Empower. Educate. Innovate.
+                  </p>
+                  <h3 className="text-2xl sm:text-4xl font-black tracking-tight text-white mt-1">
+                    AI for Educators – Online Bootcamp
+                  </h3>
+                </div>
+
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                  A high-impact 5-day professional development programme equipping teachers and lecturers with practical AI tools to automate lesson plans, design differentiated assessments, generate visual aids, and master robotics code pedagogy.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs">
+                  <div className="flex items-center space-x-1.5 text-emerald-400 font-bold">
+                    <DollarSign className="w-4 h-4" />
+                    <span>Fee: US$10 Once-off</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 text-purple-300 font-medium">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Continuous Support: US$15 per term</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 text-amber-300 font-medium">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Strict Access Verification Enforced</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+                <Link
+                  to="/events/ai-for-educators"
+                  className="px-8 py-4 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-amber-400/20 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02]"
+                >
+                  <Brain className="w-4 h-4" />
+                  <span>View Event & Register</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  to="/events/ai-for-educators"
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl text-xs border border-white/20 flex items-center justify-center space-x-2 transition-all text-center"
+                >
+                  <Video className="w-4 h-4" />
+                  <span>Enter Live Event Room</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+
           {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
           {(activeFilter === 'all' || activeFilter === 'virtual') && (
             <section className="space-y-6">

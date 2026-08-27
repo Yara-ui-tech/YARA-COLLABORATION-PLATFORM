@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check, Building2 } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
@@ -16,6 +16,7 @@ import OrganizationPostsAdminTab from '../components/admin/OrganizationPostsAdmi
 import ChaptersAdminTab from '../components/admin/ChaptersAdminTab';
 import { LmsAdminTab } from '../components/admin/LmsAdminTab';
 import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
+import EventRegistrationsAdminTab from '../components/admin/EventRegistrationsAdminTab';
 
 interface UserProfile {
   id: string;
@@ -82,7 +83,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'learning_academy' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
+  const [activeTab, setActiveTab] = useState<'learning_academy' | 'event_registrations' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -919,6 +920,23 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('event_registrations')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'event_registrations' 
+              ? "bg-amber-500 text-slate-950 font-black shadow-amber-200" 
+              : "bg-white/90 text-amber-900 hover:bg-white hover:text-amber-950 border border-amber-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-amber-600" />
+            <span className="font-extrabold">Event Registrations & Approvals</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 text-[10px] font-black uppercase tracking-wider">
+              AI Bootcamp ($10)
+            </span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('chapters')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1548,6 +1566,12 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeTab === 'event_registrations' && (
+          <div className="p-6 md:p-8">
+            <EventRegistrationsAdminTab />
           </div>
         )}
 

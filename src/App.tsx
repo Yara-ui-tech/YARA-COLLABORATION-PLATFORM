@@ -37,6 +37,7 @@ import VerifyCertificate from './pages/VerifyCertificate';
 import Posts from './pages/Posts';
 import Chapters from './pages/Chapters';
 import Competitions from './pages/Competitions';
+import AiForEducatorsBootcamp from './pages/events/AiForEducatorsBootcamp';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -103,6 +104,10 @@ const AppContent = () => {
           <Route path="projects" element={<Projects />} />
           <Route path="mentorship" element={<Mentorship />} />
           <Route path="events" element={<Events />} />
+          <Route path="events/ai-for-educators" element={<AiForEducatorsBootcamp />} />
+          <Route path="events/ai-for-educators-bootcamp" element={<AiForEducatorsBootcamp />} />
+          <Route path="ai-for-educators" element={<AiForEducatorsBootcamp />} />
+          <Route path="bootcamp" element={<AiForEducatorsBootcamp />} />
           <Route path="posts" element={<Posts />} />
           <Route path="news" element={<Posts />} />
           <Route path="announcements" element={<Posts />} />

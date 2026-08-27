@@ -1951,6 +1951,83 @@ CREATE TRIGGER on_competition_score_update
 BEFORE INSERT OR UPDATE ON public.competition_scores
 FOR EACH ROW EXECUTE FUNCTION public.calculate_competition_total_score();
 
+-- =========================================================================
+-- 21. EVENT REGISTRATIONS & AI FOR EDUCATORS BOOTCAMP GATEWAY
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.event_registrations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  event_id TEXT NOT NULL DEFAULT 'ai-for-educators-2026',
+  event_title TEXT NOT NULL DEFAULT 'AI for Educators – Online Bootcamp',
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  school_institution TEXT,
+  role_title TEXT, -- e.g. Teacher, School Head, Education Officer, Trainer
+  province TEXT DEFAULT 'Harare',
+  registration_fee DECIMAL(10,2) DEFAULT 10.00,
+  currency TEXT DEFAULT 'USD',
+  continuous_support_opt_in BOOLEAN DEFAULT false, -- US$15 per term
+  
+  -- Payment Verification
+  payment_status TEXT CHECK (payment_status IN ('pending', 'submitted', 'verified', 'rejected')) DEFAULT 'pending',
+  payment_method TEXT,
+  payment_reference TEXT,
+  proof_of_payment_url TEXT,
+  paid_at TIMESTAMPTZ,
+  
+  -- Admin Approval
+  approval_status TEXT CHECK (approval_status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_by_name TEXT,
+  approved_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  admin_notes TEXT,
+  
+  -- Live Attendance Tracking
+  has_entered_event BOOLEAN DEFAULT false,
+  last_entered_at TIMESTAMPTZ,
+  entry_count INTEGER DEFAULT 0,
+  
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.event_registrations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can insert event registrations" ON public.event_registrations;
+CREATE POLICY "Public can insert event registrations"
+  ON public.event_registrations FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view their own registrations or admins view all" ON public.event_registrations;
+CREATE POLICY "Users can view their own registrations or admins view all"
+  ON public.event_registrations FOR SELECT
+  USING (
+    auth.uid() = user_id 
+    OR lower(email) = lower(COALESCE(auth.jwt()->>'email', ''))
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Users can update their own pending payment or admins update all" ON public.event_registrations;
+CREATE POLICY "Users can update their own pending payment or admins update all"
+  ON public.event_registrations FOR UPDATE
+  USING (
+    (auth.uid() = user_id AND payment_status IN ('pending', 'submitted'))
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Admins can delete event registrations" ON public.event_registrations;
+CREATE POLICY "Admins can delete event registrations"
+  ON public.event_registrations FOR DELETE
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_event_registrations_updated_at ON public.event_registrations;
+CREATE TRIGGER update_event_registrations_updated_at
+  BEFORE UPDATE ON public.event_registrations
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
 
 
 
