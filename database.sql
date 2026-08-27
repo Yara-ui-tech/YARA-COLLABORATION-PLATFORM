@@ -9,6 +9,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =========================
 DROP TABLE IF EXISTS public.competitions CASCADE;
 DROP TABLE IF EXISTS public.events CASCADE;
+DROP TABLE IF EXISTS public.event_registrations CASCADE;
+DROP TABLE IF EXISTS public.event_meetings CASCADE;
+DROP TABLE IF EXISTS public.organization_posts CASCADE;
 DROP TABLE IF EXISTS public.system_settings CASCADE;
 
 
@@ -1955,7 +1958,8 @@ FOR EACH ROW EXECUTE FUNCTION public.calculate_competition_total_score();
 -- 21. EVENT REGISTRATIONS & AI FOR EDUCATORS BOOTCAMP GATEWAY
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.event_registrations (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id TEXT PRIMARY KEY DEFAULT ('evt_reg_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  registration_code TEXT UNIQUE NOT NULL DEFAULT ('YARA-AI-' || upper(substr(md5(random()::text), 1, 4))),
   event_id TEXT NOT NULL DEFAULT 'ai-for-educators-2026',
   event_title TEXT NOT NULL DEFAULT 'AI for Educators – Online Bootcamp',
   user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -1964,7 +1968,11 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
   phone TEXT,
   school_institution TEXT,
   role_title TEXT, -- e.g. Teacher, School Head, Education Officer, Trainer
+  teaching_level TEXT DEFAULT 'secondary',
+  years_experience TEXT DEFAULT '3-5 years',
   province TEXT DEFAULT 'Harare',
+  city_province TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
   registration_fee DECIMAL(10,2) DEFAULT 10.00,
   currency TEXT DEFAULT 'USD',
   continuous_support_opt_in BOOLEAN DEFAULT false, -- US$15 per term
@@ -1976,7 +1984,7 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
   proof_of_payment_url TEXT,
   paid_at TIMESTAMPTZ,
   
-  -- Admin Approval
+  -- Admin Approval (Required alongside verified payment for Google Meet access)
   approval_status TEXT CHECK (approval_status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
   approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   approved_by_name TEXT,
@@ -2022,11 +2030,198 @@ CREATE POLICY "Admins can delete event registrations"
   ON public.event_registrations FOR DELETE
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Trigger for updated_at
-DROP TRIGGER IF EXISTS update_event_registrations_updated_at ON public.event_registrations;
-CREATE TRIGGER update_event_registrations_updated_at
-  BEFORE UPDATE ON public.event_registrations
+-- Trigger for auto-generating registration code if null
+CREATE OR REPLACE FUNCTION public.ensure_registration_code()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.registration_code IS NULL OR trim(NEW.registration_code) = '' THEN
+    NEW.registration_code = 'YARA-AI-' || upper(substr(md5(random()::text), 1, 4));
+  END IF;
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_ensure_registration_code ON public.event_registrations;
+CREATE TRIGGER trg_ensure_registration_code
+BEFORE INSERT OR UPDATE ON public.event_registrations
+FOR EACH ROW EXECUTE PROCEDURE public.ensure_registration_code();
+
+-- Indexes for lightning fast lookups
+CREATE INDEX IF NOT EXISTS idx_event_registrations_code ON public.event_registrations(upper(registration_code));
+CREATE INDEX IF NOT EXISTS idx_event_registrations_email ON public.event_registrations(lower(email));
+CREATE INDEX IF NOT EXISTS idx_event_registrations_event_id ON public.event_registrations(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_registrations_user_id ON public.event_registrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_registrations_status ON public.event_registrations(payment_status, approval_status);
+
+-- =========================================================================
+-- 22. EVENT MEETINGS & GOOGLE MEET ACCESS CONTROL CONFIGURATION
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.event_meetings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  event_id TEXT UNIQUE NOT NULL, -- e.g. 'ai-for-educators-2026', 'ai_educators_bootcamp_2026'
+  meeting_title TEXT NOT NULL DEFAULT 'AI for Educators Online Bootcamp — Google Meet Live Hall',
+  meeting_url TEXT NOT NULL DEFAULT 'https://meet.google.com/new',
+  meeting_code TEXT DEFAULT 'yara-ai-educators-2026',
+  passcode TEXT DEFAULT 'YARA2026',
+  platform TEXT CHECK (platform IN ('google_meet', 'zoom', 'teams', 'custom')) DEFAULT 'google_meet',
+  daily_schedule_time TEXT DEFAULT '17:00 – 19:30 CAT (Daily: 31 Aug – 4 Sep 2026)',
+  instructions TEXT DEFAULT 'Please ensure your microphone is muted upon entry. Enable camera during interactive practical exercises and discussions.',
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_by_name TEXT DEFAULT 'YARA Academic Secretariat',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.event_meetings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view event meeting configurations" ON public.event_meetings;
+CREATE POLICY "Public can view event meeting configurations"
+  ON public.event_meetings FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage event meetings" ON public.event_meetings;
+CREATE POLICY "Admins can manage event meetings"
+  ON public.event_meetings FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP TRIGGER IF EXISTS update_event_meetings_updated_at ON public.event_meetings;
+CREATE TRIGGER update_event_meetings_updated_at
+  BEFORE UPDATE ON public.event_meetings
   FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- Seed initial meeting configs for both common event ID aliases
+INSERT INTO public.event_meetings (
+  event_id,
+  meeting_title,
+  meeting_url,
+  meeting_code,
+  passcode,
+  platform,
+  daily_schedule_time,
+  instructions,
+  updated_by_name
+) VALUES 
+(
+  'ai-for-educators-2026',
+  'AI for Educators Online Bootcamp — Google Meet Live Hall',
+  'https://meet.google.com/new',
+  'yara-ai-educators-2026',
+  'YARA2026',
+  'google_meet',
+  '17:00 – 19:30 CAT (Daily: 31 Aug – 4 Sep 2026)',
+  'Please ensure your microphone is muted upon entry. Enable camera during interactive practical exercises and discussions.',
+  'YARA Academic Secretariat'
+),
+(
+  'ai_educators_bootcamp_2026',
+  'AI for Educators Online Bootcamp — Google Meet Live Hall',
+  'https://meet.google.com/new',
+  'yara-ai-educators-2026',
+  'YARA2026',
+  'google_meet',
+  '17:00 – 19:30 CAT (Daily: 31 Aug – 4 Sep 2026)',
+  'Please ensure your microphone is muted upon entry. Enable camera during interactive practical exercises and discussions.',
+  'YARA Academic Secretariat'
+)
+ON CONFLICT (event_id) DO UPDATE SET
+  meeting_title = EXCLUDED.meeting_title,
+  daily_schedule_time = EXCLUDED.daily_schedule_time,
+  instructions = EXCLUDED.instructions,
+  updated_at = now();
+
+-- =========================================================================
+-- 23. ORGANIZATION POSTS & MULTI-CHANNEL BROADCAST ENGINE
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.organization_posts (
+  id TEXT PRIMARY KEY DEFAULT ('post_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  image_url TEXT,
+  category TEXT DEFAULT 'general', -- e.g. 'announcement', 'competition', 'bootcamp', 'partnership', 'showcase'
+  tags TEXT[] DEFAULT '{}',
+  is_pinned BOOLEAN DEFAULT false,
+  social_channels TEXT[] DEFAULT '{}', -- e.g. '["twitter", "facebook", "linkedin", "whatsapp"]'
+  broadcast_status TEXT DEFAULT 'draft', -- e.g. 'draft', 'published', 'broadcasted'
+  author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  author_name TEXT DEFAULT 'YARA Leadership',
+  views_count INTEGER DEFAULT 0,
+  likes_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.organization_posts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view organization posts" ON public.organization_posts;
+CREATE POLICY "Public can view organization posts"
+  ON public.organization_posts FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage organization posts" ON public.organization_posts;
+CREATE POLICY "Admins can manage organization posts"
+  ON public.organization_posts FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP TRIGGER IF EXISTS update_organization_posts_updated_at ON public.organization_posts;
+CREATE TRIGGER update_organization_posts_updated_at
+  BEFORE UPDATE ON public.organization_posts
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- RPC function to increment post likes atomically
+CREATE OR REPLACE FUNCTION public.increment_post_likes(post_id TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+  new_count INTEGER;
+BEGIN
+  UPDATE public.organization_posts
+  SET likes_count = COALESCE(likes_count, 0) + 1
+  WHERE id = post_id
+  RETURNING likes_count INTO new_count;
+
+  RETURN COALESCE(new_count, 1);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =========================================================================
+-- 24. BOOTCAMP CURRICULUM MODULES & PRACTICAL SESSIONS
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.bootcamp_curriculum_modules (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  event_id TEXT NOT NULL DEFAULT 'ai-for-educators-2026',
+  day_number INTEGER NOT NULL,
+  date_display TEXT NOT NULL,
+  title TEXT NOT NULL,
+  duration TEXT DEFAULT '2.5 Hours (16:00 - 18:30 CAT)',
+  description TEXT,
+  topics TEXT[] DEFAULT '{}',
+  trainer TEXT DEFAULT 'YARA Senior AI Faculty',
+  resources JSONB DEFAULT '[]'::jsonb,
+  is_live BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.bootcamp_curriculum_modules ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view bootcamp modules" ON public.bootcamp_curriculum_modules;
+CREATE POLICY "Public can view bootcamp modules"
+  ON public.bootcamp_curriculum_modules FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage bootcamp modules" ON public.bootcamp_curriculum_modules;
+CREATE POLICY "Admins can manage bootcamp modules"
+  ON public.bootcamp_curriculum_modules FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP TRIGGER IF EXISTS update_bootcamp_modules_updated_at ON public.bootcamp_curriculum_modules;
+CREATE TRIGGER update_bootcamp_modules_updated_at
+  BEFORE UPDATE ON public.bootcamp_curriculum_modules
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
 
 
 
