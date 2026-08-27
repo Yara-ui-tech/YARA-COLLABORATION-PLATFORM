@@ -74,23 +74,39 @@ export default function Events() {
         .select('*')
         .order('created_at', { ascending: false });
 
+      let deletedCompIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('yaria_deleted_competitions');
+        if (raw) deletedCompIds = JSON.parse(raw);
+      } catch {
+        deletedCompIds = [];
+      }
+
       if (eventsData && eventsData.length > 0) {
         setEvents(eventsData);
       } else {
-        setEvents([]);
+        setEvents(INITIAL_EVENTS as Event[]);
       }
 
       if (compsData && compsData.length > 0) {
-        setCompetitions(compsData);
+        setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id)));
       } else {
-        setCompetitions([]);
+        const filtered = (INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id));
+        setCompetitions(filtered);
       }
 
       setVirtualCompetitions(vCompsData || []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      setEvents([]);
-      setCompetitions([]);
+      let deletedCompIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('yaria_deleted_competitions');
+        if (raw) deletedCompIds = JSON.parse(raw);
+      } catch {
+        deletedCompIds = [];
+      }
+      setEvents(INITIAL_EVENTS as Event[]);
+      setCompetitions((INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id)));
       setVirtualCompetitions([]);
     } finally {
       setLoading(false);
