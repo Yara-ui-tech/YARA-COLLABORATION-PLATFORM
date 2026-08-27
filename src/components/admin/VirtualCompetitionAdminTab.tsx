@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { VirtualCompetition, VirtualSubmission } from '../../types/competition';
-import { INITIAL_VIRTUAL_COMPETITIONS } from '../../constants/curriculum';
 
 export default function VirtualCompetitionAdminTab() {
   const [competitions, setCompetitions] = useState<VirtualCompetition[]>([]);
@@ -62,12 +61,7 @@ export default function VirtualCompetitionAdminTab() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (data && data.length > 0) {
-        setCompetitions(data);
-      } else {
-        // Fallback / initial seeds
-        setCompetitions(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
-      }
+      setCompetitions(data || []);
     } catch (err) {
       console.error('Error fetching virtual competitions:', err);
     } finally {

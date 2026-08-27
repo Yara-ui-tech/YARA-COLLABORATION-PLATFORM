@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
 import { INITIAL_COMPETITIONS, INITIAL_EVENTS } from '../constants/eventsData';
 import { VirtualCompetition } from '../types/competition';
-import { INITIAL_VIRTUAL_COMPETITIONS } from '../constants/curriculum';
 import VirtualCompetitionCard from '../components/competition/VirtualCompetitionCard';
 import VirtualCompetitionModal from '../components/competition/VirtualCompetitionModal';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
@@ -40,7 +39,7 @@ interface Competition {
 export default function Events() {
   const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS as Event[]);
   const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
-  const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
+  const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');
 
@@ -75,43 +74,24 @@ export default function Events() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      let deletedCompIds: string[] = [];
-      try {
-        const raw = localStorage.getItem('yaria_deleted_competitions');
-        if (raw) deletedCompIds = JSON.parse(raw);
-      } catch {
-        deletedCompIds = [];
-      }
-
       if (eventsData && eventsData.length > 0) {
         setEvents(eventsData);
       } else {
-        setEvents(INITIAL_EVENTS as Event[]);
+        setEvents([]);
       }
 
       if (compsData && compsData.length > 0) {
-        setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id)));
+        setCompetitions(compsData);
       } else {
-        const filtered = (INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id));
-        setCompetitions(filtered);
+        setCompetitions([]);
       }
-      
-      if (vCompsData && vCompsData.length > 0) {
-        setVirtualCompetitions(vCompsData);
-      } else {
-        setVirtualCompetitions(INITIAL_VIRTUAL_COMPETITIONS as VirtualCompetition[]);
-      }
+
+      setVirtualCompetitions(vCompsData || []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      let deletedCompIds: string[] = [];
-      try {
-        const raw = localStorage.getItem('yaria_deleted_competitions');
-        if (raw) deletedCompIds = JSON.parse(raw);
-      } catch {
-        deletedCompIds = [];
-      }
-      setEvents(INITIAL_EVENTS as Event[]);
-      setCompetitions((INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id)));
+      setEvents([]);
+      setCompetitions([]);
+      setVirtualCompetitions([]);
     } finally {
       setLoading(false);
     }
@@ -262,13 +242,23 @@ export default function Events() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {virtualCompetitions.map(vComp => (
-                  <VirtualCompetitionCard
-                    key={vComp.id}
-                    competition={vComp}
-                    onOpen={handleOpenVirtualChallenge}
-                  />
-                ))}
+                {virtualCompetitions.length === 0 ? (
+                  <div className="col-span-full flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-slate-100">
+                    <Zap className="w-10 h-10 text-slate-200 mb-4" />
+                    <h4 className="text-lg font-bold text-slate-800 mb-1">No Virtual Challenges Available Yet</h4>
+                    <p className="text-sm text-slate-500 max-w-xs text-center">
+                      Virtual simulation challenges will appear here once created. Check back soon!
+                    </p>
+                  </div>
+                ) : (
+                  virtualCompetitions.map(vComp => (
+                    <VirtualCompetitionCard
+                      key={vComp.id}
+                      competition={vComp}
+                      onOpen={handleOpenVirtualChallenge}
+                    />
+                  ))
+                )}
               </div>
             </section>
           )}

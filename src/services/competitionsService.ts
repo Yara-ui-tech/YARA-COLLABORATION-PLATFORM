@@ -4,121 +4,6 @@ import { Competition } from '../types/competition';
 const STORAGE_KEY = 'yara_custom_competitions';
 const DELETED_KEY = 'yara_deleted_competition_ids';
 
-export const DEFAULT_COMPETITIONS: Competition[] = [
-  {
-    id: 'yara-2026-flagship',
-    slug: 'yara-2026',
-    title: 'YARA Educational Robotics Competition 2026',
-    subtitle: '“Engineering Opportunity: Robotics and Autonomous Innovation for Underserved Youth”',
-    description: 'The premier continental robotics and STEM championship. Features Underwater Drone Navigation (35%), Autonomous Maze Solving (35%), and Community Innovation Pitches (30%). Teams must strictly comprise 4+ members with a balanced 2 Boys + 2 Girls gender parity ratio.',
-    category: 'flagship_robotics',
-    format: 'hybrid',
-    status: 'upcoming',
-    start_date: '2026-10-16T08:00:00.000Z',
-    end_date: '2026-10-18T18:00:00.000Z',
-    registration_deadline: '2026-09-30T23:59:59.000Z',
-    location: 'YARA National Science Arena & Innovation Pool, Harare',
-    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$15,000 Prize Pool & STEM Grants',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 64,
-    registered_teams_count: 14,
-    eligibility: 'High Schools, Polytechnics, Universities, and Community Youth Chapters (Mandatory 2B + 2G ratio)',
-    rules_summary: 'Underwater Drone buoyancy payload recovery (35%), Micromouse ultrasonic maze solving (35%), and Community Impact technology pitch (30%).',
-    is_featured: true,
-    display_order: 1,
-    tags: ['Flagship', 'Underwater ROV', 'Autonomous Navigation', 'Innovation Pitch']
-  },
-  {
-    id: 'yara-underwater-rov-open',
-    slug: 'underwater-rov-challenge',
-    title: 'YARA Aquatic ROV & Submersible Navigation Open',
-    subtitle: 'Underwater Marine Telemetry, Waterproofing & Depth Buoyancy Challenge',
-    description: 'Specialized aquatic robotics championship focused on submersible exploration, underwater acoustics, brushless thruster control, and ecological water sensor retrieval in deep pool courses.',
-    category: 'underwater_rov',
-    format: 'in_person',
-    status: 'upcoming',
-    start_date: '2026-11-06T09:00:00.000Z',
-    end_date: '2026-11-07T17:00:00.000Z',
-    registration_deadline: '2026-10-25T23:59:59.000Z',
-    location: 'Lake Chivero Aquatic Science Centre & Training Pool',
-    image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$5,000 + Aquatic Electronics Toolkits',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 32,
-    registered_teams_count: 8,
-    eligibility: 'Student robotics teams with functional waterproof submersibles',
-    rules_summary: 'Submersible must perform submerged pipe inspections, retrieve seabed markers at 3.5m depth, and beam live optical telemetry.',
-    is_featured: true,
-    display_order: 2,
-    tags: ['Aquatic Drone', 'Waterproofing', 'Marine Tech', 'Telemetry']
-  },
-  {
-    id: 'yara-maze-derby-2026',
-    slug: 'high-school-maze-derby',
-    title: 'National High School Autonomous Maze Derby 2026',
-    subtitle: 'Precision Micromouse, Wall Following & Speed Labyrinth Solving',
-    description: 'High-octane autonomous rover race where high school teams code ground robots to navigate complex dynamic labyrinths using ultrasonic, LiDAR, and PID loop algorithms.',
-    category: 'autonomous_vehicles',
-    format: 'in_person',
-    status: 'upcoming',
-    start_date: '2026-09-25T08:30:00.000Z',
-    end_date: '2026-09-26T16:30:00.000Z',
-    registration_deadline: '2026-09-15T23:59:59.000Z',
-    location: 'National University of Science & Technology (NUST), Bulawayo',
-    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$3,500 STEM Equipment Grants',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 40,
-    registered_teams_count: 14,
-    eligibility: 'All high school chapters across Zimbabwe’s 10 provinces',
-    rules_summary: 'Strictly zero manual control. Time penalties applied for collisions. Best 2 out of 3 runs scored.',
-    is_featured: false,
-    display_order: 3,
-    tags: ['Micromouse', 'High School', 'PID Control', 'Sensors']
-  },
-  {
-    id: 'yara-smart-agri-hack',
-    slug: 'smart-agro-hackathon',
-    title: 'Zimbabwe Smart Agro-Robotics & Drone Hackathon',
-    subtitle: 'Autonomous Agriculture: Precision Spraying, Crop Disease AI & Solar Irrigation',
-    description: 'Practical hackathon tackling real food security challenges across rural and commercial farming through affordable agro-drones, sensor networks, and autonomous harvesters.',
-    category: 'hackathon',
-    format: 'hybrid',
-    status: 'upcoming',
-    start_date: '2026-11-20T08:00:00.000Z',
-    end_date: '2026-11-22T18:00:00.000Z',
-    registration_deadline: '2026-11-10T23:59:59.000Z',
-    location: 'Chinhoyi University of Technology (CUT) Innovation Hub',
-    image_url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$7,500 AgTech Commercialization Seed Fund',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 30,
-    registered_teams_count: 6,
-    eligibility: 'Open to youth innovators, tertiary students, and agrarian innovators',
-    rules_summary: 'Deploy hardware and computer vision prototypes tested on crop beds or calibrated simulation rigs.',
-    is_featured: false,
-    display_order: 4,
-    tags: ['Agro-Tech', 'Drones', 'IoT', 'Food Security']
-  }
-];
-
 function getDeletedIds(): string[] {
   try {
     const raw = localStorage.getItem(DELETED_KEY);
@@ -156,7 +41,7 @@ export async function getCompetitions(): Promise<Competition[]> {
       .order('display_order', { ascending: true })
       .order('start_date', { ascending: true });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       // Merge with custom fields and ensure defaults
       const formatted: Competition[] = data
         .filter(c => !deletedIds.includes(c.id) && !deletedIds.includes(c.slug))
@@ -191,7 +76,7 @@ export async function getCompetitions(): Promise<Competition[]> {
           updated_at: c.updated_at
         }));
 
-      // Combine with any extra local ones not in DB
+      // Merge with any extra local ones not in DB
       const dbIds = new Set(formatted.map(f => f.id));
       const extras = localCustom.filter(lc => !dbIds.has(lc.id) && !deletedIds.includes(lc.id));
       return [...formatted, ...extras];
@@ -200,20 +85,8 @@ export async function getCompetitions(): Promise<Competition[]> {
     console.warn('Competitions DB fetch fallback:', err);
   }
 
-  // Combine default with custom and exclude deleted
-  const baseMap = new Map<string, Competition>();
-  DEFAULT_COMPETITIONS.forEach(c => {
-    if (!deletedIds.includes(c.id) && !deletedIds.includes(c.slug)) {
-      baseMap.set(c.id, c);
-    }
-  });
-  localCustom.forEach(c => {
-    if (!deletedIds.includes(c.id)) {
-      baseMap.set(c.id, c);
-    }
-  });
-
-  return Array.from(baseMap.values()).sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+  // Return only local custom competitions (no hardcoded defaults)
+  return localCustom.filter(c => !deletedIds.includes(c.id));
 }
 
 export async function createCompetition(compData: Partial<Competition>): Promise<Competition> {
@@ -316,12 +189,6 @@ export async function updateCompetition(id: string, updates: Partial<Competition
   if (existingIdx >= 0) {
     locals[existingIdx] = { ...locals[existingIdx], ...payload };
     saveLocalCustomCompetitions(locals);
-  } else {
-    // If it was a default competition, save its override
-    const defaultOne = DEFAULT_COMPETITIONS.find(d => d.id === id);
-    if (defaultOne) {
-      saveLocalCustomCompetitions([{ ...defaultOne, ...payload }, ...locals]);
-    }
   }
 
   const all = await getCompetitions();
