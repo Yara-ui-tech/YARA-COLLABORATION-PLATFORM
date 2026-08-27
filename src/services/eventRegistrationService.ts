@@ -5,18 +5,114 @@ import {
   EventApprovalStatus, 
   EventTimelineStatus, 
   EventAccessResult,
+  EventMeetingConfig,
   AI_FOR_EDUCATORS_EVENT 
 } from '../types/eventRegistration';
 
 export { AI_FOR_EDUCATORS_EVENT };
+export type { EventMeetingConfig };
 
 const STORAGE_KEY = 'yara_event_registrations_store';
+const MEETING_CONFIG_KEY = 'yara_event_meeting_configs_store';
+
+export function generateRegistrationCode(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let rand = '';
+  for (let i = 0; i < 4; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `YARA-AI-${rand}`;
+}
+
+export const DEFAULT_MEETING_CONFIG: EventMeetingConfig = {
+  event_id: AI_FOR_EDUCATORS_EVENT.id,
+  meeting_title: 'AI for Educators Online Bootcamp — Google Meet Live Hall',
+  meeting_url: 'https://meet.google.com/new',
+  meeting_code: 'yara-ai-educators-2026',
+  passcode: 'YARA2026',
+  platform: 'google_meet',
+  daily_schedule_time: '17:00 – 19:30 CAT (Daily: 31 Aug – 4 Sep 2026)',
+  instructions: 'Please ensure your microphone is muted upon entry. Enable camera during interactive practical exercises and discussions.',
+  updated_at: new Date().toISOString(),
+  updated_by_name: 'YARA Academic Secretariat'
+};
+
+/**
+ * Gets the meeting configuration for an event
+ */
+export function getEventMeetingConfig(eventId: string = AI_FOR_EDUCATORS_EVENT.id): EventMeetingConfig {
+  try {
+    const raw = localStorage.getItem(`${MEETING_CONFIG_KEY}_${eventId}`);
+    if (raw) {
+      return JSON.parse(raw) as EventMeetingConfig;
+    }
+  } catch (err) {
+    console.warn('Could not read meeting config:', err);
+  }
+  return { ...DEFAULT_MEETING_CONFIG, event_id: eventId };
+}
+
+/**
+ * Updates meeting configuration (admin action)
+ */
+export async function updateEventMeetingConfig(
+  eventId: string,
+  updates: Partial<EventMeetingConfig>,
+  adminName?: string
+): Promise<EventMeetingConfig> {
+  const current = getEventMeetingConfig(eventId);
+  const updated: EventMeetingConfig = {
+    ...current,
+    ...updates,
+    event_id: eventId,
+    updated_at: new Date().toISOString(),
+    updated_by_name: adminName || current.updated_by_name || 'Administrator'
+  };
+
+  try {
+    localStorage.setItem(`${MEETING_CONFIG_KEY}_${eventId}`, JSON.stringify(updated));
+  } catch (e) {
+    console.warn('Failed to save meeting config locally:', e);
+  }
+
+  // Attempt sync to Supabase settings or meta table if available
+  try {
+    await supabase.from('event_meetings').upsert({
+      event_id: eventId,
+      meeting_title: updated.meeting_title,
+      meeting_url: updated.meeting_url,
+      meeting_code: updated.meeting_code || null,
+      passcode: updated.passcode || null,
+      platform: updated.platform,
+      daily_schedule_time: updated.daily_schedule_time,
+      instructions: updated.instructions,
+      updated_at: updated.updated_at,
+      updated_by_name: updated.updated_by_name
+    });
+  } catch {
+    // ignore
+  }
+
+  return updated;
+}
 
 function getLocalRegistrations(): EventRegistration[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as EventRegistration[];
+    const list = JSON.parse(raw) as EventRegistration[];
+    // Ensure all registrations have a registration_code
+    let changed = false;
+    list.forEach(r => {
+      if (!r.registration_code) {
+        r.registration_code = generateRegistrationCode();
+        changed = true;
+      }
+    });
+    if (changed) {
+      saveLocalRegistrations(list);
+    }
+    return list;
   } catch {
     return [];
   }
@@ -87,7 +183,13 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
     if (!error && data && data.length > 0) {
       // Merge with local to ensure offline resilience
       const mergedMap = new Map<string, EventRegistration>();
-      data.forEach((item: any) => mergedMap.set(item.id, item as EventRegistration));
+      data.forEach((item: any) => {
+        const itemRecord = item as EventRegistration;
+        if (!itemRecord.registration_code) {
+          itemRecord.registration_code = generateRegistrationCode();
+        }
+        mergedMap.set(itemRecord.id, itemRecord);
+      });
       localList.forEach(item => {
         if (!mergedMap.has(item.id)) {
           mergedMap.set(item.id, item);
@@ -131,6 +233,68 @@ export async function deleteEventRegistration(registrationId: string): Promise<b
   } catch {
     return true;
   }
+}
+
+/**
+ * Gets a user's registration by registration code
+ */
+export async function getEventRegistrationByCode(
+  code: string,
+  eventId: string = AI_FOR_EDUCATORS_EVENT.id
+): Promise<EventRegistration | null> {
+  const cleanCode = code.trim().toUpperCase();
+  if (!cleanCode) return null;
+
+  const localList = getLocalRegistrations();
+
+  // Try Supabase first
+  try {
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .select('*')
+      .eq('event_id', eventId)
+      .ilike('registration_code', cleanCode)
+      .maybeSingle();
+    if (!error && data) {
+      return data as EventRegistration;
+    }
+  } catch (err) {
+    console.warn('Supabase code query error:', err);
+  }
+
+  // Check local list
+  const found = localList.find(r => 
+    r.event_id === eventId && (
+      (r.registration_code && r.registration_code.toUpperCase() === cleanCode) ||
+      r.id.toUpperCase() === cleanCode ||
+      r.id.toUpperCase().endsWith(cleanCode)
+    )
+  );
+
+  return found || null;
+}
+
+/**
+ * Finds event registration by identifier (Registration Code, Email, or User ID)
+ */
+export async function findEventRegistration(
+  eventId: string,
+  identifier: string
+): Promise<EventRegistration | null> {
+  const clean = identifier.trim();
+  if (!clean) return null;
+
+  // 1. If contains @ -> search email
+  if (clean.includes('@')) {
+    return getUserEventRegistration(eventId, null, clean);
+  }
+
+  // 2. Try searching by registration code
+  const byCode = await getEventRegistrationByCode(clean, eventId);
+  if (byCode) return byCode;
+
+  // 3. Try userId / id
+  return getUserEventRegistration(eventId, clean, null);
 }
 
 /**
@@ -207,9 +371,11 @@ export async function registerForEvent(payload: {
   proof_of_payment_url?: string;
 }): Promise<EventRegistration> {
   const isPaidDirectly = Boolean(payload.payment_reference || payload.proof_of_payment_url);
+  const regCode = generateRegistrationCode();
   
   const record: EventRegistration = {
     id: 'evt_reg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+    registration_code: regCode,
     event_id: payload.event_id,
     event_title: payload.event_title,
     user_id: payload.user_id,
@@ -535,7 +701,7 @@ export async function getEventRegistrationByEmail(
  */
 export async function checkEventAccess(
   param1: EventRegistration | string | null | undefined,
-  emailOrUserId?: string | null,
+  emailOrUserIdOrCode?: string | null,
   userId?: string | null
 ): Promise<EventAccessResult> {
   let registration: EventRegistration | null = null;
@@ -544,7 +710,10 @@ export async function checkEventAccess(
     registration = param1 as EventRegistration;
   } else if (typeof param1 === 'string') {
     const eventId = param1;
-    registration = await getUserEventRegistration(eventId, userId, emailOrUserId);
+    const identifier = emailOrUserIdOrCode || userId;
+    if (identifier) {
+      registration = await findEventRegistration(eventId, identifier);
+    }
   }
 
   const timeline_status = getEventTimelineStatus();

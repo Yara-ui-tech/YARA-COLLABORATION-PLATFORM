@@ -3,16 +3,19 @@ import {
   Users, CheckCircle2, XCircle, Clock, DollarSign, Search, 
   Filter, ShieldCheck, AlertCircle, RefreshCw, Plus, UserPlus, 
   ExternalLink, Mail, Phone, School, Award, Sparkles, Check, 
-  Trash2, Eye, ShieldAlert, ArrowUpRight
+  Trash2, Eye, ShieldAlert, ArrowUpRight, Video, Copy, Link, 
+  Edit3, Save, Key, Calendar, Share2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { EventRegistration, EventPaymentStatus, EventApprovalStatus } from '../../types/eventRegistration';
+import { EventRegistration, EventPaymentStatus, EventApprovalStatus, EventMeetingConfig } from '../../types/eventRegistration';
 import { 
   getEventRegistrations, 
   updateRegistrationStatus, 
   registerForEvent, 
   deleteEventRegistration,
   checkEventAccess,
+  getEventMeetingConfig,
+  updateEventMeetingConfig,
   AI_FOR_EDUCATORS_EVENT
 } from '../../services/eventRegistrationService';
 
@@ -25,6 +28,13 @@ export default function EventRegistrationsAdminTab() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  // Meeting Management State
+  const [meetingConfig, setMeetingConfig] = useState<EventMeetingConfig>(() => getEventMeetingConfig('ai_educators_bootcamp_2026'));
+  const [isEditingMeeting, setIsEditingMeeting] = useState(false);
+  const [meetingForm, setMeetingForm] = useState<EventMeetingConfig>(() => getEventMeetingConfig('ai_educators_bootcamp_2026'));
+  const [isSavingMeeting, setIsSavingMeeting] = useState(false);
 
   // Manual Add Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -49,6 +59,9 @@ export default function EventRegistrationsAdminTab() {
     try {
       const data = await getEventRegistrations(eventFilter || undefined);
       setRegistrations(data);
+      const mCfg = getEventMeetingConfig(eventFilter || 'ai_educators_bootcamp_2026');
+      setMeetingConfig(mCfg);
+      setMeetingForm(mCfg);
     } catch (err: any) {
       console.error('Error loading event registrations:', err);
     } finally {
@@ -64,6 +77,42 @@ export default function EventRegistrationsAdminTab() {
   const showNotice = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(label);
+    showNotice('success', `Copied ${label} to clipboard!`);
+    setTimeout(() => setCopiedText(null), 2500);
+  };
+
+  const handleSaveMeetingConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingMeeting(true);
+    try {
+      const updated = await updateEventMeetingConfig(
+        eventFilter || 'ai_educators_bootcamp_2026',
+        meetingForm,
+        'YARA Admin Console'
+      );
+      setMeetingConfig(updated);
+      setIsEditingMeeting(false);
+      showNotice('success', 'Google Meet / Meeting configuration updated successfully!');
+    } catch (err: any) {
+      showNotice('error', err.message || 'Failed to update meeting details.');
+    } finally {
+      setIsSavingMeeting(false);
+    }
+  };
+
+  const handleGenerateGoogleMeetLink = () => {
+    const randomMeetCode = 'yara-' + Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+    setMeetingForm(prev => ({
+      ...prev,
+      platform: 'google_meet',
+      meeting_url: `https://meet.google.com/${randomMeetCode}`,
+      meeting_code: randomMeetCode
+    }));
   };
 
   const handleUpdateStatus = async (
@@ -98,7 +147,7 @@ export default function EventRegistrationsAdminTab() {
       reg.id, 
       'verified', 
       'approved', 
-      'Verified payment ($10) & approved for live bootcamp access by Administrator.'
+      'Verified payment ($10) & approved for live bootcamp access by Administrator in Admin Console.'
     );
   };
 
@@ -145,7 +194,7 @@ export default function EventRegistrationsAdminTab() {
           });
         }
 
-        showNotice('success', `Manually registered ${addForm.full_name} for AI for Educators Bootcamp!`);
+        showNotice('success', `Manually registered ${addForm.full_name}! Code: ${res.registration_code || res.id}`);
         setShowAddModal(false);
         setAddForm({
           full_name: '',
@@ -175,10 +224,12 @@ export default function EventRegistrationsAdminTab() {
 
   // Filter registrations
   const filtered = registrations.filter(r => {
+    const codeStr = r.registration_code || '';
     const matchesSearch = 
       r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.school_institution.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      codeStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.phone && r.phone.includes(searchTerm));
 
     if (!matchesSearch) return false;
@@ -186,7 +237,7 @@ export default function EventRegistrationsAdminTab() {
     if (statusFilter === 'pending') return r.approval_status === 'pending';
     if (statusFilter === 'approved') return r.approval_status === 'approved';
     if (statusFilter === 'rejected') return r.approval_status === 'rejected';
-    if (statusFilter === 'unpaid') return r.payment_status === 'unpaid' || r.payment_status === 'pending_verification';
+    if (statusFilter === 'unpaid') return r.payment_status === 'pending' || r.payment_status === 'rejected';
     if (statusFilter === 'verified') return r.payment_status === 'verified';
 
     return true;
@@ -215,7 +266,7 @@ export default function EventRegistrationsAdminTab() {
             {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
             <span>{notification.message}</span>
           </div>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-700 ml-4">✕</button>
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-700 ml-4 cursor-pointer">✕</button>
         </div>
       )}
 
@@ -225,17 +276,17 @@ export default function EventRegistrationsAdminTab() {
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center space-x-2">
               <span className="px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-[11px] font-black uppercase tracking-wider">
-                🔒 Protected Access Control & Verification
+                🔒 Protected Admin Console
               </span>
               <span className="px-3 py-1 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-full text-[11px] font-black uppercase tracking-wider">
-                Live Online Bootcamp
+                Google Meet Approval Portal
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              Event Registration & Access Management
+              Event Registration & Google Meet Access Portal
             </h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Enforce strict entry validation for <strong>AI for Educators – Online Bootcamp</strong>. Participants can enter the live event room <em>ONLY</em> when their US$10 registration fee is verified AND their account is approved by an administrator.
+              Manage participant approval decisions, verify US$10 payments, provide registration codes, and configure the Google Meet room link. Participants can only enter the live Google Meet call after approval.
             </p>
           </div>
 
@@ -257,6 +308,195 @@ export default function EventRegistrationsAdminTab() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Google Meet & Live Room Configuration Card */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <Video className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-base font-black text-slate-900">Google Meet Live Room Configuration</h3>
+                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black uppercase">
+                  Active Meeting Destination
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                This meeting link is served to approved participants through the registration code portal.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isEditingMeeting ? (
+              <>
+                <button
+                  onClick={() => handleCopy(meetingConfig.meeting_url, 'Meeting Link')}
+                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>{copiedText === 'Meeting Link' ? 'Copied!' : 'Copy Link'}</span>
+                </button>
+                <button
+                  onClick={() => setIsEditingMeeting(true)}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Configure Link & Times</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setMeetingForm(meetingConfig);
+                  setIsEditingMeeting(false);
+                }}
+                className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!isEditingMeeting ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Meeting URL</span>
+              <div className="flex items-center justify-between gap-2">
+                <a 
+                  href={meetingConfig.meeting_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs font-black text-indigo-600 hover:underline truncate"
+                >
+                  {meetingConfig.meeting_url}
+                </a>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              </div>
+              <p className="text-[10px] text-slate-500">Platform: <strong className="uppercase">{meetingConfig.platform.replace('_', ' ')}</strong></p>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Schedule & Passcode</span>
+              <p className="text-xs font-black text-slate-800">{meetingConfig.daily_schedule_time}</p>
+              <p className="text-[10px] text-slate-500">
+                Passcode: <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200 text-indigo-700">{meetingConfig.passcode || 'None'}</span>
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendee Instructions</span>
+              <p className="text-xs text-slate-600 line-clamp-2">{meetingConfig.instructions}</p>
+              <p className="text-[9px] text-slate-400">Last updated by {meetingConfig.updated_by_name || 'Admin'}</p>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSaveMeetingConfig} className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div className="space-y-1 sm:col-span-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700">Google Meet / Live Meeting URL *</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateGoogleMeetLink}
+                    className="text-[11px] text-indigo-600 font-bold hover:underline flex items-center space-x-1"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <span>Generate Instant Meet Link</span>
+                  </button>
+                </div>
+                <input
+                  type="url"
+                  required
+                  value={meetingForm.meeting_url}
+                  onChange={e => setMeetingForm({ ...meetingForm, meeting_url: e.target.value })}
+                  placeholder="https://meet.google.com/xxx-yyyy-zzz"
+                  className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Platform</label>
+                <select
+                  value={meetingForm.platform}
+                  onChange={e => setMeetingForm({ ...meetingForm, platform: e.target.value as any })}
+                  className="w-full px-3 py-2.5 bg-white rounded-xl border border-slate-300 font-bold text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                >
+                  <option value="google_meet">Google Meet (Recommended)</option>
+                  <option value="zoom">Zoom</option>
+                  <option value="teams">Microsoft Teams</option>
+                  <option value="custom">Custom WebRTC / Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Meeting Room Code (Optional)</label>
+                <input
+                  type="text"
+                  value={meetingForm.meeting_code || ''}
+                  onChange={e => setMeetingForm({ ...meetingForm, meeting_code: e.target.value })}
+                  placeholder="e.g. yara-ai-educators"
+                  className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Meeting Passcode</label>
+                <input
+                  type="text"
+                  value={meetingForm.passcode || ''}
+                  onChange={e => setMeetingForm({ ...meetingForm, passcode: e.target.value })}
+                  placeholder="e.g. YARA2026"
+                  className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Daily Session Schedule</label>
+                <input
+                  type="text"
+                  value={meetingForm.daily_schedule_time}
+                  onChange={e => setMeetingForm({ ...meetingForm, daily_schedule_time: e.target.value })}
+                  placeholder="17:00 – 19:30 CAT (Daily: 31 Aug – 4 Sep 2026)"
+                  className="w-full px-3.5 py-2.5 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                <label className="font-bold text-slate-700">Attendee Entry Instructions</label>
+                <textarea
+                  rows={2}
+                  value={meetingForm.instructions}
+                  onChange={e => setMeetingForm({ ...meetingForm, instructions: e.target.value })}
+                  placeholder="Instructions for participants before entering the Google Meet room..."
+                  className="w-full px-3.5 py-2 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingMeeting(false)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingMeeting}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs flex items-center space-x-1.5 shadow-md cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingMeeting ? 'Saving...' : 'Save & Publish Meet Link'}</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* KPI Metric Cards */}
@@ -294,7 +534,7 @@ export default function EventRegistrationsAdminTab() {
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-indigo-600">{fullAccessGrantedCount}</p>
-          <span className="text-[10px] text-indigo-600 font-bold">Paid & Approved (ENTER EVENT enabled)</span>
+          <span className="text-[10px] text-indigo-600 font-bold">Paid & Approved (Google Meet unlocked)</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
@@ -315,7 +555,7 @@ export default function EventRegistrationsAdminTab() {
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search educator name, email, school, or phone number..."
+            placeholder="Search educator name, registration code (e.g. YARA-AI-...), email, or school..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
           />
         </div>
@@ -364,29 +604,57 @@ export default function EventRegistrationsAdminTab() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <th className="py-3.5 px-4">Registration Code</th>
                   <th className="py-3.5 px-4">Educator / Institution</th>
-                  <th className="py-3.5 px-4">Level & Exp</th>
                   <th className="py-3.5 px-4">Fee Status ($10)</th>
-                  <th className="py-3.5 px-4">Approval</th>
-                  <th className="py-3.5 px-4">Live Event Access</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-4">Admin Approval</th>
+                  <th className="py-3.5 px-4">Google Meet Access</th>
+                  <th className="py-3.5 px-4 text-right">Approval Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map(reg => {
                   const isAccessGranted = reg.payment_status === 'verified' && reg.approval_status === 'approved';
                   const isProcessing = actionLoadingId === reg.id;
+                  const code = reg.registration_code || reg.id;
+
+                  const inviteText = `Hi ${reg.full_name},\nYour registration for the YARA AI for Educators Online Bootcamp is confirmed!\n\nRegistration Code: ${code}\nPortal: https://yara.org/events/ai-for-educators-bootcamp\nGoogle Meet: ${meetingConfig.meeting_url}\nPasscode: ${meetingConfig.passcode || 'YARA2026'}\nTime: ${meetingConfig.daily_schedule_time}`;
 
                   return (
                     <tr key={reg.id} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Registration Code */}
+                      <td className="py-4 px-4 align-top">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg font-mono font-black text-xs tracking-wider">
+                              {code}
+                            </span>
+                            <button
+                              onClick={() => handleCopy(code, 'Registration Code')}
+                              title="Copy code to share with educator"
+                              className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(inviteText, 'Educator Invitation')}
+                            className="text-[10px] text-slate-500 hover:text-indigo-600 flex items-center space-x-1 font-medium cursor-pointer"
+                          >
+                            <Share2 className="w-2.5 h-2.5" />
+                            <span>Copy Invite</span>
+                          </button>
+                        </div>
+                      </td>
+
                       {/* Name & Contact */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 align-top">
                         <div className="space-y-0.5">
                           <div className="flex items-center space-x-2">
                             <span className="font-black text-slate-900 text-sm">{reg.full_name}</span>
                             {reg.continuous_support_opt_in && (
                               <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-md text-[9px] font-bold" title="Opted in for $15/term continuous support">
-                                +Term Support
+                                +Support
                               </span>
                             )}
                           </div>
@@ -404,24 +672,13 @@ export default function EventRegistrationsAdminTab() {
                           </div>
                           <div className="flex items-center space-x-1 text-slate-600 text-[11px] font-medium">
                             <School className="w-3 h-3 text-indigo-500" />
-                            <span>{reg.school_institution} ({reg.city_province || 'Zimbabwe'})</span>
+                            <span>{reg.school_institution} ({reg.province || 'Zimbabwe'})</span>
                           </div>
                         </div>
                       </td>
 
-                      {/* Level & Exp */}
-                      <td className="py-4 px-4">
-                        <div className="space-y-1">
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-bold capitalize inline-block">
-                            {reg.teaching_level || 'Educator'}
-                          </span>
-                          <p className="text-[10px] text-slate-400">{reg.years_experience || '3+ yrs exp'}</p>
-                          <p className="text-[9px] text-slate-400">Reg: {new Date(reg.created_at).toLocaleDateString()}</p>
-                        </div>
-                      </td>
-
                       {/* Payment Status */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 align-top">
                         <div className="space-y-1.5">
                           {reg.payment_status === 'verified' && (
                             <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
@@ -429,21 +686,21 @@ export default function EventRegistrationsAdminTab() {
                               <span>Verified ($10 Paid)</span>
                             </span>
                           )}
-                          {reg.payment_status === 'pending_verification' && (
+                          {reg.payment_status === 'submitted' && (
                             <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
                               <Clock className="w-3 h-3 text-amber-600" />
                               <span>Payment Submitted</span>
                             </span>
                           )}
-                          {reg.payment_status === 'unpaid' && (
+                          {reg.payment_status === 'pending' && (
                             <span className="px-2.5 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
                               <XCircle className="w-3 h-3 text-rose-600" />
                               <span>Unpaid ($10 Due)</span>
                             </span>
                           )}
-                          {reg.payment_status === 'refunded' && (
+                          {reg.payment_status === 'rejected' && (
                             <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold">
-                              Refunded
+                              Rejected
                             </span>
                           )}
 
@@ -453,17 +710,17 @@ export default function EventRegistrationsAdminTab() {
                               <button
                                 disabled={isProcessing}
                                 onClick={() => handleUpdateStatus(reg.id, 'verified')}
-                                className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-all"
+                                className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-all cursor-pointer"
                               >
-                                Mark Paid
+                                Mark Paid ($10)
                               </button>
                             ) : (
                               <button
                                 disabled={isProcessing}
                                 onClick={() => handleUpdateStatus(reg.id, 'pending')}
-                                className="text-[10px] text-slate-500 hover:text-slate-800 underline"
+                                className="text-[10px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
                               >
-                                Reset to Unpaid
+                                Reset Unpaid
                               </button>
                             )}
                           </div>
@@ -471,7 +728,7 @@ export default function EventRegistrationsAdminTab() {
                       </td>
 
                       {/* Approval Status */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 align-top">
                         <div className="space-y-1.5">
                           {reg.approval_status === 'approved' && (
                             <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
@@ -482,7 +739,7 @@ export default function EventRegistrationsAdminTab() {
                           {reg.approval_status === 'pending' && (
                             <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
                               <Clock className="w-3 h-3 text-amber-600" />
-                              <span>Pending Review</span>
+                              <span>Pending Admin Decision</span>
                             </span>
                           )}
                           {reg.approval_status === 'rejected' && (
@@ -497,7 +754,7 @@ export default function EventRegistrationsAdminTab() {
                               <button
                                 disabled={isProcessing}
                                 onClick={() => handleUpdateStatus(reg.id, undefined, 'approved')}
-                                className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-bold transition-all"
+                                className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-bold transition-all cursor-pointer"
                               >
                                 Approve
                               </button>
@@ -506,7 +763,7 @@ export default function EventRegistrationsAdminTab() {
                               <button
                                 disabled={isProcessing}
                                 onClick={() => handleUpdateStatus(reg.id, undefined, 'rejected')}
-                                className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[10px] font-bold transition-all"
+                                className="px-2 py-0.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[10px] font-bold transition-all cursor-pointer"
                               >
                                 Reject
                               </button>
@@ -515,8 +772,8 @@ export default function EventRegistrationsAdminTab() {
                         </div>
                       </td>
 
-                      {/* Live Event Access Result */}
-                      <td className="py-4 px-4">
+                      {/* Live Portal Access Result */}
+                      <td className="py-4 px-4 align-top">
                         {isAccessGranted ? (
                           <div className="space-y-1">
                             <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-xl text-[10px] font-black flex items-center space-x-1.5 shadow-xs w-fit">
@@ -524,14 +781,14 @@ export default function EventRegistrationsAdminTab() {
                               <span>ACCESS GRANTED</span>
                             </span>
                             <p className="text-[10px] text-emerald-700 font-bold">
-                              Enter Event unlocked
+                              Google Meet unlocked
                             </p>
                           </div>
                         ) : (
                           <div className="space-y-1">
                             <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-bold flex items-center space-x-1.5 w-fit">
                               <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-                              <span>ACCESS RESTRICTED</span>
+                              <span>RESTRICTED</span>
                             </span>
                             <p className="text-[9px] text-slate-500">
                               {reg.payment_status !== 'verified' && reg.approval_status !== 'approved'
@@ -545,24 +802,24 @@ export default function EventRegistrationsAdminTab() {
                       </td>
 
                       {/* Combined Action Buttons */}
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-4 px-4 text-right align-top">
                         <div className="flex items-center justify-end gap-2">
                           {!isAccessGranted && (
                             <button
                               disabled={isProcessing}
                               onClick={() => handleQuickApproveBoth(reg)}
-                              title="Verify payment and approve access simultaneously"
-                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[11px] shadow-xs flex items-center space-x-1 transition-all"
+                              title="Verify payment and approve access simultaneously in admin console"
+                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[11px] shadow-xs flex items-center space-x-1 transition-all cursor-pointer"
                             >
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>Grant Full Access</span>
+                              <span>1-Click Approve Both</span>
                             </button>
                           )}
                           <button
                             disabled={isProcessing}
                             onClick={() => handleDelete(reg.id, reg.full_name)}
                             title="Remove Registration"
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all"
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -590,7 +847,7 @@ export default function EventRegistrationsAdminTab() {
               </div>
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold cursor-pointer"
               >
                 ✕
               </button>
@@ -598,137 +855,137 @@ export default function EventRegistrationsAdminTab() {
 
             <form onSubmit={handleManualAddSubmit} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Full Name *</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Full Name *</label>
                   <input
                     type="text"
                     required
                     value={addForm.full_name}
                     onChange={e => setAddForm({ ...addForm, full_name: e.target.value })}
-                    placeholder="e.g. Mrs. Florence Sibanda"
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    placeholder="e.g. Dr. Tendai Moyo"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Email Address *</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Email Address *</label>
                   <input
                     type="email"
                     required
                     value={addForm.email}
                     onChange={e => setAddForm({ ...addForm, email: e.target.value })}
-                    placeholder="educator@school.ac.zw"
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    placeholder="e.g. tendai.moyo@school.ac.zw"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Phone / WhatsApp</label>
                   <input
                     type="tel"
                     value={addForm.phone}
                     onChange={e => setAddForm({ ...addForm, phone: e.target.value })}
-                    placeholder="+263 77 123 4567"
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    placeholder="e.g. +263 77 123 4567"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">School / Institution</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">School or Institution</label>
                   <input
                     type="text"
                     value={addForm.school_institution}
                     onChange={e => setAddForm({ ...addForm, school_institution: e.target.value })}
-                    placeholder="e.g. St George's College / Bulawayo High"
-                    className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    placeholder="e.g. St. George's College / Independent"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Teaching Level</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Role / Designation</label>
+                  <input
+                    type="text"
+                    value={addForm.role_title}
+                    onChange={e => setAddForm({ ...addForm, role_title: e.target.value })}
+                    placeholder="e.g. High School STEM Lead"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Province</label>
                   <select
-                    value={addForm.teaching_level}
-                    onChange={e => setAddForm({ ...addForm, teaching_level: e.target.value as any })}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    value={addForm.city_province}
+                    onChange={e => setAddForm({ ...addForm, city_province: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   >
-                    <option value="primary">Primary Education</option>
-                    <option value="secondary">Secondary / High School</option>
-                    <option value="tertiary">Tertiary / University / College</option>
-                    <option value="tvet">TVET / Technical Institute</option>
-                    <option value="non_formal">Non-Formal / Community STEM Centre</option>
+                    <option value="Harare">Harare</option>
+                    <option value="Bulawayo">Bulawayo</option>
+                    <option value="Manicaland">Manicaland</option>
+                    <option value="Mashonaland Central">Mashonaland Central</option>
+                    <option value="Mashonaland East">Mashonaland East</option>
+                    <option value="Mashonaland West">Mashonaland West</option>
+                    <option value="Masvingo">Masvingo</option>
+                    <option value="Matabeleland North">Matabeleland North</option>
+                    <option value="Matabeleland South">Matabeleland South</option>
+                    <option value="Midlands">Midlands</option>
+                    <option value="International">International / Online</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Years of Experience</label>
-                  <select
-                    value={addForm.years_experience}
-                    onChange={e => setAddForm({ ...addForm, years_experience: e.target.value })}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-                  >
-                    <option value="0-2 years">0 - 2 years (Early Career)</option>
-                    <option value="3-5 years">3 - 5 years (Established)</option>
-                    <option value="6-10 years">6 - 10 years (Senior Educator)</option>
-                    <option value="10+ years">10+ years (Master Educator)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Initial Payment Status</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Payment Status</label>
                   <select
                     value={addForm.payment_status}
                     onChange={e => setAddForm({ ...addForm, payment_status: e.target.value as any })}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   >
-                    <option value="verified">Verified ($10.00 Paid)</option>
-                    <option value="pending_verification">Payment Submitted (Pending check)</option>
-                    <option value="unpaid">Unpaid ($10 Due)</option>
+                    <option value="verified">Verified (Fee Paid - $10)</option>
+                    <option value="pending">Pending / Unpaid</option>
+                    <option value="submitted">Submitted (Awaiting Check)</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1 uppercase tracking-wider">Initial Approval Status</label>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Admin Approval Status</label>
                   <select
                     value={addForm.approval_status}
                     onChange={e => setAddForm({ ...addForm, approval_status: e.target.value as any })}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
                   >
-                    <option value="approved">Approved (Active access)</option>
-                    <option value="pending">Pending Admin Review</option>
+                    <option value="approved">Approved (Live Room Access Allowed)</option>
+                    <option value="pending">Pending Admin Decision</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </div>
               </div>
 
-              <div className="p-3 bg-purple-50 rounded-2xl border border-purple-100 flex items-center space-x-3">
+              <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-center space-x-2">
                 <input
                   type="checkbox"
-                  id="continuous_support"
+                  id="modalSupportOptIn"
                   checked={addForm.continuous_support_opt_in}
                   onChange={e => setAddForm({ ...addForm, continuous_support_opt_in: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded"
+                  className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
                 />
-                <label htmlFor="continuous_support" className="text-xs text-purple-900 font-bold cursor-pointer">
-                  Continuous Support (US$15 per term ongoing educator mentorship & AI resource updates)
+                <label htmlFor="modalSupportOptIn" className="text-slate-800 font-bold cursor-pointer">
+                  Opt-in for Termly Continuous Support ($15/term)
                 </label>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                  className="px-4 py-2 text-slate-600 font-bold hover:text-slate-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoadingId === 'manual-add'}
-                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-md disabled:opacity-50"
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md cursor-pointer"
                 >
-                  {actionLoadingId === 'manual-add' ? 'Saving...' : 'Save & Enroll Educator'}
+                  Save & Enroll Participant
                 </button>
               </div>
             </form>

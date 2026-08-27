@@ -14,6 +14,7 @@ export interface EventAccessResult {
 
 export interface EventRegistration {
   id: string;
+  registration_code?: string;
   event_id: string;
   event_title: string;
   user_id?: string;
@@ -49,6 +50,19 @@ export interface EventRegistration {
   
   created_at: string;
   updated_at?: string;
+}
+
+export interface EventMeetingConfig {
+  event_id: string;
+  meeting_title: string;
+  meeting_url: string;
+  meeting_code?: string;
+  passcode?: string;
+  platform: 'google_meet' | 'zoom' | 'teams' | 'custom';
+  daily_schedule_time: string;
+  instructions: string;
+  updated_at: string;
+  updated_by_name?: string;
 }
 
 export interface BootcampModule {
