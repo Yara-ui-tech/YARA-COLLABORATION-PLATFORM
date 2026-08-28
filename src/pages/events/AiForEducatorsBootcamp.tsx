@@ -20,7 +20,9 @@ import {
   getEventRegistrationByEmail,
   recordEventEntry,
   getEventTimelineStatus,
-  getEventMeetingConfig
+  getEventMeetingConfig,
+  fetchEventMeetingConfig,
+  subscribeToEventMeetingConfig
 } from '../../services/eventRegistrationService';
 
 export default function AiForEducatorsBootcamp() {
@@ -68,12 +70,53 @@ export default function AiForEducatorsBootcamp() {
     setTimeout(() => setCopiedLabel(null), 2500);
   };
 
+  // Real-time listener and periodic polling for Google Meet link updates
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Initial live fetch from Supabase
+    fetchEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id).then(liveCfg => {
+      if (isMounted && liveCfg) {
+        setMeetingConfig(liveCfg);
+      }
+    });
+
+    // 2. Real-time subscription (Supabase Realtime + BroadcastChannel + Window events)
+    const unsubscribe = subscribeToEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id, (updatedCfg) => {
+      if (isMounted && updatedCfg) {
+        setMeetingConfig(updatedCfg);
+      }
+    });
+
+    // 3. Fallback polling every 15 seconds to ensure instant synchronization
+    const pollInterval = setInterval(() => {
+      fetchEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id).then(liveCfg => {
+        if (isMounted && liveCfg) {
+          setMeetingConfig(liveCfg);
+        }
+      });
+    }, 15000);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      clearInterval(pollInterval);
+    };
+  }, []);
+
   // Check access whenever user or code changes
   const verifyCurrentAccess = async (targetQuery?: string) => {
     const queryToUse = (targetQuery !== undefined ? targetQuery : (codeInput || user?.email || '')).trim();
     
-    // Always refresh meeting config
-    setMeetingConfig(getEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id));
+    // Refresh meeting config from cloud
+    try {
+      const liveMeeting = await fetchEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id);
+      if (liveMeeting) {
+        setMeetingConfig(liveMeeting);
+      }
+    } catch {
+      setMeetingConfig(getEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id));
+    }
 
     if (!queryToUse) {
       setAccessResult({

@@ -97,7 +97,7 @@ export default function ChapterDetailModal({
                 className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition-all"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Submit Secretary Report</span>
+                <span>Submit Official Report / Financials</span>
               </button>
             )}
           </div>

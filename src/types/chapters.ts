@@ -16,7 +16,13 @@ export type ChapterLeaderRole =
   | 'treasurer'
   | 'tech_lead'
   | 'public_relations'
-  | 'patron_advisor';
+  | 'pr_lead'
+  | 'patron_advisor'
+  | 'lab_coordinator'
+  | 'faculty_advisor'
+  | 'advisor';
+
+export type ChapterReportCategory = 'general' | 'financial' | 'project_milestone';
 
 export interface ChapterLeader {
   id: string;
@@ -27,6 +33,16 @@ export interface ChapterLeader {
   avatar_url?: string;
   department_or_grade?: string;
   is_public_contact: boolean;
+  
+  // Admin Approval & Role-Based Access Control (Assigned by Admins in Dashboard)
+  is_approved_by_admin?: boolean;
+  approved_by_admin_at?: string;
+  approved_by_admin_name?: string;
+  access_pin?: string;
+  secretary_access_pin?: string; // backward compat alias
+  can_submit_general_reports?: boolean;
+  can_submit_financial_reports?: boolean;
+  approval_notes?: string;
 }
 
 export interface ChapterProject {
@@ -132,26 +148,62 @@ export interface NationalExecutiveAssessment {
   recommended_grant_usd?: number;
 }
 
+export interface ChapterFinancialData {
+  opening_balance_usd?: number;
+  total_inflow_usd?: number;
+  total_expenditure_usd?: number;
+  closing_balance_usd?: number;
+  grant_received_usd?: number;
+  grant_acquittal_notes?: string;
+  category_breakdown?: {
+    hardware_and_components_usd?: number;
+    logistics_and_transport_usd?: number;
+    competition_and_events_usd?: number;
+    workshop_materials_and_catering_usd?: number;
+    tools_and_equipment_usd?: number;
+    miscellaneous_usd?: number;
+  };
+  treasurer_certified?: boolean;
+  treasurer_name?: string;
+  invoices_drive_link?: string;
+}
+
 export interface ChapterReport {
   id: string;
   chapter_id: string;
   chapter_name: string;
   chapter_category: ChapterCategory;
   report_title: string;
+  report_category?: 'general' | 'financial' | 'project_milestone';
   period_type: ReportPeriodType;
   period_date: string; // e.g. "2026-03" or "Q1 2026"
   submitted_by_name: string;
   submitted_by_role: string;
   submitted_by_email: string;
+  submitted_by_leader_id?: string;
   submitted_at: string;
   executive_summary: string;
-  activities_undertaken: string;
-  attendance_count: number;
-  hardware_projects_update: string;
-  challenges_and_needs: string;
+  activities_undertaken?: string;
+  attendance_count?: number;
+  hardware_projects_update?: string;
+  challenges_and_needs?: string;
   report_document_url: string; // Google Drive / PDF / Doc link
   financial_statement_url?: string;
+  financial_data?: ChapterFinancialData;
   supporting_images?: string[];
   status: ReportStatus;
   executive_assessment?: NationalExecutiveAssessment;
+  
+  // Security & National Locking
+  is_locked?: boolean;
+  locked_at?: string;
+  locked_by_name?: string;
+  leadership_verified?: boolean;
+  leadership_approved_by_admin?: boolean;
+  secretary_verified?: boolean; // backward compat alias
+  secretary_approved_by_admin?: boolean; // backward compat alias
+  admin_approval_ref?: string;
+  leadership_verification_method?: 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session';
+  secretary_verification_method?: 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session';
+  document_seal_code?: string;
 }

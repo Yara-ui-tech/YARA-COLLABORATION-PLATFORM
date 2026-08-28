@@ -348,6 +348,7 @@ export default function Chapters() {
             preselectedChapter={reportChapter}
             currentUserEmail={profile?.email}
             currentUserName={profile?.full_name}
+            isAdmin={isAdmin}
             onClose={() => {
               setReportModalOpen(false);
               setReportChapter(null);

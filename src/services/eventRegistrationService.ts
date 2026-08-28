@@ -15,6 +15,26 @@ export type { EventMeetingConfig };
 const STORAGE_KEY = 'yara_event_registrations_store';
 const MEETING_CONFIG_KEY = 'yara_event_meeting_configs_store';
 
+export const CANONICAL_AI_BOOTCAMP_ID = AI_FOR_EDUCATORS_EVENT.id; // 'ai-for-educators-2026'
+
+/**
+ * Normalizes all event ID variations to standard aliases
+ */
+export function getCanonicalEventAliases(eventId: string = CANONICAL_AI_BOOTCAMP_ID): string[] {
+  const clean = (eventId || '').trim().toLowerCase();
+  if (
+    clean === 'ai-for-educators-2026' || 
+    clean === 'ai_educators_bootcamp_2026' || 
+    clean === 'ai_for_educators' || 
+    clean === 'ai-for-educators' ||
+    clean.includes('ai-for-educators') ||
+    clean.includes('ai_educators')
+  ) {
+    return ['ai-for-educators-2026', 'ai_educators_bootcamp_2026', 'ai-for-educators', 'ai_for_educators'];
+  }
+  return [eventId || CANONICAL_AI_BOOTCAMP_ID];
+}
+
 export function generateRegistrationCode(): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let rand = '';
@@ -37,23 +57,111 @@ export const DEFAULT_MEETING_CONFIG: EventMeetingConfig = {
   updated_by_name: 'YARA Academic Secretariat'
 };
 
+// In-memory cache for fastest instant UI rendering
+let meetingConfigMemoryCache: Record<string, EventMeetingConfig> = {};
+
 /**
- * Gets the meeting configuration for an event
+ * Formats/sanitizes a meeting URL (e.g. ensures protocol)
+ */
+function sanitizeMeetingUrl(url: string): string {
+  let clean = (url || '').trim();
+  if (!clean) return 'https://meet.google.com/new';
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+    clean = `https://${clean}`;
+  }
+  return clean;
+}
+
+/**
+ * Cache meeting config across all matching aliases and localStorage
+ */
+function cacheMeetingConfig(config: EventMeetingConfig): void {
+  const aliases = getCanonicalEventAliases(config.event_id);
+  aliases.forEach(alias => {
+    const aliasedConfig = { ...config, event_id: alias };
+    meetingConfigMemoryCache[alias] = aliasedConfig;
+    try {
+      localStorage.setItem(`${MEETING_CONFIG_KEY}_${alias}`, JSON.stringify(aliasedConfig));
+    } catch {
+      // ignore
+    }
+  });
+}
+
+/**
+ * Gets the cached meeting configuration synchronously for instant component render
  */
 export function getEventMeetingConfig(eventId: string = AI_FOR_EDUCATORS_EVENT.id): EventMeetingConfig {
-  try {
-    const raw = localStorage.getItem(`${MEETING_CONFIG_KEY}_${eventId}`);
-    if (raw) {
-      return JSON.parse(raw) as EventMeetingConfig;
+  const aliases = getCanonicalEventAliases(eventId);
+  
+  // 1. Check in-memory cache
+  for (const alias of aliases) {
+    if (meetingConfigMemoryCache[alias]) {
+      return meetingConfigMemoryCache[alias];
     }
-  } catch (err) {
-    console.warn('Could not read meeting config:', err);
   }
+
+  // 2. Check localStorage
+  for (const alias of aliases) {
+    try {
+      const raw = localStorage.getItem(`${MEETING_CONFIG_KEY}_${alias}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as EventMeetingConfig;
+        if (parsed && parsed.meeting_url) {
+          meetingConfigMemoryCache[alias] = parsed;
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not read meeting config:', err);
+    }
+  }
+
   return { ...DEFAULT_MEETING_CONFIG, event_id: eventId };
 }
 
 /**
- * Updates meeting configuration (admin action)
+ * Asynchronously fetches the latest meeting configuration from Supabase
+ * and synchronizes local caches and stores for all users
+ */
+export async function fetchEventMeetingConfig(eventId: string = AI_FOR_EDUCATORS_EVENT.id): Promise<EventMeetingConfig> {
+  const aliases = getCanonicalEventAliases(eventId);
+
+  try {
+    const { data, error } = await supabase
+      .from('event_meetings')
+      .select('*')
+      .in('event_id', aliases)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data && data.meeting_url) {
+      const liveConfig: EventMeetingConfig = {
+        event_id: eventId,
+        meeting_title: data.meeting_title || DEFAULT_MEETING_CONFIG.meeting_title,
+        meeting_url: sanitizeMeetingUrl(data.meeting_url),
+        meeting_code: data.meeting_code || undefined,
+        passcode: data.passcode || undefined,
+        platform: data.platform || 'google_meet',
+        daily_schedule_time: data.daily_schedule_time || DEFAULT_MEETING_CONFIG.daily_schedule_time,
+        instructions: data.instructions || DEFAULT_MEETING_CONFIG.instructions,
+        updated_at: data.updated_at || new Date().toISOString(),
+        updated_by_name: data.updated_by_name || 'YARA Academic Secretariat'
+      };
+
+      cacheMeetingConfig(liveConfig);
+      return liveConfig;
+    }
+  } catch (err) {
+    console.warn('Supabase fetch meeting config notice (using local cache):', err);
+  }
+
+  return getEventMeetingConfig(eventId);
+}
+
+/**
+ * Updates meeting configuration (admin action) with database persistence and real-time broadcast
  */
 export async function updateEventMeetingConfig(
   eventId: string,
@@ -61,39 +169,198 @@ export async function updateEventMeetingConfig(
   adminName?: string
 ): Promise<EventMeetingConfig> {
   const current = getEventMeetingConfig(eventId);
+  const aliases = getCanonicalEventAliases(eventId);
+  const now = new Date().toISOString();
+
+  const formattedUrl = sanitizeMeetingUrl(updates.meeting_url || current.meeting_url);
+
   const updated: EventMeetingConfig = {
     ...current,
     ...updates,
+    meeting_url: formattedUrl,
     event_id: eventId,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
     updated_by_name: adminName || current.updated_by_name || 'Administrator'
   };
 
+  // 1. Update memory cache and localStorage across all aliases immediately
+  cacheMeetingConfig(updated);
+
+  // 2. Dispatch local custom event and BroadcastChannel for cross-tab sync
   try {
-    localStorage.setItem(`${MEETING_CONFIG_KEY}_${eventId}`, JSON.stringify(updated));
-  } catch (e) {
-    console.warn('Failed to save meeting config locally:', e);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('yara_meeting_config_updated', { detail: updated }));
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('yara_meeting_broadcast');
+        bc.postMessage({ type: 'MEETING_UPDATED', config: updated });
+        bc.close();
+      }
+    }
+  } catch {
+    // ignore
   }
 
-  // Attempt sync to Supabase settings or meta table if available
+  // 3. Persist to Supabase database for all event aliases
   try {
-    await supabase.from('event_meetings').upsert({
-      event_id: eventId,
-      meeting_title: updated.meeting_title,
-      meeting_url: updated.meeting_url,
-      meeting_code: updated.meeting_code || null,
-      passcode: updated.passcode || null,
-      platform: updated.platform,
-      daily_schedule_time: updated.daily_schedule_time,
-      instructions: updated.instructions,
-      updated_at: updated.updated_at,
-      updated_by_name: updated.updated_by_name
+    for (const alias of aliases) {
+      const payload = {
+        event_id: alias,
+        meeting_title: updated.meeting_title,
+        meeting_url: updated.meeting_url,
+        meeting_code: updated.meeting_code || null,
+        passcode: updated.passcode || null,
+        platform: updated.platform,
+        daily_schedule_time: updated.daily_schedule_time,
+        instructions: updated.instructions,
+        updated_at: now,
+        updated_by_name: updated.updated_by_name
+      };
+
+      // Try upsert with onConflict on event_id
+      const { error: upsertErr } = await supabase
+        .from('event_meetings')
+        .upsert(payload, { onConflict: 'event_id' });
+
+      // Fallback: If upsert has any conflict/RLS quirks, do an explicit update
+      if (upsertErr) {
+        await supabase
+          .from('event_meetings')
+          .update(payload)
+          .eq('event_id', alias);
+      }
+    }
+  } catch (err) {
+    console.warn('Supabase meeting sync error:', err);
+  }
+
+  // 4. Also broadcast over Supabase Realtime channel if available
+  try {
+    const channel = supabase.channel('event_meetings_broadcast');
+    channel.send({
+      type: 'broadcast',
+      event: 'meeting_config_changed',
+      payload: updated
     });
   } catch {
     // ignore
   }
 
   return updated;
+}
+
+/**
+ * Subscribes to live meeting configuration updates (Supabase Realtime, BroadcastChannel, Window events)
+ */
+export function subscribeToEventMeetingConfig(
+  eventId: string = AI_FOR_EDUCATORS_EVENT.id,
+  onUpdate: (config: EventMeetingConfig) => void
+): () => void {
+  const aliases = getCanonicalEventAliases(eventId);
+
+  // 1. Supabase Realtime postgres_changes subscription
+  const supabaseChannel = supabase
+    .channel(`event_meetings_live_${eventId}_${Math.random().toString(36).substring(2, 7)}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'event_meetings'
+      },
+      (payload: any) => {
+        if (payload && payload.new) {
+          const row = payload.new;
+          if (aliases.includes(row.event_id) || !row.event_id) {
+            const newCfg: EventMeetingConfig = {
+              event_id: eventId,
+              meeting_title: row.meeting_title || DEFAULT_MEETING_CONFIG.meeting_title,
+              meeting_url: sanitizeMeetingUrl(row.meeting_url),
+              meeting_code: row.meeting_code || undefined,
+              passcode: row.passcode || undefined,
+              platform: row.platform || 'google_meet',
+              daily_schedule_time: row.daily_schedule_time || DEFAULT_MEETING_CONFIG.daily_schedule_time,
+              instructions: row.instructions || DEFAULT_MEETING_CONFIG.instructions,
+              updated_at: row.updated_at || new Date().toISOString(),
+              updated_by_name: row.updated_by_name || 'YARA Academic Secretariat'
+            };
+            cacheMeetingConfig(newCfg);
+            onUpdate(newCfg);
+          }
+        }
+      }
+    )
+    .on('broadcast', { event: 'meeting_config_changed' }, (payload: any) => {
+      if (payload && payload.payload) {
+        const row = payload.payload;
+        if (aliases.includes(row.event_id)) {
+          cacheMeetingConfig(row);
+          onUpdate(row);
+        }
+      }
+    })
+    .subscribe();
+
+  // 2. Window Custom Event listener
+  const handleCustomEvent = (e: Event) => {
+    const customEvent = e as CustomEvent<EventMeetingConfig>;
+    if (customEvent.detail && aliases.includes(customEvent.detail.event_id)) {
+      onUpdate(customEvent.detail);
+    }
+  };
+  window.addEventListener('yara_meeting_config_updated', handleCustomEvent);
+
+  // 3. Window Storage Event listener (cross-tab sync)
+  const handleStorageEvent = (e: StorageEvent) => {
+    if (e.key && aliases.some(alias => e.key === `${MEETING_CONFIG_KEY}_${alias}`) && e.newValue) {
+      try {
+        const parsed = JSON.parse(e.newValue) as EventMeetingConfig;
+        if (parsed && parsed.meeting_url) {
+          cacheMeetingConfig(parsed);
+          onUpdate(parsed);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+  window.addEventListener('storage', handleStorageEvent);
+
+  // 4. BroadcastChannel listener
+  let bc: BroadcastChannel | null = null;
+  try {
+    if ('BroadcastChannel' in window) {
+      bc = new BroadcastChannel('yara_meeting_broadcast');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'MEETING_UPDATED' && event.data?.config) {
+          const cfg = event.data.config as EventMeetingConfig;
+          if (aliases.includes(cfg.event_id)) {
+            cacheMeetingConfig(cfg);
+            onUpdate(cfg);
+          }
+        }
+      };
+    }
+  } catch {
+    // ignore
+  }
+
+  // Return cleanup function
+  return () => {
+    try {
+      supabase.removeChannel(supabaseChannel);
+    } catch {
+      // ignore
+    }
+    window.removeEventListener('yara_meeting_config_updated', handleCustomEvent);
+    window.removeEventListener('storage', handleStorageEvent);
+    if (bc) {
+      try {
+        bc.close();
+      } catch {
+        // ignore
+      }
+    }
+  };
 }
 
 function getLocalRegistrations(): EventRegistration[] {

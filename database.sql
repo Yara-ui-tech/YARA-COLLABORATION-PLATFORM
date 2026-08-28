@@ -1134,45 +1134,6 @@ CREATE POLICY "Students and admins update submissions"
   ON public.virtual_competition_submissions FOR UPDATE
   USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- Seed Initial Virtual Competitions
-INSERT INTO public.virtual_competitions (title, category, category_label, description, duration_hours, starter_url, rules, criteria, max_score, prize)
-VALUES
-(
-  'Autonomous Maze Solver Simulation Sprint',
-  'robot_simulation',
-  'Robot Simulation Sprint',
-  'Program a differential-drive robot in Wokwi with ultrasonic & IR sensors to traverse and map an unknown randomized maze in under 45 seconds.',
-  48,
-  'https://wokwi.com/projects/new/arduino-uno',
-  'Must use standard Arduino C++. No external hardware modules beyond standard servo & ultrasonic.',
-  '["Wall-following precision (35%)", "Non-blocking execution time (35%)", "Memory efficiency & clean code (30%)"]'::jsonb,
-  100,
-  '$100 Hardware Grant + Verified Gold Badge'
-),
-(
-  'Ultra-Low Power IoT Telemetry PCB Sprint',
-  'pcb_design',
-  'PCB Design & Circuitry',
-  'Design an ESP32 power-optimized node with solar harvesting circuitry, deep-sleep triggers, and LiFePO4 battery protection.',
-  72,
-  'https://easyeda.com/editor',
-  'Schematic and 2-layer PCB layout must pass DRC check without clearance errors.',
-  '["Power integrity & decoupling (40%)", "Trace routing & thermal relief (30%)", "BOM cost optimization (30%)"]'::jsonb,
-  100,
-  '$150 PCB Prototyping Voucher + Verified Hardware Badge'
-),
-(
-  'PID Line Tracker & Dynamic Speed Control',
-  'embedded_c',
-  'Embedded Algorithm Sprint',
-  'Implement a deterministic Proportional-Integral-Derivative (PID) loop for an 8-array optical sensor line following robot on simulated tracks with acute hairpins.',
-  36,
-  'https://wokwi.com/projects/new/arduino-uno',
-  'Sampling rate must exceed 100Hz with zero oscillation on sharp 90-degree transitions.',
-  '["PID tuning stability (40%)", "Lap completion velocity (35%)", "Noise filtering implementation (25%)"]'::jsonb,
-  100,
-  '$75 Hardware Voucher + Verified Algorithm Badge'
-) ON CONFLICT DO NOTHING;
 -- 8. Brainstorming & Critical Thinking Image Quizzes
 CREATE TABLE IF NOT EXISTS public.brainstorming_quizzes (
   id TEXT PRIMARY KEY,
@@ -1775,14 +1736,21 @@ CREATE TABLE IF NOT EXISTS public.chapter_reports (
   chapter_name TEXT NOT NULL,
   title TEXT NOT NULL,
   reporting_period TEXT NOT NULL, -- e.g. "Q1 2026", "March 2026"
-  report_type TEXT CHECK (report_type IN ('monthly_progress', 'quarterly_audit', 'activity_summary', 'financial_statement', 'project_milestone', 'incident_report')) DEFAULT 'monthly_progress',
+  report_type TEXT CHECK (report_type IN ('monthly_progress', 'quarterly_audit', 'activity_summary', 'financial_statement', 'project_milestone', 'incident_report', 'monthly', 'quarterly', 'special_event', 'financial', 'annual')) DEFAULT 'monthly_progress',
   report_link TEXT NOT NULL, -- Drive/Dropbox/Doc URL or submission link
   summary TEXT,
   submitted_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   submitted_by_name TEXT,
   submitted_by_role TEXT DEFAULT 'secretary',
+  submitted_by_email TEXT,
   is_confidential BOOLEAN DEFAULT false, -- If true, hidden from public chapter view
-  status TEXT CHECK (status IN ('submitted', 'under_review', 'assessed', 'needs_revision', 'archived')) DEFAULT 'submitted',
+  status TEXT CHECK (status IN ('submitted', 'under_review', 'assessed', 'needs_revision', 'archived', 'approved', 'revisions_requested')) DEFAULT 'submitted',
+  is_locked BOOLEAN DEFAULT true, -- If true, report is sealed and locked from tampering/modification
+  locked_at TIMESTAMPTZ,
+  locked_by_name TEXT,
+  secretary_verified BOOLEAN DEFAULT false,
+  secretary_verification_method TEXT, -- 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session'
+  document_seal_code TEXT, -- e.g. YARA-SEAL-NAT-CUT-98F1
   executive_feedback TEXT,
   executive_rating INTEGER CHECK (executive_rating >= 1 AND executive_rating <= 5),
   reviewed_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
@@ -1812,7 +1780,7 @@ DROP POLICY IF EXISTS "Admins and submitters can manage reports" ON public.chapt
 CREATE POLICY "Admins and submitters can manage reports"
   ON public.chapter_reports FOR ALL
   USING (
-    auth.uid() = submitted_by_id 
+    (auth.uid() = submitted_by_id AND is_locked = false)
     OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
@@ -2221,6 +2189,209 @@ DROP TRIGGER IF EXISTS update_bootcamp_modules_updated_at ON public.bootcamp_cur
 CREATE TRIGGER update_bootcamp_modules_updated_at
   BEFORE UPDATE ON public.bootcamp_curriculum_modules
   FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- =========================================================================
+-- 25. YARA CHAPTERS, LEADERSHIP ACCESS & FINANCIAL/ACTIVITY REPORTS
+-- =========================================================================
+
+-- Chapters Registry
+CREATE TABLE IF NOT EXISTS public.chapters (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  code TEXT UNIQUE NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('university', 'high_school', 'primary_school', 'community_youth', 'polytechnic', 'provincial_hub')),
+  institution_or_community TEXT NOT NULL,
+  province TEXT NOT NULL,
+  district_or_city TEXT NOT NULL,
+  banner_url TEXT,
+  logo_url TEXT,
+  description TEXT NOT NULL,
+  established_date DATE DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'chartered' CHECK (status IN ('active', 'chartered', 'forming', 'probation', 'archived')),
+  total_members_count INTEGER DEFAULT 0,
+  active_projects_count INTEGER DEFAULT 0,
+  public_email TEXT,
+  public_phone TEXT,
+  public_social_links JSONB DEFAULT '{}'::jsonb,
+  meeting_schedule TEXT,
+  physical_location TEXT,
+  focus_areas TEXT[] DEFAULT '{}',
+  patron_advisor JSONB DEFAULT '{}'::jsonb,
+  confidential_info JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chapter Leadership Roster & Admin-Assigned Access Control
+CREATE TABLE IF NOT EXISTS public.chapter_leaders (
+  id TEXT PRIMARY KEY DEFAULT ('lead_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  chapter_id TEXT REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('chairperson', 'vice_chair', 'secretary', 'vice_secretary', 'treasurer', 'tech_lead', 'public_relations', 'patron_advisor')),
+  email TEXT,
+  phone TEXT,
+  avatar_url TEXT,
+  department_or_grade TEXT,
+  is_public_contact BOOLEAN DEFAULT true,
+  is_approved_by_admin BOOLEAN DEFAULT false,
+  approved_by_admin_at TIMESTAMPTZ,
+  approved_by_admin_name TEXT,
+  access_pin TEXT,
+  can_submit_general_reports BOOLEAN DEFAULT false,
+  can_submit_financial_reports BOOLEAN DEFAULT false,
+  approval_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chapter Projects
+CREATE TABLE IF NOT EXISTS public.chapter_projects (
+  id TEXT PRIMARY KEY DEFAULT ('proj_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  chapter_id TEXT REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('robotics_hardware', 'iot_automation', 'renewable_energy', 'drone_tech', 'coding_ai', 'community_outreach')),
+  status TEXT NOT NULL DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'completed', 'testing', 'ideation')),
+  image_url TEXT,
+  hardware_stack TEXT[] DEFAULT '{}',
+  github_or_demo_link TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chapter Activities & Community Outreach
+CREATE TABLE IF NOT EXISTS public.chapter_activities (
+  id TEXT PRIMARY KEY DEFAULT ('act_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  chapter_id TEXT REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  date DATE NOT NULL DEFAULT CURRENT_DATE,
+  description TEXT NOT NULL,
+  impact_metric TEXT,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chapter Official Reports & Financial Statements
+CREATE TABLE IF NOT EXISTS public.chapter_reports (
+  id TEXT PRIMARY KEY DEFAULT ('rep_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  chapter_id TEXT REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  chapter_name TEXT NOT NULL,
+  chapter_category TEXT,
+  report_title TEXT NOT NULL,
+  report_category TEXT DEFAULT 'general' CHECK (report_category IN ('general', 'financial', 'project_milestone', 'annual')),
+  period_type TEXT NOT NULL DEFAULT 'monthly' CHECK (period_type IN ('monthly', 'quarterly', 'annual', 'special_event', 'project_milestone', 'financial')),
+  period_date TEXT NOT NULL,
+  submitted_by_name TEXT NOT NULL,
+  submitted_by_role TEXT NOT NULL,
+  submitted_by_email TEXT NOT NULL,
+  submitted_by_leader_id TEXT REFERENCES public.chapter_leaders(id) ON DELETE SET NULL,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  executive_summary TEXT NOT NULL,
+  activities_undertaken TEXT,
+  attendance_count INTEGER DEFAULT 0,
+  hardware_projects_update TEXT,
+  challenges_and_needs TEXT,
+  report_document_url TEXT NOT NULL,
+  financial_statement_url TEXT,
+  financial_data JSONB DEFAULT '{}'::jsonb,
+  supporting_images TEXT[] DEFAULT '{}',
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'assessed', 'revisions_requested', 'approved')),
+  executive_assessment JSONB,
+  is_locked BOOLEAN DEFAULT true,
+  locked_at TIMESTAMPTZ,
+  locked_by_name TEXT,
+  leadership_verified BOOLEAN DEFAULT true,
+  leadership_approved_by_admin BOOLEAN DEFAULT true,
+  leadership_verification_method TEXT DEFAULT 'access_pin',
+  document_seal_code TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_leaders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_reports ENABLE ROW LEVEL SECURITY;
+
+-- Chapters Policies
+DROP POLICY IF EXISTS "Public can view chapters" ON public.chapters;
+CREATE POLICY "Public can view chapters"
+  ON public.chapters FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage chapters" ON public.chapters;
+CREATE POLICY "Admins can manage chapters"
+  ON public.chapters FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Leaders Policies
+DROP POLICY IF EXISTS "Public can view chapter leaders" ON public.chapter_leaders;
+CREATE POLICY "Public can view chapter leaders"
+  ON public.chapter_leaders FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage chapter leaders" ON public.chapter_leaders;
+CREATE POLICY "Admins can manage chapter leaders"
+  ON public.chapter_leaders FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Projects Policies
+DROP POLICY IF EXISTS "Public can view chapter projects" ON public.chapter_projects;
+CREATE POLICY "Public can view chapter projects"
+  ON public.chapter_projects FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage chapter projects" ON public.chapter_projects;
+CREATE POLICY "Admins can manage chapter projects"
+  ON public.chapter_projects FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Activities Policies
+DROP POLICY IF EXISTS "Public can view chapter activities" ON public.chapter_activities;
+CREATE POLICY "Public can view chapter activities"
+  ON public.chapter_activities FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage chapter activities" ON public.chapter_activities;
+CREATE POLICY "Admins can manage chapter activities"
+  ON public.chapter_activities FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Reports Policies
+DROP POLICY IF EXISTS "Public can view assessed reports" ON public.chapter_reports;
+CREATE POLICY "Public can view assessed reports"
+  ON public.chapter_reports FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage all chapter reports" ON public.chapter_reports;
+CREATE POLICY "Admins can manage all chapter reports"
+  ON public.chapter_reports FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_chapters_updated_at ON public.chapters;
+CREATE TRIGGER update_chapters_updated_at
+  BEFORE UPDATE ON public.chapters
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_chapter_leaders_updated_at ON public.chapter_leaders;
+CREATE TRIGGER update_chapter_leaders_updated_at
+  BEFORE UPDATE ON public.chapter_leaders
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_chapter_reports_updated_at ON public.chapter_reports;
+CREATE TRIGGER update_chapter_reports_updated_at
+  BEFORE UPDATE ON public.chapter_reports
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
 
 
 

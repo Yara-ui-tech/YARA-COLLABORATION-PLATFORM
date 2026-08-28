@@ -1,5 +1,28 @@
-import { Chapter, ChapterReport, NationalExecutiveAssessment } from '../types/chapters';
+import { Chapter, ChapterReport, NationalExecutiveAssessment, ChapterLeader, ChapterLeaderRole, ChapterFinancialData } from '../types/chapters';
 import { supabase } from '../lib/supabase';
+
+export function formatRoleName(role: ChapterLeaderRole | string): string {
+  switch (role) {
+    case 'chairperson':
+      return 'President / Chairperson';
+    case 'vice_chair':
+      return 'Vice President / Vice Chair';
+    case 'secretary':
+      return 'Secretary General';
+    case 'vice_secretary':
+      return 'Vice Secretary';
+    case 'treasurer':
+      return 'Treasurer / Finance Lead';
+    case 'tech_lead':
+      return 'Technical Lead / Robotics Marshal';
+    case 'public_relations':
+      return 'Communications & PR';
+    case 'patron_advisor':
+      return 'Faculty Patron / Advisor';
+    default:
+      return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+}
 
 const INITIAL_CHAPTERS: Chapter[] = [
   {
@@ -29,27 +52,51 @@ const INITIAL_CHAPTERS: Chapter[] = [
     focus_areas: ['Submersible ROV Telemetry', 'Precision Agri-Drones', 'Edge AI Computer Vision', 'High School Outreach'],
     leaders: [
       {
-        id: 'lead-1',
+        id: 'cut-lead-1',
         name: 'Tariro Ndlovu',
         role: 'chairperson',
         email: 'tariro.n@cut.ac.zw',
         department_or_grade: 'Mechatronics Engineering Yr 3',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-15T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       },
       {
-        id: 'lead-2',
+        id: 'cut-lead-2',
         name: 'Kudzai Moyo',
         role: 'secretary',
         email: 'kudzai.m@cut.ac.zw',
         department_or_grade: 'Computer Science Yr 2',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-15T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       },
       {
-        id: 'lead-3',
+        id: 'cut-lead-3',
+        name: 'Nyasha Mupfumi',
+        role: 'treasurer',
+        email: 'nyasha.m@cut.ac.zw',
+        department_or_grade: 'Accounting & Finance Yr 3',
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-15T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: false,
+        can_submit_financial_reports: true
+      },
+      {
+        id: 'cut-lead-4',
         name: 'Farai Gumbo',
         role: 'tech_lead',
         department_or_grade: 'Electronic Engineering Yr 4',
-        is_public_contact: false
+        is_public_contact: false,
+        is_approved_by_admin: false
       }
     ],
     patron_advisor: {
@@ -122,7 +169,12 @@ const INITIAL_CHAPTERS: Chapter[] = [
         role: 'chairperson',
         email: 'tendai.m@uz.ac.zw',
         department_or_grade: 'Electrical Engineering Yr 4',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-12T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       },
       {
         id: 'uz-lead-2',
@@ -130,7 +182,25 @@ const INITIAL_CHAPTERS: Chapter[] = [
         role: 'secretary',
         email: 'ruvimbo.m@uz.ac.zw',
         department_or_grade: 'Computer Engineering Yr 3',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-12T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
+      },
+      {
+        id: 'uz-lead-3',
+        name: 'Simbarashe Dube',
+        role: 'treasurer',
+        email: 'simba.dube@uz.ac.zw',
+        department_or_grade: 'Business Studies & Finance Yr 3',
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-12T10:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: false,
+        can_submit_financial_reports: true
       }
     ],
     patron_advisor: {
@@ -189,14 +259,36 @@ const INITIAL_CHAPTERS: Chapter[] = [
         id: 'byo-lead-1',
         name: 'Sipho Nkomo',
         role: 'chairperson',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-18T09:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       },
       {
         id: 'byo-lead-2',
         name: 'Bongiwe Sibindi',
         role: 'secretary',
         email: 'bongiwe.s@byoyouth.org',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-18T09:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
+      },
+      {
+        id: 'byo-lead-3',
+        name: 'Themba Khumalo',
+        role: 'treasurer',
+        email: 'themba.k@byoyouth.org',
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-18T09:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: false,
+        can_submit_financial_reports: true
       }
     ],
     projects: [
@@ -249,7 +341,12 @@ const INITIAL_CHAPTERS: Chapter[] = [
         name: 'Mufaro Chimutengwende',
         role: 'chairperson',
         department_or_grade: 'Upper 6 Sciences',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-14T08:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       },
       {
         id: 'pe-lead-2',
@@ -257,7 +354,25 @@ const INITIAL_CHAPTERS: Chapter[] = [
         role: 'secretary',
         email: 'blessing.nyathi@pe.edu.zw',
         department_or_grade: 'Lower 6 Sciences',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-14T08:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
+      },
+      {
+        id: 'pe-lead-3',
+        name: 'Tinashe Kambarami',
+        role: 'treasurer',
+        email: 'tinashe.k@pe.edu.zw',
+        department_or_grade: 'Upper 6 Commercials',
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-14T08:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: false,
+        can_submit_financial_reports: true
       }
     ],
     patron_advisor: {
@@ -313,14 +428,22 @@ const INITIAL_CHAPTERS: Chapter[] = [
         id: 'pri-lead-1',
         name: 'Amai Chiedza Mtembu',
         role: 'patron_advisor',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-10T08:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat'
       },
       {
         id: 'pri-lead-2',
         name: 'Anesu Marange',
         role: 'secretary',
         email: 'anesu.marange@primarystem.org',
-        is_public_contact: true
+        is_public_contact: true,
+        is_approved_by_admin: true,
+        approved_by_admin_at: '2026-01-10T08:00:00Z',
+        approved_by_admin_name: 'National Executive Secretariat',
+        can_submit_general_reports: true,
+        can_submit_financial_reports: true
       }
     ],
     projects: [
@@ -357,6 +480,7 @@ const INITIAL_REPORTS: ChapterReport[] = [
     chapter_name: 'YARA Chinhoyi University of Technology (CUT) Chapter',
     chapter_category: 'university',
     report_title: 'CUT Chapter Q1 2026 Hardware Development & High School Outreach Report',
+    report_category: 'general',
     period_type: 'quarterly',
     period_date: 'Q1 2026',
     submitted_by_name: 'Kudzai Moyo',
@@ -371,6 +495,15 @@ const INITIAL_REPORTS: ChapterReport[] = [
     report_document_url: 'https://docs.google.com/document/d/1YARA-CUT-Q1-2026-Report/edit?usp=sharing',
     financial_statement_url: 'https://docs.google.com/spreadsheets/d/1YARA-CUT-Finance-Q1-2026/edit',
     status: 'assessed',
+    is_locked: true,
+    locked_at: '2026-02-24T12:30:00Z',
+    locked_by_name: 'Kudzai Moyo (Approved Chapter Secretary)',
+    leadership_verified: true,
+    leadership_approved_by_admin: true,
+    secretary_verified: true,
+    leadership_verification_method: 'roster_email',
+    secretary_verification_method: 'roster_email',
+    document_seal_code: 'YARA-NAT-SEAL-CUT96',
     executive_assessment: {
       assessed_by_name: 'National Executive Director',
       assessed_by_email: 'goyaracorp@gmail.com',
@@ -384,11 +517,70 @@ const INITIAL_REPORTS: ChapterReport[] = [
     }
   },
   {
+    id: 'rep-cut-fin-2026',
+    chapter_id: 'ch-cut-01',
+    chapter_name: 'YARA Chinhoyi University of Technology (CUT) Chapter',
+    chapter_category: 'university',
+    report_title: 'CUT Chapter Q1 2026 Treasury & Grant Acquittal Statement',
+    report_category: 'financial',
+    period_type: 'financial',
+    period_date: 'Q1 2026',
+    submitted_by_name: 'Nyasha Mupfumi',
+    submitted_by_role: 'Chapter Treasurer',
+    submitted_by_email: 'nyasha.m@cut.ac.zw',
+    submitted_at: '2026-02-25T14:10:00Z',
+    executive_summary: 'Comprehensive financial accounting of chapter funds, national grant acquittal, component procurement, and lab maintenance expenses for Q1 2026.',
+    activities_undertaken: 'Procured waterproof housings, ESC motor controllers, and funded transport for 38 participants during the Girls in Robotics Bootcamp.',
+    attendance_count: 42,
+    hardware_projects_update: 'Financially acquitted $450 grant received from National Secretariat with itemized invoices attached.',
+    challenges_and_needs: 'Budget balance is currently $650; requesting $200 additional support for national competition components.',
+    report_document_url: 'https://docs.google.com/spreadsheets/d/1YARA-CUT-Treasury-Q1-2026/edit',
+    financial_statement_url: 'https://docs.google.com/spreadsheets/d/1YARA-CUT-Treasury-Q1-2026/edit',
+    financial_data: {
+      opening_balance_usd: 400,
+      total_inflow_usd: 700,
+      total_expenditure_usd: 450,
+      closing_balance_usd: 650,
+      grant_received_usd: 500,
+      grant_acquittal_notes: 'All grant funds allocated toward waterproof ROV chassis and LoRa agricultural test nodes.',
+      category_breakdown: {
+        hardware_and_components_usd: 280,
+        logistics_and_transport_usd: 70,
+        competition_and_events_usd: 40,
+        workshop_materials_and_catering_usd: 60,
+        tools_and_equipment_usd: 0,
+        miscellaneous_usd: 0
+      },
+      treasurer_certified: true,
+      treasurer_name: 'Nyasha Mupfumi'
+    },
+    status: 'assessed',
+    is_locked: true,
+    locked_at: '2026-02-25T14:10:00Z',
+    locked_by_name: 'Nyasha Mupfumi (Approved Chapter Treasurer)',
+    leadership_verified: true,
+    leadership_approved_by_admin: true,
+    secretary_verified: true,
+    leadership_verification_method: 'roster_email',
+    document_seal_code: 'YARA-NAT-FIN-CUT42',
+    executive_assessment: {
+      assessed_by_name: 'National Financial Comptroller',
+      assessed_by_email: 'goyaracorp@gmail.com',
+      assessed_at: '2026-02-26T10:00:00Z',
+      grade: 'Outstanding (A)',
+      score_out_of_100: 98,
+      national_executive_feedback: 'All receipts verified and aligned with chapter project milestones. Full compliance with YARA financial audit standards.',
+      grant_allocation_recommended: true,
+      recommended_grant_usd: 200
+    }
+  },
+  {
     id: 'rep-pe-2026-02',
     chapter_id: 'ch-pe-04',
     chapter_name: 'YARA Prince Edward High School Chapter',
     chapter_category: 'high_school',
     report_title: 'Prince Edward Robotics Club Monthly Technical Progress',
+    report_category: 'general',
     period_type: 'monthly',
     period_date: '2026-02',
     submitted_by_name: 'Blessing Nyathi',
@@ -401,7 +593,16 @@ const INITIAL_REPORTS: ChapterReport[] = [
     hardware_projects_update: 'Completed 2 test rigs for autonomous maze obstacle clearance.',
     challenges_and_needs: 'Require 4 additional micro-USB programming cables.',
     report_document_url: 'https://docs.google.com/document/d/1PE-Robotics-Feb2026-Report/edit',
-    status: 'submitted'
+    status: 'submitted',
+    is_locked: true,
+    locked_at: '2026-02-22T09:15:00Z',
+    locked_by_name: 'Blessing Nyathi (Approved Club Secretary)',
+    leadership_verified: true,
+    leadership_approved_by_admin: true,
+    secretary_verified: true,
+    leadership_verification_method: 'roster_email',
+    secretary_verification_method: 'roster_email',
+    document_seal_code: 'YARA-NAT-SEAL-PE24'
   }
 ];
 
@@ -517,8 +718,440 @@ export async function deleteChapter(id: string): Promise<boolean> {
 }
 
 // =========================================================================
-// CHAPTER SECRETARY REPORTS & NATIONAL EXECUTIVE ASSESSMENTS
+// CHAPTER LEADERSHIP AUTHORIZATION, CERTIFICATION & ACCESS CONTROL
 // =========================================================================
+
+export interface LeadershipVerificationResult {
+  isAuthorized: boolean;
+  isApprovedSecretary?: boolean; // backwards compatibility alias
+  reason?: string;
+  matchedLeaderName?: string;
+  matchedRole?: string;
+  matchedRoleType?: ChapterLeaderRole;
+  matchedLeaderId?: string;
+  verificationMethod?: 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session';
+  approvedAt?: string;
+  approvedBy?: string;
+  canSubmitGeneralReports?: boolean;
+  canSubmitFinancialReports?: boolean;
+}
+
+export type SecretaryVerificationResult = LeadershipVerificationResult;
+
+/**
+ * Validates whether the submitter is an authorized, admin-approved Chapter Leader
+ * (President/Chairperson, Secretary, or Treasurer) with permissions to file reports or financial statements.
+ */
+export function verifyLeadershipAuthorization(
+  chapter: Chapter,
+  submitterEmail?: string,
+  submitterName?: string,
+  accessPin?: string,
+  isAdmin: boolean = false,
+  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general'
+): LeadershipVerificationResult {
+  if (isAdmin) {
+    return {
+      isAuthorized: true,
+      isApprovedSecretary: true,
+      matchedRole: 'National Executive Administrator',
+      verificationMethod: 'admin_override',
+      approvedBy: 'National Executive Admin',
+      canSubmitGeneralReports: true,
+      canSubmitFinancialReports: true
+    };
+  }
+
+  const enteredPin = (accessPin || '').trim().toUpperCase();
+  const cleanEmail = (submitterEmail || '').trim().toLowerCase();
+
+  // 1. PIN verification against admin-approved leaders
+  if (enteredPin && chapter.leaders && chapter.leaders.length > 0) {
+    const pinMatchedLeader = chapter.leaders.find(l => 
+      (l.access_pin && l.access_pin.toUpperCase() === enteredPin) ||
+      (l.secretary_access_pin && l.secretary_access_pin.toUpperCase() === enteredPin)
+    );
+
+    if (pinMatchedLeader) {
+      if (pinMatchedLeader.is_approved_by_admin === false) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Leader Approval Pending: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) is registered on the chapter roster but has NOT yet been approved by the National Executive Admin in the dashboard.`
+        };
+      }
+
+      const isFinancialRole = ['treasurer', 'chairperson', 'secretary', 'vice_chair', 'vice_secretary'].includes(pinMatchedLeader.role);
+      const isGeneralRole = ['secretary', 'vice_secretary', 'chairperson', 'vice_chair'].includes(pinMatchedLeader.role);
+
+      const canDoFinancial = pinMatchedLeader.can_submit_financial_reports ?? isFinancialRole;
+      const canDoGeneral = pinMatchedLeader.can_submit_general_reports ?? isGeneralRole;
+
+      if (reportCategory === 'financial' && !canDoFinancial) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Role Restriction: ${pinMatchedLeader.name} is registered as ${formatRoleName(pinMatchedLeader.role)}. Financial statements must be submitted by an Admin-Approved Chapter Treasurer, President/Chairperson, or Secretary.`
+        };
+      }
+
+      if (reportCategory !== 'financial' && !canDoGeneral) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Role Restriction: ${pinMatchedLeader.name} is registered as ${formatRoleName(pinMatchedLeader.role)}. General progress reports must be submitted by an Admin-Approved Chapter Secretary or Chairperson.`
+        };
+      }
+
+      return {
+        isAuthorized: true,
+        isApprovedSecretary: true,
+        matchedLeaderId: pinMatchedLeader.id,
+        matchedLeaderName: pinMatchedLeader.name,
+        matchedRole: `${formatRoleName(pinMatchedLeader.role)} (Admin-Approved)`,
+        matchedRoleType: pinMatchedLeader.role,
+        verificationMethod: 'access_pin',
+        approvedAt: pinMatchedLeader.approved_by_admin_at,
+        approvedBy: pinMatchedLeader.approved_by_admin_name || 'National Executive Admin',
+        canSubmitGeneralReports: canDoGeneral,
+        canSubmitFinancialReports: canDoFinancial
+      };
+    }
+  }
+
+  // 2. Email verification against chapter leadership roster
+  if (cleanEmail && chapter.leaders && chapter.leaders.length > 0) {
+    const leaderByEmail = chapter.leaders.find(l => l.email?.toLowerCase() === cleanEmail);
+
+    if (leaderByEmail) {
+      if (leaderByEmail.is_approved_by_admin === false) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Leadership Approval Pending: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)} on ${chapter.name}, but has NOT yet been approved by the National Executive Admin in the dashboard.`
+        };
+      }
+
+      const isFinancialRole = ['treasurer', 'chairperson', 'secretary', 'vice_chair', 'vice_secretary'].includes(leaderByEmail.role);
+      const isGeneralRole = ['secretary', 'vice_secretary', 'chairperson', 'vice_chair'].includes(leaderByEmail.role);
+
+      const canDoFinancial = leaderByEmail.can_submit_financial_reports ?? isFinancialRole;
+      const canDoGeneral = leaderByEmail.can_submit_general_reports ?? isGeneralRole;
+
+      if (reportCategory === 'financial' && !canDoFinancial) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Role Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}. Financial statements must be submitted by an Admin-Approved Chapter Treasurer, President/Chairperson, or Secretary.`
+        };
+      }
+
+      if (reportCategory !== 'financial' && !canDoGeneral) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Role Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}. General progress reports must be submitted by an Admin-Approved Chapter Secretary or Chairperson.`
+        };
+      }
+
+      return {
+        isAuthorized: true,
+        isApprovedSecretary: true,
+        matchedLeaderId: leaderByEmail.id,
+        matchedLeaderName: leaderByEmail.name,
+        matchedRole: `${formatRoleName(leaderByEmail.role)} (Admin-Approved)`,
+        matchedRoleType: leaderByEmail.role,
+        verificationMethod: 'roster_email',
+        approvedAt: leaderByEmail.approved_by_admin_at,
+        approvedBy: leaderByEmail.approved_by_admin_name || 'National Executive Admin',
+        canSubmitGeneralReports: canDoGeneral,
+        canSubmitFinancialReports: canDoFinancial
+      };
+    }
+  }
+
+  // If no match found
+  if (cleanEmail) {
+    return {
+      isAuthorized: false,
+      isApprovedSecretary: false,
+      reason: `Unauthorized: The email "${cleanEmail}" is not recognized as an admin-approved Chapter Leader for ${chapter.name}. Chapter leaders (President, Secretary, Treasurer) must be assigned and approved by Admins in the dashboard.`
+    };
+  }
+
+  return {
+    isAuthorized: false,
+    isApprovedSecretary: false,
+    reason: 'Authorization Required: Official reports must be submitted by Chapter Leadership (President/Chairperson, Secretary, or Treasurer) assigned and approved by the National Executive Admin in the dashboard. Please enter your registered leadership email or access PIN.'
+  };
+}
+
+/**
+ * Backward compatibility alias for verifyLeadershipAuthorization
+ */
+export function verifySecretaryAuthorization(
+  chapter: Chapter,
+  submitterEmail?: string,
+  submitterName?: string,
+  secretarialAccessPin?: string,
+  isAdmin: boolean = false,
+  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general'
+): LeadershipVerificationResult {
+  return verifyLeadershipAuthorization(
+    chapter,
+    submitterEmail,
+    submitterName,
+    secretarialAccessPin,
+    isAdmin,
+    reportCategory
+  );
+}
+
+/**
+ * Admin Action: Approve / Certify a Chapter Leader (President, Secretary, Treasurer, etc.)
+ */
+export async function approveChapterLeader(
+  chapterId: string, 
+  leaderId: string, 
+  permissions?: {
+    can_submit_general_reports?: boolean;
+    can_submit_financial_reports?: boolean;
+    access_pin?: string;
+  },
+  adminName: string = 'National Executive Admin'
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const targetLeader = (chapters[chIdx].leaders || []).find(l => l.id === leaderId);
+  if (!targetLeader) return null;
+
+  const rolePrefix = targetLeader.role === 'treasurer' ? 'TREAS' : targetLeader.role === 'chairperson' ? 'PRES' : 'SEC';
+  const cleanCode = chapters[chIdx].code.replace(/[^A-Z0-9]/gi, '');
+  const generatedPin = permissions?.access_pin || `${cleanCode}-${rolePrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const isFinancialDefault = ['treasurer', 'chairperson', 'secretary'].includes(targetLeader.role);
+  const isGeneralDefault = ['secretary', 'vice_secretary', 'chairperson'].includes(targetLeader.role);
+
+  targetLeader.is_approved_by_admin = true;
+  targetLeader.approved_by_admin_at = new Date().toISOString();
+  targetLeader.approved_by_admin_name = adminName;
+  targetLeader.access_pin = generatedPin;
+  targetLeader.secretary_access_pin = generatedPin;
+  targetLeader.can_submit_general_reports = permissions?.can_submit_general_reports ?? isGeneralDefault;
+  targetLeader.can_submit_financial_reports = permissions?.can_submit_financial_reports ?? isFinancialDefault;
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      leaders: chapters[chIdx].leaders,
+      updated_at: new Date().toISOString()
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+export const approveChapterSecretary = approveChapterLeader;
+
+/**
+ * Admin Action: Revoke Leader Approval
+ */
+export async function revokeChapterLeaderApproval(
+  chapterId: string, 
+  leaderId: string, 
+  adminName: string = 'National Executive Admin'
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const targetLeader = (chapters[chIdx].leaders || []).find(l => l.id === leaderId);
+  if (!targetLeader) return null;
+
+  targetLeader.is_approved_by_admin = false;
+  targetLeader.approval_notes = `Approval revoked by ${adminName} on ${new Date().toLocaleDateString()}`;
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      leaders: chapters[chIdx].leaders,
+      updated_at: new Date().toISOString()
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+export const revokeChapterSecretary = revokeChapterLeaderApproval;
+
+/**
+ * Admin Action: Add Leader to Chapter
+ */
+export async function addChapterLeader(
+  chapterId: string,
+  leaderData: Omit<ChapterLeader, 'id'>
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const cleanCode = chapters[chIdx].code.replace(/[^A-Z0-9]/gi, '');
+  const rolePrefix = leaderData.role === 'treasurer' ? 'TREAS' : leaderData.role === 'chairperson' ? 'PRES' : 'SEC';
+  const autoPin = `${cleanCode}-${rolePrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  const isFinancial = ['treasurer', 'chairperson', 'secretary'].includes(leaderData.role);
+  const isGeneral = ['secretary', 'vice_secretary', 'chairperson'].includes(leaderData.role);
+
+  const newId = `lead-${Date.now().toString(36)}`;
+  const newLeader: ChapterLeader = {
+    id: newId,
+    ...leaderData,
+    is_approved_by_admin: leaderData.is_approved_by_admin ?? true,
+    approved_by_admin_at: (leaderData.is_approved_by_admin !== false) ? new Date().toISOString() : undefined,
+    approved_by_admin_name: (leaderData.is_approved_by_admin !== false) ? 'National Executive Admin' : undefined,
+    access_pin: leaderData.access_pin || leaderData.secretary_access_pin || autoPin,
+    secretary_access_pin: leaderData.access_pin || leaderData.secretary_access_pin || autoPin,
+    can_submit_general_reports: leaderData.can_submit_general_reports ?? isGeneral,
+    can_submit_financial_reports: leaderData.can_submit_financial_reports ?? isFinancial
+  };
+
+  if (!chapters[chIdx].leaders) {
+    chapters[chIdx].leaders = [];
+  }
+  chapters[chIdx].leaders.push(newLeader);
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      leaders: chapters[chIdx].leaders,
+      updated_at: new Date().toISOString()
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+/**
+ * Admin Action: Update Chapter Leader
+ */
+export async function updateChapterLeader(
+  chapterId: string,
+  leaderId: string,
+  updates: Partial<ChapterLeader>
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const leadIdx = (chapters[chIdx].leaders || []).findIndex(l => l.id === leaderId);
+  if (leadIdx < 0) return null;
+
+  chapters[chIdx].leaders[leadIdx] = {
+    ...chapters[chIdx].leaders[leadIdx],
+    ...updates,
+    // sync pin aliases
+    access_pin: updates.access_pin || updates.secretary_access_pin || chapters[chIdx].leaders[leadIdx].access_pin,
+    secretary_access_pin: updates.access_pin || updates.secretary_access_pin || chapters[chIdx].leaders[leadIdx].secretary_access_pin
+  };
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      leaders: chapters[chIdx].leaders,
+      updated_at: new Date().toISOString()
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+/**
+ * Admin Action: Delete Chapter Leader
+ */
+export async function deleteChapterLeader(
+  chapterId: string,
+  leaderId: string
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  chapters[chIdx].leaders = (chapters[chIdx].leaders || []).filter(l => l.id !== leaderId);
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      leaders: chapters[chIdx].leaders,
+      updated_at: new Date().toISOString()
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+/**
+ * Admin helper to get all leaders across all chapters for credential management
+ */
+export async function getAllChapterLeadersWithAccess(): Promise<{
+  chapter: Chapter;
+  leader: ChapterLeader;
+  isApproved: boolean;
+  canGeneral: boolean;
+  canFinancial: boolean;
+}[]> {
+  const chapters = await getChapters(true);
+  const results: {
+    chapter: Chapter;
+    leader: ChapterLeader;
+    isApproved: boolean;
+    canGeneral: boolean;
+    canFinancial: boolean;
+  }[] = [];
+
+  chapters.forEach(ch => {
+    (ch.leaders || []).forEach(lead => {
+      const isApproved = lead.is_approved_by_admin !== false;
+      const isFin = lead.can_submit_financial_reports ?? ['treasurer', 'chairperson', 'secretary'].includes(lead.role);
+      const isGen = lead.can_submit_general_reports ?? ['secretary', 'vice_secretary', 'chairperson'].includes(lead.role);
+
+      results.push({
+        chapter: ch,
+        leader: lead,
+        isApproved,
+        canGeneral: isGen,
+        canFinancial: isFin
+      });
+    });
+  });
+
+  return results;
+}
+
+export const getAllChapterSecretaries = async () => {
+  const all = await getAllChapterLeadersWithAccess();
+  return all.map(a => ({
+    chapter: a.chapter,
+    leader: a.leader,
+    isApproved: a.isApproved
+  }));
+};
 
 export async function getChapterReports(chapterId?: string): Promise<ChapterReport[]> {
   const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
@@ -529,13 +1162,76 @@ export async function getChapterReports(chapterId?: string): Promise<ChapterRepo
 }
 
 export async function submitChapterReport(
-  reportData: Omit<ChapterReport, 'id' | 'submitted_at' | 'status' | 'executive_assessment'>
+  reportData: Omit<ChapterReport, 'id' | 'submitted_at' | 'status' | 'executive_assessment'> & {
+    lock_submission?: boolean;
+    secretarial_access_pin?: string;
+    access_pin?: string;
+    is_admin?: boolean;
+  }
 ): Promise<ChapterReport> {
+  const chapters = await getChapters(true);
+  const targetChapter = chapters.find(c => c.id === reportData.chapter_id);
+
+  if (!targetChapter) {
+    throw new Error('Specified chapter could not be located.');
+  }
+
+  const category = reportData.report_category || (reportData.period_type === 'financial' ? 'financial' : 'general');
+  const pin = reportData.access_pin || reportData.secretarial_access_pin;
+
+  // Strictly enforce Approved Leadership Verification
+  const verification = verifyLeadershipAuthorization(
+    targetChapter,
+    reportData.submitted_by_email,
+    reportData.submitted_by_name,
+    pin,
+    Boolean(reportData.is_admin),
+    category
+  );
+
+  if (!verification.isAuthorized) {
+    throw new Error(verification.reason || 'Only approved Chapter Leadership can submit official documents to National.');
+  }
+
+  const roleTag = category === 'financial' ? 'FIN' : 'NAT';
+  const sealCode = `YARA-SEAL-${roleTag}-${targetChapter.code.replace(/[^A-Z0-9]/gi, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  const now = new Date().toISOString();
+  const shouldLock = reportData.lock_submission !== false;
+
   const newReport: ChapterReport = {
-    ...reportData,
+    chapter_id: reportData.chapter_id,
+    chapter_name: reportData.chapter_name,
+    chapter_category: reportData.chapter_category,
+    report_title: reportData.report_title,
+    report_category: category,
+    period_type: reportData.period_type,
+    period_date: reportData.period_date,
+    submitted_by_name: reportData.submitted_by_name,
+    submitted_by_role: verification.matchedRole || reportData.submitted_by_role || 'Approved Chapter Leader',
+    submitted_by_email: reportData.submitted_by_email,
+    submitted_by_leader_id: verification.matchedLeaderId,
+    executive_summary: reportData.executive_summary,
+    activities_undertaken: reportData.activities_undertaken,
+    attendance_count: reportData.attendance_count,
+    hardware_projects_update: reportData.hardware_projects_update,
+    challenges_and_needs: reportData.challenges_and_needs,
+    report_document_url: reportData.report_document_url,
+    financial_statement_url: reportData.financial_statement_url,
+    financial_data: reportData.financial_data,
+    supporting_images: reportData.supporting_images,
     id: 'rep-' + Date.now().toString(36),
-    submitted_at: new Date().toISOString(),
-    status: 'submitted'
+    submitted_at: now,
+    status: 'submitted',
+    is_locked: shouldLock,
+    locked_at: shouldLock ? now : undefined,
+    locked_by_name: shouldLock ? `${reportData.submitted_by_name} (${verification.matchedRole || 'Approved Leader'})` : undefined,
+    leadership_verified: true,
+    leadership_approved_by_admin: true,
+    secretary_verified: true,
+    secretary_approved_by_admin: true,
+    leadership_verification_method: verification.verificationMethod || 'roster_email',
+    secretary_verification_method: verification.verificationMethod || 'roster_email',
+    document_seal_code: sealCode
   };
 
   const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
@@ -543,12 +1239,69 @@ export async function submitChapterReport(
   setLocal('yara_chapter_reports', updated);
 
   try {
-    await supabase.from('chapter_reports').insert(newReport);
+    await supabase.from('chapter_reports').insert({
+      id: newReport.id,
+      chapter_id: newReport.chapter_id,
+      chapter_name: newReport.chapter_name,
+      report_title: newReport.report_title,
+      report_category: newReport.report_category,
+      period_type: newReport.period_type,
+      period_date: newReport.period_date,
+      report_document_url: newReport.report_document_url,
+      financial_statement_url: newReport.financial_statement_url,
+      financial_data: newReport.financial_data,
+      executive_summary: newReport.executive_summary,
+      submitted_by_name: newReport.submitted_by_name,
+      submitted_by_role: newReport.submitted_by_role,
+      submitted_by_email: newReport.submitted_by_email,
+      submitted_by_leader_id: newReport.submitted_by_leader_id,
+      status: 'submitted',
+      is_locked: newReport.is_locked,
+      locked_at: newReport.locked_at,
+      locked_by_name: newReport.locked_by_name,
+      leadership_verified: true,
+      document_seal_code: newReport.document_seal_code,
+      created_at: now
+    });
   } catch {
     // safe fallback
   }
 
   return newReport;
+}
+
+export async function toggleChapterReportLock(
+  reportId: string, 
+  locked: boolean, 
+  operatorName: string = 'National Executive'
+): Promise<ChapterReport | null> {
+  const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
+  const idx = reports.findIndex(r => r.id === reportId);
+  if (idx < 0) return null;
+
+  reports[idx].is_locked = locked;
+  if (locked) {
+    reports[idx].locked_at = new Date().toISOString();
+    reports[idx].locked_by_name = operatorName;
+    if (!reports[idx].document_seal_code) {
+      reports[idx].document_seal_code = `YARA-SEAL-NAT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    }
+  }
+
+  setLocal('yara_chapter_reports', reports);
+
+  try {
+    await supabase.from('chapter_reports').update({
+      is_locked: locked,
+      locked_at: reports[idx].locked_at,
+      locked_by_name: reports[idx].locked_by_name,
+      document_seal_code: reports[idx].document_seal_code
+    }).eq('id', reportId);
+  } catch {
+    // fallback
+  }
+
+  return reports[idx];
 }
 
 export async function assessChapterReport(
@@ -561,13 +1314,20 @@ export async function assessChapterReport(
 
   reports[idx].status = 'assessed';
   reports[idx].executive_assessment = assessment;
+  // Automatically ensure assessed reports are locked for audit trail
+  reports[idx].is_locked = true;
+  reports[idx].locked_at = new Date().toISOString();
+  reports[idx].locked_by_name = assessment.assessed_by_name || 'National Executive Committee';
 
   setLocal('yara_chapter_reports', reports);
 
   try {
     await supabase.from('chapter_reports').update({
       status: 'assessed',
-      executive_assessment: assessment
+      executive_assessment: assessment,
+      is_locked: true,
+      locked_at: reports[idx].locked_at,
+      locked_by_name: reports[idx].locked_by_name
     }).eq('id', reportId);
   } catch {
     // fallback
@@ -588,7 +1348,13 @@ export async function updateChapterReportStatus(reportId: string, status: Chapte
 
 export async function deleteChapterReport(reportId: string): Promise<boolean> {
   const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
+  const target = reports.find(r => r.id === reportId);
+  if (target && target.is_locked) {
+    throw new Error('Cannot delete a locked National submission. Unlock first in the National Admin Console.');
+  }
+
   const filtered = reports.filter(r => r.id !== reportId);
   setLocal('yara_chapter_reports', filtered);
   return true;
 }
+

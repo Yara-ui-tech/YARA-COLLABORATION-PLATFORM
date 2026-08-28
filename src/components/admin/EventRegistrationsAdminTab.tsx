@@ -15,7 +15,9 @@ import {
   deleteEventRegistration,
   checkEventAccess,
   getEventMeetingConfig,
+  fetchEventMeetingConfig,
   updateEventMeetingConfig,
+  subscribeToEventMeetingConfig,
   AI_FOR_EDUCATORS_EVENT
 } from '../../services/eventRegistrationService';
 
@@ -23,7 +25,7 @@ export default function EventRegistrationsAdminTab() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [eventFilter, setEventFilter] = useState<string>('ai_educators_bootcamp_2026');
+  const [eventFilter, setEventFilter] = useState<string>(AI_FOR_EDUCATORS_EVENT.id);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'unpaid' | 'verified'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -31,9 +33,9 @@ export default function EventRegistrationsAdminTab() {
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Meeting Management State
-  const [meetingConfig, setMeetingConfig] = useState<EventMeetingConfig>(() => getEventMeetingConfig('ai_educators_bootcamp_2026'));
+  const [meetingConfig, setMeetingConfig] = useState<EventMeetingConfig>(() => getEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id));
   const [isEditingMeeting, setIsEditingMeeting] = useState(false);
-  const [meetingForm, setMeetingForm] = useState<EventMeetingConfig>(() => getEventMeetingConfig('ai_educators_bootcamp_2026'));
+  const [meetingForm, setMeetingForm] = useState<EventMeetingConfig>(() => getEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id));
   const [isSavingMeeting, setIsSavingMeeting] = useState(false);
 
   // Manual Add Modal state
@@ -59,9 +61,11 @@ export default function EventRegistrationsAdminTab() {
     try {
       const data = await getEventRegistrations(eventFilter || undefined);
       setRegistrations(data);
-      const mCfg = getEventMeetingConfig(eventFilter || 'ai_educators_bootcamp_2026');
+      const mCfg = await fetchEventMeetingConfig(eventFilter || AI_FOR_EDUCATORS_EVENT.id);
       setMeetingConfig(mCfg);
-      setMeetingForm(mCfg);
+      if (!isEditingMeeting) {
+        setMeetingForm(mCfg);
+      }
     } catch (err: any) {
       console.error('Error loading event registrations:', err);
     } finally {
@@ -72,6 +76,18 @@ export default function EventRegistrationsAdminTab() {
 
   useEffect(() => {
     loadData();
+
+    // Subscribe to live meeting link changes
+    const unsubscribe = subscribeToEventMeetingConfig(eventFilter || AI_FOR_EDUCATORS_EVENT.id, (updatedCfg) => {
+      setMeetingConfig(updatedCfg);
+      if (!isEditingMeeting) {
+        setMeetingForm(updatedCfg);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [eventFilter]);
 
   const showNotice = (type: 'success' | 'error', message: string) => {
@@ -90,14 +106,16 @@ export default function EventRegistrationsAdminTab() {
     e.preventDefault();
     setIsSavingMeeting(true);
     try {
+      const targetEventId = eventFilter || AI_FOR_EDUCATORS_EVENT.id;
       const updated = await updateEventMeetingConfig(
-        eventFilter || 'ai_educators_bootcamp_2026',
+        targetEventId,
         meetingForm,
         'YARA Admin Console'
       );
       setMeetingConfig(updated);
+      setMeetingForm(updated);
       setIsEditingMeeting(false);
-      showNotice('success', 'Google Meet / Meeting configuration updated successfully!');
+      showNotice('success', `Google Meet link successfully updated and synchronized for all users! Link: ${updated.meeting_url}`);
     } catch (err: any) {
       showNotice('error', err.message || 'Failed to update meeting details.');
     } finally {
