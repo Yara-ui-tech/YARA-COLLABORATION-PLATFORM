@@ -1949,8 +1949,11 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
   payment_status TEXT CHECK (payment_status IN ('pending', 'submitted', 'verified', 'rejected')) DEFAULT 'pending',
   payment_method TEXT,
   payment_reference TEXT,
+  payment_notes TEXT,
   proof_of_payment_url TEXT,
   paid_at TIMESTAMPTZ,
+  receipt_number TEXT,
+  receipt_issued_at TIMESTAMPTZ,
   
   -- Admin Approval (Required alongside verified payment for Google Meet access)
   approval_status TEXT CHECK (approval_status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',

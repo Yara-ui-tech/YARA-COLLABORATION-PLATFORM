@@ -4,10 +4,16 @@ import {
   Filter, ShieldCheck, AlertCircle, RefreshCw, Plus, UserPlus, 
   ExternalLink, Mail, Phone, School, Award, Sparkles, Check, 
   Trash2, Eye, ShieldAlert, ArrowUpRight, Video, Copy, Link, 
-  Edit3, Save, Key, Calendar, Share2
+  Edit3, Save, Key, Calendar, Share2, FileText, Download, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { EventRegistration, EventPaymentStatus, EventApprovalStatus, EventMeetingConfig } from '../../types/eventRegistration';
+import { 
+  EventRegistration, 
+  EventPaymentStatus, 
+  EventApprovalStatus, 
+  EventMeetingConfig,
+  EducatorReceiptData 
+} from '../../types/eventRegistration';
 import { 
   getEventRegistrations, 
   updateRegistrationStatus, 
@@ -18,8 +24,11 @@ import {
   fetchEventMeetingConfig,
   updateEventMeetingConfig,
   subscribeToEventMeetingConfig,
+  buildEducatorReceipt,
+  generateEducatorReceiptByNameAndRef,
   AI_FOR_EDUCATORS_EVENT
 } from '../../services/eventRegistrationService';
+import EducatorReceiptModal from '../events/EducatorReceiptModal';
 
 export default function EventRegistrationsAdminTab() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -55,6 +64,21 @@ export default function EventRegistrationsAdminTab() {
     approval_status: 'approved' as EventApprovalStatus,
     admin_notes: 'Manual administrator enrollment'
   });
+
+  // Receipt Generation & View State
+  const [selectedReceipt, setSelectedReceipt] = useState<EducatorReceiptData | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [showGenerateReceiptModal, setShowGenerateReceiptModal] = useState(false);
+  const [generateReceiptForm, setGenerateReceiptForm] = useState({
+    user_name: '',
+    ref_number: '',
+    email: '',
+    school_institution: '',
+    amount_paid: 10,
+    continuous_support_opt_in: false,
+    payment_method: 'EcoCash'
+  });
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
 
   const loadData = async () => {
     setIsRefreshing(true);
@@ -261,6 +285,57 @@ export default function EventRegistrationsAdminTab() {
     return true;
   });
 
+  // Open receipt for specific table registration
+  const handleOpenReceiptForRegistration = (reg: EventRegistration) => {
+    const receipt = buildEducatorReceipt(reg);
+    setSelectedReceipt(receipt);
+    setShowReceiptModal(true);
+  };
+
+  // Submit admin generator by user name and ref number
+  const handleAdminGenerateReceiptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!generateReceiptForm.user_name.trim() || !generateReceiptForm.ref_number.trim()) {
+      showNotice('error', 'Please provide both the Educator Full Name and Reference Number.');
+      return;
+    }
+    setIsGeneratingReceipt(true);
+    try {
+      const receipt = await generateEducatorReceiptByNameAndRef(
+        generateReceiptForm.user_name.trim(),
+        generateReceiptForm.ref_number.trim(),
+        {
+          email: generateReceiptForm.email.trim() || undefined,
+          school_institution: generateReceiptForm.school_institution.trim() || undefined,
+          amount_paid: Number(generateReceiptForm.amount_paid) || 10,
+          continuous_support_opt_in: generateReceiptForm.continuous_support_opt_in,
+          payment_method: generateReceiptForm.payment_method
+        }
+      );
+      setSelectedReceipt(receipt);
+      setShowGenerateReceiptModal(false);
+      setShowReceiptModal(true);
+      showNotice('success', `Official receipt generated for ${receipt.attendee_name}!`);
+    } catch (err: any) {
+      showNotice('error', err.message || 'Failed to generate receipt.');
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  };
+
+  // Auto-fill generator form when typing existing name or selecting
+  const handleSelectRegisteredUserForReceipt = (reg: EventRegistration) => {
+    setGenerateReceiptForm({
+      user_name: reg.full_name,
+      ref_number: reg.payment_reference || reg.registration_code || reg.id,
+      email: reg.email,
+      school_institution: reg.school_institution,
+      amount_paid: reg.registration_fee || 10,
+      continuous_support_opt_in: Boolean(reg.continuous_support_opt_in),
+      payment_method: reg.payment_method ? reg.payment_method.toUpperCase().replace('_', ' ') : 'EcoCash'
+    });
+  };
+
   // Calculate metrics
   const totalCount = registrations.length;
   const verifiedPaymentsCount = registrations.filter(r => r.payment_status === 'verified').length;
@@ -309,6 +384,14 @@ export default function EventRegistrationsAdminTab() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowGenerateReceiptModal(true)}
+              className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
+              title="Generate a downloadable payment receipt by providing educator name & reference number"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Generate Receipt (Name & Ref)</span>
+            </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
@@ -822,6 +905,15 @@ export default function EventRegistrationsAdminTab() {
                       {/* Combined Action Buttons */}
                       <td className="py-4 px-4 text-right align-top">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleOpenReceiptForRegistration(reg)}
+                            title="Generate / View Official Downloadable Receipt"
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 text-indigo-700 hover:text-indigo-900 border border-slate-200 hover:border-indigo-300 rounded-xl font-bold text-[11px] flex items-center space-x-1 transition-all cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Receipt</span>
+                          </button>
+
                           {!isAccessGranted && (
                             <button
                               disabled={isProcessing}
@@ -1010,6 +1102,175 @@ export default function EventRegistrationsAdminTab() {
           </div>
         </div>
       )}
+
+      {/* Admin Downloadable Receipt Generator Modal (By User Name & Ref Number) */}
+      {showGenerateReceiptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Admin Receipt Engine
+                </span>
+                <h3 className="text-xl font-black text-slate-900 mt-1">Generate Downloadable Receipt</h3>
+                <p className="text-xs text-slate-500">Provide educator name and reference number to render the official receipt.</p>
+              </div>
+              <button 
+                onClick={() => setShowGenerateReceiptModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Auto-Fill Selector from Existing Registrations */}
+            {registrations.length > 0 && (
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Quick Select Enrolled Educator (Auto-fills Details)
+                </label>
+                <select
+                  onChange={(e) => {
+                    const found = registrations.find(r => r.id === e.target.value);
+                    if (found) handleSelectRegisteredUserForReceipt(found);
+                  }}
+                  defaultValue=""
+                  className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                >
+                  <option value="" disabled>-- Or choose an enrolled educator from list --</option>
+                  {registrations.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.full_name} • Ref: {r.payment_reference || r.registration_code || r.id} ({r.school_institution})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminGenerateReceiptSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Educator Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={generateReceiptForm.user_name}
+                  onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, user_name: e.target.value })}
+                  placeholder="e.g. Dr. Tendai Moyo"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Reference Number / Registration Code *</label>
+                <input
+                  type="text"
+                  required
+                  value={generateReceiptForm.ref_number}
+                  onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, ref_number: e.target.value })}
+                  placeholder="e.g. MP260831.9921 or YARA-AI-4K2P"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+                <p className="text-[10px] text-slate-400">Can be EcoCash Txn ID, Innbucks Ref, or YARA registration code</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    value={generateReceiptForm.email}
+                    onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, email: e.target.value })}
+                    placeholder="educator@school.ac.zw"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">School / Institution</label>
+                  <input
+                    type="text"
+                    value={generateReceiptForm.school_institution}
+                    onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, school_institution: e.target.value })}
+                    placeholder="e.g. St George's College"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Amount Paid ($ USD)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={generateReceiptForm.amount_paid}
+                    onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, amount_paid: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Payment Method</label>
+                  <select
+                    value={generateReceiptForm.payment_method}
+                    onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, payment_method: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  >
+                    <option value="EcoCash">EcoCash</option>
+                    <option value="InnBucks">InnBucks</option>
+                    <option value="Bank Transfer / Swipe">Direct Bank Transfer / Swipe</option>
+                    <option value="Debit/Credit Card">Debit / Credit Card</option>
+                    <option value="ZIPIT Transfer">ZIPIT Transfer</option>
+                    <option value="Direct Admin Verified">Direct Admin Verified</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-100 flex items-center space-x-2.5">
+                <input
+                  type="checkbox"
+                  id="adminReceiptSupportOptIn"
+                  checked={generateReceiptForm.continuous_support_opt_in}
+                  onChange={e => setGenerateReceiptForm({ ...generateReceiptForm, continuous_support_opt_in: e.target.checked })}
+                  className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="adminReceiptSupportOptIn" className="text-slate-800 font-bold cursor-pointer">
+                  Include Continuous Support Mentorship (+$15/term)
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowGenerateReceiptModal(false)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:text-slate-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isGeneratingReceipt}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>{isGeneratingReceipt ? 'Generating...' : 'Render Downloadable Receipt'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Official Printable & Downloadable Receipt Modal */}
+      <EducatorReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false);
+          setSelectedReceipt(null);
+        }}
+        receipt={selectedReceipt}
+      />
     </div>
   );
 }

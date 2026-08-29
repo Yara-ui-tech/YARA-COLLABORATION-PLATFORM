@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, clearStaleSupabaseAuth } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
@@ -163,9 +163,14 @@ export default function Auth() {
 
   const handleResetSession = async () => {
     if (confirm('This will clear all local session data and log you out. Continue?')) {
+      clearStaleSupabaseAuth();
       localStorage.clear();
       sessionStorage.clear();
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // ignore
+      }
       window.location.reload();
     }
   };

@@ -4,7 +4,8 @@ import {
   AlertCircle, Sparkles, BookOpen, Brain, Users, Award, 
   Video, ArrowRight, Lock, Check, FileText, Send, HelpCircle, 
   School, Laptop, Star, RefreshCw, XCircle, Share2, Layers, Cpu, 
-  Building2, Key, Copy, ExternalLink, Link as LinkIcon, Info
+  Building2, Key, Copy, ExternalLink, Link as LinkIcon, Info,
+  Download, Printer, FileCheck, UploadCloud
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../components/AuthContext';
@@ -12,7 +13,8 @@ import {
   AI_FOR_EDUCATORS_EVENT, 
   EventRegistration, 
   EventAccessResult,
-  EventMeetingConfig
+  EventMeetingConfig,
+  EducatorReceiptData
 } from '../../types/eventRegistration';
 import { 
   checkEventAccess, 
@@ -22,8 +24,12 @@ import {
   getEventTimelineStatus,
   getEventMeetingConfig,
   fetchEventMeetingConfig,
-  subscribeToEventMeetingConfig
+  subscribeToEventMeetingConfig,
+  buildEducatorReceipt,
+  generateEducatorReceiptByNameAndRef,
+  submitRegistrationPayment
 } from '../../services/eventRegistrationService';
+import EducatorReceiptModal from '../../components/events/EducatorReceiptModal';
 
 export default function AiForEducatorsBootcamp() {
   const { user, profile } = useAuth();
@@ -35,6 +41,27 @@ export default function AiForEducatorsBootcamp() {
   const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'automation' | 'outcomes' | 'support' | 'live_stage'>('overview');
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+
+  // Receipt Modal State
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<EducatorReceiptData | null>(null);
+  
+  // User Proof of Payment Submission Modal State
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [proofForm, setProofForm] = useState({
+    payment_method: 'EcoCash',
+    payment_reference: '',
+    notes: ''
+  });
+
+  // Quick Receipt Lookup Modal State (Name + Reference / Code)
+  const [showReceiptLookupModal, setShowReceiptLookupModal] = useState(false);
+  const [receiptLookupName, setReceiptLookupName] = useState('');
+  const [receiptLookupRef, setReceiptLookupRef] = useState('');
+  const [isLookingUpReceipt, setIsLookingUpReceipt] = useState(false);
+  const [receiptLookupError, setReceiptLookupError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Meeting Link Configuration (managed by admins)
   const [meetingConfig, setMeetingConfig] = useState<EventMeetingConfig>(() => 
@@ -200,10 +227,88 @@ export default function AiForEducatorsBootcamp() {
     }
   };
 
+  // Open Official Receipt for verified / approved user
+  const handleDownloadCurrentReceipt = () => {
+    if (!accessResult?.registration) return;
+    const rcpt = buildEducatorReceipt(accessResult.registration);
+    setReceiptData(rcpt);
+    setShowReceiptModal(true);
+  };
+
+  // Submit proof of payment details
+  const handleSubmitProofOfPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessResult?.registration) return;
+    if (!proofForm.payment_reference.trim()) {
+      alert('Please enter your transaction reference number.');
+      return;
+    }
+    setIsSubmittingProof(true);
+    try {
+      await submitRegistrationPayment(accessResult.registration.id, {
+        payment_method: proofForm.payment_method,
+        payment_reference: proofForm.payment_reference.trim(),
+        notes: proofForm.notes.trim() || undefined
+      });
+      setShowProofModal(false);
+      setNotification({
+        type: 'success',
+        message: 'Payment proof submitted! An administrator will verify and approve your registration receipt and Google Meet clearance.'
+      });
+      setTimeout(() => setNotification(null), 6000);
+      await verifyCurrentAccess(accessResult.registration.registration_code || accessResult.registration.email);
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit payment proof.');
+    } finally {
+      setIsSubmittingProof(false);
+    }
+  };
+
+  // Quick Receipt Lookup by Name and Ref Number
+  const handleLookupReceiptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receiptLookupName.trim() || !receiptLookupRef.trim()) {
+      setReceiptLookupError('Please enter both your Full Name and Payment Reference / Code.');
+      return;
+    }
+    setIsLookingUpReceipt(true);
+    setReceiptLookupError(null);
+    try {
+      const generated = await generateEducatorReceiptByNameAndRef(
+        receiptLookupName.trim(),
+        receiptLookupRef.trim()
+      );
+      setReceiptData(generated);
+      setShowReceiptLookupModal(false);
+      setShowReceiptModal(true);
+    } catch (err: any) {
+      setReceiptLookupError(err.message || 'Could not locate approved registration with the provided details.');
+    } finally {
+      setIsLookingUpReceipt(false);
+    }
+  };
+
   const timelineStatus = accessResult?.timeline_status || 'upcoming';
 
   return (
     <div className="space-y-10 pb-20 max-w-7xl mx-auto">
+      {/* Toast Notification */}
+      {notification && (
+        <div 
+          className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between shadow-lg transition-all ${
+            notification.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
+              : 'bg-red-50 border-red-300 text-red-900'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
+            <span>{notification.message}</span>
+          </div>
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-700 ml-4 cursor-pointer">✕</button>
+        </div>
+      )}
+
       {/* Top Breadcrumb & Status Notice */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center space-x-2 text-xs text-slate-500">
@@ -212,13 +317,20 @@ export default function AiForEducatorsBootcamp() {
           <span className="text-indigo-600 font-bold">AI for Educators – Online Bootcamp</span>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowReceiptLookupModal(true)}
+            className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl flex items-center space-x-1.5 transition-all cursor-pointer shadow-2xs"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Download Official Receipt / Check Status</span>
+          </button>
           <span className="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-full flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
             <span>Google Meet Live Portal</span>
           </span>
           <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-full">
-            Fee: US$10 | Mentorship Support: US$15/term
+            Fee: US$10 | Mentorship: US$15/term
           </span>
         </div>
       </div>
@@ -402,15 +514,15 @@ export default function AiForEducatorsBootcamp() {
                 </div>
               )}
 
-              {/* PRIMARY ACTION BUTTON: ENTER EVENT OR REGISTER */}
+              {/* PRIMARY ACTION BUTTON: ENTER EVENT, DOWNLOAD RECEIPT, OR REGISTER */}
               {accessResult?.is_granted ? (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <a
                     href={meetingConfig.meeting_url}
                     target="_blank"
                     rel="noreferrer"
                     onClick={handleEnterEvent}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02] cursor-pointer"
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02] cursor-pointer"
                   >
                     <Video className="w-5 h-5" />
                     <span>JOIN LIVE GOOGLE MEET</span>
@@ -418,11 +530,56 @@ export default function AiForEducatorsBootcamp() {
                   </a>
 
                   <button
+                    onClick={handleDownloadCurrentReceipt}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-md transition-all cursor-pointer"
+                  >
+                    <FileCheck className="w-4 h-4 text-emerald-300" />
+                    <span>Download Official Payment Receipt</span>
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
                     onClick={handleEnterEvent}
-                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer"
+                    className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer"
                   >
                     <span>Open Interactive Live Stage Portal & Materials</span>
                     <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : accessResult?.registration ? (
+                <div className="space-y-2.5">
+                  {accessResult.registration.payment_status !== 'verified' ? (
+                    <button
+                      onClick={() => {
+                        setProofForm({
+                          payment_method: accessResult.registration?.payment_method || 'EcoCash',
+                          payment_reference: accessResult.registration?.payment_reference || '',
+                          notes: accessResult.registration?.payment_notes || ''
+                        });
+                        setShowProofModal(true);
+                      }}
+                      className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      <span>Submit / Update Proof of Payment</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleDownloadCurrentReceipt}
+                      className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                    >
+                      <FileCheck className="w-4 h-4" />
+                      <span>Download Verified Payment Receipt</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => verifyCurrentAccess()}
+                    disabled={isCheckingAccess}
+                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold flex items-center justify-center space-x-1 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCheckingAccess ? 'animate-spin' : ''}`} />
+                    <span>Check Verification Status</span>
                   </button>
                 </div>
               ) : (
@@ -438,9 +595,15 @@ export default function AiForEducatorsBootcamp() {
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <p className="text-[10px] text-center text-slate-400">
-                    Approvals and payment verifications are conducted in the protected Admin Console.
-                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                    <span>Admin verifies payment & approves access</span>
+                    <button
+                      onClick={() => setShowReceiptLookupModal(true)}
+                      className="text-indigo-400 hover:underline font-bold"
+                    >
+                      Already paid? Retrieve receipt
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -792,7 +955,7 @@ export default function AiForEducatorsBootcamp() {
           </div>
 
           {/* Quick Session Downloads & Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase">Daily Time Schedule</span>
               <p className="text-xs font-bold text-white">{meetingConfig.daily_schedule_time}</p>
@@ -807,6 +970,20 @@ export default function AiForEducatorsBootcamp() {
               <span className="text-[10px] font-bold text-slate-400 uppercase">Bootcamp Resources</span>
               <p className="text-xs font-bold text-emerald-400">📘 50+ Educator Prompt Vault</p>
               <span className="text-[10px] text-slate-400">Included with your enrollment</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 space-y-2 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-indigo-300 uppercase">Payment & Receipt</span>
+                <p className="text-xs font-black text-emerald-400">Verified & Approved</p>
+                <span className="text-[10px] text-slate-400">Official Receipt Issued</span>
+              </div>
+              <button
+                onClick={handleDownloadCurrentReceipt}
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <FileCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Download Receipt (PDF)</span>
+              </button>
             </div>
           </div>
         </div>
@@ -840,7 +1017,7 @@ export default function AiForEducatorsBootcamp() {
                 <div className="space-y-1">
                   <h4 className="text-xl font-black text-slate-900">Registration Successfully Submitted!</h4>
                   <p className="text-xs text-slate-600">
-                    Your unique registration code for Google Meet room access is:
+                    Your unique registration code for Google Meet room access and receipt generation is:
                   </p>
                 </div>
 
@@ -863,12 +1040,12 @@ export default function AiForEducatorsBootcamp() {
                 <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-left text-xs text-amber-900 space-y-1">
                   <p className="font-bold flex items-center space-x-1">
                     <Info className="w-4 h-4 text-amber-600" />
-                    <span>Next Steps for Google Meet Access:</span>
+                    <span>Next Steps for Google Meet Access & Receipt:</span>
                   </p>
                   <p className="text-[11px] text-amber-800">
                     1. Ensure payment of the US$10 registration fee has been processed.<br />
-                    2. An administrator will verify and approve your registration in the Admin Console.<br />
-                    3. Return to this portal anytime, enter your registration code, and join the Google Meet live room.
+                    2. An administrator will verify and approve your proof of payment in the Admin Console.<br />
+                    3. Once verified, return to this portal to download your official PDF receipt and join the live Google Meet call.
                   </p>
                 </div>
 
@@ -1022,6 +1199,211 @@ export default function AiForEducatorsBootcamp() {
           </div>
         </div>
       )}
+
+      {/* USER SUBMIT / UPDATE PROOF OF PAYMENT MODAL */}
+      {showProofModal && accessResult?.registration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Payment Verification
+                </span>
+                <h3 className="text-xl font-black text-slate-900 mt-1">Submit Proof of Payment</h3>
+                <p className="text-xs text-slate-500">
+                  Provide your transaction details for admin verification and receipt generation.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowProofModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Educator Summary Box */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">Educator:</span>
+                <span className="font-black text-slate-900">{accessResult.registration.full_name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">Registration Code:</span>
+                <span className="font-mono font-bold text-indigo-700">
+                  {accessResult.registration.registration_code || accessResult.registration.id}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-bold">Fee Amount Due:</span>
+                <span className="font-black text-emerald-600">US$10.00</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitProofOfPayment} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Payment Method *</label>
+                <select
+                  value={proofForm.payment_method}
+                  onChange={e => setProofForm({ ...proofForm, payment_method: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                >
+                  <option value="EcoCash">EcoCash</option>
+                  <option value="InnBucks">InnBucks</option>
+                  <option value="Bank Transfer / Swipe">Bank Transfer / Card Swipe</option>
+                  <option value="Direct Admin Verified">Direct Cash / Admin Verified</option>
+                  <option value="Other">Other / International Transfer</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">
+                  Transaction Reference / EcoCash Txn ID / Confirmation Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={proofForm.payment_reference}
+                  onChange={e => setProofForm({ ...proofForm, payment_reference: e.target.value })}
+                  placeholder="e.g. MP260831.9921.B0001 or IB-98124"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Enter the SMS confirmation reference or receipt code you received after paying.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Notes / Payer Name (Optional)</label>
+                <input
+                  type="text"
+                  value={proofForm.notes}
+                  onChange={e => setProofForm({ ...proofForm, notes: e.target.value })}
+                  placeholder="e.g. Paid from EcoCash number 0771234567"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-[11px] space-y-1">
+                <p className="font-bold flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Automatic Receipt Generation</span>
+                </p>
+                <p className="text-[10px] text-emerald-800">
+                  Once an administrator approves your reference in the Admin Console, your downloadable official receipt and Google Meet live link will be unlocked immediately!
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowProofModal(false)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:text-slate-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingProof}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSubmittingProof ? 'Submitting...' : 'Submit Proof of Payment'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK RECEIPT LOOKUP MODAL (BY USER FULL NAME & REFERENCE NUMBER) */}
+      {showReceiptLookupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  Receipt Retrieval
+                </span>
+                <h3 className="text-xl font-black text-slate-900 mt-1">Download Payment Receipt</h3>
+                <p className="text-xs text-slate-500">
+                  Enter your full name and payment reference / registration code to render your receipt.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowReceiptLookupModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {receiptLookupError && (
+              <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-red-900 text-xs font-bold flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{receiptLookupError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLookupReceiptSubmit} className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={receiptLookupName}
+                  onChange={e => setReceiptLookupName(e.target.value)}
+                  placeholder="e.g. Tendai Mupfumi"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Payment Reference / Registration Code *</label>
+                <input
+                  type="text"
+                  required
+                  value={receiptLookupRef}
+                  onChange={e => setReceiptLookupRef(e.target.value)}
+                  placeholder="e.g. MP260831.9921 or YARA-AI-..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono text-xs font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Enter your EcoCash reference, Innbucks code, or YARA registration code.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptLookupModal(false)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:text-slate-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLookingUpReceipt}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>{isLookingUpReceipt ? 'Generating Receipt...' : 'Generate & Download Receipt'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* OFFICIAL PRINTABLE & DOWNLOADABLE RECEIPT MODAL */}
+      <EducatorReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => {
+          setShowReceiptModal(false);
+          setReceiptData(null);
+        }}
+        receipt={receiptData}
+      />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
   Handshake, Phone, Brain, Trophy, Heart, UserCheck,
   Award, MonitorPlay, QrCode, DollarSign, Radio, Building2
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, clearStaleSupabaseAuth } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -54,9 +54,11 @@ export default function Layout() {
 
   const handleLogout = async () => {
     try {
+      clearStaleSupabaseAuth();
       await supabase.auth.signOut();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.warn('Logout note:', error);
+      clearStaleSupabaseAuth();
     }
   };
 

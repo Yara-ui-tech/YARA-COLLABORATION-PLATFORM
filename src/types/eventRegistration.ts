@@ -2,6 +2,32 @@ export type EventPaymentStatus = 'pending' | 'submitted' | 'verified' | 'rejecte
 export type EventApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type EventTimelineStatus = 'upcoming' | 'live' | 'closed';
 
+export interface EducatorReceiptData {
+  receipt_number: string;
+  issue_date: string;
+  event_id: string;
+  event_title: string;
+  attendee_name: string;
+  email: string;
+  phone?: string;
+  school_institution: string;
+  role_title?: string;
+  province?: string;
+  registration_code: string;
+  payment_reference: string;
+  payment_method: string;
+  amount_paid: number;
+  currency: string;
+  continuous_support_opt_in: boolean;
+  support_amount?: number;
+  total_amount: number;
+  payment_status: EventPaymentStatus;
+  approval_status: EventApprovalStatus;
+  approved_by_name?: string;
+  approved_at?: string;
+  notes?: string;
+}
+
 export interface EventAccessResult {
   is_granted: boolean;
   reason: 'unregistered' | 'unpaid' | 'payment_submitted' | 'payment_verified' | 'approved' | 'rejected';
@@ -32,6 +58,7 @@ export interface EventRegistration {
   payment_status: EventPaymentStatus;
   payment_method?: 'ecocash' | 'innbucks' | 'card_stripe' | 'bank_transfer' | 'manual_admin' | 'zipit';
   payment_reference?: string;
+  payment_notes?: string;
   proof_of_payment_url?: string;
   paid_at?: string;
   

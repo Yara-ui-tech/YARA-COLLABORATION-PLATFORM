@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, clearStaleSupabaseAuth } from '../lib/supabase';
 
 interface UserProfile {
   id: string;
@@ -198,10 +198,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.warn('Session check note:', error.message);
-          if (error.message.includes('Refresh Token Not Found') || error.message.includes('Invalid Refresh Token')) {
+          console.warn('Session check notice:', error.message);
+          const isInvalidToken =
+            error.message.includes('Refresh Token Not Found') ||
+            error.message.includes('Invalid Refresh Token') ||
+            error.message.includes('refresh_token_not_found') ||
+            (error as any).status === 400;
+
+          if (isInvalidToken) {
+            clearStaleSupabaseAuth();
             try {
-              await supabase.auth.signOut();
+              await supabase.auth.signOut({ scope: 'local' });
             } catch {
               // ignore
             }
@@ -224,9 +231,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthReady(true);
           if (!currentUser) setLoading(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Authentication initialization warning:', err);
+        const isInvalidToken =
+          err?.message?.includes('Refresh Token Not Found') ||
+          err?.message?.includes('Invalid Refresh Token') ||
+          err?.message?.includes('refresh_token_not_found');
+
+        if (isInvalidToken) {
+          clearStaleSupabaseAuth();
+          try {
+            await supabase.auth.signOut({ scope: 'local' });
+          } catch {
+            // ignore
+          }
+        }
+
         if (mounted) {
+          setUser(null);
+          setProfile(null);
           setIsAuthReady(true);
           setLoading(false);
         }

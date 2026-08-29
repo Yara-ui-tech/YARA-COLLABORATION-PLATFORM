@@ -6,11 +6,12 @@ import {
   EventTimelineStatus, 
   EventAccessResult,
   EventMeetingConfig,
+  EducatorReceiptData,
   AI_FOR_EDUCATORS_EVENT 
 } from '../types/eventRegistration';
 
 export { AI_FOR_EDUCATORS_EVENT };
-export type { EventMeetingConfig };
+export type { EventMeetingConfig, EducatorReceiptData };
 
 const STORAGE_KEY = 'yara_event_registrations_store';
 const MEETING_CONFIG_KEY = 'yara_event_meeting_configs_store';
@@ -715,20 +716,42 @@ export async function registerForEvent(payload: {
  */
 export async function submitRegistrationPayment(
   registrationId: string,
-  paymentMethod: 'ecocash' | 'innbucks' | 'card_stripe' | 'bank_transfer' | 'manual_admin' | 'zipit',
-  paymentReference: string,
+  paymentMethodOrPayload: string | {
+    payment_method?: string;
+    payment_reference: string;
+    proof_url?: string;
+    notes?: string;
+  },
+  paymentReference?: string,
   proofUrl?: string
 ): Promise<EventRegistration | null> {
   const list = getLocalRegistrations();
   const idx = list.findIndex(r => r.id === registrationId);
   if (idx < 0) return null;
 
+  let method = 'ecocash';
+  let ref = '';
+  let url: string | undefined = undefined;
+  let notes: string | undefined = undefined;
+
+  if (typeof paymentMethodOrPayload === 'object') {
+    method = (paymentMethodOrPayload.payment_method || 'ecocash').toLowerCase();
+    ref = paymentMethodOrPayload.payment_reference || '';
+    url = paymentMethodOrPayload.proof_url;
+    notes = paymentMethodOrPayload.notes;
+  } else {
+    method = (paymentMethodOrPayload || 'ecocash').toLowerCase();
+    ref = paymentReference || '';
+    url = proofUrl;
+  }
+
   const updated: EventRegistration = {
     ...list[idx],
     payment_status: 'submitted',
-    payment_method: paymentMethod,
-    payment_reference: paymentReference.trim(),
-    proof_of_payment_url: proofUrl || list[idx].proof_of_payment_url,
+    payment_method: method as any,
+    payment_reference: ref.trim(),
+    payment_notes: notes || list[idx].payment_notes,
+    proof_of_payment_url: url || list[idx].proof_of_payment_url,
     paid_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -739,9 +762,10 @@ export async function submitRegistrationPayment(
   try {
     await supabase.from('event_registrations').update({
       payment_status: 'submitted',
-      payment_method: paymentMethod,
-      payment_reference: paymentReference.trim(),
-      proof_of_payment_url: proofUrl || null,
+      payment_method: method,
+      payment_reference: ref.trim(),
+      payment_notes: notes || null,
+      proof_of_payment_url: url || null,
       paid_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }).eq('id', registrationId);
@@ -1067,3 +1091,132 @@ export async function checkEventAccess(
     timeline_status
   };
 }
+
+/**
+ * Builds an official EducatorReceiptData object from an EventRegistration record
+ */
+export function buildEducatorReceipt(
+  reg: Partial<EventRegistration>,
+  customOverrides?: Partial<EducatorReceiptData>
+): EducatorReceiptData {
+  const code = (reg.registration_code || (reg.id ? (reg.id.startsWith('evt_reg_') ? reg.id.substring(8, 16).toUpperCase() : reg.id) : generateRegistrationCode())).toUpperCase();
+  const rawRef = reg.payment_reference || `TXN-${code.replace(/[^A-Z0-9]/g, '')}`;
+  const regFee = typeof reg.registration_fee === 'number' ? reg.registration_fee : 10;
+  const isSupport = customOverrides?.continuous_support_opt_in !== undefined 
+    ? customOverrides.continuous_support_opt_in 
+    : Boolean(reg.continuous_support_opt_in);
+  const supportFee = isSupport ? 15 : 0;
+  const totalAmount = (customOverrides?.amount_paid !== undefined ? customOverrides.amount_paid : regFee) + (customOverrides?.support_amount !== undefined ? customOverrides.support_amount : supportFee);
+
+  const rawDate = reg.paid_at || reg.approved_at || reg.created_at || new Date().toISOString();
+  let issueDateStr = '29 August 2026';
+  try {
+    issueDateStr = new Date(rawDate).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch {
+    issueDateStr = new Date().toLocaleDateString();
+  }
+
+  const suffix = (code.replace('YARA-AI-', '') || Math.random().toString(36).substring(2, 6)).toUpperCase();
+  const receiptNumber = `YARA-REC-2026-${suffix}`;
+
+  let methodDisplay = 'EcoCash / Innbucks';
+  if (reg.payment_method) {
+    if (reg.payment_method === 'ecocash') methodDisplay = 'EcoCash';
+    else if (reg.payment_method === 'innbucks') methodDisplay = 'InnBucks';
+    else if (reg.payment_method === 'card_stripe') methodDisplay = 'Debit / Credit Card';
+    else if (reg.payment_method === 'bank_transfer') methodDisplay = 'Direct Bank Transfer / Swipe';
+    else if (reg.payment_method === 'zipit') methodDisplay = 'ZIPIT Transfer';
+    else if (reg.payment_method === 'manual_admin') methodDisplay = 'Direct Admin Verification';
+    else methodDisplay = String(reg.payment_method).toUpperCase();
+  }
+
+  return {
+    receipt_number: customOverrides?.receipt_number || receiptNumber,
+    issue_date: customOverrides?.issue_date || issueDateStr,
+    event_id: reg.event_id || AI_FOR_EDUCATORS_EVENT.id,
+    event_title: reg.event_title || AI_FOR_EDUCATORS_EVENT.title,
+    attendee_name: customOverrides?.attendee_name || reg.full_name || 'Educator Participant',
+    email: customOverrides?.email || reg.email || '',
+    phone: customOverrides?.phone || reg.phone || '',
+    school_institution: customOverrides?.school_institution || reg.school_institution || 'Independent Educator',
+    role_title: customOverrides?.role_title || reg.role_title || 'Educator / Teacher',
+    province: customOverrides?.province || reg.province || 'Zimbabwe',
+    registration_code: customOverrides?.registration_code || code,
+    payment_reference: customOverrides?.payment_reference || rawRef,
+    payment_method: customOverrides?.payment_method || methodDisplay,
+    amount_paid: customOverrides?.amount_paid !== undefined ? customOverrides.amount_paid : regFee,
+    currency: 'USD',
+    continuous_support_opt_in: isSupport,
+    support_amount: supportFee,
+    total_amount: customOverrides?.total_amount !== undefined ? customOverrides.total_amount : totalAmount,
+    payment_status: customOverrides?.payment_status || reg.payment_status || 'verified',
+    approval_status: customOverrides?.approval_status || reg.approval_status || 'approved',
+    approved_by_name: reg.approved_by_name || 'YARA Executive Secretariat',
+    approved_at: reg.approved_at || new Date().toISOString(),
+    notes: customOverrides?.notes || reg.admin_notes || 'Official payment received and verified for AI for Educators Online Bootcamp.'
+  };
+}
+
+/**
+ * Generates an official downloadable receipt given a user name and reference number (Admin or User lookup)
+ */
+export async function generateEducatorReceiptByNameAndRef(
+  userName: string,
+  refNumber: string,
+  overrides?: Partial<EducatorReceiptData>
+): Promise<EducatorReceiptData> {
+  const cleanName = (userName || '').trim();
+  const cleanRef = (refNumber || '').trim();
+
+  // Search existing registrations first for auto-fill match
+  const allRegistrations = await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id);
+  const matched = allRegistrations.find(r => {
+    const matchName = cleanName && r.full_name.toLowerCase().includes(cleanName.toLowerCase());
+    const matchRef = cleanRef && (
+      (r.registration_code && r.registration_code.toLowerCase() === cleanRef.toLowerCase()) ||
+      (r.payment_reference && r.payment_reference.toLowerCase() === cleanRef.toLowerCase()) ||
+      r.id.toLowerCase().includes(cleanRef.toLowerCase())
+    );
+    return (cleanName && cleanRef) ? (matchName || matchRef) : (matchName || matchRef);
+  });
+
+  if (matched) {
+    return buildEducatorReceipt(matched, {
+      ...(cleanName ? { attendee_name: cleanName } : {}),
+      ...(cleanRef ? { payment_reference: cleanRef } : {}),
+      ...overrides
+    });
+  }
+
+  // If not matched, generate official standalone verified receipt structure
+  const code = (cleanRef && cleanRef.toUpperCase().startsWith('YARA-AI-')) 
+    ? cleanRef.toUpperCase() 
+    : generateRegistrationCode();
+
+  const generatedRef = cleanRef || `MP${Date.now().toString().slice(-6)}.H001`;
+
+  return buildEducatorReceipt(
+    {
+      full_name: cleanName || 'Educator Participant',
+      email: overrides?.email || 'educator@school.ac.zw',
+      phone: overrides?.phone || '+263 77 000 0000',
+      school_institution: overrides?.school_institution || 'Independent Educator',
+      role_title: overrides?.role_title || 'Educator / Teacher',
+      province: overrides?.province || 'Harare',
+      registration_code: code,
+      payment_reference: generatedRef,
+      payment_status: 'verified',
+      approval_status: 'approved',
+      registration_fee: 10,
+      continuous_support_opt_in: overrides?.continuous_support_opt_in ?? false,
+      approved_by_name: 'YARA Executive Administration',
+      paid_at: new Date().toISOString()
+    },
+    overrides
+  );
+}
+
