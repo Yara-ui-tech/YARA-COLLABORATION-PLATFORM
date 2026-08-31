@@ -108,6 +108,9 @@ const AppContent = () => {
           <Route path="events/ai-for-educators-bootcamp" element={<AiForEducatorsBootcamp />} />
           <Route path="ai-for-educators" element={<AiForEducatorsBootcamp />} />
           <Route path="bootcamp" element={<AiForEducatorsBootcamp />} />
+          <Route path="educators" element={<AiForEducatorsBootcamp />} />
+          <Route path="educator-portal" element={<AiForEducatorsBootcamp />} />
+          <Route path="educators-portal" element={<AiForEducatorsBootcamp />} />
           <Route path="posts" element={<Posts />} />
           <Route path="news" element={<Posts />} />
           <Route path="announcements" element={<Posts />} />

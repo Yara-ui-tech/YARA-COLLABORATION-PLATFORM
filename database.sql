@@ -7,14 +7,46 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =========================
 -- 1) Drop dependent tables first (data-loss migration)
 -- =========================
+DROP TABLE IF EXISTS public.chapter_reports CASCADE;
+DROP TABLE IF EXISTS public.chapter_activities CASCADE;
+DROP TABLE IF EXISTS public.chapter_projects CASCADE;
+DROP TABLE IF EXISTS public.chapter_leaders CASCADE;
+DROP TABLE IF EXISTS public.chapters CASCADE;
+DROP TABLE IF EXISTS public.competition_scores CASCADE;
+DROP TABLE IF EXISTS public.competition_judges CASCADE;
+DROP TABLE IF EXISTS public.competition_team_members CASCADE;
+DROP TABLE IF EXISTS public.competition_teams CASCADE;
 DROP TABLE IF EXISTS public.competitions CASCADE;
+DROP TABLE IF EXISTS public.virtual_competition_submissions CASCADE;
+DROP TABLE IF EXISTS public.virtual_competitions CASCADE;
 DROP TABLE IF EXISTS public.events CASCADE;
 DROP TABLE IF EXISTS public.event_registrations CASCADE;
 DROP TABLE IF EXISTS public.event_meetings CASCADE;
+DROP TABLE IF EXISTS public.bootcamp_curriculum_modules CASCADE;
 DROP TABLE IF EXISTS public.organization_posts CASCADE;
 DROP TABLE IF EXISTS public.system_settings CASCADE;
-
-
+DROP TABLE IF EXISTS public.partners CASCADE;
+DROP TABLE IF EXISTS public.partnership_requests CASCADE;
+DROP TABLE IF EXISTS public.donations_sponsorships CASCADE;
+DROP TABLE IF EXISTS public.volunteers CASCADE;
+DROP TABLE IF EXISTS public.investments CASCADE;
+DROP TABLE IF EXISTS public.mentor_payouts CASCADE;
+DROP TABLE IF EXISTS public.finance_investments CASCADE;
+DROP TABLE IF EXISTS public.finance_mentor_payouts CASCADE;
+DROP TABLE IF EXISTS public.subscriptions CASCADE;
+DROP TABLE IF EXISTS public.idea_comments CASCADE;
+DROP TABLE IF EXISTS public.idea_reactions CASCADE;
+DROP TABLE IF EXISTS public.brainstorming_attempts CASCADE;
+DROP TABLE IF EXISTS public.brainstorming_quizzes CASCADE;
+DROP TABLE IF EXISTS public.brainstorming_questions CASCADE;
+DROP TABLE IF EXISTS public.certificates CASCADE;
+DROP TABLE IF EXISTS public.final_project_submissions CASCADE;
+DROP TABLE IF EXISTS public.final_exam_attempts CASCADE;
+DROP TABLE IF EXISTS public.curriculum_submissions CASCADE;
+DROP TABLE IF EXISTS public.curriculum_sessions CASCADE;
+DROP TABLE IF EXISTS public.curriculum_feedback CASCADE;
+DROP TABLE IF EXISTS public.mentorship_messages CASCADE;
+DROP TABLE IF EXISTS public.uploads CASCADE;
 DROP TABLE IF EXISTS public.user_sessions CASCADE;
 DROP TABLE IF EXISTS public.feedback CASCADE;
 DROP TABLE IF EXISTS public.study_materials CASCADE;
@@ -1687,130 +1719,6 @@ CREATE POLICY "Authors and admins can delete comments"
   USING (auth.uid() = author_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- =========================================================================
--- 19. YARA CHAPTERS, SECRETARIES & CONFIDENTIAL REPORTING ENGINE
--- =========================================================================
-CREATE TABLE IF NOT EXISTS public.chapters (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE,
-  category TEXT CHECK (category IN ('university', 'high_school', 'primary_school', 'community_youth', 'corporate_hub', 'other')) DEFAULT 'university',
-  institution_name TEXT,
-  province TEXT NOT NULL DEFAULT 'Harare',
-  district TEXT,
-  lead_name TEXT,
-  lead_email TEXT,
-  lead_phone TEXT,
-  secretary_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  secretary_name TEXT,
-  secretary_email TEXT,
-  secretary_phone TEXT,
-  member_count INTEGER DEFAULT 0,
-  logo_url TEXT,
-  banner_url TEXT,
-  description TEXT,
-  meeting_schedule TEXT,
-  status TEXT CHECK (status IN ('active', 'pending_approval', 'suspended', 'archived')) DEFAULT 'active',
-  is_public BOOLEAN DEFAULT true,
-  confidential_notes TEXT, -- Admin & National Executive only
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Anyone can view public chapters" ON public.chapters;
-CREATE POLICY "Anyone can view public chapters"
-  ON public.chapters FOR SELECT
-  USING (is_public = true OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
-DROP POLICY IF EXISTS "Admins can manage chapters" ON public.chapters;
-CREATE POLICY "Admins can manage chapters"
-  ON public.chapters FOR ALL
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
--- Chapter Reports for National Executive review
-CREATE TABLE IF NOT EXISTS public.chapter_reports (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
-  chapter_name TEXT NOT NULL,
-  title TEXT NOT NULL,
-  reporting_period TEXT NOT NULL, -- e.g. "Q1 2026", "March 2026"
-  report_type TEXT CHECK (report_type IN ('monthly_progress', 'quarterly_audit', 'activity_summary', 'financial_statement', 'project_milestone', 'incident_report', 'monthly', 'quarterly', 'special_event', 'financial', 'annual')) DEFAULT 'monthly_progress',
-  report_link TEXT NOT NULL, -- Drive/Dropbox/Doc URL or submission link
-  summary TEXT,
-  submitted_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  submitted_by_name TEXT,
-  submitted_by_role TEXT DEFAULT 'secretary',
-  submitted_by_email TEXT,
-  is_confidential BOOLEAN DEFAULT false, -- If true, hidden from public chapter view
-  status TEXT CHECK (status IN ('submitted', 'under_review', 'assessed', 'needs_revision', 'archived', 'approved', 'revisions_requested')) DEFAULT 'submitted',
-  is_locked BOOLEAN DEFAULT true, -- If true, report is sealed and locked from tampering/modification
-  locked_at TIMESTAMPTZ,
-  locked_by_name TEXT,
-  secretary_verified BOOLEAN DEFAULT false,
-  secretary_verification_method TEXT, -- 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session'
-  document_seal_code TEXT, -- e.g. YARA-SEAL-NAT-CUT-98F1
-  executive_feedback TEXT,
-  executive_rating INTEGER CHECK (executive_rating >= 1 AND executive_rating <= 5),
-  reviewed_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  reviewed_by_name TEXT,
-  reviewed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.chapter_reports ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public can view non-confidential reports" ON public.chapter_reports;
-CREATE POLICY "Public can view non-confidential reports"
-  ON public.chapter_reports FOR SELECT
-  USING (
-    is_confidential = false 
-    OR auth.uid() = submitted_by_id 
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
-
-DROP POLICY IF EXISTS "Chapter secretaries and members can submit reports" ON public.chapter_reports;
-CREATE POLICY "Chapter secretaries and members can submit reports"
-  ON public.chapter_reports FOR INSERT
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Admins and submitters can manage reports" ON public.chapter_reports;
-CREATE POLICY "Admins and submitters can manage reports"
-  ON public.chapter_reports FOR ALL
-  USING (
-    (auth.uid() = submitted_by_id AND is_locked = false)
-    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
-  );
-
--- Chapter Activities & Showcase
-CREATE TABLE IF NOT EXISTS public.chapter_activities (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  activity_date DATE DEFAULT CURRENT_DATE,
-  participants_count INTEGER DEFAULT 0,
-  image_url TEXT,
-  is_highlight BOOLEAN DEFAULT false,
-  is_confidential BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.chapter_activities ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Public can view non-confidential chapter activities" ON public.chapter_activities;
-CREATE POLICY "Public can view non-confidential chapter activities"
-  ON public.chapter_activities FOR SELECT
-  USING (is_confidential = false OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
-DROP POLICY IF EXISTS "Admins can manage chapter activities" ON public.chapter_activities;
-CREATE POLICY "Admins can manage chapter activities"
-  ON public.chapter_activities FOR ALL
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
--- =========================================================================
 -- 20. COMPETITION JUDGES, SCORING & STRICT ADMIN-ONLY UNLOCK MECHANISM
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.competition_judges (
@@ -1872,6 +1780,9 @@ CREATE TABLE IF NOT EXISTS public.competition_scores (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Ensure is_locked column exists even if table already existed from earlier schema
+ALTER TABLE public.competition_scores ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT false;
 
 ALTER TABLE public.competition_scores ENABLE ROW LEVEL SECURITY;
 
@@ -2312,6 +2223,9 @@ CREATE TABLE IF NOT EXISTS public.chapter_reports (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Ensure is_locked column exists even if table already existed from earlier schema
+ALTER TABLE public.chapter_reports ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT true;
+
 -- Enable RLS
 ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chapter_leaders ENABLE ROW LEVEL SECURITY;
@@ -2372,6 +2286,23 @@ DROP POLICY IF EXISTS "Public can view assessed reports" ON public.chapter_repor
 CREATE POLICY "Public can view assessed reports"
   ON public.chapter_reports FOR SELECT
   USING (true);
+
+DROP POLICY IF EXISTS "Anyone can insert chapter reports" ON public.chapter_reports;
+CREATE POLICY "Anyone can insert chapter reports"
+  ON public.chapter_reports FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins and leaders can update chapter reports" ON public.chapter_reports;
+CREATE POLICY "Admins and leaders can update chapter reports"
+  ON public.chapter_reports FOR UPDATE
+  USING (
+    (is_locked = false) 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    (is_locked = false) 
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
 DROP POLICY IF EXISTS "Admins can manage all chapter reports" ON public.chapter_reports;
 CREATE POLICY "Admins can manage all chapter reports"

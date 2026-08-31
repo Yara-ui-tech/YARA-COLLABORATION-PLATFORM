@@ -883,110 +883,169 @@ export default function AiForEducatorsBootcamp() {
       )}
 
       {/* TAB 6: LIVE GOOGLE MEET STAGE (UNLOCKED ONLY FOR APPROVED ATTENDEES) */}
-      {accessResult?.is_granted && (activeTab === 'live_stage' || isInLiveStage) && (
-        <div className="p-8 bg-slate-950 text-white rounded-3xl border border-emerald-500/40 shadow-2xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">LIVE BOOTCAMP ACCESS CLEARANCE</span>
+      {(activeTab === 'live_stage' || isInLiveStage) && (
+        accessResult?.is_granted ? (
+          <div className="p-8 bg-slate-950 text-white rounded-3xl border border-emerald-500/40 shadow-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-xs font-black text-emerald-400 uppercase tracking-wider">LIVE BOOTCAMP ACCESS CLEARANCE</span>
+                </div>
+                <h2 className="text-2xl font-black mt-1">AI for Educators — Google Meet Live Hall</h2>
+                <p className="text-xs text-slate-400">
+                  Attendee: <strong className="text-white">{accessResult.registration?.full_name}</strong> ({accessResult.registration?.school_institution}) | Code: <strong className="text-amber-300 font-mono">{accessResult.registration?.registration_code || accessResult.registration?.id}</strong>
+                </p>
               </div>
-              <h2 className="text-2xl font-black mt-1">AI for Educators — Google Meet Live Hall</h2>
-              <p className="text-xs text-slate-400">
-                Attendee: <strong className="text-white">{accessResult.registration?.full_name}</strong> ({accessResult.registration?.school_institution}) | Code: <strong className="text-amber-300 font-mono">{accessResult.registration?.registration_code || accessResult.registration?.id}</strong>
-              </p>
+
+              <button
+                onClick={() => {
+                  setIsInLiveStage(false);
+                  setActiveTab('overview');
+                }}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-300 cursor-pointer"
+              >
+                Close Live Portal
+              </button>
             </div>
 
-            <button
-              onClick={() => {
-                setIsInLiveStage(false);
-                setActiveTab('overview');
-              }}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl text-slate-300 cursor-pointer"
-            >
-              Close Live Portal
-            </button>
-          </div>
+            {/* Virtual Stage Google Meet Card */}
+            <div className="w-full rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-800 p-8 text-center space-y-6 relative overflow-hidden">
+              <div className="w-20 h-20 rounded-3xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto">
+                <Video className="w-10 h-10 animate-pulse" />
+              </div>
 
-          {/* Virtual Stage Google Meet Card */}
-          <div className="w-full rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-800 p-8 text-center space-y-6 relative overflow-hidden">
-            <div className="w-20 h-20 rounded-3xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto">
-              <Video className="w-10 h-10 animate-pulse" />
-            </div>
+              <div className="space-y-2 max-w-lg mx-auto">
+                <span className="px-3 py-1 bg-emerald-400/20 text-emerald-300 rounded-full text-[10px] font-black uppercase">
+                  Direct Administrator-Configured Room
+                </span>
+                <h3 className="text-2xl font-black text-white">Join the Live Interactive Bootcamp</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Your live Google Meet room is ready. Click the button below to join the call, or copy the direct link.
+                </p>
+                <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 flex items-center justify-between gap-2">
+                  <span className="truncate">{meetingConfig.meeting_url}</span>
+                  <button
+                    onClick={() => handleCopy(meetingConfig.meeting_url, 'Direct Meet Link')}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-bold shrink-0 cursor-pointer"
+                  >
+                    {copiedLabel === 'Direct Meet Link' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
 
-            <div className="space-y-2 max-w-lg mx-auto">
-              <span className="px-3 py-1 bg-emerald-400/20 text-emerald-300 rounded-full text-[10px] font-black uppercase">
-                Direct Administrator-Configured Room
-              </span>
-              <h3 className="text-2xl font-black text-white">Join the Live Interactive Bootcamp</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Your live Google Meet room is ready. Click the button below to join the call, or copy the direct link.
-              </p>
-              <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 font-mono text-xs text-amber-300 flex items-center justify-between gap-2">
-                <span className="truncate">{meetingConfig.meeting_url}</span>
-                <button
-                  onClick={() => handleCopy(meetingConfig.meeting_url, 'Direct Meet Link')}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-bold shrink-0 cursor-pointer"
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <a
+                  href={meetingConfig.meeting_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl text-sm uppercase tracking-wider flex items-center space-x-2 shadow-lg shadow-emerald-500/25 transition-all transform hover:scale-105 cursor-pointer"
                 >
-                  {copiedLabel === 'Direct Meet Link' ? 'Copied!' : 'Copy'}
+                  <Video className="w-5 h-5" />
+                  <span>Launch Google Meet Room Now</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+
+              {meetingConfig.instructions && (
+                <div className="max-w-md mx-auto p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 text-left text-xs text-slate-300 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Instructions from Instructor:</span>
+                  <p>{meetingConfig.instructions}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Session Downloads & Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Daily Time Schedule</span>
+                <p className="text-xs font-bold text-white">{meetingConfig.daily_schedule_time}</p>
+                <span className="text-[10px] text-slate-400">CAT (Central Africa Time)</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Room Passcode</span>
+                <p className="text-xs font-mono font-bold text-amber-400">{meetingConfig.passcode || 'None Required'}</p>
+                <span className="text-[10px] text-slate-400">Direct admission for approved users</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Bootcamp Resources</span>
+                <p className="text-xs font-bold text-emerald-400">📘 50+ Educator Prompt Vault</p>
+                <span className="text-[10px] text-slate-400">Included with your enrollment</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-300 uppercase">Payment & Receipt</span>
+                  <p className="text-xs font-black text-emerald-400">Verified & Approved</p>
+                  <span className="text-[10px] text-slate-400">Official Receipt Issued</span>
+                </div>
+                <button
+                  onClick={handleDownloadCurrentReceipt}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all shadow-xs cursor-pointer"
+                >
+                  <FileCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Download Receipt (PDF)</span>
                 </button>
               </div>
             </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <a
-                href={meetingConfig.meeting_url}
-                target="_blank"
-                rel="noreferrer"
-                className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl text-sm uppercase tracking-wider flex items-center space-x-2 shadow-lg shadow-emerald-500/25 transition-all transform hover:scale-105 cursor-pointer"
-              >
-                <Video className="w-5 h-5" />
-                <span>Launch Google Meet Room Now</span>
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-
-            {meetingConfig.instructions && (
-              <div className="max-w-md mx-auto p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 text-left text-xs text-slate-300 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Instructions from Instructor:</span>
-                <p>{meetingConfig.instructions}</p>
-              </div>
-            )}
           </div>
+        ) : (
+          <div className="p-8 bg-slate-950 text-white rounded-3xl border border-amber-500/30 shadow-2xl space-y-6 text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <span className="px-3 py-1 bg-amber-400/20 text-amber-300 rounded-full text-[10px] font-black uppercase">
+                Access Restricted — Verification Required
+              </span>
+              <h3 className="text-2xl font-black text-white">Live Hall Restricted to Paid & Approved Educators</h3>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-lg mx-auto">
+                {accessResult?.message || 'Access to the live Google Meet room and downloadable digital toolkits is strictly reserved for educators with verified registration fee payment ($10.00) and administrator approval.'}
+              </p>
+            </div>
 
-          {/* Quick Session Downloads & Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Daily Time Schedule</span>
-              <p className="text-xs font-bold text-white">{meetingConfig.daily_schedule_time}</p>
-              <span className="text-[10px] text-slate-400">CAT (Central Africa Time)</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Room Passcode</span>
-              <p className="text-xs font-mono font-bold text-amber-400">{meetingConfig.passcode || 'None Required'}</p>
-              <span className="text-[10px] text-slate-400">Direct admission for approved users</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Bootcamp Resources</span>
-              <p className="text-xs font-bold text-emerald-400">📘 50+ Educator Prompt Vault</p>
-              <span className="text-[10px] text-slate-400">Included with your enrollment</span>
-            </div>
-            <div className="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-500/40 space-y-2 flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-indigo-300 uppercase">Payment & Receipt</span>
-                <p className="text-xs font-black text-emerald-400">Verified & Approved</p>
-                <span className="text-[10px] text-slate-400">Official Receipt Issued</span>
-              </div>
-              <button
-                onClick={handleDownloadCurrentReceipt}
-                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all shadow-xs cursor-pointer"
-              >
-                <FileCheck className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Download Receipt (PDF)</span>
-              </button>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              {accessResult?.registration ? (
+                <>
+                  {accessResult.registration.payment_status !== 'verified' && (
+                    <button
+                      onClick={() => {
+                        setProofForm({
+                          payment_method: accessResult.registration?.payment_method || 'EcoCash',
+                          payment_reference: accessResult.registration?.payment_reference || '',
+                          notes: accessResult.registration?.payment_notes || ''
+                        });
+                        setShowProofModal(true);
+                      }}
+                      className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider flex items-center space-x-2 transition-all cursor-pointer"
+                    >
+                      <UploadCloud className="w-4 h-4" />
+                      <span>Submit Payment Proof</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => verifyCurrentAccess()}
+                    disabled={isCheckingAccess}
+                    className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCheckingAccess ? 'animate-spin' : ''}`} />
+                    <span>Re-Check Status</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setRegisteredResult(null);
+                    setShowRegModal(true);
+                  }}
+                  className="px-8 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center space-x-2 transition-all cursor-pointer"
+                >
+                  <span>Register & Secure Seat (US$10)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        )
       )}
 
       {/* REGISTRATION MODAL */}
