@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Printer, ShieldCheck, CheckCircle2, Copy, 
   Download, School, Mail, Phone, Calendar, Hash,
-  FileCheck, Sparkles, Building2, Check, Lock, ExternalLink
+  FileCheck, Sparkles, Building2, Check, Lock, ExternalLink, FileText
 } from 'lucide-react';
 import { EducatorReceiptData } from '../../types/eventRegistration';
 import { ASSETS } from '../../constants/assets';
+import { printReceiptOnly, downloadReceiptAsHtmlFile } from '../../utils/receiptPrinter';
 
 interface Props {
   isOpen: boolean;
@@ -16,12 +17,19 @@ interface Props {
 
 export default function EducatorReceiptModal({ isOpen, onClose, receipt }: Props) {
   const [copied, setCopied] = React.useState(false);
+  const [isPrinting, setIsPrinting] = React.useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !receipt) return null;
 
   const handlePrint = () => {
-    window.print();
+    setIsPrinting(true);
+    printReceiptOnly(receipt);
+    setTimeout(() => setIsPrinting(false), 800);
+  };
+
+  const handleDownloadFile = () => {
+    downloadReceiptAsHtmlFile(receipt);
   };
 
   const handleCopySummary = () => {
@@ -48,7 +56,50 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white print:static">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white print:static receipt-modal-wrapper">
+        {/* Scoped print styles ensuring ONLY the receipt element is printed */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body {
+              visibility: hidden !important;
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            #printable-educator-receipt,
+            #printable-educator-receipt * {
+              visibility: visible !important;
+            }
+            #printable-educator-receipt {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 20px !important;
+              background: #ffffff !important;
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              overflow: visible !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .print\\:hidden,
+            .no-print,
+            header,
+            footer,
+            nav {
+              display: none !important;
+            }
+            @page {
+              size: portrait;
+              margin: 10mm;
+            }
+          }
+        ` }} />
+
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -56,7 +107,7 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
           className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col my-auto print:border-none print:shadow-none print:max-w-full print:rounded-none"
         >
           {/* Top Control Bar (Hidden when printing) */}
-          <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 print:hidden">
+          <div className="p-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 print:hidden">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <ShieldCheck className="w-4 h-4" />
@@ -69,23 +120,38 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
 
             <div className="flex items-center space-x-2">
               <button
+                type="button"
                 onClick={handleCopySummary}
                 className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
                 title="Copy receipt details as text"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
+                <span>{copied ? 'Copied!' : 'Copy'}</span>
               </button>
 
               <button
+                type="button"
+                onClick={handleDownloadFile}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center space-x-1.5 transition-all border border-slate-700 cursor-pointer"
+                title="Download standalone receipt file"
+              >
+                <Download className="w-3.5 h-3.5 text-indigo-300" />
+                <span className="hidden sm:inline">Download File</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handlePrint}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md transition-all cursor-pointer"
+                disabled={isPrinting}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                title="Print or Save as PDF (Receipt only)"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print / Download PDF</span>
+                <span>{isPrinting ? 'Preparing...' : 'Print / PDF'}</span>
               </button>
 
               <button
+                type="button"
                 onClick={onClose}
                 className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
@@ -94,10 +160,11 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
             </div>
           </div>
 
-          {/* PRINTABLE RECEIPT CONTAINER */}
+          {/* PRINTABLE RECEIPT CONTAINER (Strictly isolated target) */}
           <div 
+            id="printable-educator-receipt"
             ref={receiptRef}
-            className="p-6 sm:p-10 bg-white text-slate-900 space-y-6 max-h-[85vh] overflow-y-auto print:overflow-visible print:max-h-none print:p-8"
+            className="p-6 sm:p-10 bg-white text-slate-900 space-y-6 max-h-[85vh] overflow-y-auto print:overflow-visible print:max-h-none print:p-8 print:border-none print:shadow-none"
           >
             {/* Header with Organization Branding & Meta */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-slate-900 pb-6">
@@ -314,3 +381,4 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
     </AnimatePresence>
   );
 }
+

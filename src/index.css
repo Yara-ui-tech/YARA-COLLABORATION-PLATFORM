@@ -1,1 +1,63 @@
 @import "tailwindcss";
+
+@media print {
+  /* Hide the rest of the application when printing modal receipts or certificates */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* When printing an isolated receipt modal */
+  body.printing-receipt-active #root > *:not(.receipt-modal-wrapper),
+  body:has(#printable-educator-receipt) #root > *:not(.receipt-modal-wrapper),
+  header,
+  footer,
+  nav,
+  aside,
+  .no-print,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* If printing with standard browser print dialog */
+  body:has(#printable-educator-receipt),
+  body:has(#printable-confirmation-slip) {
+    background: #ffffff !important;
+  }
+
+  body:has(#printable-educator-receipt) *,
+  body:has(#printable-confirmation-slip) * {
+    visibility: hidden;
+  }
+
+  body:has(#printable-educator-receipt) #printable-educator-receipt,
+  body:has(#printable-educator-receipt) #printable-educator-receipt *,
+  body:has(#printable-confirmation-slip) #printable-confirmation-slip,
+  body:has(#printable-confirmation-slip) #printable-confirmation-slip * {
+    visibility: visible;
+  }
+
+  body:has(#printable-educator-receipt) #printable-educator-receipt,
+  body:has(#printable-confirmation-slip) #printable-confirmation-slip {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  @page {
+    size: portrait;
+    margin: 10mm;
+  }
+}

@@ -456,7 +456,7 @@ export default function MultiStepRegistrationModal({
                 </div>
 
                 {/* Receipt Card */}
-                <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 max-w-lg mx-auto text-left space-y-4 shadow-sm">
+                <div id="printable-confirmation-slip" className="bg-slate-50 border border-slate-200 rounded-3xl p-6 max-w-lg mx-auto text-left space-y-4 shadow-sm print:p-8 print:border-none print:shadow-none print:max-w-full">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                     <div>
                       <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Official Registration ID</span>
