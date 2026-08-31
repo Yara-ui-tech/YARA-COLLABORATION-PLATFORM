@@ -9,28 +9,41 @@
     padding: 0 !important;
     height: auto !important;
     overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* When printing an isolated receipt modal */
-  body.printing-receipt-active #root > *:not(.receipt-modal-wrapper),
-  body:has(#printable-educator-receipt) #root > *:not(.receipt-modal-wrapper),
+  /* Completely eliminate the entire React root when printing isolated receipts */
+  body.printing-receipt-mode #root,
+  body.printing-receipt-active #root {
+    display: none !important;
+  }
+
+  body.printing-receipt-mode #yara-isolated-receipt-print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* General print hides */
   header,
   footer,
   nav,
   aside,
   .no-print,
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
 
-  /* If printing with standard browser print dialog */
-  body:has(#printable-educator-receipt),
-  body:has(#printable-confirmation-slip) {
-    background: #ffffff !important;
+  /* If printing directly from a modal without dedicated printRoot */
+  body:has(#printable-educator-receipt) #root > *:not(.receipt-modal-wrapper) {
+    display: none !important;
   }
 
-  body:has(#printable-educator-receipt) *,
-  body:has(#printable-confirmation-slip) * {
+  body:has(#printable-educator-receipt) * {
     visibility: hidden;
   }
 
@@ -38,7 +51,7 @@
   body:has(#printable-educator-receipt) #printable-educator-receipt *,
   body:has(#printable-confirmation-slip) #printable-confirmation-slip,
   body:has(#printable-confirmation-slip) #printable-confirmation-slip * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   body:has(#printable-educator-receipt) #printable-educator-receipt,

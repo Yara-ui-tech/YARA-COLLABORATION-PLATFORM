@@ -1,3 +1,5 @@
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { EducatorReceiptData } from '../types/eventRegistration';
 import { ASSETS } from '../constants/assets';
 
@@ -507,58 +509,119 @@ export function generateStandaloneReceiptHtml(receipt: EducatorReceiptData): str
 }
 
 /**
+ * Directly downloads the receipt as a genuine, high-resolution PDF file.
+ * This completely isolates the receipt: it renders ONLY the receipt element into a PDF and triggers download.
+ * No admin panels, background dashboards, or page headers are included.
+ */
+export async function downloadReceiptAsPdf(
+  receipt: EducatorReceiptData,
+  sourceElement?: HTMLElement | null
+): Promise<void> {
+  let targetElement: HTMLElement | null = sourceElement || null;
+  let temporaryContainer: HTMLElement | null = null;
+
+  try {
+    // If no rendered source element was passed, render an isolated offscreen receipt
+    if (!targetElement) {
+      temporaryContainer = document.createElement('div');
+      temporaryContainer.id = 'yara-pdf-render-temp';
+      temporaryContainer.style.position = 'fixed';
+      temporaryContainer.style.left = '-9999px';
+      temporaryContainer.style.top = '0';
+      temporaryContainer.style.width = '750px';
+      temporaryContainer.style.backgroundColor = '#ffffff';
+      temporaryContainer.style.zIndex = '-9999';
+      temporaryContainer.innerHTML = generateStandaloneReceiptHtml(receipt);
+      document.body.appendChild(temporaryContainer);
+      
+      targetElement = temporaryContainer.querySelector('#isolated-receipt') as HTMLElement;
+    }
+
+    if (!targetElement) {
+      throw new Error('Could not find receipt element to render');
+    }
+
+    // Capture the target receipt element using html2canvas with crisp high-DPI scaling
+    const canvas = await html2canvas(targetElement, {
+      scale: 2, // 2x crisp retina resolution
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      windowWidth: 1200,
+    });
+
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    
+    // Create standard A4 portrait PDF document (210mm x 297mm)
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pdfPageWidth = pdf.internal.pageSize.getWidth();
+    const pdfPageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 10; // 10mm margins
+    const printableWidth = pdfPageWidth - (margin * 2);
+    
+    const imgProps = pdf.getImageProperties(imgData);
+    const calculatedHeight = (imgProps.height * printableWidth) / imgProps.width;
+    
+    // If calculated height fits on one A4 page, center it vertically slightly
+    const yPos = calculatedHeight < pdfPageHeight - (margin * 2) 
+      ? margin + Math.max(0, (pdfPageHeight - (margin * 2) - calculatedHeight) / 4)
+      : margin;
+
+    pdf.addImage(imgData, 'PNG', margin, yPos, printableWidth, calculatedHeight);
+    
+    const cleanFilename = `YARA_Official_Receipt_${receipt.receipt_number.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+    pdf.save(cleanFilename);
+  } catch (error) {
+    console.error('Failed to generate direct PDF, falling back to standalone HTML download:', error);
+    downloadReceiptAsHtmlFile(receipt);
+  } finally {
+    if (temporaryContainer && document.body.contains(temporaryContainer)) {
+      document.body.removeChild(temporaryContainer);
+    }
+  }
+}
+
+/**
  * Triggers an isolated print dialog that strictly prints the receipt with zero surrounding page clutter.
+ * Temporarily mounts the receipt directly to document.body and isolates print CSS so no admin panel is printed.
  */
 export function printReceiptOnly(receipt: EducatorReceiptData): void {
-  const htmlContent = generateStandaloneReceiptHtml(receipt);
-  
-  // Create an invisible iframe to isolate the print job completely from the host page
-  let iframe = document.getElementById('yara-receipt-print-frame') as HTMLIFrameElement | null;
-  if (iframe) {
-    iframe.remove();
+  // Remove any stale print container
+  const existingContainer = document.getElementById('yara-isolated-receipt-print-root');
+  if (existingContainer) {
+    existingContainer.remove();
   }
-  
-  iframe = document.createElement('iframe');
-  iframe.id = 'yara-receipt-print-frame';
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.style.visibility = 'hidden';
-  
-  document.body.appendChild(iframe);
-  
-  const frameDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!frameDoc) {
-    // Fallback: Use standard window.print with targeted body classes
-    document.body.classList.add('printing-receipt-active');
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('printing-receipt-active');
-    }, 1000);
-    return;
-  }
-  
-  frameDoc.open();
-  frameDoc.write(htmlContent);
-  frameDoc.close();
-  
-  // Allow iframe styles and images to complete rendering before printing
+
+  // Create clean isolated print wrapper directly attached to body
+  const printRoot = document.createElement('div');
+  printRoot.id = 'yara-isolated-receipt-print-root';
+  printRoot.innerHTML = generateStandaloneReceiptHtml(receipt);
+  document.body.appendChild(printRoot);
+
+  document.body.classList.add('printing-receipt-mode');
+
+  // Trigger print after DOM layout completes
   setTimeout(() => {
     try {
-      iframe?.contentWindow?.focus();
-      iframe?.contentWindow?.print();
-    } catch (e) {
-      console.warn('Iframe print failed, falling back to window print', e);
-      document.body.classList.add('printing-receipt-active');
       window.print();
+    } catch (e) {
+      console.error('Print failed:', e);
+    } finally {
+      // Cleanup after print dialog closes
       setTimeout(() => {
-        document.body.classList.remove('printing-receipt-active');
+        document.body.classList.remove('printing-receipt-mode');
+        if (document.body.contains(printRoot)) {
+          printRoot.remove();
+        }
       }, 1000);
     }
-  }, 250);
+  }, 200);
 }
 
 /**

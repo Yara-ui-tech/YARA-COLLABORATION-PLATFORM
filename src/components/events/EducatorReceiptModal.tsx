@@ -1,13 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Printer, ShieldCheck, CheckCircle2, Copy, 
   Download, School, Mail, Phone, Calendar, Hash,
-  FileCheck, Sparkles, Building2, Check, Lock, ExternalLink, FileText
+  FileCheck, Sparkles, Building2, Check, Lock, ExternalLink, FileText, Loader2
 } from 'lucide-react';
 import { EducatorReceiptData } from '../../types/eventRegistration';
 import { ASSETS } from '../../constants/assets';
-import { printReceiptOnly, downloadReceiptAsHtmlFile } from '../../utils/receiptPrinter';
+import { printReceiptOnly, downloadReceiptAsHtmlFile, downloadReceiptAsPdf } from '../../utils/receiptPrinter';
 
 interface Props {
   isOpen: boolean;
@@ -16,11 +16,23 @@ interface Props {
 }
 
 export default function EducatorReceiptModal({ isOpen, onClose, receipt }: Props) {
-  const [copied, setCopied] = React.useState(false);
-  const [isPrinting, setIsPrinting] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !receipt) return null;
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloadingPdf(true);
+      await downloadReceiptAsPdf(receipt, receiptRef.current);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -118,42 +130,58 @@ Verify at: https://yara.org/events/ai-for-educators-bootcamp`;
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors cursor-pointer"
                 title="Copy receipt details as text"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy'}</span>
+                <span className="hidden sm:inline">{copied ? 'Copied!' : 'Copy'}</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleDownloadFile}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center space-x-1.5 transition-all border border-slate-700 cursor-pointer"
-                title="Download standalone receipt file"
+                onClick={handleDownloadPdf}
+                disabled={isDownloadingPdf}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                title="Download genuine standalone PDF (Receipt ONLY)"
               >
-                <Download className="w-3.5 h-3.5 text-indigo-300" />
-                <span className="hidden sm:inline">Download File</span>
+                {isDownloadingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>{isDownloadingPdf ? 'Creating PDF...' : 'Download PDF'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handlePrint}
                 disabled={isPrinting}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center space-x-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
-                title="Print or Save as PDF (Receipt only)"
+                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                title="Print receipt strictly without dashboard"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>{isPrinting ? 'Preparing...' : 'Print / PDF'}</span>
+                <span>{isPrinting ? 'Preparing...' : 'Print'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadFile}
+                className="hidden md:flex px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium items-center space-x-1.5 transition-all border border-slate-700 cursor-pointer"
+                title="Download offline standalone HTML receipt"
+              >
+                <FileText className="w-3.5 h-3.5 text-indigo-300" />
+                <span>HTML</span>
               </button>
 
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer ml-1"
+                title="Close modal"
               >
                 <X className="w-4 h-4" />
               </button>
