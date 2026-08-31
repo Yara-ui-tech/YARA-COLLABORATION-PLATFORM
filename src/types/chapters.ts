@@ -65,6 +65,21 @@ export interface ChapterActivity {
   image_url?: string;
 }
 
+export interface ChapterMember {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  role: string; // e.g. 'President / Chairperson', 'Robotics Engineer', 'Member', 'Vice Secretary'
+  department_or_grade?: string;
+  student_or_staff_id?: string;
+  joined_date?: string;
+  is_leadership?: boolean;
+  avatar_url?: string;
+  skills?: string[];
+  status?: 'active' | 'core_member' | 'alumni' | 'cadet';
+}
+
 export interface ConfidentialChapterData {
   internal_budget_balance_usd?: number;
   internal_bank_or_ecocash_details?: string;
@@ -92,6 +107,15 @@ export interface Chapter {
   description: string;
   established_date: string;
   status: ChapterStatus;
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  registration_request_id?: string;
+  
+  // Provincial University Lead Hierarchy
+  is_provincial_lead_university?: boolean;
+  assigned_provincial_university_id?: string;
+  assigned_provincial_university_name?: string;
+  supervised_chapter_count?: number;
+
   total_members_count: number;
   active_projects_count: number;
   public_email?: string;
@@ -108,6 +132,7 @@ export interface Chapter {
   physical_location?: string;
   focus_areas: string[];
   leaders: ChapterLeader[];
+  members?: ChapterMember[];
   projects: ChapterProject[];
   activities: ChapterActivity[];
   patron_advisor?: {
@@ -115,8 +140,61 @@ export interface Chapter {
     title: string;
     organization: string;
     email?: string;
+    phone?: string;
   };
   confidential_info?: ConfidentialChapterData;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterRegistrationRequest {
+  id: string;
+  proposed_name: string; // must start with or contain YARA
+  category: ChapterCategory;
+  institution_or_community: string;
+  province: string;
+  district_or_city: string;
+  logo_url?: string;
+  banner_url?: string;
+  description: string;
+  physical_location: string;
+  meeting_schedule: string;
+  focus_areas: string[];
+  public_email: string;
+  public_phone: string;
+  
+  // Member & Leadership structure
+  total_members_count: number;
+  number_of_members?: number; // alias
+  members?: ChapterMember[];
+  proposed_members?: ChapterMember[]; // alias
+  leaders?: ChapterLeader[];
+  proposed_leaders?: ChapterLeader[]; // alias
+  available_equipment?: string;
+  patron_advisor?: {
+    name: string;
+    title: string;
+    organization: string;
+    email?: string;
+    phone?: string;
+  };
+  
+  // Provincial University Lead Reference
+  assigned_provincial_university_id?: string;
+  assigned_provincial_university_name?: string;
+  
+  // Applicant details
+  applicant_name?: string;
+  applicant_email?: string;
+  applicant_phone?: string;
+  applicant_role?: string;
+  submitted_by_name?: string;
+  submitted_by_email?: string;
+  submitted_by_phone?: string;
+  submitted_at?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_notes?: string;
+  admin_review_notes?: string;
   created_at: string;
   updated_at: string;
 }

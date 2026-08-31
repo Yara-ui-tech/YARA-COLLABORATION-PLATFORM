@@ -13,7 +13,7 @@ import {
   HelpCircle,
   Smartphone
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { safeSignOut } from '../../lib/supabase';
 import { useAuth } from '../AuthContext';
 import { 
   checkAndVerifyUserSubscription, 
@@ -303,7 +303,7 @@ export default function SubscriptionLockoutView({ type }: SubscriptionLockoutVie
         <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
           <span>Inquiries: <strong className="text-slate-200">{YARA_PAYMENT_CONFIG.inquiryPhone1}</strong> / <strong className="text-slate-200">{YARA_PAYMENT_CONFIG.inquiryPhone2}</strong> • EcoCash: <strong className="text-amber-300">{YARA_PAYMENT_CONFIG.ecocashNumber}</strong></span>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => safeSignOut()}
             className="text-rose-400 hover:text-rose-300 font-bold flex items-center space-x-1 transition-colors self-start sm:self-auto"
           >
             <LogOut className="w-3.5 h-3.5" />

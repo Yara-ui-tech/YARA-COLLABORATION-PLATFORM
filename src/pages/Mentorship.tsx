@@ -137,7 +137,9 @@ export default function Mentorship() {
         try {
           const reqId = payload?.new?.request_id || payload?.old?.request_id;
           if (reqId) fetchMessagesForRequest(reqId);
-        } catch (err) { console.error(err); }
+        } catch (err: any) { 
+          console.warn('Realtime message update notice:', err?.message || err); 
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
         fetchLiveSessions();

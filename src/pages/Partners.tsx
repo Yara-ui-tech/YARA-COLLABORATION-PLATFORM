@@ -61,8 +61,8 @@ export default function Partners() {
     try {
       const list = await getApprovedPartners();
       setApprovedPartners(list);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.warn('Could not load partners:', e?.message || e);
     } finally {
       setLoadingPartners(false);
     }

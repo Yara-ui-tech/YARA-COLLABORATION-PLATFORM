@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, safeSignOut } from '../lib/supabase';
 import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -786,7 +786,7 @@ export default function Admin() {
       setSuccessMessage("Database wiped successfully. Logging out...");
       
       setTimeout(async () => {
-        await supabase.auth.signOut();
+        await safeSignOut();
         window.location.href = '/auth';
       }, 2000);
 

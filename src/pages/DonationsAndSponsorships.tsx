@@ -60,8 +60,8 @@ export default function DonationsAndSponsorships() {
     try {
       const list = await getApprovedPublicDonations();
       setApprovedDonations(list);
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.warn('Could not load public donations:', e?.message || e);
     } finally {
       setLoadingDonations(false);
     }

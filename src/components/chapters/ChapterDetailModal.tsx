@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Building2, MapPin, Calendar, Users, Cpu, FileText, 
   ExternalLink, Mail, Phone, ShieldCheck, Lock, Unlock, 
   CheckCircle2, Sparkles, AlertCircle, X, ChevronRight,
-  Share2, Award, Clock, ArrowRight
+  Share2, Award, Clock, ArrowRight, Landmark, Search,
+  GraduationCap, UserCheck, Shield
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Chapter, ChapterReport } from '../../types/chapters';
+import { Chapter, ChapterMember } from '../../types/chapters';
 import { cn } from '../../lib/utils';
 
 interface ChapterDetailModalProps {
@@ -24,10 +25,16 @@ export default function ChapterDetailModal({
   onClose,
   onOpenReportModal
 }: ChapterDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'activities' | 'leadership' | 'confidential'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'projects' | 'activities' | 'leadership' | 'confidential'>('overview');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberRoleFilter, setMemberRoleFilter] = useState('ALL');
 
   const isChapterLeader = currentUserEmail && chapter.leaders?.some(
     l => l.email?.toLowerCase() === currentUserEmail.toLowerCase()
+  );
+
+  const isChapterMember = currentUserEmail && chapter.members?.some(
+    m => m.email?.toLowerCase() === currentUserEmail.toLowerCase()
   );
 
   const canViewConfidential = isAdmin || isChapterLeader;
@@ -42,6 +49,22 @@ export default function ChapterDetailModal({
   };
 
   const catStyle = categoryLabels[chapter.category] || { label: 'YARA Chapter', bg: 'bg-slate-100', text: 'text-slate-700' };
+
+  // Filter members
+  const filteredMembers = useMemo(() => {
+    const memList = chapter.members || [];
+    return memList.filter(m => {
+      const matchSearch = 
+        m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+        (m.email && m.email.toLowerCase().includes(memberSearch.toLowerCase())) ||
+        (m.role && m.role.toLowerCase().includes(memberSearch.toLowerCase())) ||
+        (m.student_or_staff_id && m.student_or_staff_id.toLowerCase().includes(memberSearch.toLowerCase()));
+
+      const matchRole = memberRoleFilter === 'ALL' || (m.role && m.role.toLowerCase().includes(memberRoleFilter.toLowerCase()));
+
+      return matchSearch && matchRole;
+    });
+  }, [chapter.members, memberSearch, memberRoleFilter]);
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 md:p-6 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
@@ -76,13 +99,19 @@ export default function ChapterDetailModal({
 
           {/* Code & Category Pill */}
           <div className="absolute bottom-4 left-6 right-6 flex flex-wrap items-center justify-between gap-2 z-10">
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className={cn("px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider backdrop-blur-md", catStyle.bg, catStyle.text)}>
                 {catStyle.label}
               </span>
               <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-white/20 text-white backdrop-blur-md">
                 {chapter.code}
               </span>
+              {chapter.is_provincial_lead_university && (
+                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center space-x-1 shadow-sm">
+                  <Landmark className="w-3 h-3" />
+                  <span>Provincial University Lead</span>
+                </span>
+              )}
               <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow-xs">
                 {chapter.status}
               </span>
@@ -106,10 +135,21 @@ export default function ChapterDetailModal({
         {/* Header Content */}
         <div className="p-6 md:p-8 pb-4 border-b border-slate-100 space-y-3 shrink-0">
           <div>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">
-              {chapter.name}
-            </h2>
-            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500 mt-1.5">
+            <div className="flex items-center space-x-3">
+              {chapter.logo_url && (
+                <img 
+                  src={chapter.logo_url} 
+                  alt="" 
+                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-xs shrink-0" 
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">
+                {chapter.name}
+              </h2>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500 mt-2">
               <span className="flex items-center space-x-1">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
                 <span>{chapter.institution_or_community}</span>
@@ -118,9 +158,9 @@ export default function ChapterDetailModal({
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
                 <span>{chapter.district_or_city}, {chapter.province}</span>
               </span>
-              <span className="flex items-center space-x-1">
-                <Users className="w-3.5 h-3.5 text-slate-400" />
-                <span>{chapter.total_members_count} Active Members</span>
+              <span className="flex items-center space-x-1 text-indigo-600 font-bold">
+                <Users className="w-3.5 h-3.5" />
+                <span>{chapter.total_members_count || (chapter.members?.length || 0)} Registered Members</span>
               </span>
             </div>
           </div>
@@ -129,6 +169,7 @@ export default function ChapterDetailModal({
           <div className="flex items-center space-x-1 overflow-x-auto pb-1 scrollbar-none pt-2">
             {[
               { id: 'overview', label: 'Chapter Overview' },
+              { id: 'members', label: `👥 Members Roster (${chapter.members?.length || chapter.total_members_count || 0})` },
               { id: 'projects', label: `Projects (${chapter.projects?.length || 0})` },
               { id: 'activities', label: `Activities & Workshops (${chapter.activities?.length || 0})` },
               { id: 'leadership', label: 'Leadership & Patron' },
@@ -155,6 +196,40 @@ export default function ChapterDetailModal({
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {/* Provincial Hierarchy Card */}
+              {chapter.is_provincial_lead_university ? (
+                <div className="p-5 bg-gradient-to-r from-amber-50 via-indigo-50 to-amber-50/50 rounded-2xl border border-amber-200/80 flex items-start space-x-3.5">
+                  <div className="p-2.5 bg-amber-400 text-slate-950 rounded-xl shrink-0 mt-0.5">
+                    <Landmark className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-black text-slate-900 text-sm">Provincial Lead Institution for {chapter.province}</span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-200 text-amber-900">Official Head Hub</span>
+                    </div>
+                    <p className="text-slate-600 font-medium leading-relaxed">
+                      This chapter serves as the assigned Provincial Lead University for {chapter.province}. It provides engineering leadership, technical mentoring, hardware lab access, and competition coordination for all secondary, high school, and community youth robotics chapters across the province.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center space-x-2.5">
+                    <Landmark className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[10px] uppercase">Provincial Leadership & Mentorship</span>
+                      <span className="font-bold text-slate-800">
+                        Led & Mentored by {chapter.assigned_provincial_university_name || 'Designated Provincial University Lead'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-bold text-[10px]">
+                    {chapter.province} Network
+                  </span>
+                </div>
+              )}
+
+              {/* Description */}
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">About This Chapter</h4>
                 <p className="text-sm text-slate-700 font-medium leading-relaxed">
@@ -199,7 +274,7 @@ export default function ChapterDetailModal({
                 </div>
               )}
 
-              {/* Public Contact & Socials */}
+              {/* Public Contact */}
               <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-slate-900">Get Involved with this Chapter</span>
@@ -217,27 +292,13 @@ export default function ChapterDetailModal({
                     </a>
                   )}
 
-                  {chapter.public_social_links?.twitter && (
+                  {chapter.public_phone && (
                     <a
-                      href={chapter.public_social_links.twitter}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-white border border-slate-200 hover:text-indigo-600 rounded-xl text-slate-600"
-                      title="Twitter / X"
+                      href={`tel:${chapter.public_phone}`}
+                      className="px-3 py-1.5 bg-white border border-slate-200 hover:border-indigo-500 rounded-xl text-slate-700 flex items-center space-x-1.5 shadow-2xs"
                     >
-                      X
-                    </a>
-                  )}
-
-                  {chapter.public_social_links?.linkedin && (
-                    <a
-                      href={chapter.public_social_links.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-white border border-slate-200 hover:text-indigo-600 rounded-xl text-slate-600"
-                      title="LinkedIn"
-                    >
-                      in
+                      <Phone className="w-3 h-3 text-emerald-600" />
+                      <span>{chapter.public_phone}</span>
                     </a>
                   )}
                 </div>
@@ -245,7 +306,103 @@ export default function ChapterDetailModal({
             </div>
           )}
 
-          {/* TAB 2: PROJECTS */}
+          {/* TAB 2: ALL MEMBERS ROSTER (User requirement: All members of each chapter must be visible) */}
+          {activeTab === 'members' && (
+            <div className="space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    Chapter Members & Student Innovators Roster
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    All registered student members, developers, and makers enrolled in this chapter.
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search member name or skill..."
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-800 bg-white w-48 focus:w-64 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {!chapter.members || chapter.members.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                  <Users className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="text-slate-500 text-xs font-medium">
+                    No individual member roster records loaded yet for this chapter. Total active member count: {chapter.total_members_count || 0}.
+                  </p>
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-slate-100 text-slate-500 text-xs">
+                  No members matched "{memberSearch}".
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {filteredMembers.map((member, idx) => (
+                    <div 
+                      key={member.id || idx}
+                      className="p-4 bg-slate-50 hover:bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-xs transition-all space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-800 font-bold text-xs flex items-center justify-center shrink-0">
+                            {member.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-slate-900 text-xs">{member.name}</h5>
+                            {member.student_or_staff_id && (
+                              <span className="text-[10px] font-mono text-slate-400 block">{member.student_or_staff_id}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase",
+                          member.status === 'active' ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+                        )}>
+                          {member.status || 'Active'}
+                        </span>
+                      </div>
+
+                      {member.role && (
+                        <div className="pt-1">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white text-indigo-700 border border-indigo-100 inline-block">
+                            {member.role}
+                          </span>
+                        </div>
+                      )}
+
+                      {(member.email || member.phone) && (
+                        <div className="pt-2 border-t border-slate-100/80 space-y-1 text-[11px] text-slate-500 font-mono">
+                          {member.email && (
+                            <p className="truncate flex items-center space-x-1">
+                              <Mail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                              <span>{member.email}</span>
+                            </p>
+                          )}
+                          {member.phone && (
+                            <p className="truncate flex items-center space-x-1">
+                              <Phone className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                              <span>{member.phone}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: PROJECTS */}
           {activeTab === 'projects' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -308,7 +465,7 @@ export default function ChapterDetailModal({
             </div>
           )}
 
-          {/* TAB 3: ACTIVITIES */}
+          {/* TAB 4: ACTIVITIES */}
           {activeTab === 'activities' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -348,18 +505,25 @@ export default function ChapterDetailModal({
             </div>
           )}
 
-          {/* TAB 4: LEADERSHIP */}
+          {/* TAB 5: LEADERSHIP */}
           {activeTab === 'leadership' && (
             <div className="space-y-6">
-              {/* Chapter Leaders Roster */}
               <div className="space-y-3">
                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Executive Committee Leaders</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {chapter.leaders?.map(leader => (
                     <div key={leader.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 inline-block">
-                        {leader.role.replace('_', ' ')}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 inline-block">
+                          {leader.role.replace('_', ' ')}
+                        </span>
+                        {leader.is_approved_by_admin && (
+                          <span className="flex items-center space-x-1 text-[10px] font-bold text-emerald-700">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>Certified</span>
+                          </span>
+                        )}
+                      </div>
                       <h5 className="font-bold text-slate-900 text-sm">{leader.name}</h5>
                       {leader.department_or_grade && (
                         <p className="text-[11px] text-slate-500 font-medium">{leader.department_or_grade}</p>
@@ -390,7 +554,7 @@ export default function ChapterDetailModal({
             </div>
           )}
 
-          {/* TAB 5: CONFIDENTIAL & EXECUTIVE DATA (Only visible to Admin or Chapter Leader) */}
+          {/* TAB 6: CONFIDENTIAL DATA */}
           {activeTab === 'confidential' && canViewConfidential && (
             <div className="space-y-6">
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start space-x-3 text-amber-900">
@@ -441,21 +605,6 @@ export default function ChapterDetailModal({
                   <p className="text-xs text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
                     {chapter.confidential_info.private_executive_notes}
                   </p>
-                </div>
-              )}
-
-              {chapter.confidential_info?.internal_drive_link && (
-                <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200">
-                  <span className="text-xs font-bold text-slate-800">Chapter Internal Google Drive Folder</span>
-                  <a
-                    href={chapter.confidential_info.internal_drive_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs"
-                  >
-                    <span>Open Drive</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
                 </div>
               )}
             </div>

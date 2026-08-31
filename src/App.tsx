@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { supabase } from './lib/supabase';
+import { safeSignOut } from './lib/supabase';
 import { Lock } from 'lucide-react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -65,7 +65,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           Your account has been halted by an administrator. Please contact support or your administrator to resolve this.
         </p>
         <button 
-          onClick={() => supabase.auth.signOut()}
+          onClick={() => safeSignOut()}
           className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all"
         >
           Sign Out

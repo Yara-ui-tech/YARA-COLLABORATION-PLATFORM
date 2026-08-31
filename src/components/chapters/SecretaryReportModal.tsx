@@ -163,29 +163,32 @@ export default function SecretaryReportModal({
         treasurer_name: formData.submitted_by_name
       } : undefined;
 
-      await submitChapterReport({
-        chapter_id: selectedChapter.id,
-        chapter_name: selectedChapter.name,
-        chapter_category: selectedChapter.category,
-        report_title: formData.report_title,
-        report_category: reportCategory,
-        period_type: reportCategory === 'financial' ? 'financial' : formData.period_type,
-        period_date: formData.period_date,
-        submitted_by_name: formData.submitted_by_name || 'Chapter Leader',
-        submitted_by_role: formData.submitted_by_role,
-        submitted_by_email: formData.submitted_by_email,
-        executive_summary: formData.executive_summary,
-        activities_undertaken: formData.activities_undertaken,
-        attendance_count: Number(formData.attendance_count) || 0,
-        hardware_projects_update: formData.hardware_projects_update,
-        challenges_and_needs: formData.challenges_and_needs,
-        report_document_url: formData.report_document_url,
-        financial_statement_url: formData.financial_statement_url || formData.report_document_url,
-        financial_data: financialData,
-        lock_submission: lockSubmission,
-        access_pin: accessPin,
-        is_admin: isAdmin
-      });
+      await submitChapterReport(
+        {
+          chapter_id: selectedChapter.id,
+          chapter_name: selectedChapter.name,
+          chapter_category: selectedChapter.category,
+          report_title: formData.report_title,
+          report_category: reportCategory,
+          period_type: reportCategory === 'financial' ? 'financial' : formData.period_type,
+          period_date: formData.period_date,
+          submitted_by_name: formData.submitted_by_name || 'Chapter Leader',
+          submitted_by_role: formData.submitted_by_role,
+          submitted_by_email: formData.submitted_by_email,
+          executive_summary: formData.executive_summary,
+          activities_undertaken: formData.activities_undertaken,
+          attendance_count: Number(formData.attendance_count) || 0,
+          hardware_projects_update: formData.hardware_projects_update,
+          challenges_and_needs: formData.challenges_and_needs,
+          report_document_url: formData.report_document_url,
+          financial_statement_url: formData.financial_statement_url || formData.report_document_url,
+          financial_data: financialData
+        },
+        {
+          secretarialAccessPin: accessPin,
+          isAdmin: isAdmin
+        }
+      );
 
       setSuccessMsg(
         lockSubmission

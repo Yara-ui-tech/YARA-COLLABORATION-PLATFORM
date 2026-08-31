@@ -55,8 +55,8 @@ export default function MentorDashboard() {
       fetchAssignedSessions();
       alert('Marked delivered');
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'Failed to mark delivered');
+      console.warn('Failed to mark delivered:', err?.message || err);
+      alert(err?.message || 'Failed to mark delivered');
     }
   };
 
@@ -81,8 +81,8 @@ export default function MentorDashboard() {
       if (refreshProfile) await refreshProfile();
       alert('Commission log submitted — admin will review.');
     } catch (err: any) {
-      console.error(err);
-      alert(err.message || 'Failed to submit');
+      console.warn('Failed to submit commission log:', err?.message || err);
+      alert(err?.message || 'Failed to submit');
     } finally {
       setLoading(false);
     }

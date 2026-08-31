@@ -7,7 +7,7 @@ import {
   Handshake, Phone, Brain, Trophy, Heart, UserCheck,
   Award, MonitorPlay, QrCode, DollarSign, Radio, Building2
 } from 'lucide-react';
-import { supabase, clearStaleSupabaseAuth } from '../lib/supabase';
+import { safeSignOut } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -53,13 +53,7 @@ export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
-    try {
-      clearStaleSupabaseAuth();
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.warn('Logout note:', error);
-      clearStaleSupabaseAuth();
-    }
+    await safeSignOut();
   };
 
   const isAdmin = profile?.role === 'admin';

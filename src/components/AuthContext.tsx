@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase, clearStaleSupabaseAuth } from '../lib/supabase';
+import { supabase, clearStaleSupabaseAuth, safeSignOut } from '../lib/supabase';
 
 interface UserProfile {
   id: string;
@@ -206,12 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             (error as any).status === 400;
 
           if (isInvalidToken) {
-            clearStaleSupabaseAuth();
-            try {
-              await supabase.auth.signOut({ scope: 'local' });
-            } catch {
-              // ignore
-            }
+            safeSignOut();
           }
         }
 
@@ -232,19 +227,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!currentUser) setLoading(false);
         }
       } catch (err: any) {
-        console.warn('Authentication initialization warning:', err);
+        console.warn('Authentication initialization warning:', err?.message || err);
         const isInvalidToken =
           err?.message?.includes('Refresh Token Not Found') ||
           err?.message?.includes('Invalid Refresh Token') ||
           err?.message?.includes('refresh_token_not_found');
 
         if (isInvalidToken) {
-          clearStaleSupabaseAuth();
-          try {
-            await supabase.auth.signOut({ scope: 'local' });
-          } catch {
-            // ignore
-          }
+          safeSignOut();
         }
 
         if (mounted) {
