@@ -16,6 +16,49 @@ interface EducatorCertificateProps {
   isAdmin?: boolean;
 }
 
+// Convert all images inside container to base64 Data URLs to prevent canvas tainting
+async function convertImagesToBase64(container: HTMLElement): Promise<void> {
+  const images = Array.from(container.querySelectorAll('img'));
+  await Promise.all(images.map(async (img) => {
+    try {
+      if (img.src && !img.src.startsWith('data:')) {
+        if (img.complete && img.naturalWidth > 0) {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL('image/png');
+              if (dataUrl && dataUrl.startsWith('data:')) {
+                img.src = dataUrl;
+                return;
+              }
+            }
+          } catch {
+            // fallback to fetch
+          }
+        }
+        
+        const res = await fetch(img.src, { mode: 'cors' });
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        if (dataUrl && dataUrl.startsWith('data:')) {
+          img.src = dataUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('Image base64 conversion note:', err);
+    }
+  }));
+}
+
 export default function EducatorCertificate({
   data,
   onClose,
@@ -24,35 +67,68 @@ export default function EducatorCertificate({
 }: EducatorCertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [isGeneratingJpg, setIsGeneratingJpg] = useState(false);
   const [isGeneratingPng, setIsGeneratingPng] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const isLocked = data.status === 'locked' && !isAdmin;
 
-  // Direct High-Resolution PNG Export (No surrounding webpage artifacts)
+  // Helper to render high-resolution canvas with embedded assets
+  const renderCertificateCanvas = async (element: HTMLElement) => {
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+
+    return await html2canvas(element, {
+      scale: 3, // Ultra-sharp 300 DPI resolution
+      useCORS: true,
+      allowTaint: false, // Critical: prevent canvas security errors on toDataURL
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 10000,
+      onclone: async (clonedDoc) => {
+        const clonedElem = clonedDoc.getElementById('educator-certificate-document');
+        if (clonedElem) {
+          clonedElem.style.borderRadius = '0px';
+          clonedElem.style.boxShadow = 'none';
+          clonedElem.style.transform = 'none';
+          await convertImagesToBase64(clonedElem);
+        }
+      }
+    });
+  };
+
+  // 1. Direct High-Resolution JPG Export (Ultra-sharp, compatible with all mobile/desktop devices)
+  const handleDownloadJpg = async () => {
+    if (isLocked || !certificateRef.current) return;
+    setIsGeneratingJpg(true);
+    try {
+      const canvas = await renderCertificateCanvas(certificateRef.current);
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const link = document.createElement('a');
+      const safeName = (data.recipient_name || 'Educator').replace(/[^a-zA-Z0-9]/g, '_');
+      const safeCert = (data.certificate_number || 'YARA_CERT').replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `YARA_Certified_AI_Educator_${safeName}_${safeCert}.jpg`;
+      link.href = imgData;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to generate certificate JPG:', err);
+      // Fallback directly to native print/save dialog
+      window.print();
+    } finally {
+      setIsGeneratingJpg(false);
+    }
+  };
+
+  // 2. Direct High-Resolution Lossless PNG Export
   const handleDownloadPng = async () => {
-    if (isLocked) return;
-    if (!certificateRef.current) return;
+    if (isLocked || !certificateRef.current) return;
     setIsGeneratingPng(true);
     try {
-      const element = certificateRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-          const clonedElem = clonedDoc.getElementById('educator-certificate-document');
-          if (clonedElem) {
-            clonedElem.style.borderRadius = '0px';
-            clonedElem.style.boxShadow = 'none';
-            clonedElem.style.transform = 'none';
-          }
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const canvas = await renderCertificateCanvas(certificateRef.current);
+      const imgData = canvas.toDataURL('image/png');
       const link = document.createElement('a');
       const safeName = (data.recipient_name || 'Educator').replace(/[^a-zA-Z0-9]/g, '_');
       const safeCert = (data.certificate_number || 'YARA_CERT').replace(/[^a-zA-Z0-9]/g, '_');
@@ -63,36 +139,19 @@ export default function EducatorCertificate({
       document.body.removeChild(link);
     } catch (err) {
       console.error('Failed to generate certificate PNG:', err);
-      alert('Could not render PNG automatically. Please use the Print / Save PDF option.');
+      window.print();
     } finally {
       setIsGeneratingPng(false);
     }
   };
 
-  // Direct 1-Page Vector/Image PDF Export (A4 Landscape 297mm x 210mm)
+  // 3. Direct 1-Page Vector/Image PDF Export (A4 Landscape 297mm x 210mm)
   const handleDownloadPdf = async () => {
-    if (isLocked) return;
-    if (!certificateRef.current) return;
+    if (isLocked || !certificateRef.current) return;
     setIsGeneratingPdf(true);
     try {
-      const element = certificateRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-          const clonedElem = clonedDoc.getElementById('educator-certificate-document');
-          if (clonedElem) {
-            clonedElem.style.borderRadius = '0px';
-            clonedElem.style.boxShadow = 'none';
-            clonedElem.style.transform = 'none';
-          }
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const canvas = await renderCertificateCanvas(certificateRef.current);
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -100,7 +159,7 @@ export default function EducatorCertificate({
       });
 
       // Exactly 1 page: A4 landscape dimensions 297mm x 210mm
-      pdf.addImage(imgData, 'PNG', 0, 0, 297, 210, undefined, 'FAST');
+      pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
       const safeName = (data.recipient_name || 'Educator').replace(/[^a-zA-Z0-9]/g, '_');
       const safeCert = (data.certificate_number || 'YARA_CERT').replace(/[^a-zA-Z0-9]/g, '_');
       pdf.save(`YARA_Certificate_${safeName}_${safeCert}.pdf`);
@@ -196,30 +255,50 @@ export default function EducatorCertificate({
 
             {/* Right: Quick Action Download / Print Buttons */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* 1. Download PNG Button */}
+              {/* 1. Download JPG (Recommended, Ultra-sharp 300 DPI) */}
               <button
-                onClick={handleDownloadPng}
-                disabled={isGeneratingPng}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
-                title="Download pristine high-resolution PNG image"
+                onClick={handleDownloadJpg}
+                disabled={isGeneratingJpg || isGeneratingPng || isGeneratingPdf}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-amber-500/25 cursor-pointer disabled:opacity-50"
+                title="Download high-resolution JPG image (Recommended format for all devices & printing)"
               >
-                {isGeneratingPng ? (
+                {isGeneratingJpg ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Rendering PNG...</span>
+                    <span>Saving JPG...</span>
                   </>
                 ) : (
                   <>
                     <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Download PNG</span>
+                    <span>Download JPG</span>
                   </>
                 )}
               </button>
 
-              {/* 2. Download 1-Page PDF Button */}
+              {/* 2. Download PNG Button */}
+              <button
+                onClick={handleDownloadPng}
+                disabled={isGeneratingJpg || isGeneratingPng || isGeneratingPdf}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                title="Download lossless PNG format"
+              >
+                {isGeneratingPng ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Rendering...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>PNG</span>
+                  </>
+                )}
+              </button>
+
+              {/* 3. Download 1-Page PDF Button */}
               <button
                 onClick={handleDownloadPdf}
-                disabled={isGeneratingPdf}
+                disabled={isGeneratingJpg || isGeneratingPng || isGeneratingPdf}
                 className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/25 cursor-pointer disabled:opacity-50"
                 title="Download 1-Page A4 landscape PDF"
               >
@@ -230,23 +309,23 @@ export default function EducatorCertificate({
                   </>
                 ) : (
                   <>
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download PDF</span>
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>PDF</span>
                   </>
                 )}
               </button>
 
-              {/* 3. Print / Save as PDF */}
+              {/* 4. Print / Save as PDF */}
               <button
                 onClick={handlePrint}
                 className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                title="Open browser print dialog"
+                title="Open browser print dialog to print or save as PDF"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Print</span>
               </button>
 
-              {/* 4. Share Verification Link */}
+              {/* 5. Share Verification Link */}
               <button
                 onClick={handleCopyLink}
                 className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
@@ -256,7 +335,7 @@ export default function EducatorCertificate({
                 <span>{copied ? 'Copied' : 'Share'}</span>
               </button>
 
-              {/* 5. Public Verification URL */}
+              {/* 6. Public Verification URL */}
               <a
                 href={data.verification_url}
                 target="_blank"
