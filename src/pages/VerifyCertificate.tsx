@@ -9,12 +9,15 @@ import {
   Calendar, 
   User, 
   BookOpen, 
-  Sparkles,
+  Sparkles, 
   ArrowLeft,
   Printer
 } from 'lucide-react';
 import { getPublicCertificate } from '../services/yaraLmsService';
+import { getEducatorCertificateByCodeOrEmail } from '../services/eventRegistrationService';
 import { Certificate } from '../types/curriculum';
+import { EducatorCertificateData } from '../types/eventRegistration';
+import EducatorCertificate from '../components/events/EducatorCertificate';
 
 export default function VerifyCertificate() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,6 +25,7 @@ export default function VerifyCertificate() {
 
   const [inputCode, setInputCode] = useState(certIdFromQuery);
   const [certificate, setCertificate] = useState<Certificate | null>(null);
+  const [educatorCertificate, setEducatorCertificate] = useState<EducatorCertificateData | null>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -37,12 +41,25 @@ export default function VerifyCertificate() {
 
     setLoading(true);
     setSearched(true);
+    setCertificate(null);
+    setEducatorCertificate(null);
+
     try {
+      // 1. Check Educator Certificate first
+      const eduCert = await getEducatorCertificateByCodeOrEmail(code);
+      if (eduCert) {
+        setEducatorCertificate(eduCert);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check LMS Graduate Certificate
       const found = await getPublicCertificate(code);
       setCertificate(found);
     } catch (e) {
       console.error('Verify error:', e);
       setCertificate(null);
+      setEducatorCertificate(null);
     } finally {
       setLoading(false);
     }
@@ -58,9 +75,9 @@ export default function VerifyCertificate() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         {/* Navigation back */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between print:hidden">
           <Link
             to="/learning"
             className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
@@ -73,8 +90,8 @@ export default function VerifyCertificate() {
         </div>
 
         {/* Verification Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6">
-          <div className="text-center space-y-2">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6 print:border-none print:shadow-none print:p-0">
+          <div className="text-center space-y-2 print:hidden">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 shadow-xs">
               <ShieldCheck className="w-6 h-6" />
             </div>
@@ -87,12 +104,12 @@ export default function VerifyCertificate() {
           </div>
 
           {/* Search Bar */}
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 print:hidden">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Enter Certificate ID (e.g. YARA-CERT-2026-000123)"
+                placeholder="Enter Certificate ID (e.g. YARA-CERT-2026-000123 or YARA-AI-EDU-2026-...)"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
@@ -101,7 +118,7 @@ export default function VerifyCertificate() {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
             >
               {loading ? 'Verifying...' : 'Verify Credential'}
             </button>
@@ -113,7 +130,15 @@ export default function VerifyCertificate() {
               {loading ? (
                 <div className="py-8 text-center text-xs text-slate-400">
                   <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  Querying institutional blockchain and cryptographic registry...
+                  Querying institutional registry and cryptographic database...
+                </div>
+              ) : educatorCertificate ? (
+                /* Educator Certificate View */
+                <div className="space-y-4">
+                  <EducatorCertificate 
+                    data={educatorCertificate} 
+                    showPrintActions={true}
+                  />
                 </div>
               ) : certificate ? (
                 /* Valid Certificate View */
@@ -164,7 +189,7 @@ export default function VerifyCertificate() {
                   <div className="flex justify-end">
                     <button
                       onClick={() => window.print()}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition"
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                     >
                       <Printer className="w-3.5 h-3.5" /> Print Verification Summary
                     </button>
@@ -179,7 +204,7 @@ export default function VerifyCertificate() {
                       Invalid Certificate ID / No Record Found
                     </h4>
                     <p className="text-xs text-red-700 mt-1">
-                      No verified YARA graduate certificate was found matching code "<strong>{inputCode}</strong>".
+                      No verified YARA graduate or educator certificate was found matching code "<strong>{inputCode}</strong>".
                       Please check the ID code for typos or contact the YARA registry at <strong>0717468236</strong>.
                     </p>
                   </div>

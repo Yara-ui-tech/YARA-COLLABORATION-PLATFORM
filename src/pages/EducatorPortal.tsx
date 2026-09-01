@@ -400,15 +400,22 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  if (certificateData) setShowCertificateModal(true);
-                }}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-amber-300 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-md"
-              >
-                <Printer className="w-4 h-4" />
-                <span>{isCertUnlocked ? 'View & Download Certificate' : 'Preview Certificate'}</span>
-              </button>
+              {isCertUnlocked ? (
+                <button
+                  onClick={() => {
+                    if (certificateData) setShowCertificateModal(true);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer"
+                >
+                  <Award className="w-4 h-4 text-slate-950" />
+                  <span>View & Download Certificate</span>
+                </button>
+              ) : (
+                <div className="w-full py-3 bg-amber-50/80 border border-amber-200 text-amber-900 rounded-xl font-bold text-xs flex items-center justify-center gap-2 text-center px-3 select-none">
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Certificate Locked — Awaiting Admin Approval</span>
+                </div>
+              )}
             </div>
 
             {/* Continuous Support Info */}

@@ -1428,6 +1428,7 @@ export default function EventRegistrationsAdminTab() {
           setSelectedCertificate(null);
         }}
         certificateData={selectedCertificate}
+        isAdmin={true}
       />
 
       {/* Certificate Studio & Signatures Configuration Modal */}

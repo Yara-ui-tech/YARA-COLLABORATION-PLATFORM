@@ -2507,3 +2507,68 @@ ON CONFLICT (key) DO UPDATE SET
   description = EXCLUDED.description,
   updated_at = now();
 
+-- =========================================================================
+-- 27. SUPABASE STORAGE BUCKETS & ASSET SECURITY POLICIES
+-- =========================================================================
+-- Ensure storage extension and schema are active
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+  ('event-proofs', 'event-proofs', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  ('certificates', 'certificates', true, 15728640, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  ('chapter-media', 'chapter-media', true, 20971520, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'video/mp4']),
+  ('lesson-plans', 'lesson-plans', true, 26214400, ARRAY['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'image/jpeg', 'image/png'])
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- Storage RLS: Public Read Access
+DROP POLICY IF EXISTS "Public can view event proofs" ON storage.objects;
+CREATE POLICY "Public can view event proofs"
+  ON storage.objects FOR SELECT
+  USING (bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans'));
+
+-- Storage RLS: Anyone can upload event proof or lesson plan submissions
+DROP POLICY IF EXISTS "Public upload to event proofs" ON storage.objects;
+CREATE POLICY "Public upload to event proofs"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id IN ('event-proofs', 'chapter-media', 'lesson-plans'));
+
+-- Storage RLS: Admins have full control over all storage buckets
+DROP POLICY IF EXISTS "Admins have full storage access" ON storage.objects;
+CREATE POLICY "Admins have full storage access"
+  ON storage.objects FOR ALL
+  USING (
+    bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans')
+    AND (
+      EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+      OR auth.role() = 'service_role'
+    )
+  );
+
+-- =========================================================================
+-- 28. ADMINISTRATIVE REAL-TIME ANALYTICS & REGISTRATION STATS VIEW
+-- =========================================================================
+CREATE OR REPLACE VIEW public.admin_event_analytics_summary AS
+SELECT 
+  event_id,
+  COUNT(*) AS total_registrations,
+  COUNT(*) FILTER (WHERE payment_status = 'verified') AS verified_paid_count,
+  COUNT(*) FILTER (WHERE payment_status = 'submitted') AS proof_submitted_count,
+  COUNT(*) FILTER (WHERE payment_status = 'pending') AS pending_payment_count,
+  COUNT(*) FILTER (WHERE approval_status = 'approved') AS admin_approved_count,
+  COUNT(*) FILTER (WHERE certificate_unlocked = true) AS certificates_unlocked_count,
+  COUNT(*) FILTER (WHERE continuous_support_opt_in = true) AS continuous_support_count,
+  COALESCE(SUM(registration_fee) FILTER (WHERE payment_status = 'verified'), 0) AS total_revenue_usd,
+  COUNT(*) FILTER (WHERE has_entered_event = true) AS live_attendees_entered
+FROM public.event_registrations
+GROUP BY event_id;
+
+-- Grant select permissions on analytics view to authenticated admins and service role
+GRANT SELECT ON public.admin_event_analytics_summary TO authenticated, service_role;
+
+-- =========================================================================
+-- END OF YARA INSTITUTIONAL DATABASE SCHEMA & MIGRATION SCRIPT
+-- =========================================================================
+
+

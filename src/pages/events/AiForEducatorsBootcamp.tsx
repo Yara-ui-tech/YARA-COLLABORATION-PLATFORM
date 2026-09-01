@@ -242,9 +242,13 @@ export default function AiForEducatorsBootcamp() {
     setShowReceiptModal(true);
   };
 
-  // Open Certificate Download Modal
+  // Open Certificate Download Modal (Only if unlocked by admin)
   const handleDownloadCurrentCertificate = () => {
     if (!accessResult?.registration) return;
+    if (!accessResult.registration.certificate_unlocked) {
+      alert('Your official certificate has not been unlocked by an administrator yet. Once the YARA Executive Board approves your bootcamp completion, you will be able to download it.');
+      return;
+    }
     const cert = buildEducatorCertificate(accessResult.registration);
     setCertificateData(cert);
     setShowCertificateModal(true);
