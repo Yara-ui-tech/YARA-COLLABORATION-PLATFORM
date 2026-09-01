@@ -35,6 +35,8 @@ import {
 } from '../../services/eventRegistrationService';
 import EducatorReceiptModal from '../events/EducatorReceiptModal';
 import EducatorCertificateModal from '../events/EducatorCertificateModal';
+import CertificateSettingsModal from './CertificateSettingsModal';
+import IndividualCertificateEditModal from './IndividualCertificateEditModal';
 
 export default function EventRegistrationsAdminTab() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -56,6 +58,8 @@ export default function EventRegistrationsAdminTab() {
   // Certificate Modal & Batch State
   const [selectedCertificate, setSelectedCertificate] = useState<EducatorCertificateData | null>(null);
   const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [showCertificateSettingsModal, setShowCertificateSettingsModal] = useState(false);
+  const [editingIndividualRegistration, setEditingIndividualRegistration] = useState<EventRegistration | null>(null);
   const [isBatchUnlocking, setIsBatchUnlocking] = useState(false);
 
   // Manual Add Modal state
@@ -451,6 +455,14 @@ export default function EventRegistrationsAdminTab() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowCertificateSettingsModal(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
+              title="Edit certificate template, upload signatures (A.M. Chiambiro & S.O. Manongwa), upload seal & logo, and customize certificate copy"
+            >
+              <Award className="w-4 h-4 text-slate-950" />
+              <span>Certificate Studio & Signatures</span>
+            </button>
             <button
               onClick={() => setShowGenerateReceiptModal(true)}
               className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
@@ -1026,6 +1038,14 @@ export default function EventRegistrationsAdminTab() {
                             >
                               <Award className="w-3.5 h-3.5" />
                             </button>
+
+                            <button
+                              onClick={() => setEditingIndividualRegistration(reg)}
+                              title="Edit attendee certificate attributes (name, honors, school, cert #, unlock state)"
+                              className="p-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
                       </td>
@@ -1408,6 +1428,32 @@ export default function EventRegistrationsAdminTab() {
           setSelectedCertificate(null);
         }}
         certificateData={selectedCertificate}
+      />
+
+      {/* Certificate Studio & Signatures Configuration Modal */}
+      <CertificateSettingsModal
+        isOpen={showCertificateSettingsModal}
+        onClose={() => setShowCertificateSettingsModal(false)}
+        onSaved={() => {
+          setNotification({
+            type: 'success',
+            message: 'Official certificate template, signatures, seal, and branding have been saved and synchronized!'
+          });
+        }}
+      />
+
+      {/* Individual Participant Certificate Customizer Modal */}
+      <IndividualCertificateEditModal
+        isOpen={!!editingIndividualRegistration}
+        registration={editingIndividualRegistration}
+        onClose={() => setEditingIndividualRegistration(null)}
+        onUpdated={(updated) => {
+          setRegistrations(prev => prev.map(r => r.id === updated.id ? updated : r));
+          setNotification({
+            type: 'success',
+            message: `Certificate for ${updated.full_name} (${updated.certificate_number || 'Updated'}) has been saved!`
+          });
+        }}
       />
     </div>
   );

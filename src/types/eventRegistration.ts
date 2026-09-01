@@ -38,6 +38,27 @@ export interface EventAccessResult {
   statusType?: string;
 }
 
+export interface CertificateTemplateConfig {
+  id?: string;
+  organization_name: string;
+  sub_organization_name: string;
+  certificate_title: string;
+  certificate_subtitle: string;
+  citation_text: string;
+  honors_badge_text: string;
+  default_grade: string;
+  founder_name: string;
+  founder_title: string;
+  founder_signature_url: string;
+  regional_president_name: string;
+  regional_president_title: string;
+  regional_president_signature_url: string;
+  seal_url: string;
+  logo_url: string;
+  updated_at?: string;
+  updated_by_name?: string;
+}
+
 export interface EducatorCertificateData {
   certificate_number: string;
   recipient_name: string;
@@ -48,12 +69,19 @@ export interface EducatorCertificateData {
   event_title: string;
   event_dates: string;
   issue_date: string;
+  organization_name?: string;
+  sub_organization_name?: string;
+  certificate_title?: string;
+  certificate_subtitle?: string;
+  citation_text?: string;
   founder_name: string;
   founder_title: string;
   founder_signature?: string;
   regional_president_name: string;
   regional_president_title: string;
   regional_president_signature?: string;
+  seal_url?: string;
+  logo_url?: string;
   verification_url: string;
   qr_code_value: string;
   status: 'unlocked' | 'locked';

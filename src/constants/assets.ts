@@ -69,7 +69,9 @@ export const ASSETS = {
   // Resource Placeholders
   RESOURCE_PLACEHOLDER: '/assets/placeholders/resource.svg',
 
-  // Signatures
+  // Signatures & Official Badges
   EXECUTIVE_SIGNATURE: '/assets/executive-signature.jpg',
+  SIGNATURE_MANONGWA: '/assets/signature-manongwa.jpg',
+  SIGNATURE_CHIAMBIRO: '/assets/signature-chiambiro.jpg',
 };
 

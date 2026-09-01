@@ -8,14 +8,17 @@ import {
   EventMeetingConfig,
   EducatorReceiptData,
   EducatorCertificateData,
+  CertificateTemplateConfig,
   AI_FOR_EDUCATORS_EVENT 
 } from '../types/eventRegistration';
+import { ASSETS } from '../constants/assets';
 
 export { AI_FOR_EDUCATORS_EVENT };
-export type { EventMeetingConfig, EducatorReceiptData, EducatorCertificateData };
+export type { EventMeetingConfig, EducatorReceiptData, EducatorCertificateData, CertificateTemplateConfig };
 
 const STORAGE_KEY = 'yara_event_registrations_store';
 const MEETING_CONFIG_KEY = 'yara_event_meeting_configs_store';
+const CERTIFICATE_TEMPLATE_CONFIG_KEY = 'yara_certificate_template_config_store';
 
 export const CANONICAL_AI_BOOTCAMP_ID = AI_FOR_EDUCATORS_EVENT.id; // 'ai-for-educators-2026'
 
@@ -1226,9 +1229,189 @@ export async function generateEducatorReceiptByNameAndRef(
 // ============================================================================
 
 export const OFFICIAL_FOUNDER_NAME = "Mr. S.O. Manongwa";
-export const OFFICIAL_FOUNDER_TITLE = "Founder & Lead Instructor, YARA";
+export const OFFICIAL_FOUNDER_TITLE = "Founder & Lead Instructor\nYoung Africans Robotics Association (YARA)";
 export const OFFICIAL_REGIONAL_PRESIDENT_NAME = "Ms. A.M. Chiambiro";
-export const OFFICIAL_REGIONAL_PRESIDENT_TITLE = "Regional President, YARA Zimbabwe";
+export const OFFICIAL_REGIONAL_PRESIDENT_TITLE = "Regional President\nYARA Zimbabwe";
+
+export const DEFAULT_CERTIFICATE_TEMPLATE_CONFIG: CertificateTemplateConfig = {
+  id: 'yara_default_educator_template',
+  organization_name: "YARA ACADEMY OF ADVANCED ROBOTICS & AI",
+  sub_organization_name: "In Collaboration with YARA Zimbabwe • Executive Directorate",
+  certificate_title: "CERTIFICATE OF COMPLETION",
+  certificate_subtitle: "AI FOR EDUCATORS MASTERCLASS & PEDAGOGY ACCREDITATION",
+  citation_text: "has successfully completed the comprehensive national masterclass curriculum on Generative AI Tools for Education, Advanced Prompt Engineering, Automated Lesson Planning, Intelligent Student Assessment Systems, and ethical AI integration in primary & secondary classrooms, satisfying all evaluation criteria with:",
+  honors_badge_text: "Certified Educator - AI & Digital Pedagogy (Honors)",
+  default_grade: "Certified Educator - AI & Digital Pedagogy",
+  founder_name: OFFICIAL_FOUNDER_NAME,
+  founder_title: OFFICIAL_FOUNDER_TITLE,
+  founder_signature_url: ASSETS.SIGNATURE_MANONGWA,
+  regional_president_name: OFFICIAL_REGIONAL_PRESIDENT_NAME,
+  regional_president_title: OFFICIAL_REGIONAL_PRESIDENT_TITLE,
+  regional_president_signature_url: ASSETS.SIGNATURE_CHIAMBIRO,
+  seal_url: ASSETS.EDUCATOR_SEAL,
+  logo_url: ASSETS.LOGO,
+  updated_at: new Date().toISOString(),
+  updated_by_name: 'YARA Executive Administration'
+};
+
+/**
+ * Gets cached or default certificate template configuration
+ */
+export function getCertificateTemplateConfig(): CertificateTemplateConfig {
+  try {
+    const raw = localStorage.getItem(CERTIFICATE_TEMPLATE_CONFIG_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_CERTIFICATE_TEMPLATE_CONFIG,
+        ...parsed
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return DEFAULT_CERTIFICATE_TEMPLATE_CONFIG;
+}
+
+/**
+ * Fetches certificate template config from Supabase or localStorage
+ */
+export async function fetchCertificateTemplateConfig(): Promise<CertificateTemplateConfig> {
+  const local = getCertificateTemplateConfig();
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'certificate_template_config')
+      .single();
+
+    if (!error && data?.value) {
+      const merged = { ...local, ...data.value };
+      localStorage.setItem(CERTIFICATE_TEMPLATE_CONFIG_KEY, JSON.stringify(merged));
+      return merged;
+    }
+  } catch {
+    // safe fallback to local
+  }
+  return local;
+}
+
+/**
+ * Updates certificate template configuration (signatures, seals, organization title, citation)
+ */
+export async function updateCertificateTemplateConfig(
+  newConfig: Partial<CertificateTemplateConfig>,
+  adminName: string = 'YARA Administrator'
+): Promise<CertificateTemplateConfig> {
+  const current = getCertificateTemplateConfig();
+  const updated: CertificateTemplateConfig = {
+    ...current,
+    ...newConfig,
+    updated_at: new Date().toISOString(),
+    updated_by_name: adminName
+  };
+
+  try {
+    localStorage.setItem(CERTIFICATE_TEMPLATE_CONFIG_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('yara_certificate_template_updated', { detail: updated }));
+  } catch (e) {
+    console.warn('Error persisting local certificate config:', e);
+  }
+
+  // Attempt database backup
+  try {
+    await supabase.from('site_settings').upsert({
+      key: 'certificate_template_config',
+      value: updated,
+      updated_at: new Date().toISOString()
+    });
+  } catch {
+    // fallback safe
+  }
+
+  return updated;
+}
+
+/**
+ * Subscribes to live certificate template updates
+ */
+export function subscribeToCertificateTemplateConfig(
+  callback: (cfg: CertificateTemplateConfig) => void
+): () => void {
+  const handler = (e: any) => {
+    if (e.detail) {
+      callback(e.detail);
+    }
+  };
+  window.addEventListener('yara_certificate_template_updated', handler);
+  return () => window.removeEventListener('yara_certificate_template_updated', handler);
+}
+
+/**
+ * Updates individual participant certificate overrides (e.g. customized name, grade, certificate number)
+ */
+export async function updateIndividualRegistrationCertificate(
+  registrationId: string,
+  overrides: {
+    full_name?: string;
+    school_institution?: string;
+    province?: string;
+    role_title?: string;
+    certificate_number?: string;
+    certificate_grade?: string;
+    certificate_unlocked?: boolean;
+    issue_date?: string;
+  },
+  adminName: string = 'YARA Executive Administrator'
+): Promise<EventRegistration | null> {
+  const all = getLocalRegistrations();
+  const index = all.findIndex(r => r.id === registrationId);
+  const current = all[index] || (await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id)).find(r => r.id === registrationId);
+  if (!current) return null;
+
+  const now = new Date().toISOString();
+  const updated: EventRegistration = {
+    ...current,
+    ...(overrides.full_name ? { full_name: overrides.full_name } : {}),
+    ...(overrides.school_institution ? { school_institution: overrides.school_institution } : {}),
+    ...(overrides.province ? { province: overrides.province } : {}),
+    ...(overrides.role_title ? { role_title: overrides.role_title } : {}),
+    ...(overrides.certificate_number ? { certificate_number: overrides.certificate_number } : {}),
+    ...(overrides.certificate_grade ? { certificate_grade: overrides.certificate_grade } : {}),
+    ...(overrides.certificate_unlocked !== undefined ? { 
+      certificate_unlocked: overrides.certificate_unlocked,
+      certificate_unlocked_at: overrides.certificate_unlocked ? now : undefined,
+      certificate_unlocked_by: overrides.certificate_unlocked ? adminName : undefined
+    } : {}),
+    updated_at: now
+  };
+
+  if (index !== -1) {
+    all[index] = updated;
+    saveLocalRegistrations(all);
+  } else {
+    saveLocalRegistrations([updated, ...all]);
+  }
+
+  try {
+    await supabase.from('event_registrations').update({
+      full_name: updated.full_name,
+      school_institution: updated.school_institution,
+      province: updated.province,
+      role_title: updated.role_title,
+      certificate_number: updated.certificate_number,
+      certificate_grade: updated.certificate_grade,
+      certificate_unlocked: updated.certificate_unlocked,
+      certificate_unlocked_at: updated.certificate_unlocked_at,
+      certificate_unlocked_by: updated.certificate_unlocked_by,
+      updated_at: now
+    }).eq('id', registrationId);
+  } catch (err) {
+    console.warn('Could not sync individual certificate to Supabase:', err);
+  }
+
+  return updated;
+}
 
 /**
  * Builds the comprehensive certificate data model for an educator
@@ -1237,8 +1420,9 @@ export function buildEducatorCertificate(
   reg: EventRegistration,
   overrides?: Partial<EducatorCertificateData>
 ): EducatorCertificateData {
+  const tpl = getCertificateTemplateConfig();
   const code = (reg.registration_code || (reg.id ? (reg.id.startsWith('evt_reg_') ? reg.id.substring(8, 16).toUpperCase() : reg.id) : generateRegistrationCode())).toUpperCase();
-  const certSuffix = (reg.certificate_number || `YARA-AI-EDU-2026-${code.replace('YARA-AI-', '')}`).toUpperCase();
+  const certSuffix = (reg.certificate_number || overrides?.certificate_number || `YARA-AI-EDU-2026-${code.replace('YARA-AI-', '')}`).toUpperCase();
   
   const issueDateStr = reg.certificate_unlocked_at
     ? new Date(reg.certificate_unlocked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -1256,15 +1440,24 @@ export function buildEducatorCertificate(
     event_title: overrides?.event_title || AI_FOR_EDUCATORS_EVENT.title,
     event_dates: overrides?.event_dates || AI_FOR_EDUCATORS_EVENT.dates_display,
     issue_date: overrides?.issue_date || issueDateStr,
-    founder_name: overrides?.founder_name || OFFICIAL_FOUNDER_NAME,
-    founder_title: overrides?.founder_title || OFFICIAL_FOUNDER_TITLE,
-    regional_president_name: overrides?.regional_president_name || OFFICIAL_REGIONAL_PRESIDENT_NAME,
-    regional_president_title: overrides?.regional_president_title || OFFICIAL_REGIONAL_PRESIDENT_TITLE,
+    organization_name: overrides?.organization_name || tpl.organization_name,
+    sub_organization_name: overrides?.sub_organization_name || tpl.sub_organization_name,
+    certificate_title: overrides?.certificate_title || tpl.certificate_title,
+    certificate_subtitle: overrides?.certificate_subtitle || tpl.certificate_subtitle,
+    citation_text: overrides?.citation_text || tpl.citation_text,
+    founder_name: overrides?.founder_name || tpl.founder_name,
+    founder_title: overrides?.founder_title || tpl.founder_title,
+    founder_signature: overrides?.founder_signature || tpl.founder_signature_url,
+    regional_president_name: overrides?.regional_president_name || tpl.regional_president_name,
+    regional_president_title: overrides?.regional_president_title || tpl.regional_president_title,
+    regional_president_signature: overrides?.regional_president_signature || tpl.regional_president_signature_url,
+    seal_url: overrides?.seal_url || tpl.seal_url,
+    logo_url: overrides?.logo_url || tpl.logo_url,
     verification_url: overrides?.verification_url || verificationUrl,
     qr_code_value: overrides?.qr_code_value || verificationUrl,
     status: (overrides?.status || (reg.certificate_unlocked ? 'unlocked' : 'locked')),
-    grade: overrides?.grade || reg.certificate_grade || 'Distinction in Educational AI Pedagogy',
-    honors: overrides?.honors || 'Certified AI Educator (Foundational Mastery)'
+    grade: overrides?.grade || reg.certificate_grade || tpl.default_grade,
+    honors: overrides?.honors || tpl.honors_badge_text
   };
 }
 

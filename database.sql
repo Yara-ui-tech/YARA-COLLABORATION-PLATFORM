@@ -2438,3 +2438,72 @@ DROP TRIGGER IF EXISTS update_chapter_reports_updated_at ON public.chapter_repor
 CREATE TRIGGER update_chapter_reports_updated_at
   BEFORE UPDATE ON public.chapter_reports
   FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- =========================================================================
+-- 26. SITE SETTINGS & GLOBAL CERTIFICATE TEMPLATE ENGINE
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  description TEXT,
+  updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_by_name TEXT DEFAULT 'YARA Administration',
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view site settings" ON public.site_settings;
+CREATE POLICY "Public can view site settings"
+  ON public.site_settings FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage site settings" ON public.site_settings;
+CREATE POLICY "Admins can manage site settings"
+  ON public.site_settings FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  );
+
+DROP TRIGGER IF EXISTS update_site_settings_updated_at ON public.site_settings;
+CREATE TRIGGER update_site_settings_updated_at
+  BEFORE UPDATE ON public.site_settings
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- Seed initial certificate template configuration
+INSERT INTO public.site_settings (key, value, description, updated_by_name)
+VALUES (
+  'certificate_template_config',
+  '{
+    "id": "yara_default_educator_template",
+    "organization_name": "YARA ACADEMY OF ADVANCED ROBOTICS & AI",
+    "sub_organization_name": "In Collaboration with YARA Zimbabwe • Executive Directorate",
+    "certificate_title": "CERTIFICATE OF COMPLETION",
+    "certificate_subtitle": "AI FOR EDUCATORS MASTERCLASS & PEDAGOGY ACCREDITATION",
+    "citation_text": "has successfully completed the comprehensive national masterclass curriculum on Generative AI Tools for Education, Advanced Prompt Engineering, Automated Lesson Planning, Intelligent Student Assessment Systems, and ethical AI integration in primary & secondary classrooms, satisfying all evaluation criteria with:",
+    "honors_badge_text": "Certified Educator - AI & Digital Pedagogy (Honors)",
+    "default_grade": "Certified Educator - AI & Digital Pedagogy",
+    "founder_name": "Mr. S.O. Manongwa",
+    "founder_title": "Founder & Lead Instructor\nYoung Africans Robotics Association (YARA)",
+    "founder_signature_url": "/assets/signature-so-manongwa.png",
+    "regional_president_name": "Ms. A.M. Chiambiro",
+    "regional_president_title": "Regional President\nYARA Zimbabwe",
+    "regional_president_signature_url": "/assets/signature-am-chiambiro.png",
+    "seal_url": "/assets/seal-certified-ai-educators.png",
+    "logo_url": "/assets/logo.png",
+    "updated_by_name": "YARA Executive Administration"
+  }'::jsonb,
+  'Official executive layout, signatures, gold seal, and citation copy for YARA Educator Accreditation Certificates',
+  'YARA Executive Administration'
+)
+ON CONFLICT (key) DO UPDATE SET
+  value = EXCLUDED.value,
+  description = EXCLUDED.description,
+  updated_at = now();
+
