@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import LearnerDashboard from './LearnerDashboard';
 import MentorDashboard from './MentorDashboard';
+import EducatorPortal from './EducatorPortal';
 import { ASSETS } from '../constants/assets';
 
 function DashboardHero({ name, role }: { name?: string; role?: string }) {
@@ -12,7 +13,9 @@ function DashboardHero({ name, role }: { name?: string; role?: string }) {
       <div className="absolute inset-0 flex items-center justify-between px-8">
         <div className="text-white">
           <h2 className="text-2xl font-extrabold">Welcome{ name ? `, ${name}` : '' }</h2>
-          <p className="text-sm opacity-90 mt-1">{role === 'mentor' ? 'Mentor Tools & Insights' : role === 'admin' ? 'Admin Console' : 'Your learning hub'}</p>
+          <p className="text-sm opacity-90 mt-1">
+            {role === 'mentor' ? 'Mentor Tools & Insights' : role === 'admin' ? 'Admin Console' : role === 'teacher' ? 'Teacher & Educator AI Portal' : 'Your learning hub'}
+          </p>
         </div>
         <div className="hidden md:flex items-center gap-4">
           <button className="bg-white/10 text-white px-4 py-2 rounded-full border border-white/20">Quick Actions</button>
@@ -35,6 +38,10 @@ export default function Dashboard() {
 
   if (profile?.role === 'admin') {
     return <Navigate to="/admin" replace />;
+  }
+
+  if (profile?.role === 'teacher') {
+    return <EducatorPortal />;
   }
 
   if (profile?.role === 'mentor') {

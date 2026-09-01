@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase, clearStaleSupabaseAuth, safeSignOut } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign } from 'lucide-react';
+import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -14,14 +14,14 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState<'innovator' | 'mentor' | 'admin'>('innovator');
+  const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState('');
   const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
   const navigate = useNavigate();
-  const { user, isAuthReady } = useAuth();
+  const { user, profile, isAuthReady } = useAuth();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -39,6 +39,12 @@ export default function Auth() {
   }, []);
 
   if (isAuthReady && user) {
+    if (profile?.role === 'teacher') {
+      return <Navigate to="/educator-portal" />;
+    }
+    if (profile?.role === 'admin') {
+      return <Navigate to="/admin" />;
+    }
     return <Navigate to="/dashboard" />;
   }
 
@@ -73,7 +79,7 @@ export default function Auth() {
           const cleanMemberId = memberId.trim();
           const { data: profileData, error: lookupError } = await supabase
             .from('profiles')
-            .select('email, is_halted')
+            .select('email, is_halted, role, tier')
             .ilike('member_id', cleanMemberId)
             .single();
 
@@ -97,10 +103,10 @@ export default function Auth() {
         if (signInError) throw signInError;
 
         if (signInData.user) {
-          // Verify account is not halted
+          // Verify account is not halted and get role
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('is_halted')
+            .select('is_halted, role, tier')
             .eq('id', signInData.user.id)
             .single();
           
@@ -108,12 +114,22 @@ export default function Auth() {
             await safeSignOut();
             throw new Error('Your account has been halted by an administrator. Please contact support.');
           }
+
+          if (profileData?.role === 'teacher' || profileData?.tier === 'T1') {
+            navigate('/educator-portal');
+            return;
+          }
+          if (profileData?.role === 'admin') {
+            navigate('/admin');
+            return;
+          }
         }
       } else {
         // Sign Up Flow
         const cleanEmail = email.trim().toLowerCase();
         const isAdminEmail = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com';
         const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
+        const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
         const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -123,7 +139,8 @@ export default function Auth() {
             data: {
               display_name: displayName.trim(),
               role: finalRole,
-              tier: finalRole === 'mentor' || finalRole === 'admin' ? null : tier,
+              tier: resolvedTier,
+              educational_level: finalRole === 'teacher' ? 'teacher' : undefined,
               member_id: generatedMemberId,
             },
           },
@@ -138,11 +155,12 @@ export default function Auth() {
               display_name: displayName.trim(),
               email: cleanEmail,
               role: finalRole,
-              tier: finalRole === 'mentor' || finalRole === 'admin' ? null : tier,
+              tier: resolvedTier,
+              educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
               member_id: generatedMemberId,
-              registration_paid: finalRole === 'admin', 
-              trial_ends_at: new Date(Date.now() + (isAdminEmail ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
-              subscription_expires_at: new Date(Date.now() + (isAdminEmail ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
+              registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
+              trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
+              subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
               is_halted: false,
             }, { onConflict: 'id' });
           } catch (err) {
@@ -153,7 +171,12 @@ export default function Auth() {
           return;
         }
       }
-      navigate('/dashboard');
+
+      if (role === 'teacher') {
+        navigate('/educator-portal');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');
     } finally {
@@ -355,37 +378,65 @@ export default function Auth() {
 
               {!isLogin && (
                 <div className="space-y-3 pt-2">
-                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">I am a...</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">I am registering as...</label>
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setRole('innovator')}
+                      onClick={() => {
+                        setRole('innovator');
+                        if (tier === 'T1') setTier('T2');
+                      }}
                       className={cn(
-                        "py-3 rounded-2xl font-bold text-xs transition-all border-2",
+                        "py-3 px-2 rounded-2xl font-bold text-xs transition-all border-2 flex flex-col items-center justify-center text-center gap-1",
                         role === 'innovator' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
                       )}
                     >
-                      Innovator
+                      <User className="w-4 h-4" />
+                      <span>Innovator</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRole('teacher');
+                        setTier('T1');
+                      }}
+                      className={cn(
+                        "py-3 px-2 rounded-2xl font-bold text-xs transition-all border-2 flex flex-col items-center justify-center text-center gap-1",
+                        role === 'teacher' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
+                      )}
+                    >
+                      <GraduationCap className="w-4 h-4" />
+                      <span>Teacher / Educator</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setRole('mentor')}
                       className={cn(
-                        "py-3 rounded-2xl font-bold text-xs transition-all border-2",
+                        "py-3 px-2 rounded-2xl font-bold text-xs transition-all border-2 flex flex-col items-center justify-center text-center gap-1",
                         role === 'mentor' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
                       )}
                     >
-                      Mentor
+                      <Users className="w-4 h-4" />
+                      <span>Mentor</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {!isLogin && role !== 'mentor' && role !== 'admin' && (
+              {!isLogin && role === 'teacher' && (
+                <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-3 flex items-start gap-2.5 text-indigo-950">
+                  <School className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">
+                    <strong>Educator Panel Access:</strong> You will have immediate access to the <strong>AI for Educators Bootcamp 2026</strong>, lesson plan automation generators, rubric creators, curriculum tools, and your official certified certificate portal.
+                  </p>
+                </div>
+              )}
+
+              {!isLogin && role !== 'mentor' && role !== 'admin' && role !== 'teacher' && (
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Choose Tier</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(['T1','T2','T3','T4','T5','T6'] as const).map((t) => (
+                    {(['T2','T3','T4','T5','T6'] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -395,7 +446,7 @@ export default function Auth() {
                           tier === t ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100" : "bg-slate-50 border-slate-100 text-slate-500 hover:border-indigo-200"
                         )}
                       >
-                        {t} {t === 'T1' && ' — Teachers'}{t === 'T2' && ' — Explorers'}{t === 'T3' && ' — Juniors'}{t === 'T4' && ' — Lower Seniors'}{t === 'T5' && ' — Upper Seniors'}{t === 'T6' && ' — Tertiary'}
+                        {t} {t === 'T2' && ' — Explorers'}{t === 'T3' && ' — Juniors'}{t === 'T4' && ' — Lower Seniors'}{t === 'T5' && ' — Upper Seniors'}{t === 'T6' && ' — Tertiary'}
                       </button>
                     ))}
                   </div>

@@ -38,6 +38,29 @@ export interface EventAccessResult {
   statusType?: string;
 }
 
+export interface EducatorCertificateData {
+  certificate_number: string;
+  recipient_name: string;
+  recipient_email?: string;
+  institution_name: string;
+  role_title?: string;
+  province?: string;
+  event_title: string;
+  event_dates: string;
+  issue_date: string;
+  founder_name: string;
+  founder_title: string;
+  founder_signature?: string;
+  regional_president_name: string;
+  regional_president_title: string;
+  regional_president_signature?: string;
+  verification_url: string;
+  qr_code_value: string;
+  status: 'unlocked' | 'locked';
+  grade?: string;
+  honors?: string;
+}
+
 export interface EventRegistration {
   id: string;
   registration_code?: string;
@@ -69,6 +92,14 @@ export interface EventRegistration {
   approved_at?: string;
   rejection_reason?: string;
   admin_notes?: string;
+
+  // Certificate Management & Unlocking
+  certificate_unlocked?: boolean;
+  certificate_unlocked_at?: string;
+  certificate_unlocked_by?: string;
+  certificate_number?: string;
+  certificate_grade?: string;
+  certificate_title?: string;
   
   // Live Attendance
   has_entered_event: boolean;

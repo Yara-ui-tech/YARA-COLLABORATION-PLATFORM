@@ -5,7 +5,8 @@ import {
   LogOut, Menu, X, Calendar, BookOpen, ShieldAlert, 
   MessageSquare, ShieldCheck, Info, Cpu, BarChart3, 
   Handshake, Phone, Brain, Trophy, Heart, UserCheck,
-  Award, MonitorPlay, QrCode, DollarSign, Radio, Building2
+  Award, MonitorPlay, QrCode, DollarSign, Radio, Building2,
+  GraduationCap
 } from 'lucide-react';
 import { safeSignOut } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -23,6 +24,8 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/educator-portal', icon: GraduationCap, label: 'Educator & AI Hub', badge: 'AI 2026' },
+  { path: '/events/ai-for-educators', icon: Calendar, label: '↳ AI Bootcamp Portal', badge: '5-Day' },
   { path: '/learning', icon: Brain, label: 'Learning Academy', badge: 'L0-L8' },
   { path: '/chapters', icon: Building2, label: 'YARA Chapters', badge: 'Nationwide' },
   { path: '/competitions', icon: Trophy, label: 'Competitions', badge: 'Hub' },

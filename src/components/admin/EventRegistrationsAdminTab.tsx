@@ -4,7 +4,8 @@ import {
   Filter, ShieldCheck, AlertCircle, RefreshCw, Plus, UserPlus, 
   ExternalLink, Mail, Phone, School, Award, Sparkles, Check, 
   Trash2, Eye, ShieldAlert, ArrowUpRight, Video, Copy, Link, 
-  Edit3, Save, Key, Calendar, Share2, FileText, Download, Printer
+  Edit3, Save, Key, Calendar, Share2, FileText, Download, Printer,
+  Lock, Unlock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -12,7 +13,8 @@ import {
   EventPaymentStatus, 
   EventApprovalStatus, 
   EventMeetingConfig,
-  EducatorReceiptData 
+  EducatorReceiptData,
+  EducatorCertificateData
 } from '../../types/eventRegistration';
 import { 
   getEventRegistrations, 
@@ -26,9 +28,13 @@ import {
   subscribeToEventMeetingConfig,
   buildEducatorReceipt,
   generateEducatorReceiptByNameAndRef,
+  buildEducatorCertificate,
+  unlockEducatorCertificate,
+  batchUnlockEducatorCertificates,
   AI_FOR_EDUCATORS_EVENT
 } from '../../services/eventRegistrationService';
 import EducatorReceiptModal from '../events/EducatorReceiptModal';
+import EducatorCertificateModal from '../events/EducatorCertificateModal';
 
 export default function EventRegistrationsAdminTab() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
@@ -46,6 +52,11 @@ export default function EventRegistrationsAdminTab() {
   const [isEditingMeeting, setIsEditingMeeting] = useState(false);
   const [meetingForm, setMeetingForm] = useState<EventMeetingConfig>(() => getEventMeetingConfig(AI_FOR_EDUCATORS_EVENT.id));
   const [isSavingMeeting, setIsSavingMeeting] = useState(false);
+
+  // Certificate Modal & Batch State
+  const [selectedCertificate, setSelectedCertificate] = useState<EducatorCertificateData | null>(null);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [isBatchUnlocking, setIsBatchUnlocking] = useState(false);
 
   // Manual Add Modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -336,12 +347,68 @@ export default function EventRegistrationsAdminTab() {
     });
   };
 
+  // Certificate Actions
+  const handleOpenCertificate = (reg: EventRegistration) => {
+    const cert = buildEducatorCertificate(reg);
+    setSelectedCertificate(cert);
+    setShowCertificateModal(true);
+  };
+
+  const handleToggleCertificateUnlock = async (reg: EventRegistration) => {
+    const newUnlockedState = !reg.certificate_unlocked;
+    setActionLoadingId(reg.id);
+    try {
+      const updated = await unlockEducatorCertificate(reg.id, newUnlockedState, 'YARA Administrator');
+      if (updated) {
+        setRegistrations(prev => prev.map(r => r.id === reg.id ? updated : r));
+        showNotice(
+          'success', 
+          newUnlockedState 
+            ? `Certificate unlocked for ${reg.full_name}! User can now download/print.` 
+            : `Certificate download locked for ${reg.full_name}.`
+        );
+      }
+    } catch (err: any) {
+      showNotice('error', err.message || 'Failed to update certificate status.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleBatchUnlockApproved = async () => {
+    const eligibleRegistrations = registrations.filter(
+      r => r.payment_status === 'verified' && r.approval_status === 'approved' && !r.certificate_unlocked
+    );
+    
+    if (eligibleRegistrations.length === 0) {
+      showNotice('error', 'No pending approved registrations found to unlock.');
+      return;
+    }
+
+    if (!window.confirm(`Unlock official certificates for ${eligibleRegistrations.length} approved educators? They will immediately be able to download their certified diplomas.`)) {
+      return;
+    }
+
+    setIsBatchUnlocking(true);
+    try {
+      const ids = eligibleRegistrations.map(r => r.id);
+      const count = await batchUnlockEducatorCertificates(ids, 'YARA Executive Board');
+      await loadData();
+      showNotice('success', `Successfully unlocked ${count} educator certificates!`);
+    } catch (err: any) {
+      showNotice('error', err.message || 'Batch unlock failed.');
+    } finally {
+      setIsBatchUnlocking(false);
+    }
+  };
+
   // Calculate metrics
   const totalCount = registrations.length;
   const verifiedPaymentsCount = registrations.filter(r => r.payment_status === 'verified').length;
   const totalRevenueCollected = verifiedPaymentsCount * 10;
   const pendingApprovalsCount = registrations.filter(r => r.approval_status === 'pending').length;
   const fullAccessGrantedCount = registrations.filter(r => r.payment_status === 'verified' && r.approval_status === 'approved').length;
+  const unlockedCertificatesCount = registrations.filter(r => r.certificate_unlocked).length;
   const continuousSupportCount = registrations.filter(r => r.continuous_support_opt_in).length;
 
   return (
@@ -601,7 +668,7 @@ export default function EventRegistrationsAdminTab() {
       </div>
 
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total Enrolled</span>
@@ -635,7 +702,16 @@ export default function EventRegistrationsAdminTab() {
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-indigo-600">{fullAccessGrantedCount}</p>
-          <span className="text-[10px] text-indigo-600 font-bold">Paid & Approved (Google Meet unlocked)</span>
+          <span className="text-[10px] text-indigo-600 font-bold">Paid & Approved (Google Meet)</span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-amber-600">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Certificates Unlocked</span>
+            <Award className="w-4 h-4 text-amber-500" />
+          </div>
+          <p className="text-2xl font-black text-amber-600">{unlockedCertificatesCount}</p>
+          <span className="text-[10px] text-amber-600 font-bold">{unlockedCertificatesCount} / {totalCount} downloadable</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
@@ -648,7 +724,7 @@ export default function EventRegistrationsAdminTab() {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar with Batch Certificate Unlock */}
       <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -662,6 +738,16 @@ export default function EventRegistrationsAdminTab() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            disabled={isBatchUnlocking}
+            onClick={handleBatchUnlockApproved}
+            className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+            title="Batch unlock certificates for all approved attendees"
+          >
+            <Award className="w-3.5 h-3.5 text-slate-950" />
+            <span>{isBatchUnlocking ? 'Unlocking...' : 'Batch Unlock Certificates'}</span>
+          </button>
+
           <select
             value={eventFilter}
             onChange={e => setEventFilter(e.target.value)}
@@ -709,7 +795,8 @@ export default function EventRegistrationsAdminTab() {
                   <th className="py-3.5 px-4">Educator / Institution</th>
                   <th className="py-3.5 px-4">Fee Status ($10)</th>
                   <th className="py-3.5 px-4">Admin Approval</th>
-                  <th className="py-3.5 px-4">Google Meet Access</th>
+                  <th className="py-3.5 px-4">Live Room Access</th>
+                  <th className="py-3.5 px-4">Certificate (Diploma)</th>
                   <th className="py-3.5 px-4 text-right">Approval Actions</th>
                 </tr>
               </thead>
@@ -718,6 +805,7 @@ export default function EventRegistrationsAdminTab() {
                   const isAccessGranted = reg.payment_status === 'verified' && reg.approval_status === 'approved';
                   const isProcessing = actionLoadingId === reg.id;
                   const code = reg.registration_code || reg.id;
+                  const isCertUnlocked = Boolean(reg.certificate_unlocked);
 
                   const inviteText = `Hi ${reg.full_name},\nYour registration for the YARA AI for Educators Online Bootcamp is confirmed!\n\nRegistration Code: ${code}\nPortal: https://yara.org/events/ai-for-educators-bootcamp\nGoogle Meet: ${meetingConfig.meeting_url}\nPasscode: ${meetingConfig.passcode || 'YARA2026'}\nTime: ${meetingConfig.daily_schedule_time}`;
 
@@ -902,6 +990,46 @@ export default function EventRegistrationsAdminTab() {
                         )}
                       </td>
 
+                      {/* Certificate Status & Unlock Toggle */}
+                      <td className="py-4 px-4 align-top">
+                        <div className="space-y-2">
+                          {isCertUnlocked ? (
+                            <span className="px-2.5 py-1 bg-amber-50 border border-amber-300 text-amber-900 rounded-full text-[10px] font-black flex items-center space-x-1 w-fit">
+                              <Award className="w-3 h-3 text-amber-600" />
+                              <span>Unlocked / Downloadable</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-[10px] font-bold flex items-center space-x-1 w-fit">
+                              <Lock className="w-3 h-3 text-slate-400" />
+                              <span>Locked / In Progress</span>
+                            </span>
+                          )}
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              disabled={isProcessing}
+                              onClick={() => handleToggleCertificateUnlock(reg)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center space-x-1 cursor-pointer ${
+                                isCertUnlocked
+                                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-xs'
+                              }`}
+                            >
+                              {isCertUnlocked ? <Lock className="w-3 h-3 text-slate-500" /> : <Unlock className="w-3 h-3 text-slate-950" />}
+                              <span>{isCertUnlocked ? 'Lock Cert' : 'Unlock Certificate'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenCertificate(reg)}
+                              title="Preview certificate modal"
+                              className="p-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
                       {/* Combined Action Buttons */}
                       <td className="py-4 px-4 text-right align-top">
                         <div className="flex items-center justify-end gap-2">
@@ -922,7 +1050,7 @@ export default function EventRegistrationsAdminTab() {
                               className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-[11px] shadow-xs flex items-center space-x-1 transition-all cursor-pointer"
                             >
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>1-Click Approve Both</span>
+                              <span>1-Click Approve</span>
                             </button>
                           )}
                           <button
@@ -1270,6 +1398,16 @@ export default function EventRegistrationsAdminTab() {
           setSelectedReceipt(null);
         }}
         receipt={selectedReceipt}
+      />
+
+      {/* Official Printable & Downloadable Certificate Modal */}
+      <EducatorCertificateModal
+        isOpen={showCertificateModal}
+        onClose={() => {
+          setShowCertificateModal(false);
+          setSelectedCertificate(null);
+        }}
+        certificateData={selectedCertificate}
       />
     </div>
   );

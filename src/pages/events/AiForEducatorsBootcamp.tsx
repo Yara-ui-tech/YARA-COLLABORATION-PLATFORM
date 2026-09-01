@@ -14,7 +14,8 @@ import {
   EventRegistration, 
   EventAccessResult,
   EventMeetingConfig,
-  EducatorReceiptData
+  EducatorReceiptData,
+  EducatorCertificateData
 } from '../../types/eventRegistration';
 import { 
   checkEventAccess, 
@@ -26,10 +27,12 @@ import {
   fetchEventMeetingConfig,
   subscribeToEventMeetingConfig,
   buildEducatorReceipt,
+  buildEducatorCertificate,
   generateEducatorReceiptByNameAndRef,
   submitRegistrationPayment
 } from '../../services/eventRegistrationService';
 import EducatorReceiptModal from '../../components/events/EducatorReceiptModal';
+import EducatorCertificateModal from '../../components/events/EducatorCertificateModal';
 
 export default function AiForEducatorsBootcamp() {
   const { user, profile } = useAuth();
@@ -45,6 +48,10 @@ export default function AiForEducatorsBootcamp() {
   // Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [receiptData, setReceiptData] = useState<EducatorReceiptData | null>(null);
+
+  // Certificate Modal State
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  const [certificateData, setCertificateData] = useState<EducatorCertificateData | null>(null);
   
   // User Proof of Payment Submission Modal State
   const [showProofModal, setShowProofModal] = useState(false);
@@ -233,6 +240,14 @@ export default function AiForEducatorsBootcamp() {
     const rcpt = buildEducatorReceipt(accessResult.registration);
     setReceiptData(rcpt);
     setShowReceiptModal(true);
+  };
+
+  // Open Certificate Download Modal
+  const handleDownloadCurrentCertificate = () => {
+    if (!accessResult?.registration) return;
+    const cert = buildEducatorCertificate(accessResult.registration);
+    setCertificateData(cert);
+    setShowCertificateModal(true);
   };
 
   // Submit proof of payment details
@@ -528,6 +543,17 @@ export default function AiForEducatorsBootcamp() {
                     <span>JOIN LIVE GOOGLE MEET</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
+
+                  {accessResult.registration?.certificate_unlocked ? (
+                    <button
+                      onClick={handleDownloadCurrentCertificate}
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer transform hover:scale-[1.01]"
+                    >
+                      <Award className="w-4 h-4 text-slate-950" />
+                      <span>Download Official Diploma Certificate</span>
+                      <Download className="w-3.5 h-3.5 text-slate-950" />
+                    </button>
+                  ) : null}
 
                   <button
                     onClick={handleDownloadCurrentReceipt}
@@ -1462,6 +1488,16 @@ export default function AiForEducatorsBootcamp() {
           setReceiptData(null);
         }}
         receipt={receiptData}
+      />
+
+      {/* OFFICIAL PRINTABLE & DOWNLOADABLE CERTIFICATE MODAL */}
+      <EducatorCertificateModal
+        isOpen={showCertificateModal}
+        onClose={() => {
+          setShowCertificateModal(false);
+          setCertificateData(null);
+        }}
+        certificateData={certificateData}
       />
     </div>
   );

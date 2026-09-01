@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   bio TEXT,
   skills TEXT[],
   interests TEXT[],
-  role TEXT CHECK (role IN ('innovator', 'mentor', 'admin')) DEFAULT 'innovator',
+  role TEXT CHECK (role IN ('innovator', 'mentor', 'admin', 'teacher')) DEFAULT 'innovator',
   educational_level TEXT CHECK (educational_level IN ('junior', 'intermediate', 'senior', 'tertiary', 'teacher')),
   registration_paid BOOLEAN DEFAULT FALSE,
   subscription_expires_at TIMESTAMPTZ DEFAULT (now() + interval '30 days'),
@@ -94,6 +94,15 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Idempotent check constraint update for existing profiles tables
+DO $$
+BEGIN
+  ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+  ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('innovator', 'mentor', 'admin', 'teacher'));
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
 
 -- =========================
 -- 3) Ideas
@@ -314,6 +323,8 @@ BEGIN
     email,
     display_name,
     role,
+    educational_level,
+    contact_phone,
     member_id,
     registration_paid,
     subscription_expires_at
@@ -325,13 +336,20 @@ BEGIN
     CASE
       WHEN NEW.email IN ('goyaracorp@gmail.com', 'yariaofficial@gmail.com') THEN 'admin'
       WHEN pre_app.email IS NOT NULL THEN pre_app.role
+      WHEN NEW.raw_user_meta_data->>'role' IN ('teacher', 'mentor', 'innovator', 'admin') THEN NEW.raw_user_meta_data->>'role'
       ELSE 'innovator'
     END,
+    CASE
+      WHEN NEW.raw_user_meta_data->>'role' = 'teacher' THEN 'teacher'
+      WHEN NEW.raw_user_meta_data->>'educational_level' IN ('junior', 'intermediate', 'senior', 'tertiary', 'teacher') THEN NEW.raw_user_meta_data->>'educational_level'
+      ELSE NULL
+    END,
+    NEW.raw_user_meta_data->>'contact_phone',
     CASE
       WHEN pre_app.email IS NOT NULL AND pre_app.member_id IS NOT NULL THEN pre_app.member_id
       ELSE COALESCE(
         NEW.raw_user_meta_data->>'member_id',
-        'YARIA-' || to_char(now(), 'YYYY') || '-' || floor(random() * 9000 + 1000)::text
+        'YARA-' || to_char(now(), 'YYYY') || '-' || floor(random() * 9000 + 1000)::text
       )
     END,
     CASE
@@ -1874,6 +1892,14 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
   rejection_reason TEXT,
   admin_notes TEXT,
   
+  -- Certificate Generation & Unlock Control
+  certificate_unlocked BOOLEAN DEFAULT false,
+  certificate_unlocked_at TIMESTAMPTZ,
+  certificate_unlocked_by TEXT,
+  certificate_number TEXT,
+  certificate_grade TEXT DEFAULT 'Certified Educator - AI & Digital Pedagogy',
+  certificate_title TEXT DEFAULT 'Certificate of Completion - AI for Educators',
+
   -- Live Attendance Tracking
   has_entered_event BOOLEAN DEFAULT false,
   last_entered_at TIMESTAMPTZ,
@@ -1882,6 +1908,14 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Idempotent column migrations for existing databases
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_unlocked BOOLEAN DEFAULT false;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_unlocked_at TIMESTAMPTZ;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_unlocked_by TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_number TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_grade TEXT DEFAULT 'Certified Educator - AI & Digital Pedagogy';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_title TEXT DEFAULT 'Certificate of Completion - AI for Educators';
 
 ALTER TABLE public.event_registrations ENABLE ROW LEVEL SECURITY;
 
@@ -1935,6 +1969,7 @@ CREATE INDEX IF NOT EXISTS idx_event_registrations_email ON public.event_registr
 CREATE INDEX IF NOT EXISTS idx_event_registrations_event_id ON public.event_registrations(event_id);
 CREATE INDEX IF NOT EXISTS idx_event_registrations_user_id ON public.event_registrations(user_id);
 CREATE INDEX IF NOT EXISTS idx_event_registrations_status ON public.event_registrations(payment_status, approval_status);
+CREATE INDEX IF NOT EXISTS idx_event_registrations_cert ON public.event_registrations(certificate_unlocked);
 
 -- =========================================================================
 -- 22. EVENT MEETINGS & GOOGLE MEET ACCESS CONTROL CONFIGURATION

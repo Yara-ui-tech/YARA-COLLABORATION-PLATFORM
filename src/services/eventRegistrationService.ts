@@ -7,11 +7,12 @@ import {
   EventAccessResult,
   EventMeetingConfig,
   EducatorReceiptData,
+  EducatorCertificateData,
   AI_FOR_EDUCATORS_EVENT 
 } from '../types/eventRegistration';
 
 export { AI_FOR_EDUCATORS_EVENT };
-export type { EventMeetingConfig, EducatorReceiptData };
+export type { EventMeetingConfig, EducatorReceiptData, EducatorCertificateData };
 
 const STORAGE_KEY = 'yara_event_registrations_store';
 const MEETING_CONFIG_KEY = 'yara_event_meeting_configs_store';
@@ -1219,4 +1220,199 @@ export async function generateEducatorReceiptByNameAndRef(
     overrides
   );
 }
+
+// ============================================================================
+// 10. AI FOR EDUCATORS BOOTCAMP OFFICIAL CERTIFICATE ENGINE
+// ============================================================================
+
+export const OFFICIAL_FOUNDER_NAME = "Mr. S.O. Manongwa";
+export const OFFICIAL_FOUNDER_TITLE = "Founder & Lead Instructor, YARA";
+export const OFFICIAL_REGIONAL_PRESIDENT_NAME = "Ms. A.M. Chiambiro";
+export const OFFICIAL_REGIONAL_PRESIDENT_TITLE = "Regional President, YARA Zimbabwe";
+
+/**
+ * Builds the comprehensive certificate data model for an educator
+ */
+export function buildEducatorCertificate(
+  reg: EventRegistration,
+  overrides?: Partial<EducatorCertificateData>
+): EducatorCertificateData {
+  const code = (reg.registration_code || (reg.id ? (reg.id.startsWith('evt_reg_') ? reg.id.substring(8, 16).toUpperCase() : reg.id) : generateRegistrationCode())).toUpperCase();
+  const certSuffix = (reg.certificate_number || `YARA-AI-EDU-2026-${code.replace('YARA-AI-', '')}`).toUpperCase();
+  
+  const issueDateStr = reg.certificate_unlocked_at
+    ? new Date(reg.certificate_unlocked_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '4 September 2026';
+
+  const verificationUrl = `${window.location.origin}/verify-certificate?id=${encodeURIComponent(certSuffix)}`;
+
+  return {
+    certificate_number: overrides?.certificate_number || certSuffix,
+    recipient_name: overrides?.recipient_name || reg.full_name || 'Educator Participant',
+    recipient_email: overrides?.recipient_email || reg.email,
+    institution_name: overrides?.institution_name || reg.school_institution || 'Ministry of Primary & Secondary Education',
+    role_title: overrides?.role_title || reg.role_title || 'Educator / Teacher',
+    province: overrides?.province || reg.province || 'Zimbabwe',
+    event_title: overrides?.event_title || AI_FOR_EDUCATORS_EVENT.title,
+    event_dates: overrides?.event_dates || AI_FOR_EDUCATORS_EVENT.dates_display,
+    issue_date: overrides?.issue_date || issueDateStr,
+    founder_name: overrides?.founder_name || OFFICIAL_FOUNDER_NAME,
+    founder_title: overrides?.founder_title || OFFICIAL_FOUNDER_TITLE,
+    regional_president_name: overrides?.regional_president_name || OFFICIAL_REGIONAL_PRESIDENT_NAME,
+    regional_president_title: overrides?.regional_president_title || OFFICIAL_REGIONAL_PRESIDENT_TITLE,
+    verification_url: overrides?.verification_url || verificationUrl,
+    qr_code_value: overrides?.qr_code_value || verificationUrl,
+    status: (overrides?.status || (reg.certificate_unlocked ? 'unlocked' : 'locked')),
+    grade: overrides?.grade || reg.certificate_grade || 'Distinction in Educational AI Pedagogy',
+    honors: overrides?.honors || 'Certified AI Educator (Foundational Mastery)'
+  };
+}
+
+/**
+ * Unlocks or locks an educator's certificate and records the decision
+ */
+export async function unlockEducatorCertificate(
+  registrationId: string,
+  unlocked: boolean,
+  adminName: string = 'YARA Executive Administrator',
+  grade: string = 'Distinction in Educational AI Pedagogy'
+): Promise<EventRegistration | null> {
+  const all = getLocalRegistrations();
+  const index = all.findIndex(r => r.id === registrationId);
+  
+  if (index === -1) {
+    // Attempt to load from database first
+    const dbRegs = await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id);
+    const dbIndex = dbRegs.findIndex(r => r.id === registrationId);
+    if (dbIndex === -1) return null;
+  }
+
+  const current = all[index] || (await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id)).find(r => r.id === registrationId);
+  if (!current) return null;
+
+  const code = (current.registration_code || current.id).toUpperCase();
+  const certNumber = current.certificate_number || `YARA-AI-EDU-2026-${code.replace('YARA-AI-', '')}`;
+  const now = new Date().toISOString();
+
+  const updated: EventRegistration = {
+    ...current,
+    certificate_unlocked: unlocked,
+    certificate_unlocked_at: unlocked ? now : undefined,
+    certificate_unlocked_by: unlocked ? adminName : undefined,
+    certificate_number: certNumber,
+    certificate_grade: grade,
+    updated_at: now
+  };
+
+  // Update in local store
+  if (index !== -1) {
+    all[index] = updated;
+    saveLocalRegistrations(all);
+  } else {
+    saveLocalRegistrations([updated, ...all]);
+  }
+
+  // Sync to database
+  try {
+    await supabase
+      .from('event_registrations')
+      .update({
+        certificate_unlocked: unlocked,
+        certificate_unlocked_at: unlocked ? now : null,
+        certificate_unlocked_by: unlocked ? adminName : null,
+        certificate_number: certNumber,
+        certificate_grade: grade,
+        updated_at: now
+      })
+      .eq('id', registrationId);
+  } catch (err) {
+    console.warn('Could not sync certificate unlock to Supabase:', err);
+  }
+
+  // Also register in public certificate registry so /verify-certificate resolves it
+  try {
+    const certPayload = {
+      id: `cert_edu_${registrationId}`,
+      user_id: current.user_id || registrationId,
+      certificate_number: certNumber,
+      student_name: current.full_name,
+      course_title: `AI for Educators Bootcamp 2026 — ${current.school_institution || 'Certified Educator'}`,
+      score: 98,
+      grade: grade,
+      issue_date: new Date(now).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+      verification_url: `${window.location.origin}/verify-certificate?id=${certNumber}`,
+      metadata: {
+        event_id: AI_FOR_EDUCATORS_EVENT.id,
+        founder: OFFICIAL_FOUNDER_NAME,
+        regional_president: OFFICIAL_REGIONAL_PRESIDENT_NAME,
+        school: current.school_institution,
+        province: current.province
+      }
+    };
+    
+    // Store in LMS certificate cache for universal verification
+    const existingCerts = JSON.parse(localStorage.getItem('yara_lms_certificates') || '[]');
+    const filteredCerts = existingCerts.filter((c: any) => c.certificate_number !== certNumber);
+    if (unlocked) {
+      localStorage.setItem('yara_lms_certificates', JSON.stringify([certPayload, ...filteredCerts]));
+    } else {
+      localStorage.setItem('yara_lms_certificates', JSON.stringify(filteredCerts));
+    }
+
+    if (unlocked) {
+      await supabase.from('certificates').upsert(certPayload);
+    }
+  } catch (e) {
+    // safe fallback
+  }
+
+  return updated;
+}
+
+/**
+ * Batch unlock certificates for all verified & approved educators
+ */
+export async function batchUnlockEducatorCertificates(
+  registrationIds: string[],
+  adminName: string = 'YARA Executive Board'
+): Promise<number> {
+  let count = 0;
+  for (const id of registrationIds) {
+    const res = await unlockEducatorCertificate(id, true, adminName);
+    if (res) count++;
+  }
+  return count;
+}
+
+/**
+ * Looks up educator certificate by registration code, email, or certificate number
+ */
+export async function getEducatorCertificateByCodeOrEmail(
+  query: string
+): Promise<EducatorCertificateData | null> {
+  const clean = (query || '').trim().toLowerCase();
+  if (!clean) return null;
+
+  const allRegistrations = await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id);
+  const matched = allRegistrations.find(r => {
+    const code = (r.registration_code || '').toLowerCase();
+    const certNum = (r.certificate_number || '').toLowerCase();
+    const email = (r.email || '').toLowerCase();
+    const name = (r.full_name || '').toLowerCase();
+    const id = (r.id || '').toLowerCase();
+
+    return (
+      code === clean ||
+      certNum === clean ||
+      email === clean ||
+      id === clean ||
+      name.includes(clean) ||
+      code.includes(clean)
+    );
+  });
+
+  if (!matched) return null;
+  return buildEducatorCertificate(matched);
+}
+
 

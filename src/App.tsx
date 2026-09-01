@@ -38,6 +38,7 @@ import Posts from './pages/Posts';
 import Chapters from './pages/Chapters';
 import Competitions from './pages/Competitions';
 import AiForEducatorsBootcamp from './pages/events/AiForEducatorsBootcamp';
+import EducatorPortal from './pages/EducatorPortal';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -108,9 +109,12 @@ const AppContent = () => {
           <Route path="events/ai-for-educators-bootcamp" element={<AiForEducatorsBootcamp />} />
           <Route path="ai-for-educators" element={<AiForEducatorsBootcamp />} />
           <Route path="bootcamp" element={<AiForEducatorsBootcamp />} />
-          <Route path="educators" element={<AiForEducatorsBootcamp />} />
-          <Route path="educator-portal" element={<AiForEducatorsBootcamp />} />
-          <Route path="educators-portal" element={<AiForEducatorsBootcamp />} />
+          <Route path="educators" element={<EducatorPortal />} />
+          <Route path="educator" element={<EducatorPortal />} />
+          <Route path="teacher" element={<EducatorPortal />} />
+          <Route path="teachers" element={<EducatorPortal />} />
+          <Route path="educator-portal" element={<EducatorPortal />} />
+          <Route path="educators-portal" element={<EducatorPortal />} />
           <Route path="posts" element={<Posts />} />
           <Route path="news" element={<Posts />} />
           <Route path="announcements" element={<Posts />} />

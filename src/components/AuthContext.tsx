@@ -11,7 +11,7 @@ interface UserProfile {
   bio?: string;
   skills?: string[];
   interests?: string[];
-  role: 'innovator' | 'mentor' | 'admin';
+  role: 'innovator' | 'mentor' | 'admin' | 'teacher';
   educational_level?: 'junior' | 'intermediate' | 'senior' | 'tertiary' | 'teacher';
   registration_paid: boolean;
   subscription_expires_at: string;
@@ -67,10 +67,13 @@ const isUserAdmin = (email?: string, userRole?: string): boolean => {
 const buildFallbackProfile = (authUser: User): UserProfile => {
   const isAdmin = isUserAdmin(authUser.email, authUser.user_metadata?.role);
   const rawRole = authUser.user_metadata?.role;
-  const resolvedRole: 'innovator' | 'mentor' | 'admin' = isAdmin
+  const isTeacher = rawRole === 'teacher' || authUser.user_metadata?.tier === 'T1' || authUser.user_metadata?.educational_level === 'teacher';
+  const resolvedRole: 'innovator' | 'mentor' | 'admin' | 'teacher' = isAdmin
     ? 'admin'
     : rawRole === 'mentor'
     ? 'mentor'
+    : isTeacher
+    ? 'teacher'
     : 'innovator';
 
   const defaultMemberId =
@@ -81,7 +84,7 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
     authUser.user_metadata?.display_name ||
     authUser.user_metadata?.full_name ||
     authUser.email?.split('@')[0] ||
-    (isAdmin ? 'YARA Admin' : 'Innovator');
+    (isAdmin ? 'YARA Admin' : isTeacher ? 'Educator' : 'Innovator');
 
   return {
     id: authUser.id,
@@ -89,12 +92,12 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
     email: authUser.email || '',
     avatar_url: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || '',
     member_id: defaultMemberId,
-    bio: authUser.user_metadata?.bio || 'Passionate about robotics, electronics, and African innovation.',
-    skills: authUser.user_metadata?.skills || ['Robotics', 'MicroPython', 'Arduino'],
-    interests: authUser.user_metadata?.interests || ['Hardware Design', 'Automation'],
+    bio: authUser.user_metadata?.bio || (isTeacher ? 'Passionate educator driving digital literacy and AI in schools.' : 'Passionate about robotics, electronics, and African innovation.'),
+    skills: authUser.user_metadata?.skills || (isTeacher ? ['AI in Education', 'Curriculum Design', 'STEM Pedagogy'] : ['Robotics', 'MicroPython', 'Arduino']),
+    interests: authUser.user_metadata?.interests || (isTeacher ? ['Generative AI', 'Classroom Automation', 'EdTech'] : ['Hardware Design', 'Automation']),
     role: resolvedRole,
-    educational_level: authUser.user_metadata?.educational_level || (isAdmin ? 'tertiary' : 'junior'),
-    registration_paid: isAdmin || resolvedRole === 'mentor',
+    educational_level: isTeacher ? 'teacher' : (authUser.user_metadata?.educational_level || (isAdmin ? 'tertiary' : 'junior')),
+    registration_paid: isAdmin || resolvedRole === 'mentor' || isTeacher,
     subscription_expires_at: new Date(
       Date.now() + (isAdmin ? 3650 : 365) * 24 * 60 * 60 * 1000
     ).toISOString(),
@@ -135,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isSubscriptionExpired = useMemo(() => {
     if (!profile) return false;
-    if (profile.role === 'admin' || profile.role === 'mentor') return false;
+    if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
     if (profile.registration_paid) return false;
     if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return false;
     if (!profile.subscription_expires_at) return false;
@@ -144,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isTrialExpired = useMemo(() => {
     if (!profile) return false;
-    if (profile.role === 'admin' || profile.role === 'mentor') return false;
+    if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
     if (profile.registration_paid) return false;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return false;
     if (!profile.trial_ends_at) return false;
@@ -157,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAccountActive = useMemo(() => {
     if (!profile) return false;
-    if (profile.role === 'admin' || profile.role === 'mentor') return true;
+    if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return true;
     if (profile.is_halted) return false;
     if (profile.registration_paid) return true;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return true;
