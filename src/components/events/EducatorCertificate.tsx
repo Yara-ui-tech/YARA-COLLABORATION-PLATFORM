@@ -5,6 +5,7 @@ import {
   Lock, AlertTriangle, FileText, Check 
 } from 'lucide-react';
 import { EducatorCertificateData } from '../../types/eventRegistration';
+import { ASSETS } from '../../constants/assets';
 
 interface EducatorCertificateProps {
   data: EducatorCertificateData;
@@ -63,14 +64,14 @@ export default function EducatorCertificate({
               <>
                 <button
                   onClick={handlePrint}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
                   Print / Save PDF
                 </button>
                 <button
                   onClick={handleCopyLink}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer"
                 >
                   {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
                   {copied ? 'Link Copied!' : 'Share Link'}
@@ -91,7 +92,7 @@ export default function EducatorCertificate({
             {onClose && (
               <button
                 onClick={onClose}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition ml-2"
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition ml-2 cursor-pointer"
               >
                 Close
               </button>
@@ -108,7 +109,7 @@ export default function EducatorCertificate({
             <p className="font-bold text-sm text-amber-950">Certificate Pending Admin Completion Verification</p>
             <p>
               Your official certificate has been drafted and registered in our database under ID <strong className="font-mono">{data.certificate_number}</strong>. 
-              Once the YARA Executive Board verifies your 5-day bootcamp attendance and capstone project submission, an administrator will unlock your high-resolution printable credential.
+              Once the YARA Executive Board verifies your bootcamp participation and capstone project submission, an administrator will unlock your high-resolution printable credential.
             </p>
           </div>
         </div>
@@ -155,24 +156,27 @@ export default function EducatorCertificate({
 
         {/* ================= HEADER SECTION ================= */}
         <div className="relative z-10 flex flex-col items-center text-center">
-          {/* Organization Crest & Emblem */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-md flex items-center justify-center">
-              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-amber-300">
-                <Sparkles className="w-6 h-6" />
-              </div>
+          {/* Organization Official Logo & Brand Header */}
+          <div className="flex items-center gap-3.5 mb-2">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 shadow-md border border-amber-300 flex items-center justify-center overflow-hidden shrink-0">
+              <img 
+                src={ASSETS.LOGO} 
+                alt="YARA Official Logo" 
+                className="w-full h-full object-contain rounded-xl"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div className="text-left">
-              <span className="text-base sm:text-lg font-black tracking-wider text-slate-900 uppercase">
+              <span className="text-base sm:text-xl font-black tracking-wider text-slate-900 uppercase block">
                 YARA ACADEMY OF ADVANCED ROBOTICS & AI
               </span>
-              <p className="text-[10px] sm:text-xs tracking-widest uppercase text-amber-700 font-semibold">
+              <p className="text-[10px] sm:text-xs tracking-widest uppercase text-amber-700 font-bold">
                 In Collaboration with YARA Zimbabwe • Executive Directorate
               </p>
             </div>
           </div>
 
-          <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent my-1"></div>
+          <div className="w-28 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent my-1"></div>
 
           {/* Certificate Title */}
           <h1 className="text-2xl sm:text-4xl font-serif font-black text-slate-900 tracking-wide mt-2 uppercase">
@@ -201,9 +205,9 @@ export default function EducatorCertificate({
             {data.province && <span className="text-slate-500">({data.province})</span>}
           </p>
 
-          {/* Citation Body */}
+          {/* Citation Body - Duration omitted as requested */}
           <p className="text-[11px] sm:text-xs text-slate-600 max-w-3xl mx-auto mt-3 leading-relaxed px-4">
-            has successfully completed the intensive 5-day national masterclass curriculum on <strong className="text-slate-800">Generative AI Tools for Education, Advanced Prompt Engineering, Automated Lesson Planning, Intelligent Student Assessment Systems</strong>, and ethical AI integration in primary & secondary classrooms, satisfying all evaluation criteria with:
+            has successfully completed the comprehensive national masterclass curriculum on <strong className="text-slate-800">Generative AI Tools for Education, Advanced Prompt Engineering, Automated Lesson Planning, Intelligent Student Assessment Systems</strong>, and ethical AI integration in primary & secondary classrooms, satisfying all evaluation criteria with:
           </p>
 
           {/* Distinction Honors Badge */}
@@ -213,7 +217,7 @@ export default function EducatorCertificate({
           </div>
         </div>
 
-        {/* ================= SIGNATURES & VERIFICATION FOOTER ================= */}
+        {/* ================= SIGNATURES & SEAL FOOTER ================= */}
         <div className="relative z-10 flex flex-row items-end justify-between gap-4 pt-4 border-t border-amber-600/30">
           
           {/* 1. Founder & Lead Instructor Signature Block */}
@@ -238,18 +242,17 @@ export default function EducatorCertificate({
             </div>
           </div>
 
-          {/* 2. Official Gold Foil Seal & QR Verification Code */}
+          {/* 2. Official Certified Gold & Blue Foil Seal (From Uploaded Badge) */}
           <div className="flex flex-col items-center justify-center shrink-0">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-yellow-200 p-1 shadow-xl flex items-center justify-center border-2 border-amber-300">
-              <div className="w-full h-full rounded-full bg-slate-900 text-amber-300 flex flex-col items-center justify-center p-2 text-center border border-amber-400/40">
-                <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400 mb-0.5" />
-                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-amber-200">
-                  OFFICIAL SEAL
-                </span>
-                <span className="text-[6px] text-amber-400/80 font-mono">YARA ZIMBABWE</span>
-              </div>
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
+              <img 
+                src={ASSETS.EDUCATOR_SEAL} 
+                alt="Certified AI for Educators Seal" 
+                className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
+                referrerPolicy="no-referrer"
+              />
             </div>
-            <div className="mt-1.5 text-center">
+            <div className="mt-1 text-center">
               <span className="text-[8px] sm:text-[9px] font-mono text-slate-500 font-semibold block">
                 Issued: {data.issue_date}
               </span>

@@ -1925,11 +1925,13 @@ CREATE POLICY "Public can insert event registrations"
   WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Users can view their own registrations or admins view all" ON public.event_registrations;
-CREATE POLICY "Users can view their own registrations or admins view all"
+DROP POLICY IF EXISTS "Users can view their own registrations, verified certs, or admins view all" ON public.event_registrations;
+CREATE POLICY "Users can view their own registrations, verified certs, or admins view all"
   ON public.event_registrations FOR SELECT
   USING (
     auth.uid() = user_id 
     OR lower(email) = lower(COALESCE(auth.jwt()->>'email', ''))
+    OR certificate_unlocked = true
     OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
@@ -1966,10 +1968,86 @@ FOR EACH ROW EXECUTE PROCEDURE public.ensure_registration_code();
 -- Indexes for lightning fast lookups
 CREATE INDEX IF NOT EXISTS idx_event_registrations_code ON public.event_registrations(upper(registration_code));
 CREATE INDEX IF NOT EXISTS idx_event_registrations_email ON public.event_registrations(lower(email));
+CREATE INDEX IF NOT EXISTS idx_event_registrations_cert_num ON public.event_registrations(upper(certificate_number));
 CREATE INDEX IF NOT EXISTS idx_event_registrations_event_id ON public.event_registrations(event_id);
 CREATE INDEX IF NOT EXISTS idx_event_registrations_user_id ON public.event_registrations(user_id);
 CREATE INDEX IF NOT EXISTS idx_event_registrations_status ON public.event_registrations(payment_status, approval_status);
 CREATE INDEX IF NOT EXISTS idx_event_registrations_cert ON public.event_registrations(certificate_unlocked);
+
+-- RPC Function for Public Certificate Verification
+CREATE OR REPLACE FUNCTION public.verify_educator_certificate(p_lookup TEXT)
+RETURNS TABLE (
+  is_valid BOOLEAN,
+  certificate_number TEXT,
+  recipient_name TEXT,
+  school_institution TEXT,
+  province TEXT,
+  course_title TEXT,
+  grade_honors TEXT,
+  issue_date TEXT,
+  status_message TEXT
+) AS $$
+DECLARE
+  v_rec RECORD;
+BEGIN
+  SELECT 
+    er.certificate_number,
+    er.full_name,
+    er.school_institution,
+    er.province,
+    er.certificate_title,
+    er.certificate_grade,
+    to_char(COALESCE(er.certificate_unlocked_at, er.updated_at, er.created_at), 'DD Month YYYY') as formatted_date,
+    er.certificate_unlocked
+  INTO v_rec
+  FROM public.event_registrations er
+  WHERE (
+    upper(er.registration_code) = upper(trim(p_lookup))
+    OR upper(COALESCE(er.certificate_number, '')) = upper(trim(p_lookup))
+    OR lower(er.email) = lower(trim(p_lookup))
+  )
+  ORDER BY er.created_at DESC
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT 
+      false, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      NULL::TEXT, 
+      'Certificate record not found. Please verify the code or contact YARA Secretariat.'::TEXT;
+    RETURN;
+  END IF;
+
+  IF v_rec.certificate_unlocked = true THEN
+    RETURN QUERY SELECT 
+      true,
+      v_rec.certificate_number,
+      v_rec.full_name,
+      v_rec.school_institution,
+      v_rec.province,
+      COALESCE(v_rec.certificate_title, 'AI for Educators Masterclass'),
+      COALESCE(v_rec.certificate_grade, 'Certified Educator - AI & Digital Pedagogy'),
+      v_rec.formatted_date,
+      'Valid & Officially Authenticated by YARA Academy & YARA Zimbabwe'::TEXT;
+  ELSE
+    RETURN QUERY SELECT 
+      false,
+      v_rec.certificate_number,
+      v_rec.full_name,
+      v_rec.school_institution,
+      v_rec.province,
+      COALESCE(v_rec.certificate_title, 'AI for Educators Masterclass'),
+      COALESCE(v_rec.certificate_grade, 'Certified Educator - AI & Digital Pedagogy'),
+      v_rec.formatted_date,
+      'Certificate is pending administrative completion verification.'::TEXT;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =========================================================================
 -- 22. EVENT MEETINGS & GOOGLE MEET ACCESS CONTROL CONFIGURATION
@@ -2360,9 +2438,3 @@ DROP TRIGGER IF EXISTS update_chapter_reports_updated_at ON public.chapter_repor
 CREATE TRIGGER update_chapter_reports_updated_at
   BEFORE UPDATE ON public.chapter_reports
   FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
-
-
-
-
-
-

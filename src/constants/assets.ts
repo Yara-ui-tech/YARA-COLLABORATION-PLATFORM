@@ -7,6 +7,7 @@ export const ASSETS = {
   // Brand Assets
   LOGO: '/assets/logo-yara-official.jpg',
   LOGO_PLACEHOLDER: '/assets/placeholders/logo.svg',
+  EDUCATOR_SEAL: '/assets/seal-certified-ai-educators.jpg',
   
   // Auth Page
   AUTH_HERO_BG: '/assets/academy-group-yellow.jpg',
