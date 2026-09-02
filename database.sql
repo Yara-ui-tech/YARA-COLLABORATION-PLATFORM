@@ -2023,7 +2023,8 @@ BEGIN
     er.certificate_title,
     er.certificate_grade,
     to_char(COALESCE(er.certificate_unlocked_at, er.updated_at, er.created_at), 'DD Month YYYY') as formatted_date,
-    er.certificate_unlocked
+    er.certificate_unlocked,
+    er.approval_status
   INTO v_rec
   FROM public.event_registrations er
   WHERE (
@@ -2048,7 +2049,7 @@ BEGIN
     RETURN;
   END IF;
 
-  IF v_rec.certificate_unlocked = true THEN
+  IF v_rec.certificate_unlocked = true AND v_rec.approval_status = 'approved' THEN
     RETURN QUERY SELECT 
       true,
       v_rec.certificate_number,
@@ -2061,7 +2062,7 @@ BEGIN
       'Valid & Officially Authenticated by YARA Academy & YARA Zimbabwe'::TEXT;
   ELSE
     RETURN QUERY SELECT 
-      false,
+      false, 
       v_rec.certificate_number,
       v_rec.full_name,
       v_rec.school_institution,
@@ -2069,7 +2070,7 @@ BEGIN
       COALESCE(v_rec.certificate_title, 'AI for Educators Masterclass'),
       COALESCE(v_rec.certificate_grade, 'Certified Educator - AI & Digital Pedagogy'),
       v_rec.formatted_date,
-      'Certificate is pending administrative completion verification.'::TEXT;
+      'Certificate is pending administrative approval and completion verification.'::TEXT;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

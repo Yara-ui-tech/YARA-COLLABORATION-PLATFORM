@@ -107,18 +107,32 @@ export default function SecretaryReportModal({
       formData.submitted_by_name,
       accessPin,
       isAdmin,
-      reportCategory
+      reportCategory,
+      currentUserEmail
     );
-  }, [selectedChapter, formData.submitted_by_email, formData.submitted_by_name, accessPin, isAdmin, reportCategory]);
+  }, [selectedChapter, formData.submitted_by_email, formData.submitted_by_name, accessPin, isAdmin, reportCategory, currentUserEmail]);
 
-  const handleSelectLeader = (leader: ChapterLeader) => {
-    setFormData(prev => ({
-      ...prev,
-      submitted_by_name: leader.name,
-      submitted_by_email: leader.email || '',
-      submitted_by_role: formatRoleName(leader.role)
-    }));
-  };
+  // Synchronize submitter name and role once verified via session or PIN
+  useEffect(() => {
+    if (verificationResult.isAuthorized) {
+      if (isAdmin) {
+        setFormData(prev => ({
+          ...prev,
+          submitted_by_name: currentUserName || 'National Executive Admin',
+          submitted_by_role: 'National Executive Administrator',
+          submitted_by_email: currentUserEmail || 'admin@yara.org.zw'
+        }));
+      } else if (verificationResult.matchedLeaderName) {
+        const leader = selectedChapter?.leaders?.find(l => l.id === verificationResult.matchedLeaderId);
+        setFormData(prev => ({
+          ...prev,
+          submitted_by_name: verificationResult.matchedLeaderName || prev.submitted_by_name,
+          submitted_by_role: verificationResult.matchedRole || (leader ? formatRoleName(leader.role) : prev.submitted_by_role),
+          submitted_by_email: leader?.email || currentUserEmail || prev.submitted_by_email
+        }));
+      }
+    }
+  }, [verificationResult.isAuthorized, verificationResult.matchedLeaderId, verificationResult.matchedLeaderName, verificationResult.matchedRole, isAdmin, currentUserName, currentUserEmail, selectedChapter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +144,7 @@ export default function SecretaryReportModal({
     if (!verificationResult.isAuthorized) {
       setErrorMsg(
         verificationResult.reason || 
-        'Authorization Denied: Only approved Chapter Leadership can submit official documents to National.'
+        'Authorization Denied: Only individuals specifically approved by the National Executive Administrator for this chapter can submit official reports.'
       );
       return;
     }
@@ -186,7 +200,8 @@ export default function SecretaryReportModal({
         },
         {
           secretarialAccessPin: accessPin,
-          isAdmin: isAdmin
+          isAdmin: isAdmin,
+          authenticatedUserEmail: currentUserEmail
         }
       );
 
@@ -334,69 +349,97 @@ export default function SecretaryReportModal({
             </div>
 
             {verificationResult.isAuthorized ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-black text-emerald-900">Leadership Authorization Verified</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                        {verificationResult.matchedRole || 'Admin-Approved Leader'}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-black text-emerald-950">
+                        {verificationResult.matchedLeaderName || formData.submitted_by_name || 'Admin-Approved Submitter'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        {verificationResult.matchedRole || 'Certified Chapter Leader'}
                       </span>
                     </div>
-                    <p className="text-[11px] text-emerald-700">
-                      Approved by National Executive Admin to submit {reportCategory === 'financial' ? 'Financial & Treasury' : 'General'} documentation.
+                    <p className="text-[11px] text-emerald-800 mt-0.5">
+                      {verificationResult.verificationMethod === 'admin_override'
+                        ? 'Authenticated with Full National Executive Administrator authority.'
+                        : verificationResult.verificationMethod === 'access_pin'
+                        ? `Authenticated via Admin-Assigned Secret PIN • Approved by ${verificationResult.approvedBy || 'National Admin'}.`
+                        : `Authenticated via verified session for ${currentUserEmail}.`}
                     </p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider">
-                    VERIFIED ✓
+                  <span className="px-3 py-1 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                    AUTHORIZED ✓
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+              <div className="p-5 bg-amber-50/90 border border-amber-200 rounded-2xl space-y-3 shadow-2xs">
                 <div className="flex items-start space-x-3">
-                  <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-xs font-bold text-amber-900 block">
-                      Admin-Approved Leadership Authorization Required
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-xs mt-0.5 font-bold">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-black text-amber-950 block">
+                      Chapter Report Submission is Gated to Approved Individuals
                     </span>
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                      Only chapter leaders (President/Chairperson, Secretary, or Treasurer) registered on the chapter roster and approved by the National Executive Admin can submit official reports.
+                    <p className="text-[11px] text-amber-900 leading-relaxed">
+                      To prevent unauthorized filings, only individuals specifically approved by the YARA National Executive Administrator for <strong>{selectedChapter?.name}</strong> can submit official progress or financial statements.
                     </p>
                   </div>
                 </div>
 
-                {eligibleLeaders.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-amber-200/60">
-                    <span className="text-[11px] font-bold text-amber-900 block mb-1.5">
-                      Select Approved Leader on Roster:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {eligibleLeaders.map(l => (
-                        <button
-                          key={l.id}
-                          type="button"
-                          onClick={() => handleSelectLeader(l)}
-                          className="px-2.5 py-1 bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 rounded-xl text-[11px] font-medium flex items-center space-x-1 transition-colors"
-                        >
-                          <UserCheck className="w-3 h-3 text-amber-700" />
-                          <span>{l.name} ({formatRoleName(l.role)})</span>
-                        </button>
-                      ))}
-                    </div>
+                {/* Secret Access PIN verification field */}
+                <div className="p-3.5 bg-white rounded-xl border border-amber-300 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                      <Key className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Enter Admin-Assigned Access PIN to Unlock:</span>
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">Case-Insensitive</span>
                   </div>
-                )}
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={accessPin}
+                      onChange={e => setAccessPin(e.target.value.toUpperCase())}
+                      placeholder="e.g. CUT-PRES-4921"
+                      className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-2 px-3 text-xs font-mono font-black text-slate-900 focus:border-indigo-600 focus:bg-white outline-hidden uppercase tracking-wider"
+                    />
+                  </div>
+                  {accessPin.trim().length > 0 && !verificationResult.isAuthorized && (
+                    <p className="text-[11px] text-red-700 font-bold flex items-center space-x-1">
+                      <AlertCircle className="w-3 h-3 text-red-600" />
+                      <span>{verificationResult.reason}</span>
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-500 leading-normal">
+                    * If you are an appointed chapter chairperson, secretary, or treasurer and do not have an Access PIN, please contact the YARA National Executive Administrator to approve your leadership profile in the Admin Console.
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Submitter Details & Access PIN */}
+          {/* Submitter Details */}
           <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                Authorized Submitter Profile
+              </span>
+              {verificationResult.isAuthorized && (
+                <span className="text-[10px] font-bold text-emerald-700 flex items-center space-x-1">
+                  <Check className="w-3 h-3" />
+                  <span>Profile Verified</span>
+                </span>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="block text-[11px] font-bold text-slate-600 uppercase">Leader Name *</label>
@@ -406,7 +449,8 @@ export default function SecretaryReportModal({
                   value={formData.submitted_by_name}
                   onChange={e => setFormData({ ...formData, submitted_by_name: e.target.value })}
                   placeholder="e.g. Tariro Ndlovu"
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-none"
+                  disabled={verificationResult.isAuthorized && verificationResult.verificationMethod !== 'admin_override'}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-hidden disabled:bg-slate-100 disabled:text-slate-700"
                 />
               </div>
 
@@ -417,8 +461,9 @@ export default function SecretaryReportModal({
                   required
                   value={formData.submitted_by_role}
                   onChange={e => setFormData({ ...formData, submitted_by_role: e.target.value })}
-                  placeholder="e.g. Chapter Treasurer"
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-none"
+                  placeholder="e.g. Chapter Secretary"
+                  disabled={verificationResult.isAuthorized && verificationResult.verificationMethod !== 'admin_override'}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-hidden disabled:bg-slate-100 disabled:text-slate-700"
                 />
               </div>
 
@@ -430,29 +475,10 @@ export default function SecretaryReportModal({
                   value={formData.submitted_by_email}
                   onChange={e => setFormData({ ...formData, submitted_by_email: e.target.value })}
                   placeholder="leader@cut.ac.zw"
-                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-none"
+                  disabled={verificationResult.isAuthorized && verificationResult.verificationMethod !== 'admin_override'}
+                  className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium focus:border-indigo-600 outline-hidden disabled:bg-slate-100 disabled:text-slate-700"
                 />
               </div>
-            </div>
-
-            {/* Optional Personal Access PIN */}
-            <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase flex items-center space-x-1.5">
-                  <Key className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Admin-Assigned Leadership Access PIN (Optional for Roster Matches)</span>
-                </label>
-                <span className="text-[10px] text-slate-500 block">
-                  Provided by National Executive Admin in the Admin Console.
-                </span>
-              </div>
-              <input
-                type="text"
-                value={accessPin}
-                onChange={e => setAccessPin(e.target.value)}
-                placeholder="e.g. CUT-PRES-4921"
-                className="bg-white border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-mono font-bold text-slate-900 w-full sm:w-64 focus:border-indigo-600 outline-none"
-              />
             </div>
           </div>
 

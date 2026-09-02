@@ -242,11 +242,14 @@ export default function AiForEducatorsBootcamp() {
     setShowReceiptModal(true);
   };
 
-  // Open Certificate Download Modal (Only if unlocked by admin)
+  // Open Certificate Download Modal (Only if unlocked and approved by admin)
   const handleDownloadCurrentCertificate = () => {
-    if (!accessResult?.registration) return;
-    if (!accessResult.registration.certificate_unlocked) {
-      alert('Your official certificate has not been unlocked by an administrator yet. Once the YARA Executive Board approves your bootcamp completion, you will be able to download it.');
+    if (!accessResult?.registration) {
+      alert('You must be registered for the AI for Educators Bootcamp before accessing a certificate.');
+      return;
+    }
+    if (!accessResult.registration.certificate_unlocked || accessResult.registration.approval_status !== 'approved') {
+      alert('Your official certificate has not been approved and unlocked by an administrator yet. Once the YARA Executive Board verifies your attendance, evaluation, and capstone project, your certificate will become available for download.');
       return;
     }
     const cert = buildEducatorCertificate(accessResult.registration);
@@ -548,7 +551,7 @@ export default function AiForEducatorsBootcamp() {
                     <ExternalLink className="w-4 h-4" />
                   </a>
 
-                  {accessResult.registration?.certificate_unlocked ? (
+                  {accessResult.registration?.certificate_unlocked && accessResult.registration?.approval_status === 'approved' ? (
                     <button
                       onClick={handleDownloadCurrentCertificate}
                       className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer transform hover:scale-[1.01]"
@@ -557,6 +560,11 @@ export default function AiForEducatorsBootcamp() {
                       <span>Download Official Diploma Certificate</span>
                       <Download className="w-3.5 h-3.5 text-slate-950" />
                     </button>
+                  ) : accessResult.registration ? (
+                    <div className="w-full py-2.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold text-center flex items-center justify-center space-x-2 select-none">
+                      <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Certificate Locked (Awaiting Admin Completion Sign-Off)</span>
+                    </div>
                   ) : null}
 
                   <button

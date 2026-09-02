@@ -11,7 +11,9 @@ import {
   BookOpen, 
   Sparkles, 
   ArrowLeft,
-  Printer
+  Printer,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 import { getPublicCertificate } from '../services/yaraLmsService';
 import { getEducatorCertificateByCodeOrEmail } from '../services/eventRegistrationService';
@@ -134,12 +136,35 @@ export default function VerifyCertificate() {
                 </div>
               ) : educatorCertificate ? (
                 /* Educator Certificate View */
-                <div className="space-y-4">
-                  <EducatorCertificate 
-                    data={educatorCertificate} 
-                    showPrintActions={true}
-                  />
-                </div>
+                educatorCertificate.status === 'locked' ? (
+                  <div className="p-6 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 flex items-start gap-3.5">
+                    <Lock className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-black text-amber-900">
+                          Certificate Status: Pending Administrative Approval & Sign-Off
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-200/80 text-amber-900">
+                          Not Issued
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        A participant registration record for <strong>{educatorCertificate.recipient_name}</strong> was found ({educatorCertificate.certificate_number}), but this certificate has <strong>NOT</strong> been approved and unlocked by an authorized YARA Administrator yet. Unapproved credentials are not valid and cannot be authenticated.
+                      </p>
+                      <div className="text-[11px] text-amber-700 pt-1 border-t border-amber-200/60 flex flex-wrap gap-4">
+                        <span>Institution: <strong>{educatorCertificate.institution_name}</strong></span>
+                        <span>Event: <strong>{educatorCertificate.event_title}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <EducatorCertificate 
+                      data={educatorCertificate} 
+                      showPrintActions={true}
+                    />
+                  </div>
+                )
               ) : certificate ? (
                 /* Valid Certificate View */
                 <div className="space-y-6">

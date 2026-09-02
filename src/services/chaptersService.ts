@@ -1644,7 +1644,8 @@ export function verifyLeadershipAuthorization(
   submitterName?: string,
   accessPin?: string,
   isAdmin: boolean = false,
-  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general'
+  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general',
+  authenticatedUserEmail?: string
 ): LeadershipVerificationResult {
   if (isAdmin) {
     return {
@@ -1658,9 +1659,10 @@ export function verifyLeadershipAuthorization(
   }
 
   const cleanPin = accessPin ? accessPin.trim().toUpperCase() : '';
+  const authEmail = authenticatedUserEmail ? authenticatedUserEmail.trim().toLowerCase() : '';
   const cleanEmail = submitterEmail ? submitterEmail.trim().toLowerCase() : '';
 
-  // 1. PIN verification
+  // 1. PIN verification (Highest authority for designated approved individuals)
   if (cleanPin && chapter.leaders && chapter.leaders.length > 0) {
     const pinMatchedLeader = chapter.leaders.find(
       l => (l.access_pin && l.access_pin.toUpperCase() === cleanPin) ||
@@ -1672,7 +1674,7 @@ export function verifyLeadershipAuthorization(
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Leadership Approval Pending: ${pinMatchedLeader.name} is registered as ${formatRoleName(pinMatchedLeader.role)} on ${chapter.name}, but has NOT yet been approved by the National Executive Admin.`
+          reason: `Approval Pending: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) is registered on ${chapter.name}, but has not been approved by the National Executive Administrator yet.`
         };
       }
 
@@ -1686,7 +1688,7 @@ export function verifyLeadershipAuthorization(
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Role Restriction: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) does not have permission to submit official financial statements.`
+          reason: `Permission Restriction: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) has not been granted administrative permission to submit financial statements.`
         };
       }
 
@@ -1694,7 +1696,7 @@ export function verifyLeadershipAuthorization(
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Role Restriction: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) does not have permission to submit general chapter reports.`
+          reason: `Permission Restriction: ${pinMatchedLeader.name} (${formatRoleName(pinMatchedLeader.role)}) has not been granted administrative permission to submit general chapter reports.`
         };
       }
 
@@ -1711,19 +1713,26 @@ export function verifyLeadershipAuthorization(
         canSubmitGeneralReports: canDoGeneral,
         canSubmitFinancialReports: canDoFinancial
       };
+    } else {
+      return {
+        isAuthorized: false,
+        isApprovedSecretary: false,
+        reason: `Invalid Access PIN: The PIN entered does not match any admin-approved individual for ${chapter.name}.`
+      };
     }
   }
 
-  // 2. Email verification against chapter leadership roster
-  if (cleanEmail && chapter.leaders && chapter.leaders.length > 0) {
-    const leaderByEmail = chapter.leaders.find(l => l.email?.toLowerCase() === cleanEmail);
+  // 2. Authenticated user session verification (Logged-in user email matching approved leader on chapter)
+  const effectiveEmail = authEmail || cleanEmail;
+  if (effectiveEmail && chapter.leaders && chapter.leaders.length > 0) {
+    const leaderByEmail = chapter.leaders.find(l => l.email?.toLowerCase() === effectiveEmail);
 
     if (leaderByEmail) {
       if (leaderByEmail.is_approved_by_admin === false) {
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Leadership Approval Pending: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)} on ${chapter.name}, but has NOT yet been approved by the National Executive Admin in the dashboard.`
+          reason: `Approval Pending: ${leaderByEmail.name} is on the roster for ${chapter.name}, but report submission access has NOT been approved by the National Executive Admin in the dashboard.`
         };
       }
 
@@ -1737,7 +1746,7 @@ export function verifyLeadershipAuthorization(
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Role Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}. Financial statements must be submitted by an Admin-Approved Chapter Treasurer, President/Chairperson, or Secretary.`
+          reason: `Permission Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}, but has not been granted permission by an administrator to submit financial statements.`
         };
       }
 
@@ -1745,39 +1754,33 @@ export function verifyLeadershipAuthorization(
         return {
           isAuthorized: false,
           isApprovedSecretary: false,
-          reason: `Role Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}. General progress reports must be submitted by an Admin-Approved Chapter Secretary or Chairperson.`
+          reason: `Permission Restriction: ${leaderByEmail.name} is registered as ${formatRoleName(leaderByEmail.role)}, but has not been granted permission by an administrator to submit general chapter reports.`
         };
       }
 
-      return {
-        isAuthorized: true,
-        isApprovedSecretary: true,
-        matchedLeaderId: leaderByEmail.id,
-        matchedLeaderName: leaderByEmail.name,
-        matchedRole: `${formatRoleName(leaderByEmail.role)} (Admin-Approved)`,
-        matchedRoleType: leaderByEmail.role,
-        verificationMethod: 'roster_email',
-        approvedAt: leaderByEmail.approved_by_admin_at,
-        approvedBy: leaderByEmail.approved_by_admin_name || 'National Executive Admin',
-        canSubmitGeneralReports: canDoGeneral,
-        canSubmitFinancialReports: canDoFinancial
-      };
+      // If user is authenticated via session matching this leader's email
+      if (authEmail && authEmail === leaderByEmail.email?.toLowerCase()) {
+        return {
+          isAuthorized: true,
+          isApprovedSecretary: true,
+          matchedLeaderId: leaderByEmail.id,
+          matchedLeaderName: leaderByEmail.name,
+          matchedRole: `${formatRoleName(leaderByEmail.role)} (Admin-Approved)`,
+          matchedRoleType: leaderByEmail.role,
+          verificationMethod: 'auth_session',
+          approvedAt: leaderByEmail.approved_by_admin_at,
+          approvedBy: leaderByEmail.approved_by_admin_name || 'National Executive Admin',
+          canSubmitGeneralReports: canDoGeneral,
+          canSubmitFinancialReports: canDoFinancial
+        };
+      }
     }
-  }
-
-  // If no match found
-  if (cleanEmail) {
-    return {
-      isAuthorized: false,
-      isApprovedSecretary: false,
-      reason: `Unauthorized: The email "${cleanEmail}" is not recognized as an admin-approved Chapter Leader for ${chapter.name}.`
-    };
   }
 
   return {
     isAuthorized: false,
     isApprovedSecretary: false,
-    reason: 'Authorization Required: Official reports must be submitted by Chapter Leadership (President/Chairperson, Secretary, or Treasurer) assigned and approved by the National Executive Admin.'
+    reason: `Access Restricted: You are not authorized to submit reports for ${chapter.name}. Only individuals approved by a YARA National Administrator can submit reports. If you have been approved, please enter your Admin-Assigned Access PIN.`
   };
 }
 
@@ -1787,7 +1790,8 @@ export function verifySecretaryAuthorization(
   submitterName?: string,
   secretarialAccessPin?: string,
   isAdmin: boolean = false,
-  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general'
+  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general',
+  authenticatedUserEmail?: string
 ): LeadershipVerificationResult {
   return verifyLeadershipAuthorization(
     chapter,
@@ -1795,7 +1799,8 @@ export function verifySecretaryAuthorization(
     submitterName,
     secretarialAccessPin,
     isAdmin,
-    reportCategory
+    reportCategory,
+    authenticatedUserEmail
   );
 }
 
@@ -2137,6 +2142,7 @@ export async function submitChapterReport(
   options?: {
     secretarialAccessPin?: string;
     isAdmin?: boolean;
+    authenticatedUserEmail?: string;
   }
 ): Promise<ChapterReport> {
   const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
@@ -2153,7 +2159,8 @@ export async function submitChapterReport(
     reportData.submitted_by_name,
     options?.secretarialAccessPin,
     options?.isAdmin || false,
-    category
+    category,
+    options?.authenticatedUserEmail
   );
 
   if (!verification.isAuthorized) {

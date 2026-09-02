@@ -52,6 +52,11 @@ export default function ParticipantPortal() {
   }, [user]);
 
   const handleOpenCertificate = async (team: YaraCompetitionRegistration) => {
+    if (team.status !== 'Approved' && team.status !== 'Winner') {
+      alert(`Official competition certificates are only issued to teams with verified and approved registration status. Your team status is currently: ${team.status}. Once approved by the Competition Secretariat, your certificate will become available.`);
+      return;
+    }
+
     const certs = await getCertificates();
     let found = certs.find(c => c.team_name === team.team_name || c.recipient_name === team.team_name);
     
@@ -148,13 +153,24 @@ export default function ParticipantPortal() {
               <span>Submit Technical Dossier</span>
             </button>
 
-            <button
-              onClick={() => handleOpenCertificate(selectedTeam)}
-              className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center space-x-2"
-            >
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>View Certificate</span>
-            </button>
+            {selectedTeam.status === 'Approved' || selectedTeam.status === 'Winner' ? (
+              <button
+                onClick={() => handleOpenCertificate(selectedTeam)}
+                className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center space-x-2 cursor-pointer"
+              >
+                <Award className="w-4 h-4 text-amber-400" />
+                <span>View Certificate</span>
+              </button>
+            ) : (
+              <div 
+                onClick={() => handleOpenCertificate(selectedTeam)}
+                className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 font-bold text-xs flex items-center space-x-2 cursor-pointer hover:bg-white/10 transition"
+                title="Certificate requires Approved registration status"
+              >
+                <Award className="w-4 h-4 text-slate-500" />
+                <span>Certificate (Pending Approval)</span>
+              </div>
+            )}
           </div>
         </div>
 

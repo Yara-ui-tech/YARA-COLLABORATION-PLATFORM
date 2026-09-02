@@ -1455,7 +1455,7 @@ export function buildEducatorCertificate(
     logo_url: overrides?.logo_url || tpl.logo_url,
     verification_url: overrides?.verification_url || verificationUrl,
     qr_code_value: overrides?.qr_code_value || verificationUrl,
-    status: (overrides?.status || (reg.certificate_unlocked ? 'unlocked' : 'locked')),
+    status: (overrides?.status || (Boolean(reg.certificate_unlocked && reg.approval_status === 'approved') ? 'unlocked' : 'locked')),
     grade: overrides?.grade || reg.certificate_grade || tpl.default_grade,
     honors: overrides?.honors || tpl.honors_badge_text
   };
