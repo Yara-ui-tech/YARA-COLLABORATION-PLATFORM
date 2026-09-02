@@ -63,9 +63,14 @@ export async function createOrganizationPost(post: Omit<OrganizationPost, 'id' |
           title: newPost.title,
           content: newPost.content,
           image_url: newPost.image_url || null,
+          video_url: newPost.video_url || null,
+          media_type: newPost.media_type || 'article',
+          gallery_urls: newPost.gallery_urls || [],
+          attachments: newPost.attachments || [],
           category: newPost.category,
           tags: newPost.tags,
           is_pinned: newPost.is_pinned || false,
+          is_breaking: newPost.is_breaking || false,
           social_channels: newPost.social_channels,
           broadcast_status: newPost.broadcast_status,
           author_id: newPost.author_id || null,
@@ -229,3 +234,44 @@ export function generateSocialShareLinks(post: OrganizationPost, config: SocialB
     telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`
   };
 }
+
+/**
+ * Extracts iframe embed URL or HTML5 video source from a raw video link
+ * Supports YouTube, Vimeo, direct MP4/WebM, Loom, Google Drive
+ */
+export function getEmbeddableVideoUrl(url?: string): { embedUrl: string | null; type: 'youtube' | 'vimeo' | 'direct' | 'other' | null } {
+  if (!url || !url.trim()) return { embedUrl: null, type: null };
+  const trimmed = url.trim();
+
+  // YouTube formats (watch?v=, youtu.be/, /embed/, /shorts/)
+  const ytMatch = trimmed.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    return {
+      embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`,
+      type: 'youtube'
+    };
+  }
+
+  // Vimeo formats
+  const vimeoMatch = trimmed.match(/(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+))/i);
+  if (vimeoMatch && vimeoMatch[3]) {
+    return {
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[3]}`,
+      type: 'vimeo'
+    };
+  }
+
+  // Direct MP4 / WebM video files
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(trimmed)) {
+    return {
+      embedUrl: trimmed,
+      type: 'direct'
+    };
+  }
+
+  return {
+    embedUrl: trimmed,
+    type: 'other'
+  };
+}
+

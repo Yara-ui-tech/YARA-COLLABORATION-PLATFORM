@@ -36,6 +36,7 @@ interface AuthContextType {
   isTrialExpired: boolean;
   isHalted: boolean;
   refreshProfile?: () => Promise<void>;
+  signOut?: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -48,6 +49,7 @@ const AuthContext = createContext<AuthContextType>({
   isTrialExpired: false,
   isHalted: false,
   refreshProfile: async () => {},
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -465,8 +467,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signOut = async () => {
+    try {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      await safeSignOut();
+    } catch (err) {
+      console.warn('Sign out handler notice:', err);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      clearStaleSupabaseAuth();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted, refreshProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

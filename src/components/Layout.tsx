@@ -52,11 +52,16 @@ const mainNavItems: NavItem[] = [
 
 export default function Layout() {
   const location = useLocation();
-  const { profile, isAccountActive } = useAuth();
+  const { profile, isAccountActive, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
-    await safeSignOut();
+    if (signOut) {
+      await signOut();
+    } else {
+      await safeSignOut();
+      window.location.href = '/auth';
+    }
   };
 
   const isAdmin = profile?.role === 'admin';

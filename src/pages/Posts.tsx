@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Globe, Radio, ThumbsUp, Share2, Sparkles, Tag, Calendar, 
-  User, Search, Pin, ExternalLink, Loader2, ArrowRight, Check, Copy, MessageSquare
+  User, Search, Pin, ExternalLink, Loader2, ArrowRight, Check, Copy, MessageSquare,
+  Play, Video, Image as ImageIcon, FileText, Download, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -11,7 +12,8 @@ import {
   getOrganizationPosts, 
   likeOrganizationPost, 
   getSocialBroadcastConfig, 
-  generateSocialShareLinks 
+  generateSocialShareLinks,
+  getEmbeddableVideoUrl
 } from '../services/organizationPostsService';
 import { cn } from '../lib/utils';
 
@@ -200,6 +202,22 @@ export default function Posts() {
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
+                      {post.video_url && (
+                        <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!post.image_url && post.video_url && (
+                    <div className="h-48 rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-white space-y-2">
+                      <div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-300">Watch Video Release</span>
                     </div>
                   )}
 
@@ -210,6 +228,27 @@ export default function Posts() {
                   <p className="text-xs text-slate-600 font-medium leading-relaxed line-clamp-3">
                     {post.content}
                   </p>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {post.media_type === 'video' && (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                        <Video className="w-3 h-3" />
+                        <span>Video Broadcast</span>
+                      </span>
+                    )}
+                    {post.media_type === 'gallery' && (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+                        <ImageIcon className="w-3 h-3" />
+                        <span>Photo Gallery</span>
+                      </span>
+                    )}
+                    {post.attachments && post.attachments.length > 0 && (
+                      <span className="inline-flex items-center space-x-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                        <FileText className="w-3 h-3" />
+                        <span>Document Attached</span>
+                      </span>
+                    )}
+                  </div>
 
                   {post.tags && post.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
@@ -314,7 +353,35 @@ export default function Posts() {
                 <span>Published by {selectedPost.author_name}</span>
               </div>
 
-              {selectedPost.image_url && (
+              {/* Embedded Video */}
+              {selectedPost.video_url && (
+                <div className="rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-lg aspect-video">
+                  {(() => {
+                    const embedUrl = getEmbeddableVideoUrl(selectedPost.video_url);
+                    if (embedUrl) {
+                      return (
+                        <iframe
+                          src={embedUrl}
+                          title={selectedPost.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      );
+                    }
+                    return (
+                      <video 
+                        src={selectedPost.video_url} 
+                        controls 
+                        className="w-full h-full"
+                      />
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Cover Image (if no video) */}
+              {!selectedPost.video_url && selectedPost.image_url && (
                 <div className="rounded-3xl overflow-hidden bg-slate-100 border border-slate-100 max-h-80">
                   <img
                     src={selectedPost.image_url}
@@ -325,9 +392,66 @@ export default function Posts() {
                 </div>
               )}
 
+              {/* Photo Gallery */}
+              {selectedPost.gallery_urls && selectedPost.gallery_urls.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Photo Story & Event Gallery</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {selectedPost.gallery_urls.map((imgUrl, i) => (
+                      <a 
+                        key={i} 
+                        href={imgUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 h-28 block group hover:scale-[1.02] transition-transform"
+                      >
+                        <img 
+                          src={imgUrl} 
+                          alt={`Gallery ${i + 1}`} 
+                          className="w-full h-full object-cover group-hover:opacity-90"
+                          referrerPolicy="no-referrer"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="text-sm md:text-base text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
                 {selectedPost.content}
               </div>
+
+              {/* Attached Documents / Press Release PDFs */}
+              {selectedPost.attachments && selectedPost.attachments.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Official Documents & Downloads</h4>
+                  <div className="space-y-2">
+                    {selectedPost.attachments.map((att, idx) => (
+                      <a
+                        key={idx}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-2xl transition-all group"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600">{att.name}</p>
+                            {att.size && <p className="text-[10px] text-slate-400">{att.size}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1 text-xs font-bold text-indigo-600">
+                          <Download className="w-4 h-4" />
+                          <span>Download</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {selectedPost.tags && selectedPost.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2">

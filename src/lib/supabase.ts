@@ -5,7 +5,7 @@ const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || 'https://oeeyrcoogzymx
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZXlyY29vZ3p5bXhndGFucGV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNTE2NjgsImV4cCI6MjA5MDgyNzY2OH0.3K1iNXObMklqRlEb-laGjCQUnhXZmxBJ2pCGlSF6C5c';
 
 /**
- * Cleanly remove stale or corrupted Supabase auth tokens from localStorage
+ * Cleanly remove stale or corrupted Supabase auth tokens from localStorage and sessionStorage
  */
 export const clearStaleSupabaseAuth = () => {
   if (typeof window === 'undefined') return;
@@ -13,7 +13,13 @@ export const clearStaleSupabaseAuth = () => {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('sb-') || key.includes('supabase.auth') || key.startsWith('yaria_cached_profile_'))) {
+      if (
+        key && 
+        (key.startsWith('sb-') || 
+         key.includes('supabase.auth') || 
+         key.startsWith('yaria_cached_profile_') ||
+         key === 'yaria_device_id')
+      ) {
         keysToRemove.push(key);
       }
     }
@@ -24,6 +30,24 @@ export const clearStaleSupabaseAuth = () => {
         // ignore
       }
     });
+
+    // Also clear any sessionStorage tokens if present
+    if (typeof sessionStorage !== 'undefined') {
+      const sessionKeys: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase.auth'))) {
+          sessionKeys.push(key);
+        }
+      }
+      sessionKeys.forEach((k) => {
+        try {
+          sessionStorage.removeItem(k);
+        } catch {
+          // ignore
+        }
+      });
+    }
   } catch (e) {
     console.warn('Failed to clear storage:', e);
   }
@@ -190,12 +214,10 @@ export const supabase = createClient(
  * Safe signOut helper that avoids throwing AuthSessionMissingError
  */
 export const safeSignOut = async () => {
-  clearStaleSupabaseAuth();
   try {
-    const { data } = await supabase.auth.getSession();
-    if (data?.session) {
-      await supabase.auth.signOut({ scope: 'local' });
-    }
+    await supabase.auth.signOut().catch(async () => {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    });
   } catch (err: any) {
     console.warn('Sign out completed with notice:', err?.message || err);
   } finally {

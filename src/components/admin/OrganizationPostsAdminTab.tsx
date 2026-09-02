@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Send, Plus, Trash2, Globe, Share2, Radio, CheckCircle2, 
   AlertCircle, Loader2, Sparkles, Image as ImageIcon, Link as LinkIcon,
-  Tag, ExternalLink, Settings, RefreshCw, Pin, ThumbsUp, Eye, Copy, Check
+  Tag, ExternalLink, Settings, RefreshCw, Pin, ThumbsUp, Eye, Copy, Check, Video
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -43,6 +43,13 @@ export default function OrganizationPostsAdminTab() {
     title: '',
     content: '',
     image_url: '',
+    video_url: '',
+    media_type: 'standard' as 'standard' | 'image' | 'video' | 'gallery' | 'document',
+    galleryInput: '',
+    gallery_urls: [] as string[],
+    attachmentName: '',
+    attachmentUrl: '',
+    attachments: [] as Array<{ name: string; url: string; size?: string }>,
     category: 'announcement' as OrganizationPost['category'],
     tags: ['Robotics', 'Innovation', 'Africa'],
     tagInput: '',
@@ -114,6 +121,10 @@ export default function OrganizationPostsAdminTab() {
         title: formData.title,
         content: formData.content,
         image_url: formData.image_url.trim() || undefined,
+        video_url: formData.video_url.trim() || undefined,
+        media_type: formData.media_type,
+        gallery_urls: formData.gallery_urls.length > 0 ? formData.gallery_urls : undefined,
+        attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
         category: formData.category,
         tags: formData.tags,
         is_pinned: formData.is_pinned,
@@ -129,6 +140,13 @@ export default function OrganizationPostsAdminTab() {
           title: '',
           content: '',
           image_url: '',
+          video_url: '',
+          media_type: 'standard',
+          galleryInput: '',
+          gallery_urls: [],
+          attachmentName: '',
+          attachmentUrl: '',
+          attachments: [],
           category: 'announcement',
           tags: ['Robotics', 'Innovation', 'Africa'],
           tagInput: '',
@@ -291,7 +309,7 @@ export default function OrganizationPostsAdminTab() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase">Category</label>
                 <select
@@ -308,7 +326,22 @@ export default function OrganizationPostsAdminTab() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase">Cover Image / Media URL (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase">Media Format</label>
+                <select
+                  value={formData.media_type}
+                  onChange={e => setFormData({ ...formData, media_type: e.target.value as any })}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-xs font-bold text-slate-900 focus:border-indigo-600 outline-none"
+                >
+                  <option value="standard">Standard Article</option>
+                  <option value="image">Picture News & Banner</option>
+                  <option value="video">Video News & Stream</option>
+                  <option value="gallery">Photo Story Gallery</option>
+                  <option value="document">Press Release / Document</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase">Cover Image URL</label>
                 <div className="relative">
                   <input
                     type="url"
@@ -320,6 +353,129 @@ export default function OrganizationPostsAdminTab() {
                   <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 </div>
               </div>
+            </div>
+
+            {/* Video Broadcast URL */}
+            <div className="space-y-2 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+              <label className="block text-xs font-bold text-indigo-900 uppercase">Video URL (YouTube, Vimeo, MP4 Video)</label>
+              <div className="relative">
+                <input
+                  type="url"
+                  value={formData.video_url}
+                  onChange={e => setFormData({ ...formData, video_url: e.target.value })}
+                  placeholder="e.g. https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                  className="w-full bg-white border-2 border-indigo-100 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium text-slate-900 focus:border-indigo-600 outline-none"
+                />
+                <Video className="w-4 h-4 text-indigo-500 absolute left-3.5 top-3" />
+              </div>
+              <p className="text-[11px] text-indigo-600/80">Embedded directly in post viewer with responsive playback for members.</p>
+            </div>
+
+            {/* Photo Gallery URLs */}
+            <div className="space-y-2 p-4 bg-amber-50/40 rounded-2xl border border-amber-100">
+              <label className="block text-xs font-bold text-amber-900 uppercase">Multi-Photo Story Gallery URLs</label>
+              <div className="flex space-x-2">
+                <input
+                  type="url"
+                  value={formData.galleryInput}
+                  onChange={e => setFormData({ ...formData, galleryInput: e.target.value })}
+                  placeholder="Paste image URL and click Add"
+                  className="flex-1 bg-white border-2 border-amber-100 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formData.galleryInput.trim()) {
+                      setFormData({
+                        ...formData,
+                        gallery_urls: [...formData.gallery_urls, formData.galleryInput.trim()],
+                        galleryInput: ''
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold"
+                >
+                  Add Photo
+                </button>
+              </div>
+              {formData.gallery_urls.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {formData.gallery_urls.map((url, idx) => (
+                    <div key={idx} className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-xl border border-amber-200 text-xs text-amber-900">
+                      <span className="truncate max-w-[200px]">{url}</span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          gallery_urls: formData.gallery_urls.filter((_, i) => i !== idx)
+                        })}
+                        className="text-red-500 font-bold hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Document Attachments */}
+            <div className="space-y-2 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <label className="block text-xs font-bold text-slate-800 uppercase">Downloadable Press Documents / PDFs</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={formData.attachmentName}
+                  onChange={e => setFormData({ ...formData, attachmentName: e.target.value })}
+                  placeholder="Doc Title (e.g. Press Release PDF)"
+                  className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-800 outline-none"
+                />
+                <input
+                  type="url"
+                  value={formData.attachmentUrl}
+                  onChange={e => setFormData({ ...formData, attachmentUrl: e.target.value })}
+                  placeholder="Document URL (https://...)"
+                  className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-800 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formData.attachmentName.trim() && formData.attachmentUrl.trim()) {
+                      setFormData({
+                        ...formData,
+                        attachments: [
+                          ...formData.attachments,
+                          { name: formData.attachmentName.trim(), url: formData.attachmentUrl.trim(), size: 'PDF / Document' }
+                        ],
+                        attachmentName: '',
+                        attachmentUrl: ''
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold"
+                >
+                  Attach File
+                </button>
+              </div>
+              {formData.attachments.length > 0 && (
+                <div className="space-y-1.5 pt-2">
+                  {formData.attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs">
+                      <span className="font-bold text-slate-800">{att.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({
+                          ...formData,
+                          attachments: formData.attachments.filter((_, i) => i !== idx)
+                        })}
+                        className="text-red-500 font-bold hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

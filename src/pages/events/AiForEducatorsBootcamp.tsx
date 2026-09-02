@@ -672,48 +672,83 @@ export default function AiForEducatorsBootcamp() {
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                  <Brain className="w-5 h-5" />
-                </div>
-                <h3 className="text-xl font-black text-slate-900">Why AI for Educators?</h3>
+          {/* Header Theme & Level Card */}
+          <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Official Programme Overview</span>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                  {AI_FOR_EDUCATORS_EVENT.full_title}
+                </h3>
               </div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Educators spend up to 40% of their working hours on administrative overhead: drafting lesson plans, preparing differentiated worksheets, grading assessments, compiling progress reports, and drafting communication. This bootcamp teaches you how to responsibly delegate routine tasks to AI while retaining human pedagogical insight.
-              </p>
-              <ul className="space-y-2 text-xs text-slate-700 font-medium">
-                <li className="flex items-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Save 10+ hours per week in routine lesson and test generation</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Build adaptive worksheets tailored to mixed-ability classrooms</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Integrate ethical AI guidelines and critical thinking into student tasks</span>
-                </li>
-              </ul>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-black uppercase tracking-wider">
+                  {AI_FOR_EDUCATORS_EVENT.theme}
+                </span>
+                <span className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-black uppercase tracking-wider">
+                  Level: {AI_FOR_EDUCATORS_EVENT.course_level}
+                </span>
+              </div>
             </div>
 
-            <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-                  <Award className="w-5 h-5" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h4 className="font-black text-sm uppercase tracking-wider text-slate-800 flex items-center space-x-2">
+                  <Brain className="w-4 h-4 text-indigo-600" />
+                  <span>Course Purpose & Scope</span>
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  {AI_FOR_EDUCATORS_EVENT.level_description}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-black text-sm uppercase tracking-wider text-slate-800 flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Programme Overview</span>
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  {AI_FOR_EDUCATORS_EVENT.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Target Participants */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <h4 className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-2">
+                <Users className="w-4 h-4 text-indigo-600" />
+                <span>Target Participants</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {AI_FOR_EDUCATORS_EVENT.target_participants.map((role, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-800 hover:text-indigo-800 border border-slate-200 text-xs font-bold transition-colors"
+                  >
+                    • {role}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Learning Objectives */}
+          <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Pedagogical Goals</span>
+              <h3 className="text-xl font-black text-slate-900">Learning Objectives</h3>
+              <p className="text-xs text-slate-500">By the end of this five-day practical course, participants will be able to:</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AI_FOR_EDUCATORS_EVENT.learning_objectives.map((obj, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start space-x-3">
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                    {idx + 1}
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">{obj}</p>
                 </div>
-                <h3 className="text-xl font-black text-slate-900">Certification & Recognition</h3>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Every verified educator who completes the five-day live virtual training and submits the hands-on capstone project receives the official <strong>YARA Certified AI Educator (Foundations)</strong> credential, verified with a verifiable digital certificate ID.
-              </p>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Official Certification</span>
-                <p className="text-xs font-bold text-slate-900">YARA Certified AI Educator — Introductory Bootcamp 2026</p>
-                <span className="text-[11px] text-slate-500">Issued by Young Africans Robotics Association</span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -722,17 +757,17 @@ export default function AiForEducatorsBootcamp() {
       {/* TAB 2: CURRICULUM */}
       {activeTab === 'curriculum' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-xl font-black text-slate-900">5-Day Structured Curriculum</h3>
-              <p className="text-xs text-slate-500">31 August – 4 September 2026 | Daily 17:00 – 19:30 CAT</p>
+              <h3 className="text-xl font-black text-slate-900">Five-Day Learning Programme</h3>
+              <p className="text-xs text-slate-500">{AI_FOR_EDUCATORS_EVENT.dates_display} | Live Interactive Sessions</p>
             </div>
-            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-2xl">
+            <div className="flex flex-wrap gap-1.5 bg-slate-100 p-1 rounded-2xl">
               {[1, 2, 3, 4, 5].map(d => (
                 <button
                   key={d}
                   onClick={() => setSelectedDay(d)}
-                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
                     selectedDay === d ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -742,113 +777,123 @@ export default function AiForEducatorsBootcamp() {
             </div>
           </div>
 
-          <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            {selectedDay === 1 && (
-              <div className="space-y-4">
-                <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase">
-                  Day 1: Demystifying AI & Prompt Engineering for Teaching
-                </span>
-                <h4 className="text-2xl font-black text-slate-900">Introduction to Generative AI & Classroom Prompt Craft</h4>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Understand how Large Language Models (LLMs) function, their limitations, hallucination management, and master the 4-part pedagogical prompt architecture (Role, Context, Task, Constraints).
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <h5 className="font-bold text-xs text-slate-900">Core Hands-On Lab</h5>
-                    <p className="text-xs text-slate-500">Crafting high-yield prompts for lesson plans and interactive student discussions.</p>
+          {(() => {
+            const currentDayData = AI_FOR_EDUCATORS_EVENT.five_day_programme[selectedDay - 1];
+            if (!currentDayData) return null;
+
+            return (
+              <div className="p-6 md:p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+                  <div className="space-y-1">
+                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase">
+                      Day {selectedDay} Schedule
+                    </span>
+                    <h4 className="text-xl sm:text-2xl font-black text-slate-900 pt-1">
+                      {currentDayData.title}
+                    </h4>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <h5 className="font-bold text-xs text-slate-900">Tools Covered</h5>
-                    <p className="text-xs text-slate-500">ChatGPT, Claude, Google Gemini, and DeepSeek for educators.</p>
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-500">
+                    <Calendar className="w-4 h-4 text-indigo-600" />
+                    <span>{currentDayData.date}</span>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {selectedDay === 2 && (
-              <div className="space-y-4">
-                <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-black uppercase">
-                  Day 2: Lesson Planning & Differentiated Learning Material
-                </span>
-                <h4 className="text-2xl font-black text-slate-900">Automating Lesson Prep & Multilevel Worksheets</h4>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Generate full curriculum-aligned lesson schemes in minutes, create differentiated reading levels for mixed-ability classes, and build engaging classroom games and simulation prompts.
-                </p>
-              </div>
-            )}
+                {/* Day 5 Certificate Note */}
+                {currentDayData.certificate_note && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start space-x-3">
+                    <Award className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <span className="font-black text-amber-900 uppercase tracking-wide">Certificate Note</span>
+                      <p className="text-amber-800 leading-relaxed">
+                        {currentDayData.certificate_note}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-            {selectedDay === 3 && (
-              <div className="space-y-4">
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black uppercase">
-                  Day 3: Assessment Design, Rubrics & Automated Feedback
-                </span>
-                <h4 className="text-2xl font-black text-slate-900">Modern Assessment Tools & Personalized Feedback Loops</h4>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Create rubrics aligned to Bloom's taxonomy, generate multi-choice and scenario test banks with answer rationales, and formulate constructive, individualized feedback for learners.
-                </p>
-              </div>
-            )}
+                {/* Sessions Table */}
+                <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 uppercase font-black tracking-wider text-[11px] border-b border-slate-200">
+                        <th className="py-3 px-4 w-12 text-center">#</th>
+                        <th className="py-3 px-5 sm:w-1/3">Session</th>
+                        <th className="py-3 px-5">Practical Focus</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {currentDayData.sessions.map((sess, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3.5 px-4 text-center font-bold text-slate-400">
+                            {idx + 1}
+                          </td>
+                          <td className="py-3.5 px-5 font-black text-slate-900 align-top">
+                            <div className="flex items-center space-x-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0"></span>
+                              <span>{sess.session}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-5 text-slate-600 leading-relaxed align-top">
+                            {sess.practical_focus}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            {selectedDay === 4 && (
-              <div className="space-y-4">
-                <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-black uppercase">
-                  Day 4: AI for School Administration & Teacher Productivity
-                </span>
-                <h4 className="text-2xl font-black text-slate-900">Drafting Letters, Reports & Data Summaries</h4>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Automate parent communication letters, school newsletters, termly progress report commentary, and summarize dense educational policy documents.
-                </p>
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    disabled={selectedDay <= 1}
+                    onClick={() => setSelectedDay(prev => Math.max(1, prev - 1))}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    ← Previous Day
+                  </button>
+                  <span className="text-xs text-slate-400 font-bold">
+                    Day {selectedDay} of 5
+                  </span>
+                  <button
+                    disabled={selectedDay >= 5}
+                    onClick={() => setSelectedDay(prev => Math.min(5, prev + 1))}
+                    className="px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 text-indigo-700 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Next Day →
+                  </button>
+                </div>
               </div>
-            )}
-
-            {selectedDay === 5 && (
-              <div className="space-y-4">
-                <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-xs font-black uppercase">
-                  Day 5: Ethical AI, Plagiarism, Policy & Capstone Project
-                </span>
-                <h4 className="text-2xl font-black text-slate-900">AI Ethics, Academic Integrity & Capstone Presentation</h4>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Establish responsible classroom AI guidelines, detect misuse without flawed detector tools, evaluate student AI literacy, and present your custom AI educator workflow portfolio.
-                </p>
-              </div>
-            )}
-          </div>
+            );
+          })()}
         </div>
       )}
 
       {/* TAB 3: AUTOMATION */}
       {activeTab === 'automation' && (
         <div className="space-y-6">
-          <div className="max-w-2xl space-y-2">
-            <h3 className="text-xl font-black text-slate-900">Practical Automation Areas for Educators</h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Explore concrete workflows where educators save time every week using modern artificial intelligence.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3">
-              <BookOpen className="w-6 h-6 text-indigo-600" />
-              <h4 className="font-black text-base text-slate-900">Lesson Prep & Curricula</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Transform standard syllabus objectives into detailed 45-minute lesson outlines complete with discussion starters, vocabulary lists, and analogies.
+          <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Workflow Efficiency</span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900">Practical Automation Areas</h3>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Key educational domains and tasks where digital tools and responsible AI automation streamline preparation and administration:
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-              <h4 className="font-black text-base text-slate-900">Assessment & Rubrics</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Generate 4-tier analytic rubrics, multiple-choice questions with distractor analysis, and essay prompts with model marking keys.
-              </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3">
-              <FileText className="w-6 h-6 text-purple-600" />
-              <h4 className="font-black text-base text-slate-900">Admin & Parent Comms</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Quickly draft professional letters, compassionate emails for struggling students, field trip notices, and meeting minutes.
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+              {AI_FOR_EDUCATORS_EVENT.practical_automation_areas.map((area, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-200 transition-all flex items-center space-x-3"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs text-slate-900">{area}</h4>
+                    <span className="text-[10px] text-slate-500">Automated & AI-assisted</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -856,23 +901,49 @@ export default function AiForEducatorsBootcamp() {
 
       {/* TAB 4: OUTCOMES */}
       {activeTab === 'outcomes' && (
-        <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <h3 className="text-xl font-black text-slate-900">Expected Course Outcomes</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              'Confidence in prompting generative AI models for academic and pedagogical tasks.',
-              'Ability to generate individualized remedial and enrichment learning materials in minutes.',
-              'Clear ethical frameworks to advise learners, parents, and school heads on AI usage.',
-              'A ready-to-use digital toolkit of 50+ pre-built educator prompts and templates.',
-              'Access to termly continuous updates and ongoing teacher mentorship.'
-            ].map((outcome, idx) => (
-              <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start space-x-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                  ✓
+        <div className="space-y-6">
+          {/* Core Philosophy Banner */}
+          <div className="p-8 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white border border-indigo-900 shadow-xl space-y-3">
+            <span className="px-3.5 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-black uppercase tracking-wider">
+              Fundamental Principle
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-white to-indigo-200">
+              {AI_FOR_EDUCATORS_EVENT.core_philosophy}
+            </h3>
+            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              {AI_FOR_EDUCATORS_EVENT.core_philosophy_subtitle}
+            </p>
+          </div>
+
+          {/* Expected Outcomes Grid */}
+          <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-6">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Course Competencies</span>
+              <h3 className="text-xl font-black text-slate-900">Expected Outcomes</h3>
+              <p className="text-xs text-slate-500">Upon successful completion of the five-day online bootcamp:</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AI_FOR_EDUCATORS_EVENT.expected_outcomes.map((outcome, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start space-x-3">
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs shrink-0 mt-0.5">
+                    ✓
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">{outcome}</p>
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed">{outcome}</p>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          {/* Certification Note */}
+          <div className="p-6 md:p-8 bg-amber-50 rounded-3xl border border-amber-200 shadow-xs flex items-start space-x-4">
+            <Award className="w-8 h-8 text-amber-600 shrink-0 mt-1" />
+            <div className="space-y-2">
+              <h4 className="font-black text-base text-amber-950">Certification Policy</h4>
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                {AI_FOR_EDUCATORS_EVENT.certification_note}
+              </p>
+            </div>
           </div>
         </div>
       )}

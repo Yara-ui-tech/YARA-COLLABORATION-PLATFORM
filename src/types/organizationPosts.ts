@@ -1,5 +1,14 @@
 export type PostCategory = 'announcement' | 'milestone' | 'gallery' | 'event' | 'press' | 'impact';
 
+export type PostMediaType = 'article' | 'picture_news' | 'video_news' | 'press_release' | 'bulletin';
+
+export interface PostAttachment {
+  name: string;
+  url: string;
+  size?: string;
+  type?: 'pdf' | 'document' | 'image' | 'video' | 'link';
+}
+
 export interface SocialChannelsConfig {
   twitter: boolean;
   facebook: boolean;
@@ -13,9 +22,14 @@ export interface OrganizationPost {
   title: string;
   content: string;
   image_url?: string;
+  video_url?: string;
+  media_type?: PostMediaType;
+  gallery_urls?: string[];
+  attachments?: PostAttachment[];
   category: PostCategory;
   tags: string[];
   is_pinned?: boolean;
+  is_breaking?: boolean;
   social_channels: SocialChannelsConfig;
   broadcast_status: 'draft' | 'published' | 'broadcasted';
   author_id?: string;
@@ -36,3 +50,4 @@ export interface SocialBroadcastConfig {
   youtube_channel: string;
   hashtags: string;
 }
+
