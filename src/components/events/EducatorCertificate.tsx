@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { 
   Award, ShieldCheck, CheckCircle2, Download, Printer, 
-  Share2, ExternalLink, Sparkles, Building2, Calendar, 
-  Lock, AlertTriangle, FileText, Check, Image as ImageIcon, Loader2
+  Share2, ExternalLink, Building2, Calendar, 
+  Lock, AlertTriangle, FileText, Check, Image as ImageIcon, Loader2,
+  MessageCircle, Link2, Bookmark, Globe, Tag
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -228,11 +229,13 @@ export default function EducatorCertificate({
     );
   }
 
+  const whatsappUrl = data.official_whatsapp_link || 'https://whatsapp.com/channel/0029Vb66TBjBKfi5RoRGuo0T';
+
   return (
     <div className="flex flex-col items-center w-full max-w-5xl mx-auto font-sans">
       {/* Top Action Bar (Never clipped, fully responsive) */}
       {showPrintActions && (
-        <div className="w-full bg-slate-900 text-white px-4 sm:px-6 py-4 rounded-2xl mb-4 sm:mb-6 shadow-2xl border border-slate-800 print:hidden">
+        <div className="w-full bg-slate-900 text-white px-4 sm:px-6 py-4 rounded-2xl mb-4 sm:mb-6 shadow-2xl border border-slate-800 print:hidden space-y-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             {/* Left: Credential Info Badge */}
@@ -358,6 +361,52 @@ export default function EducatorCertificate({
             </div>
 
           </div>
+
+          {/* Supplementary Resources & Official Channels Ribbon */}
+          <div className="pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* WhatsApp Channel Link Button */}
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold transition"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Official WhatsApp Channel</span>
+                <ExternalLink className="w-3 h-3 text-emerald-400/70" />
+              </a>
+
+              {/* Custom Links configured by Admin */}
+              {(data.custom_links || []).map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target={link.openInNewTab ? '_blank' : '_self'}
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  <Link2 className="w-3 h-3 text-amber-400" />
+                  <span>{link.label}</span>
+                </a>
+              ))}
+            </div>
+
+            {/* Custom Badges/Fields */}
+            {(data.custom_fields || []).length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(data.custom_fields || []).map((field) => (
+                  <span 
+                    key={field.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-md text-[11px] font-medium"
+                  >
+                    <Tag className="w-2.5 h-2.5 text-amber-400" />
+                    <span>{field.label}: <strong>{field.value}</strong></span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -444,95 +493,115 @@ export default function EducatorCertificate({
             {data.citation_text || 'has successfully completed the comprehensive national masterclass curriculum on Generative AI Tools for Education, Advanced Prompt Engineering, Automated Lesson Planning, Intelligent Student Assessment Systems, and ethical AI integration in primary & secondary classrooms, satisfying all evaluation criteria with:'}
           </p>
 
-          {/* Distinction Honors Badge */}
-          <div className="mt-2 inline-flex items-center gap-2 bg-gradient-to-r from-amber-100/80 via-amber-200/80 to-amber-100/80 border border-amber-400 px-4 py-1 rounded-full text-xs font-bold text-amber-950 shadow-sm">
-            <Award className="w-4 h-4 text-amber-700" />
-            <span>{data.grade || data.honors || 'Certified Educator - AI & Digital Pedagogy (Honors)'}</span>
+          {/* Distinction Honors Badge & Endorsements */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-100/80 via-amber-200/80 to-amber-100/80 border border-amber-400 px-4 py-1 rounded-full text-xs font-bold text-amber-950 shadow-sm">
+              <Award className="w-4 h-4 text-amber-700" />
+              <span>{data.grade || data.honors || 'Certified Educator - AI & Digital Pedagogy (Honors)'}</span>
+            </div>
+
+            {data.endorsement_text && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-[11px] font-semibold text-indigo-900">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>{data.endorsement_text}</span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* ================= SIGNATURES & SEAL FOOTER ================= */}
-        <div className="relative z-10 flex flex-row items-end justify-between gap-2 sm:gap-4 pt-3 sm:pt-4 border-t border-amber-600/30">
+        <div className="relative z-10 flex flex-col gap-2 pt-3 sm:pt-4 border-t border-amber-600/30">
           
-          {/* 1. Founder & Lead Instructor Signature Block (Mr. S.O. Manongwa) */}
-          <div className="flex flex-col items-center text-center w-1/3">
-            <div className="h-14 sm:h-16 flex items-end justify-center mb-1 w-full max-w-[200px]">
-              {data.founder_signature || ASSETS.SIGNATURE_MANONGWA ? (
+          <div className="flex flex-row items-end justify-between gap-2 sm:gap-4">
+            {/* 1. Founder & Lead Instructor Signature Block (Mr. S.O. Manongwa) */}
+            <div className="flex flex-col items-center text-center w-1/3">
+              <div className="h-14 sm:h-16 flex items-end justify-center mb-1 w-full max-w-[200px]">
+                {data.founder_signature || ASSETS.SIGNATURE_MANONGWA ? (
+                  <img 
+                    src={data.founder_signature || ASSETS.SIGNATURE_MANONGWA} 
+                    alt="Mr S.O. Manongwa Signature" 
+                    className="max-h-12 sm:max-h-14 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <svg className="w-32 sm:w-36 h-10 text-indigo-950" viewBox="0 0 160 50">
+                    <path 
+                      d="M10,35 C25,10 40,40 55,15 C70,30 85,10 100,25 C115,15 130,35 150,20 M20,40 C60,45 110,40 140,42" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2.2" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="w-36 sm:w-44 border-t border-slate-900/60 pt-1">
+                <p className="text-[11px] sm:text-sm font-bold text-slate-900">{data.founder_name || 'Mr. S.O. Manongwa'}</p>
+                <p className="text-[8px] sm:text-[10px] font-semibold text-slate-600 leading-tight whitespace-pre-line">
+                  {data.founder_title || 'Founder & Lead Instructor\nYoung Africans Robotics Association (YARA)'}
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Official Certified Gold & Blue Foil Seal */}
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center">
                 <img 
-                  src={data.founder_signature || ASSETS.SIGNATURE_MANONGWA} 
-                  alt="Mr S.O. Manongwa Signature" 
-                  className="max-h-12 sm:max-h-14 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
+                  src={data.seal_url || ASSETS.EDUCATOR_SEAL} 
+                  alt="Certified AI for Educators Seal" 
+                  className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
-              ) : (
-                <svg className="w-32 sm:w-36 h-10 text-indigo-950" viewBox="0 0 160 50">
-                  <path 
-                    d="M10,35 C25,10 40,40 55,15 C70,30 85,10 100,25 C115,15 130,35 150,20 M20,40 C60,45 110,40 140,42" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2.2" 
-                    strokeLinecap="round"
-                  />
-                </svg>
-              )}
+              </div>
+              <div className="mt-1 text-center">
+                <span className="text-[7px] sm:text-[9px] font-mono text-slate-500 font-semibold block">
+                  Issued: {data.issue_date}
+                </span>
+                <span className="text-[8px] sm:text-[9px] font-mono text-amber-800 font-bold block">
+                  {data.certificate_number}
+                </span>
+              </div>
             </div>
-            <div className="w-36 sm:w-44 border-t border-slate-900/60 pt-1">
-              <p className="text-[11px] sm:text-sm font-bold text-slate-900">{data.founder_name || 'Mr. S.O. Manongwa'}</p>
-              <p className="text-[8px] sm:text-[10px] font-semibold text-slate-600 leading-tight whitespace-pre-line">
-                {data.founder_title || 'Founder & Lead Instructor\nYoung Africans Robotics Association (YARA)'}
-              </p>
+
+            {/* 3. Regional President Signature Block (Ms. A.M. Chiambiro) */}
+            <div className="flex flex-col items-center text-center w-1/3">
+              <div className="h-14 sm:h-16 flex items-end justify-center mb-1 w-full max-w-[200px]">
+                {data.regional_president_signature || ASSETS.SIGNATURE_CHIAMBIRO ? (
+                  <img 
+                    src={data.regional_president_signature || ASSETS.SIGNATURE_CHIAMBIRO} 
+                    alt="Ms A.M. Chiambiro Signature" 
+                    className="max-h-12 sm:max-h-14 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <svg className="w-32 sm:w-36 h-10 text-indigo-950" viewBox="0 0 160 50">
+                    <path 
+                      d="M15,25 C30,5 50,45 75,10 C90,35 110,20 125,30 C135,15 145,25 155,18 M10,42 C50,40 100,43 145,39" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div className="w-36 sm:w-44 border-t border-slate-900/60 pt-1">
+                <p className="text-[11px] sm:text-sm font-bold text-slate-900">{data.regional_president_name || 'Ms. A.M. Chiambiro'}</p>
+                <p className="text-[8px] sm:text-[10px] font-semibold text-slate-600 leading-tight whitespace-pre-line">
+                  {data.regional_president_title || 'Regional President\nYARA Zimbabwe'}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* 2. Official Certified Gold & Blue Foil Seal */}
-          <div className="flex flex-col items-center justify-center shrink-0">
-            <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center">
-              <img 
-                src={data.seal_url || ASSETS.EDUCATOR_SEAL} 
-                alt="Certified AI for Educators Seal" 
-                className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <div className="mt-1 text-center">
-              <span className="text-[7px] sm:text-[9px] font-mono text-slate-500 font-semibold block">
-                Issued: {data.issue_date}
-              </span>
-              <span className="text-[8px] sm:text-[9px] font-mono text-amber-800 font-bold block">
-                {data.certificate_number}
-              </span>
-            </div>
-          </div>
-
-          {/* 3. Regional President Signature Block (Ms. A.M. Chiambiro) */}
-          <div className="flex flex-col items-center text-center w-1/3">
-            <div className="h-14 sm:h-16 flex items-end justify-center mb-1 w-full max-w-[200px]">
-              {data.regional_president_signature || ASSETS.SIGNATURE_CHIAMBIRO ? (
-                <img 
-                  src={data.regional_president_signature || ASSETS.SIGNATURE_CHIAMBIRO} 
-                  alt="Ms A.M. Chiambiro Signature" 
-                  className="max-h-12 sm:max-h-14 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <svg className="w-32 sm:w-36 h-10 text-indigo-950" viewBox="0 0 160 50">
-                  <path 
-                    d="M15,25 C30,5 50,45 75,10 C90,35 110,20 125,30 C135,15 145,25 155,18 M10,42 C50,40 100,43 145,39" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <div className="w-36 sm:w-44 border-t border-slate-900/60 pt-1">
-              <p className="text-[11px] sm:text-sm font-bold text-slate-900">{data.regional_president_name || 'Ms. A.M. Chiambiro'}</p>
-              <p className="text-[8px] sm:text-[10px] font-semibold text-slate-600 leading-tight whitespace-pre-line">
-                {data.regional_president_title || 'Regional President\nYARA Zimbabwe'}
+          {/* Footnote / Accreditation Note Strip */}
+          {(data.accreditation_notes || data.footnote_text) && (
+            <div className="text-center pt-1 border-t border-amber-900/10">
+              <p className="text-[7px] sm:text-[8px] text-slate-500 font-medium tracking-wide">
+                {data.accreditation_notes || data.footnote_text}
               </p>
             </div>
-          </div>
+          )}
 
         </div>
 

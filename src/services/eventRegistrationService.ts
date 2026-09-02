@@ -1250,6 +1250,54 @@ export const DEFAULT_CERTIFICATE_TEMPLATE_CONFIG: CertificateTemplateConfig = {
   regional_president_signature_url: ASSETS.SIGNATURE_CHIAMBIRO,
   seal_url: ASSETS.EDUCATOR_SEAL,
   logo_url: ASSETS.LOGO,
+  official_whatsapp_link: "https://whatsapp.com/channel/0029Vb66TBjBKfi5RoRGuo0T",
+  curriculum_syllabus_url: "/events/ai-for-educators",
+  verification_portal_url: "/verify-certificate",
+  endorsement_text: "Officially Endorsed by YARA National Directorate & Educational Technology Taskforce",
+  accreditation_notes: "Accredited Continuing Professional Development (CPD) in Digital Pedagogy & STEM Education",
+  footnote_text: "This official digital credential is tamper-evident and permanently recorded in the YARA National Learning Registry. Scan QR code to verify validity.",
+  custom_links: [
+    {
+      id: 'wa_channel',
+      label: 'Official WhatsApp Channel',
+      url: 'https://whatsapp.com/channel/0029Vb66TBjBKfi5RoRGuo0T',
+      category: 'community',
+      openInNewTab: true
+    },
+    {
+      id: 'curriculum_ref',
+      label: 'Masterclass Curriculum & Modules',
+      url: '/events/ai-for-educators',
+      category: 'curriculum',
+      openInNewTab: true
+    },
+    {
+      id: 'verify_portal',
+      label: 'Digital Verification Registry',
+      url: '/verify-certificate',
+      category: 'verification',
+      openInNewTab: true
+    }
+  ],
+  custom_fields: [
+    {
+      id: 'cpd_hours',
+      label: 'CPD Contact Hours',
+      value: '40 Hours Masterclass & Practicum',
+      type: 'badge'
+    },
+    {
+      id: 'accreditation_body',
+      label: 'Accreditation Directorate',
+      value: 'YARA National Robotics & AI Academy',
+      type: 'text'
+    }
+  ],
+  supplementary_badges: [
+    'CPD Accredited: 40 Hours',
+    'AI Pedagogy Master',
+    'YARA STEM Leader'
+  ],
   updated_at: new Date().toISOString(),
   updated_by_name: 'YARA Executive Administration'
 };
@@ -1361,6 +1409,10 @@ export async function updateIndividualRegistrationCertificate(
     certificate_grade?: string;
     certificate_unlocked?: boolean;
     issue_date?: string;
+    certificate_custom_links?: any[];
+    certificate_custom_fields?: any[];
+    certificate_custom_notes?: string;
+    certificate_endorsement_text?: string;
   },
   adminName: string = 'YARA Executive Administrator'
 ): Promise<EventRegistration | null> {
@@ -1378,6 +1430,10 @@ export async function updateIndividualRegistrationCertificate(
     ...(overrides.role_title ? { role_title: overrides.role_title } : {}),
     ...(overrides.certificate_number ? { certificate_number: overrides.certificate_number } : {}),
     ...(overrides.certificate_grade ? { certificate_grade: overrides.certificate_grade } : {}),
+    ...(overrides.certificate_custom_links ? { certificate_custom_links: overrides.certificate_custom_links } : {}),
+    ...(overrides.certificate_custom_fields ? { certificate_custom_fields: overrides.certificate_custom_fields } : {}),
+    ...(overrides.certificate_custom_notes ? { certificate_custom_notes: overrides.certificate_custom_notes } : {}),
+    ...(overrides.certificate_endorsement_text ? { certificate_endorsement_text: overrides.certificate_endorsement_text } : {}),
     ...(overrides.certificate_unlocked !== undefined ? { 
       certificate_unlocked: overrides.certificate_unlocked,
       certificate_unlocked_at: overrides.certificate_unlocked ? now : undefined,
@@ -1430,6 +1486,19 @@ export function buildEducatorCertificate(
 
   const verificationUrl = `${window.location.origin}/verify-certificate?id=${encodeURIComponent(certSuffix)}`;
 
+  // Merge custom links: template links + individual custom links (if any)
+  const combinedCustomLinks = [
+    ...(tpl.custom_links || []),
+    ...(reg.certificate_custom_links || []),
+    ...(overrides?.custom_links || [])
+  ].filter((item, pos, self) => self.findIndex(v => v.id === item.id || (v.url === item.url && v.label === item.label)) === pos);
+
+  const combinedCustomFields = [
+    ...(tpl.custom_fields || []),
+    ...(reg.certificate_custom_fields || []),
+    ...(overrides?.custom_fields || [])
+  ];
+
   return {
     certificate_number: overrides?.certificate_number || certSuffix,
     recipient_name: overrides?.recipient_name || reg.full_name || 'Educator Participant',
@@ -1457,7 +1526,15 @@ export function buildEducatorCertificate(
     qr_code_value: overrides?.qr_code_value || verificationUrl,
     status: (overrides?.status || (Boolean(reg.certificate_unlocked && reg.approval_status === 'approved') ? 'unlocked' : 'locked')),
     grade: overrides?.grade || reg.certificate_grade || tpl.default_grade,
-    honors: overrides?.honors || tpl.honors_badge_text
+    honors: overrides?.honors || tpl.honors_badge_text,
+    official_whatsapp_link: overrides?.official_whatsapp_link || tpl.official_whatsapp_link || "https://whatsapp.com/channel/0029Vb66TBjBKfi5RoRGuo0T",
+    curriculum_syllabus_url: overrides?.curriculum_syllabus_url || tpl.curriculum_syllabus_url,
+    endorsement_text: overrides?.endorsement_text || reg.certificate_endorsement_text || tpl.endorsement_text,
+    accreditation_notes: overrides?.accreditation_notes || tpl.accreditation_notes,
+    footnote_text: overrides?.footnote_text || reg.certificate_custom_notes || tpl.footnote_text,
+    custom_links: combinedCustomLinks,
+    custom_fields: combinedCustomFields,
+    supplementary_badges: overrides?.supplementary_badges || tpl.supplementary_badges
   };
 }
 

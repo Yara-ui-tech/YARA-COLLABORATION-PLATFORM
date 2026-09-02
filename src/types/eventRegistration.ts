@@ -38,6 +38,23 @@ export interface EventAccessResult {
   statusType?: string;
 }
 
+export interface CertificateCustomLink {
+  id: string;
+  label: string;
+  url: string;
+  category?: 'resource' | 'verification' | 'curriculum' | 'community' | 'portfolio' | 'endorsement' | 'other';
+  icon?: string;
+  openInNewTab?: boolean;
+}
+
+export interface CertificateCustomField {
+  id: string;
+  label: string;
+  value: string;
+  type?: 'text' | 'badge' | 'link';
+  url?: string;
+}
+
 export interface CertificateTemplateConfig {
   id?: string;
   organization_name: string;
@@ -55,6 +72,18 @@ export interface CertificateTemplateConfig {
   regional_president_signature_url: string;
   seal_url: string;
   logo_url: string;
+  
+  // Custom Additions, Links, Endorsements, and Resources
+  official_whatsapp_link?: string;
+  curriculum_syllabus_url?: string;
+  verification_portal_url?: string;
+  endorsement_text?: string;
+  accreditation_notes?: string;
+  footnote_text?: string;
+  custom_links?: CertificateCustomLink[];
+  custom_fields?: CertificateCustomField[];
+  supplementary_badges?: string[];
+
   updated_at?: string;
   updated_by_name?: string;
 }
@@ -87,6 +116,16 @@ export interface EducatorCertificateData {
   status: 'unlocked' | 'locked';
   grade?: string;
   honors?: string;
+
+  // Custom Additions, Links, Endorsements, and Badges
+  official_whatsapp_link?: string;
+  curriculum_syllabus_url?: string;
+  endorsement_text?: string;
+  accreditation_notes?: string;
+  footnote_text?: string;
+  custom_links?: CertificateCustomLink[];
+  custom_fields?: CertificateCustomField[];
+  supplementary_badges?: string[];
 }
 
 export interface EventRegistration {
@@ -128,6 +167,10 @@ export interface EventRegistration {
   certificate_number?: string;
   certificate_grade?: string;
   certificate_title?: string;
+  certificate_custom_links?: CertificateCustomLink[];
+  certificate_custom_fields?: CertificateCustomField[];
+  certificate_custom_notes?: string;
+  certificate_endorsement_text?: string;
   
   // Live Attendance
   has_entered_event: boolean;
