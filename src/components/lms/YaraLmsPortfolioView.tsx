@@ -9,7 +9,7 @@ import {
   CheckCircle, 
   ExternalLink,
   Printer,
-  Sparkles,
+  Zap,
   Layers,
   ArrowRight
 } from 'lucide-react';
@@ -33,7 +33,7 @@ export const YaraLmsPortfolioView: React.FC<Props> = ({ portfolio, onOpenCapston
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
-              <Sparkles size={14} /> Automated Innovation Portfolio
+              <Zap size={14} /> Automated Innovation Portfolio
             </div>
             <h1 className="text-2xl sm:text-3xl font-black">{portfolio.studentName}'s Robotics Portfolio</h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">

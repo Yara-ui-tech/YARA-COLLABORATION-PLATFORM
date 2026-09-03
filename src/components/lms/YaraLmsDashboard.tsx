@@ -11,7 +11,7 @@ import {
   Clock, 
   Cpu, 
   Bot, 
-  Sparkles, 
+  Zap, 
   ArrowRight, 
   ShieldCheck, 
   Search,
@@ -127,7 +127,7 @@ export const YaraLmsDashboard: React.FC<Props> = ({
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-              <Sparkles size={14} /> YARA Robotics & Innovation Academy
+              <Zap size={14} /> YARA Robotics & Innovation Academy
             </div>
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
               Welcome back, {studentName || 'Innovator'}!

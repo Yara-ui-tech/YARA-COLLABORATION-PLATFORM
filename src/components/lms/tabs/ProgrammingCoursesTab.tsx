@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Code2, Plus, Search, Filter, Play, CheckCircle2, Lock, Clock, Star,
   Award, Users, ChevronDown, ChevronUp, Edit3, Trash2, Eye, EyeOff,
-  BookOpen, Layers, Sparkles, ArrowRight, Video, FileText, HelpCircle,
+  BookOpen, Layers, Zap, ArrowRight, Video, FileText, HelpCircle,
   FolderOpen, AlertCircle, X, Save, Upload, GraduationCap, Zap
 } from 'lucide-react';
 import {
@@ -860,7 +860,7 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
         <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50 border border-indigo-200">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <Zap className="w-4 h-4 text-indigo-600" />
             </div>
             <div>
               <div className="text-xs font-black text-indigo-900">Admin: Course Management</div>

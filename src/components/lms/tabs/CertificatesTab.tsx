@@ -7,7 +7,7 @@ import {
   Download, 
   ExternalLink, 
   ShieldCheck, 
-  Sparkles, 
+  Zap, 
   AlertTriangle,
   CreditCard,
   Share2,

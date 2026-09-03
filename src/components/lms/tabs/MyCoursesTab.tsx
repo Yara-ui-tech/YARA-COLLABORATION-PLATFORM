@@ -5,7 +5,7 @@ import {
   CheckCircle2, 
   Clock, 
   Award, 
-  Sparkles, 
+  Zap, 
   ArrowRight,
   TrendingUp,
   Bot,
@@ -43,7 +43,7 @@ export const MyCoursesTab: React.FC<Props> = ({
       durationHours: 65,
       completed: userOverall.completedCount,
       percentage: userOverall.percentage,
-      icon: Sparkles,
+      icon: Zap,
       color: 'emerald',
       status: 'Active Enrolled Track'
     },

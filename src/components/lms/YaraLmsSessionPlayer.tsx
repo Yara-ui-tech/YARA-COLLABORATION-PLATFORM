@@ -24,7 +24,7 @@ import {
   SkipForward,
   SkipBack,
   ListVideo,
-  Sparkles,
+  Zap,
   Layers
 } from 'lucide-react';
 import { YARALmsSession, SessionVideoClip } from '../../types/yaraLms';

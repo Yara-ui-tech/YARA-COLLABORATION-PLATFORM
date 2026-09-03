@@ -7,7 +7,7 @@ import {
   CheckCircle2, 
   Lock, 
   Clock, 
-  Sparkles, 
+  Zap, 
   Cpu, 
   Layers, 
   Bot, 

@@ -8,7 +8,7 @@ import {
   FolderGit2, 
   Award, 
   CreditCard, 
-  Sparkles,
+  Zap,
   Package,
   Code2
 } from 'lucide-react';
@@ -65,7 +65,7 @@ export const YaraLearningNavigation: React.FC<Props> = ({
         <div className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md" style={{ background: 'linear-gradient(135deg, #059669, #4f46e5)' }}>
-              <Sparkles className="w-5 h-5" />
+              <Zap className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">

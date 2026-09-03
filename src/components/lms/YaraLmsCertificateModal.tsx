@@ -9,7 +9,7 @@ import {
   ExternalLink, 
   ShieldCheck, 
   QrCode,
-  Sparkles,
+  Zap,
   Download,
   CreditCard
 } from 'lucide-react';

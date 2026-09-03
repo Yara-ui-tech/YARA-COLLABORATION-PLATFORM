@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   CheckSquare, 
   Search, 
-  Sparkles, 
+  Zap, 
   CheckCircle2, 
   XCircle, 
   Clock, 

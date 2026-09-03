@@ -4,7 +4,7 @@ import {
   CheckCircle2, 
   Lock, 
   Play, 
-  Sparkles, 
+  Zap, 
   Award, 
   ChevronDown, 
   ChevronUp, 
@@ -65,7 +65,7 @@ export const ProgressTab: React.FC<Props> = ({
     { level: 3, title: 'Embedded Programmer', icon: Cpu, color: 'cyan' },
     { level: 4, title: 'Robot Builder', icon: Wrench, color: 'purple' },
     { level: 5, title: 'Robot Engineer', icon: Bot, color: 'pink' },
-    { level: 6, title: 'IoT/AI Explorer', icon: Sparkles, color: 'teal' },
+    { level: 6, title: 'IoT/AI Explorer', icon: Zap, color: 'teal' },
     { level: 7, title: 'Problem Solver', icon: Lightbulb, color: 'amber' },
     { level: 8, title: 'Young Innovator', icon: Award, color: 'emerald' }
   ];

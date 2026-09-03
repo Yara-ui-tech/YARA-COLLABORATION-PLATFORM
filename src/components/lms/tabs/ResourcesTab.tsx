@@ -12,7 +12,7 @@ import {
   Cpu, 
   Wrench, 
   BookOpen, 
-  Sparkles 
+  Zap 
 } from 'lucide-react';
 import { YARA_HARDWARE_KITS } from '../../../constants/yaraLmsCatalog';
 

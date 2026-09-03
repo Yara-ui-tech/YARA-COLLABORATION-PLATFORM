@@ -5,7 +5,7 @@ import {
   Lock, 
   Award, 
   Clock, 
-  Sparkles, 
+  Zap, 
   ArrowRight, 
   Layers, 
   HelpCircle, 
@@ -76,7 +76,7 @@ export const LearningDashboardTab: React.FC<Props> = ({
     { title: 'Level 3: Embedded Programmer', desc: 'Arduino, ESP32, C++, GPIO, PWM, sensor calibration', icon: Cpu, level: 3 },
     { title: 'Level 4: Robot Builder', desc: 'Chassis mechanics, kinematics, H-Bridges, BOM costing', icon: Wrench, level: 4 },
     { title: 'Level 5: Robot Engineer', desc: 'Obstacle avoidance, line tracking, fault diagnosis labs', icon: Bot, level: 5 },
-    { title: 'Level 6: IoT / AI Explorer', desc: 'Wi-Fi telemetry, MQTT, cloud dashboards, vision tracking', icon: Sparkles, level: 6 },
+    { title: 'Level 6: IoT / AI Explorer', desc: 'Wi-Fi telemetry, MQTT, cloud dashboards, vision tracking', icon: Zap, level: 6 },
     { title: 'Level 7: Problem Solver', desc: '5 Whys discovery, stakeholder empathy, design thinking', icon: Lightbulb, level: 7 },
     { title: 'Level 8: Young Innovator', desc: '21-point documentation, 90-sec pitch, Capstone build', icon: Award, level: 8 }
   ];
@@ -92,7 +92,7 @@ export const LearningDashboardTab: React.FC<Props> = ({
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-emerald-400 text-xs font-bold" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
-              <Sparkles className="w-3.5 h-3.5" /> Flagship Course Track
+              <Zap className="w-3.5 h-3.5" /> Flagship Course Track
             </div>
 
             <div>

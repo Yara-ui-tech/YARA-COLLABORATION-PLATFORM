@@ -14,7 +14,7 @@ import {
   Check, 
   RotateCcw, 
   AlertCircle,
-  Sparkles,
+  Zap,
   ShieldCheck,
   Film
 } from 'lucide-react';
@@ -243,7 +243,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
           <div className={`px-6 py-2.5 text-xs font-bold flex items-center gap-2 ${
             feedbackMsg.type === 'success' ? 'bg-emerald-500/20 text-emerald-300 border-b border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-b border-red-500/30'
           }`}>
-            <Sparkles className="w-4 h-4" /> {feedbackMsg.text}
+            <Zap className="w-4 h-4" /> {feedbackMsg.text}
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   FolderGit2, 
-  Sparkles, 
+  Zap, 
   Lightbulb, 
   Layers, 
   Cpu, 
@@ -73,7 +73,7 @@ export const ProjectsTab: React.FC<Props> = ({
               onClick={onOpenCapstoneModal}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl flex items-center gap-2 transition shadow-lg shadow-emerald-600/20"
             >
-              <Sparkles className="w-4 h-4" />
+              <Zap className="w-4 h-4" />
               <span>{capstoneSubmission ? 'Edit Capstone (P04)' : 'Submit Capstone Project (P04)'}</span>
             </button>
           </div>

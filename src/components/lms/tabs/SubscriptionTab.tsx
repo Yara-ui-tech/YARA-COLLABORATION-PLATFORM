@@ -9,7 +9,7 @@ import {
   Phone, 
   UploadCloud, 
   FileText, 
-  Sparkles,
+  Zap,
   MessageSquare
 } from 'lucide-react';
 
