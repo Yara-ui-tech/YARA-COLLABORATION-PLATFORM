@@ -19,7 +19,10 @@ import {
   TrendingUp,
   AlertCircle,
   CreditCard,
-  Package
+  Package,
+  Code2,
+  Zap,
+  GraduationCap
 } from 'lucide-react';
 import { LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
@@ -81,27 +84,28 @@ export const LearningDashboardTab: React.FC<Props> = ({
   return (
     <div className="space-y-8 pb-12">
       {/* 1. Flagship Primary Course Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-850 to-indigo-950 border border-slate-800 text-white p-6 sm:p-10 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="relative overflow-hidden rounded-3xl text-white p-6 sm:p-10 shadow-2xl border border-slate-800"
+        style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #0c2c1e 100%)' }}>
+        <div className="orb w-96 h-96 -top-20 -right-20" style={{ background: 'rgba(16,185,129,0.12)' }} />
+        <div className="orb-reverse orb w-80 h-80 bottom-0 left-1/3" style={{ background: 'rgba(79,70,229,0.10)' }} />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-emerald-400 text-xs font-bold" style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
               <Sparkles className="w-3.5 h-3.5" /> Flagship Course Track
             </div>
 
             <div>
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white leading-tight">
-                YARA ROBOTICS & INNOVATION FOUNDATION PROGRAMME
+                YARA ROBOTICS & INNOVATION FOUNDATION
               </h1>
-              <p className="text-sm sm:text-base text-emerald-300 font-semibold mt-1">
-                From Zero to Robotics Innovator
+              <p className="text-sm sm:text-base font-semibold mt-1" style={{ color: 'rgba(52,211,153,0.9)' }}>
+                From Zero to Robotics Innovator — Level 0 to Level 8
               </p>
             </div>
 
             {/* Philosophy Pill */}
-            <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs">
+            <div className="p-3.5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
                 Foundational Learning Philosophy
               </div>
@@ -120,7 +124,7 @@ export const LearningDashboardTab: React.FC<Props> = ({
             {/* Status Summary row */}
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-1">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Current: <strong className="text-white">{userOverall.currentLevelTitle}</strong></span>
               </div>
               <span>•</span>
@@ -129,13 +133,13 @@ export const LearningDashboardTab: React.FC<Props> = ({
               </div>
               <span>•</span>
               <div>
-                Average Quiz Score: <strong className="text-amber-300">{quizStats.averageScore}%</strong>
+                Quiz Avg: <strong className="text-amber-300">{quizStats.averageScore}%</strong>
               </div>
             </div>
           </div>
 
           {/* Next Lesson Callout Card */}
-          <div className="w-full lg:w-80 bg-slate-900/90 border border-slate-700/80 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between shrink-0 space-y-4">
+          <div className="w-full lg:w-80 rounded-2xl p-5 shadow-xl flex flex-col justify-between shrink-0 space-y-4" style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
             <div>
               <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                 <span className="font-bold uppercase tracking-wider text-emerald-400">Next Milestone</span>
@@ -151,7 +155,8 @@ export const LearningDashboardTab: React.FC<Props> = ({
 
             <button
               onClick={() => onStartSession(nextSessionDetails.id)}
-              className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-emerald-500/20 active:scale-98"
+              className="w-full py-3 px-4 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-lg active:scale-98"
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 16px rgba(16,185,129,0.3)' }}
             >
               <Play className="w-4 h-4 fill-slate-950" />
               <span>Resume Session ({nextSessionDetails.id})</span>
@@ -163,7 +168,7 @@ export const LearningDashboardTab: React.FC<Props> = ({
       {/* 2. Key Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Progress */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
             <span>Overall Progress</span>
             <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -171,16 +176,17 @@ export const LearningDashboardTab: React.FC<Props> = ({
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900">{userOverall.percentage}%</div>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-2 overflow-hidden">
-              <div className="bg-emerald-600 h-full rounded-full transition-all" style={{ width: `${userOverall.percentage}%` }} />
+              <div className="h-full rounded-full transition-all progress-animated"
+                style={{ width: `${userOverall.percentage}%`, background: 'linear-gradient(90deg, #059669, #10b981)' }} />
             </div>
             <div className="text-[11px] text-slate-500 mt-2">
-              {userOverall.completedCount} completed • {lockedCount} remaining
+              {userOverall.completedCount} done • {lockedCount} remaining
             </div>
           </div>
         </div>
 
         {/* Quiz Performance */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
             <span>Quiz Mastery</span>
             <CheckCircle2 className="w-4 h-4 text-indigo-600" />
@@ -194,13 +200,13 @@ export const LearningDashboardTab: React.FC<Props> = ({
               onClick={() => onNavigateTab('assessments')}
               className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 mt-2 transition"
             >
-              Open Quiz Bank <ChevronRight className="w-3 h-3" />
+              Quiz Bank <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
         {/* Subscription Status */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
             <span>YARA Membership</span>
             <CreditCard className="w-4 h-4 text-amber-600" />
@@ -219,15 +225,15 @@ export const LearningDashboardTab: React.FC<Props> = ({
               onClick={() => onNavigateTab('subscription')}
               className="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1 mt-2 transition"
             >
-              Manage Status <ChevronRight className="w-3 h-3" />
+              Manage <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
         {/* Certificate Status */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition">
           <div className="flex items-center justify-between text-slate-500 text-xs font-bold">
-            <span>Accredited Certificate</span>
+            <span>Certificates</span>
             <Award className="w-4 h-4 text-purple-600" />
           </div>
           <div className="mt-3">
@@ -238,18 +244,18 @@ export const LearningDashboardTab: React.FC<Props> = ({
                 </span>
               ) : (
                 <span className="text-slate-600 flex items-center gap-1">
-                  <Lock className="w-4 h-4 text-slate-400" /> Locked (8 Checks)
+                  <Lock className="w-4 h-4 text-slate-400" /> 8 Criteria
                 </span>
               )}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              {certificateStatus.isEligible ? 'Ready to issue & verify' : 'Requires course & membership'}
+              {certificateStatus.isEligible ? 'Ready to issue & verify' : 'Course + membership required'}
             </div>
             <button
               onClick={() => onNavigateTab('certificates')}
               className="text-xs font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1 mt-2 transition"
             >
-              Check 8 Criteria <ChevronRight className="w-3 h-3" />
+              View All <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -361,43 +367,63 @@ export const LearningDashboardTab: React.FC<Props> = ({
       </div>
 
       {/* 5. Quick Access Action Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div 
           onClick={() => onNavigateTab('projects')}
-          className="bg-white border border-slate-200 hover:border-emerald-500/60 rounded-2xl p-5 shadow-xs cursor-pointer transition group"
+          className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl p-5 shadow-sm cursor-pointer transition group hover:shadow-md"
         >
           <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
             <Lightbulb className="w-5 h-5" />
           </div>
-          <h4 className="text-xs font-bold text-slate-900">Innovation Portfolio & 21-Point Capstone</h4>
+          <h4 className="text-xs font-bold text-slate-900">Innovation Portfolio & Capstone</h4>
           <p className="text-[11px] text-slate-500 mt-1">
-            Curate your 5 Whys, circuit schematics, line follower builds, and final Capstone project.
+            Curate your 5 Whys, schematics, and final Capstone project.
           </p>
         </div>
 
         <div 
           onClick={() => onNavigateTab('assessments')}
-          className="bg-white border border-slate-200 hover:border-emerald-500/60 rounded-2xl p-5 shadow-xs cursor-pointer transition group"
+          className="bg-white border border-slate-200 hover:border-emerald-300 rounded-2xl p-5 shadow-sm cursor-pointer transition group hover:shadow-md"
         >
           <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
             <CheckCircle2 className="w-5 h-5" />
           </div>
-          <h4 className="text-xs font-bold text-slate-900">Randomized Exam Question Bank</h4>
+          <h4 className="text-xs font-bold text-slate-900">Randomized Exam Bank</h4>
           <p className="text-[11px] text-slate-500 mt-1">
-            Test your knowledge with randomized multi-choice, hardware calculations, and code evaluations.
+            Test your knowledge with multi-choice, hardware and code evaluations.
           </p>
         </div>
 
         <div 
-          onClick={() => onNavigateTab('certificates')}
-          className="bg-white border border-slate-200 hover:border-emerald-500/60 rounded-2xl p-5 shadow-xs cursor-pointer transition group"
+          onClick={() => onNavigateTab('programming')}
+          className="bg-white hover:border-violet-300 rounded-2xl p-5 shadow-sm cursor-pointer transition group hover:shadow-md overflow-hidden relative"
+          style={{ border: '1.5px solid #e0e7ff', background: 'linear-gradient(135deg, #f5f3ff 0%, white 60%)' }}
         >
-          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+          <div className="absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl opacity-30" style={{ background: '#7c3aed' }} />
+          <div className="relative z-10">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 group-hover:scale-105 transition" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+              <Code2 className="w-5 h-5 text-white" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-900">Programming Courses</h4>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Python · JavaScript · Scratch — with instant certificates on completion.
+            </p>
+            <div className="mt-2 text-[10px] font-black text-indigo-600 flex items-center gap-0.5">
+              Explore Courses <ChevronRight className="w-3 h-3" />
+            </div>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => onNavigateTab('certificates')}
+          className="bg-white border border-slate-200 hover:border-amber-300 rounded-2xl p-5 shadow-sm cursor-pointer transition group hover:shadow-md"
+        >
+          <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
             <Award className="w-5 h-5" />
           </div>
-          <h4 className="text-xs font-bold text-slate-900">Official Graduation Certificate</h4>
+          <h4 className="text-xs font-bold text-slate-900">Official Certificates</h4>
           <p className="text-[11px] text-slate-500 mt-1">
-            Review the 8 graduation criteria, download your official certificate, and verify credentials.
+            View robotics & programming certificates, share credentials.
           </p>
         </div>
       </div>

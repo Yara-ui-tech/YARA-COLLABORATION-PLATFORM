@@ -1,7 +1,356 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+/* ============================================================
+   YARA Design System – Premium CSS Custom Properties
+   ============================================================ */
+:root {
+  /* Brand Colors */
+  --yara-indigo: 79 70 229;
+  --yara-emerald: 16 185 129;
+  --yara-amber: 245 158 11;
+  --yara-purple: 139 92 246;
+  --yara-slate: 15 23 42;
+
+  /* Surfaces */
+  --surface-glass: rgba(255, 255, 255, 0.7);
+  --surface-glass-dark: rgba(15, 23, 42, 0.75);
+  --surface-frosted: rgba(248, 250, 252, 0.85);
+
+  /* Shadows */
+  --shadow-glow-indigo: 0 0 30px rgba(79, 70, 229, 0.15);
+  --shadow-glow-emerald: 0 0 30px rgba(16, 185, 129, 0.15);
+  --shadow-premium: 0 4px 24px -4px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+
+  /* Transitions */
+  --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   Base Resets & Typography
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================
+   Scrollbar Styling
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================
+   Premium Glassmorphism
+   ============================================================ */
+.glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-dark {
+  background: var(--surface-glass-dark);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-frosted {
+  background: var(--surface-frosted);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ============================================================
+   Premium Gradients
+   ============================================================ */
+.gradient-yara {
+  background: linear-gradient(135deg, #4f46e5 0%, #10b981 100%);
+}
+
+.gradient-yara-dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f2027 100%);
+}
+
+.gradient-hero {
+  background: radial-gradient(ellipse at top right, rgba(79,70,229,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at bottom left, rgba(16,185,129,0.08) 0%, transparent 60%),
+              linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #4f46e5, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   Card Variants
+   ============================================================ */
+.card-premium {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-smooth);
+}
+
+.card-premium:hover {
+  border-color: #c7d2fe;
+  box-shadow: var(--shadow-premium), var(--shadow-glow-indigo);
+  transform: translateY(-1px);
+}
+
+.card-glow-emerald {
+  box-shadow: var(--shadow-card), 0 0 0 1px rgba(16,185,129,0.15), var(--shadow-glow-emerald);
+}
+
+/* ============================================================
+   Button Variants
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+}
+
+.btn-emerald:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+}
+
+/* ============================================================
+   Animated Background Orbs
+   ============================================================ */
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -20px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.95); }
+}
+
+@keyframes orb-float-reverse {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-20px, 20px) scale(0.95); }
+  66% { transform: translate(15px, -15px) scale(1.05); }
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+  animation: orb-float 12s ease-in-out infinite;
+}
+
+.orb-reverse {
+  animation: orb-float-reverse 14s ease-in-out infinite;
+}
+
+/* ============================================================
+   Micro-animations
+   ============================================================ */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes count-up {
+  from { transform: translateY(6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out both;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Staggered animation delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* ============================================================
+   Progress Bar Animated Fill
+   ============================================================ */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+.progress-animated {
+  animation: progress-fill 1s ease-out both;
+}
+
+/* ============================================================
+   Badge / Pill System
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-emerald { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-indigo  { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+.badge-amber   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge-slate   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.badge-red     { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-purple  { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+.badge-live    { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* ============================================================
+   Input Styles
+   ============================================================ */
+.input-premium {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  color: #0f172a;
+  transition: var(--transition-smooth);
+  outline: none;
+  font-family: 'Inter', sans-serif;
+}
+
+.input-premium:focus {
+  border-color: #6366f1;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+.input-premium::placeholder {
+  color: #94a3b8;
+}
+
+/* ============================================================
+   Certificate Print Mode
+   ============================================================ */
 @media print {
-  /* Hide the rest of the application when printing modal receipts or certificates */
   html, body {
     background: #ffffff !important;
     color: #0f172a !important;
@@ -13,7 +362,6 @@
     print-color-adjust: exact !important;
   }
 
-  /* Completely eliminate the entire React root when printing isolated receipts */
   body.printing-receipt-mode #root,
   body.printing-receipt-active #root {
     display: none !important;
@@ -28,24 +376,15 @@
     padding: 0 !important;
   }
 
-  /* General print hides */
-  header,
-  footer,
-  nav,
-  aside,
-  .no-print,
-  .print\:hidden {
+  header, footer, nav, aside, .no-print, .print\:hidden {
     display: none !important;
   }
 
-  /* If printing directly from a modal without dedicated printRoot */
   body:has(#printable-educator-receipt) #root > *:not(.receipt-modal-wrapper) {
     display: none !important;
   }
 
-  body:has(#printable-educator-receipt) * {
-    visibility: hidden;
-  }
+  body:has(#printable-educator-receipt) * { visibility: hidden; }
 
   body:has(#printable-educator-receipt) #printable-educator-receipt,
   body:has(#printable-educator-receipt) #printable-educator-receipt *,

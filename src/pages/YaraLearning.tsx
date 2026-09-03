@@ -11,6 +11,7 @@ import { ProjectsTab } from '../components/lms/tabs/ProjectsTab';
 import { CertificatesTab } from '../components/lms/tabs/CertificatesTab';
 import { SubscriptionTab } from '../components/lms/tabs/SubscriptionTab';
 import { ResourcesTab } from '../components/lms/tabs/ResourcesTab';
+import { ProgrammingCoursesTab } from '../components/lms/tabs/ProgrammingCoursesTab';
 import { YaraLmsSessionPlayer } from '../components/lms/YaraLmsSessionPlayer';
 import { YaraLmsCapstoneSubmissionModal } from '../components/lms/YaraLmsCapstoneSubmissionModal';
 import { YaraLmsCertificateModal } from '../components/lms/YaraLmsCertificateModal';
@@ -260,6 +261,15 @@ export default function YaraLearning() {
 
         {activeTab === 'resources' && (
           <ResourcesTab />
+        )}
+
+        {activeTab === 'programming' && (
+          <ProgrammingCoursesTab
+            userId={userId}
+            studentName={studentName}
+            userEmail={userEmail}
+            onNavigateTab={handleSelectTab}
+          />
         )}
       </main>
 

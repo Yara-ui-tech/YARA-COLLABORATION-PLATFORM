@@ -1,0 +1,7 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1920" height="1080" fill="#4F46E5"/>
+  <circle cx="1600" cy="200" r="400" fill="white" fill-opacity="0.05"/>
+  <circle cx="300" cy="900" r="300" fill="white" fill-opacity="0.05"/>
+  <path d="M0 800C400 700 800 900 1200 800C1600 700 1920 800 1920 800V1080H0V800Z" fill="white" fill-opacity="0.03"/>
+  <text x="960" y="540" text-anchor="middle" font-family="sans-serif" font-weight="bold" fill="white" fill-opacity="0.2" font-size="120">YARIA INNOVATION</text>
+</svg>
