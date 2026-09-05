@@ -19,6 +19,8 @@ import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyA
 import EventRegistrationsAdminTab from '../components/admin/EventRegistrationsAdminTab';
 import ImpactLedgerAdminTab from '../components/admin/ImpactLedgerAdminTab';
 import AdminManagementSection from '../components/admin/AdminManagementSection';
+import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
+import { Sliders } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -85,7 +87,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'learning_academy' | 'event_registrations' | 'impact_ledger' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('learning_academy');
+  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('site_content');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -904,6 +906,23 @@ export default function Admin() {
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit max-w-full">
+        <button
+          onClick={() => setActiveTab('site_content')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'site_content' 
+              ? "bg-violet-600 text-white shadow-violet-200" 
+              : "bg-white/90 text-violet-800 hover:bg-white hover:text-violet-950 border border-violet-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Sliders className="w-4 h-4" />
+            <span className="font-extrabold">Site Content & Dynamic CMS</span>
+            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-[10px] uppercase font-black tracking-wider">
+              Universal Sections
+            </span>
+          </div>
+        </button>
         <button
           onClick={() => setActiveTab('learning_academy')}
           className={cn(
@@ -2048,6 +2067,11 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        {activeTab === 'site_content' && (
+          <div className="p-6 md:p-8">
+            <SiteContentAdminTab />
           </div>
         )}
         {activeTab === 'learning_academy' && (

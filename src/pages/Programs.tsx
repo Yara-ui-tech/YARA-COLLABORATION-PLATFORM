@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Cpu, School, GraduationCap, Trophy, Shield, Users, Lightbulb, MessageSquare, Brain } from 'lucide-react';
+import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 
 export default function Programs() {
   const activities = [
@@ -60,6 +61,9 @@ export default function Programs() {
         <h2 className="text-3xl font-bold text-slate-900 tracking-tight">🏗 What We Do</h2>
         <p className="text-slate-500 font-medium">Our programs and initiatives across the continent.</p>
       </header>
+
+      {/* Admin-Managed Dynamic Sections */}
+      <DynamicSectionRenderer page="programs" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {activities.map((activity, i) => (

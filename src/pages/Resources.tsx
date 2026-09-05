@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
+import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 
 interface StudyMaterial {
   id: string;
@@ -208,6 +209,9 @@ export default function Resources() {
           )}
         </div>
       </section>
+
+      {/* Admin Managed Dynamic Sections */}
+      <DynamicSectionRenderer page="resources" />
 
       {/* Mentor Materials Section */}
       <section className="space-y-8">

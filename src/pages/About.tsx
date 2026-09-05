@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Info, Target, Eye, Heart } from 'lucide-react';
+import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 
 export default function About() {
   return (
@@ -9,6 +10,9 @@ export default function About() {
         <h2 className="text-3xl font-bold text-slate-900 tracking-tight">About YARA</h2>
         <p className="text-slate-500 font-medium">Young Africans Robotics Association</p>
       </header>
+
+      {/* Admin Managed Dynamic Sections */}
+      <DynamicSectionRenderer page="about" />
 
       <section className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-slate-100 shadow-xl shadow-indigo-50/50">
         <div className="flex items-start space-x-6">

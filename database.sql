@@ -2743,7 +2743,46 @@ GROUP BY source_module, transaction_type;
 GRANT SELECT ON public.impact_ledger_summary_view TO authenticated, service_role;
 
 -- =========================================================================
+-- Universal Site Content & Dynamic CMS Sections
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.site_content_sections (
+  id TEXT PRIMARY KEY,
+  page TEXT NOT NULL DEFAULT 'home',
+  section_type TEXT NOT NULL DEFAULT 'hero_banner',
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  content TEXT,
+  badge_text TEXT,
+  theme_color TEXT DEFAULT 'indigo',
+  image_url TEXT,
+  cta_text TEXT,
+  cta_link TEXT,
+  secondary_cta_text TEXT,
+  secondary_cta_link TEXT,
+  items JSONB,
+  sort_order INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.site_content_sections ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view active site content sections" ON public.site_content_sections;
+CREATE POLICY "Public can view active site content sections"
+ON public.site_content_sections FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage site content sections" ON public.site_content_sections;
+CREATE POLICY "Admins can manage site content sections"
+ON public.site_content_sections FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- =========================================================================
 -- END OF YARA INSTITUTIONAL DATABASE SCHEMA & MIGRATION SCRIPT
 -- =========================================================================
+
 
 

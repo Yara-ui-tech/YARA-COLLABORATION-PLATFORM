@@ -9,6 +9,7 @@ import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
 import LaunchCountdown from '../components/LaunchCountdown';
+import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 
 export default function Home() {
   const { profile, user } = useAuth();
@@ -202,6 +203,9 @@ export default function Home() {
 
       {/* 72-Hour Official Launch Countdown */}
       <LaunchCountdown />
+
+      {/* Admin-Managed Dynamic Custom Sections */}
+      <DynamicSectionRenderer page="home" />
 
       {/* Flagship Event: YARA Educational Robotics Competition 2026 */}
       <motion.section
