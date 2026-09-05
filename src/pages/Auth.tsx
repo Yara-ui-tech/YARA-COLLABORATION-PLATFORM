@@ -38,7 +38,7 @@ export default function Auth() {
     fetchSettings();
   }, []);
 
-  if (isAuthReady && user) {
+  if (isAuthReady && user && !showSuccessModal) {
     if (profile?.role === 'teacher') {
       return <Navigate to="/educator-portal" />;
     }
@@ -60,7 +60,7 @@ export default function Auth() {
       });
       if (error) throw error;
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Google authentication failed.');
     } finally {
       setLoading(false);
     }
@@ -77,24 +77,32 @@ export default function Auth() {
         if (loginMethod === 'memberId') {
           // 1. Look up email by Member ID
           const cleanMemberId = memberId.trim();
-          const { data: profileData, error: lookupError } = await supabase
-            .from('profiles')
-            .select('email, is_halted, role, tier')
-            .ilike('member_id', cleanMemberId)
-            .single();
+          if (!cleanMemberId) {
+            throw new Error('Please enter your Member ID (e.g. YARIA-2026-XXXX).');
+          }
 
-          if (lookupError || !profileData || !profileData.email) {
-            throw new Error('Member ID not found. Please verify your ID or switch to Email login.');
+          try {
+            const { data: profileData, error: lookupError } = await supabase
+              .from('profiles')
+              .select('email, is_halted, role, tier')
+              .ilike('member_id', cleanMemberId)
+              .maybeSingle();
+
+            if (lookupError || !profileData || !profileData.email) {
+              throw new Error('Member ID not found. Please verify your ID or switch to Email login.');
+            }
+            
+            if (profileData.is_halted) {
+              throw new Error('Your account has been temporarily halted by an administrator. Please contact support.');
+            }
+            
+            loginEmail = profileData.email;
+          } catch (err: any) {
+            throw new Error(err.message || 'Could not verify Member ID. Please use your Email address to sign in.');
           }
-          
-          if (profileData.is_halted) {
-            throw new Error('Your account has been temporarily halted by an administrator. Please contact support.');
-          }
-          
-          loginEmail = profileData.email;
         }
 
-        // 2. Sign in with password
+        // 2. Sign in with password with safety
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
           email: loginEmail, 
           password 
@@ -103,26 +111,22 @@ export default function Auth() {
         if (signInError) throw signInError;
 
         if (signInData.user) {
-          // Verify account is not halted and get role
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('is_halted, role, tier')
-            .eq('id', signInData.user.id)
-            .single();
-          
-          if (profileData?.is_halted) {
-            await safeSignOut();
-            throw new Error('Your account has been halted by an administrator. Please contact support.');
-          }
+          // Check role or navigate immediately to avoid latency
+          const userRole = signInData.user.user_metadata?.role;
+          const userTier = signInData.user.user_metadata?.tier;
+          const userEmail = signInData.user.email?.toLowerCase();
+          const isAdmin = userEmail === 'manongwasimbarashe394@gmail.com' || userEmail === 'goyaracorp@gmail.com' || userRole === 'admin';
 
-          if (profileData?.role === 'teacher' || profileData?.tier === 'T1') {
-            navigate('/educator-portal');
-            return;
-          }
-          if (profileData?.role === 'admin') {
+          if (isAdmin) {
             navigate('/admin');
             return;
           }
+          if (userRole === 'teacher' || userTier === 'T1') {
+            navigate('/educator-portal');
+            return;
+          }
+          navigate('/dashboard');
+          return;
         }
       } else {
         // Sign Up Flow
@@ -149,23 +153,20 @@ export default function Auth() {
         if (signUpError) throw signUpError;
         
         if (data.user) {
-          try {
-            await supabase.from('profiles').upsert({
-              id: data.user.id,
-              display_name: displayName.trim(),
-              email: cleanEmail,
-              role: finalRole,
-              tier: resolvedTier,
-              educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
-              member_id: generatedMemberId,
-              registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
-              trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
-              subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
-              is_halted: false,
-            }, { onConflict: 'id' });
-          } catch (err) {
-            console.warn('Profile upsert notice:', err);
-          }
+          // Asynchronously upsert profile to ensure fields are persisted
+          supabase.from('profiles').upsert({
+            id: data.user.id,
+            display_name: displayName.trim(),
+            email: cleanEmail,
+            role: finalRole,
+            tier: resolvedTier,
+            educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
+            member_id: generatedMemberId,
+            registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
+            trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
+            subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
+            is_halted: false,
+          }, { onConflict: 'id' }).then(() => {}).catch(() => {});
 
           setShowSuccessModal(true);
           return;
@@ -178,7 +179,17 @@ export default function Auth() {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication.');
+      console.warn('Authentication error:', err);
+      const msg = err?.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setError('Invalid email/Member ID or password. Please try again.');
+      } else if (msg.includes('User already registered')) {
+        setError('This email is already registered. Please log in instead.');
+      } else if (msg.includes('rate limit') || msg.includes('Too many requests')) {
+        setError('Too many attempts. Please wait a minute and try again.');
+      } else {
+        setError(msg || 'An error occurred during authentication. Please check your connection.');
+      }
     } finally {
       setLoading(false);
     }

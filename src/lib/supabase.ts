@@ -144,29 +144,20 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Resilient custom fetch that converts network dropouts/offline into graceful responses
+// Resilient custom fetch that converts network dropouts/offline into graceful responses for data queries
 const resilientFetch: typeof fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : (input as Request)?.url || '';
+  
+  // For auth endpoints, let requests pass through directly so Supabase Auth can handle real HTTP codes & errors
+  if (url.includes('/auth/v1/')) {
+    return await fetch(input, init);
+  }
+
   try {
     return await fetch(input, init);
   } catch (err: any) {
     const msg = err?.message || 'Network connection unavailable';
     console.warn('Supabase network connection notice:', msg);
-
-    // Auth endpoints should not receive mock data arrays
-    if (url.includes('/auth/v1/')) {
-      return new Response(
-        JSON.stringify({
-          error: 'network_unavailable',
-          error_description: msg,
-          message: msg,
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
 
     return new Response(
       JSON.stringify({
@@ -190,18 +181,9 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      // Provide an in-process lock to prevent Web Locks API steal conflicts in iframes and strict mode
+      // Provide an in-process lock to prevent Web Locks API steal conflicts in iframes and multi-tabs
       lock: async (_name, _acquireTimeout, fn) => {
-        try {
-          return await fn();
-        } catch (err: any) {
-          const msg = err?.message || '';
-          if (msg.includes('Auth session missing') || msg.includes('AuthSessionMissingError')) {
-            return null as any;
-          }
-          console.warn('Auth operation notice:', msg || err);
-          return null as any;
-        }
+        return await fn();
       },
     },
     global: {

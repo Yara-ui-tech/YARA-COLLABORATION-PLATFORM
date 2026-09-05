@@ -220,13 +220,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentUser);
           if (currentUser) {
             const cached = getCachedProfile(currentUser.id);
-            if (cached) {
-              const isAdmin = isUserAdmin(currentUser.email, cached.role);
-              setProfile({
-                ...cached,
-                role: isAdmin ? 'admin' : cached.role
-              });
-            }
+            const initialProfile = cached || buildFallbackProfile(currentUser);
+            const isAdmin = isUserAdmin(currentUser.email, initialProfile.role);
+            setProfile({
+              ...initialProfile,
+              role: isAdmin ? 'admin' : initialProfile.role
+            });
           }
           setIsAuthReady(true);
           if (!currentUser) setLoading(false);
@@ -262,13 +261,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (session?.user) {
         setUser(session.user);
         const cached = getCachedProfile(session.user.id);
-        if (cached) {
-          const isAdmin = isUserAdmin(session.user.email, cached.role);
-          setProfile({
-            ...cached,
-            role: isAdmin ? 'admin' : cached.role
-          });
-        }
+        const initialProfile = cached || buildFallbackProfile(session.user);
+        const isAdmin = isUserAdmin(session.user.email, initialProfile.role);
+        setProfile({
+          ...initialProfile,
+          role: isAdmin ? 'admin' : initialProfile.role
+        });
+        setIsAuthReady(true);
       } else {
         setUser(null);
         setProfile(null);
@@ -290,25 +289,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchProfile = async () => {
       const deviceId = getDeviceId();
       
-      // Attempt to register session quietly
-      try {
-        await supabase.from('user_sessions').upsert({
-          user_id: user.id,
-          device_id: deviceId,
-          last_active: new Date().toISOString()
-        }, { onConflict: 'user_id,device_id' });
-      } catch {
-        // user_sessions logging is optional
-      }
+      // Attempt to register session quietly in background without blocking
+      supabase.from('user_sessions').upsert({
+        user_id: user.id,
+        device_id: deviceId,
+        last_active: new Date().toISOString()
+      }, { onConflict: 'user_id,device_id' }).then(() => {}).catch(() => {});
 
       let resolvedProfile: UserProfile | null = null;
 
       try {
-        const { data, error } = await supabase
+        // Safe timeout promise to avoid infinite network delays
+        const fetchPromise = supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        
+        const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: 'Profile fetch timeout', code: 'TIMEOUT' } }), 6000)
+        );
+
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (!error && data) {
           const isAdmin = isUserAdmin(user.email, data.role);
@@ -317,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: isAdmin ? 'admin' : data.role,
             registration_paid: isAdmin ? true : !!data.registration_paid
           } as UserProfile;
-        } else if (error && error.code === 'PGRST116') {
+        } else if (error && (error as any).code === 'PGRST116') {
           // Profile not yet created in table, create it
           const fallback = buildFallbackProfile(user);
           try {
@@ -336,7 +338,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             resolvedProfile = fallback;
           }
         } else {
-          // Supabase network or schema error: use cache or fallback
+          // Supabase network, timeout, or schema error: use cache or fallback
           const cached = getCachedProfile(user.id);
           resolvedProfile = cached || buildFallbackProfile(user);
         }
