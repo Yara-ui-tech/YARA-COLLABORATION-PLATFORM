@@ -5,23 +5,25 @@
    YARA Design System – Premium CSS Custom Properties
    ============================================================ */
 :root {
-  /* Brand Colors */
-  --yara-indigo: 79 70 229;
-  --yara-emerald: 16 185 129;
-  --yara-amber: 245 158 11;
-  --yara-purple: 139 92 246;
-  --yara-slate: 15 23 42;
+  /* Brand Colors – YARA Logo Corporate Palette */
+  --yara-navy: 10 17 40;     /* #0A1128 Deep Corporate Dark Navy */
+  --yara-royal: 30 64 175;   /* #1E40AF Royal Blue */
+  --yara-blue: 37 99 235;    /* #2563EB Corporate Cobalt */
+  --yara-cyan: 14 165 233;   /* #0EA5E9 Electric Cyan */
+  --yara-sky: 56 189 248;    /* #38BDF8 Sky Accent */
+  --yara-slate: 15 23 42;    /* #0F172A */
 
   /* Surfaces */
-  --surface-glass: rgba(255, 255, 255, 0.7);
-  --surface-glass-dark: rgba(15, 23, 42, 0.75);
-  --surface-frosted: rgba(248, 250, 252, 0.85);
+  --surface-glass: rgba(255, 255, 255, 0.85);
+  --surface-glass-dark: rgba(10, 17, 40, 0.88);
+  --surface-frosted: rgba(248, 250, 252, 0.9);
 
   /* Shadows */
-  --shadow-glow-indigo: 0 0 30px rgba(79, 70, 229, 0.15);
-  --shadow-glow-emerald: 0 0 30px rgba(16, 185, 129, 0.15);
-  --shadow-premium: 0 4px 24px -4px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
-  --shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-glow-indigo: 0 0 30px rgba(37, 99, 235, 0.2);
+  --shadow-glow-blue: 0 0 30px rgba(30, 64, 175, 0.25);
+  --shadow-glow-emerald: 0 0 30px rgba(14, 165, 233, 0.2);
+  --shadow-premium: 0 4px 24px -4px rgba(10, 17, 40, 0.12), 0 2px 8px -2px rgba(10, 17, 40, 0.06);
+  --shadow-card: 0 1px 3px rgba(10,17,40,0.06), 0 1px 2px rgba(10,17,40,0.04);
 
   /* Transitions */
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -90,14 +92,14 @@ code, pre, .font-mono {
   background: var(--surface-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .glass-dark {
   background: var(--surface-glass-dark);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .glass-frosted {
@@ -107,24 +109,28 @@ code, pre, .font-mono {
 }
 
 /* ============================================================
-   Premium Gradients
+   Premium Gradients (Matching YARA Logo Palette)
    ============================================================ */
 .gradient-yara {
-  background: linear-gradient(135deg, #4f46e5 0%, #10b981 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #1E40AF 50%, #0EA5E9 100%);
+}
+
+.gradient-yara-accent {
+  background: linear-gradient(135deg, #1D4ED8 0%, #0EA5E9 100%);
 }
 
 .gradient-yara-dark {
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f2027 100%);
+  background: linear-gradient(135deg, #0A1128 0%, #0B193C 50%, #031B33 100%);
 }
 
 .gradient-hero {
-  background: radial-gradient(ellipse at top right, rgba(79,70,229,0.12) 0%, transparent 60%),
-              radial-gradient(ellipse at bottom left, rgba(16,185,129,0.08) 0%, transparent 60%),
+  background: radial-gradient(ellipse at top right, rgba(37,99,235,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at bottom left, rgba(14,165,233,0.1) 0%, transparent 60%),
               linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #4f46e5, #10b981);
+  background: linear-gradient(135deg, #1E40AF, #2563EB, #0EA5E9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -166,7 +172,7 @@ code, pre, .font-mono {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #1E40AF, #2563EB);
   color: white;
   font-weight: 700;
   font-size: 0.75rem;
@@ -174,12 +180,12 @@ code, pre, .font-mono {
   border: none;
   cursor: pointer;
   transition: var(--transition-smooth);
-  box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 .btn-primary:active {

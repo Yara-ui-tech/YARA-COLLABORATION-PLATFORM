@@ -7,11 +7,19 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =========================
 -- 1) Drop dependent tables first (data-loss migration)
 -- =========================
+DROP TABLE IF EXISTS public.chapter_registration_requests CASCADE;
 DROP TABLE IF EXISTS public.chapter_reports CASCADE;
 DROP TABLE IF EXISTS public.chapter_activities CASCADE;
 DROP TABLE IF EXISTS public.chapter_projects CASCADE;
 DROP TABLE IF EXISTS public.chapter_leaders CASCADE;
 DROP TABLE IF EXISTS public.chapters CASCADE;
+DROP TABLE IF EXISTS public.scores CASCADE;
+DROP TABLE IF EXISTS public.judges CASCADE;
+DROP TABLE IF EXISTS public.sponsors CASCADE;
+DROP TABLE IF EXISTS public.yara_competition_registrations CASCADE;
+DROP TABLE IF EXISTS public.competition_events CASCADE;
+DROP TABLE IF EXISTS public.competition_announcements CASCADE;
+DROP TABLE IF EXISTS public.financial_transactions CASCADE;
 DROP TABLE IF EXISTS public.competition_scores CASCADE;
 DROP TABLE IF EXISTS public.competition_judges CASCADE;
 DROP TABLE IF EXISTS public.competition_team_members CASCADE;
@@ -22,8 +30,14 @@ DROP TABLE IF EXISTS public.virtual_competitions CASCADE;
 DROP TABLE IF EXISTS public.events CASCADE;
 DROP TABLE IF EXISTS public.event_registrations CASCADE;
 DROP TABLE IF EXISTS public.event_meetings CASCADE;
+DROP TABLE IF EXISTS public.programming_course_enrollments CASCADE;
+DROP TABLE IF EXISTS public.programming_courses CASCADE;
+DROP TABLE IF EXISTS public.custom_hardware_kits CASCADE;
+DROP TABLE IF EXISTS public.custom_documents CASCADE;
 DROP TABLE IF EXISTS public.bootcamp_curriculum_modules CASCADE;
 DROP TABLE IF EXISTS public.organization_posts CASCADE;
+DROP TABLE IF EXISTS public.site_content_sections CASCADE;
+DROP TABLE IF EXISTS public.site_settings CASCADE;
 DROP TABLE IF EXISTS public.system_settings CASCADE;
 DROP TABLE IF EXISTS public.partners CASCADE;
 DROP TABLE IF EXISTS public.partnership_requests CASCADE;
@@ -42,6 +56,8 @@ DROP TABLE IF EXISTS public.brainstorming_questions CASCADE;
 DROP TABLE IF EXISTS public.certificates CASCADE;
 DROP TABLE IF EXISTS public.final_project_submissions CASCADE;
 DROP TABLE IF EXISTS public.final_exam_attempts CASCADE;
+DROP TABLE IF EXISTS public.quiz_attempts CASCADE;
+DROP TABLE IF EXISTS public.curriculum_progress CASCADE;
 DROP TABLE IF EXISTS public.curriculum_submissions CASCADE;
 DROP TABLE IF EXISTS public.curriculum_sessions CASCADE;
 DROP TABLE IF EXISTS public.curriculum_feedback CASCADE;
@@ -57,6 +73,8 @@ DROP TABLE IF EXISTS public.ideas CASCADE;
 DROP TABLE IF EXISTS public.live_session_mentor_requests CASCADE;
 DROP TABLE IF EXISTS public.mentor_session_logs CASCADE;
 DROP TABLE IF EXISTS public.live_sessions CASCADE;
+DROP TABLE IF EXISTS public.impact_ledger CASCADE;
+DROP TABLE IF EXISTS public.executive_auditors CASCADE;
 -- Do NOT drop profiles to preserve existing users
 
 -- =========================

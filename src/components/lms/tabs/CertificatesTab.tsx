@@ -23,7 +23,7 @@ import { CertificateEligibilityCheck } from '../../../types/yaraLms';
 import { Certificate } from '../../../types/curriculum';
 import { ProgrammingCertificate } from '../../../types/lmsCourseTypes';
 import { COURSE_CATEGORY_LABELS, COURSE_CATEGORY_COLORS } from '../../../types/lmsCourseTypes';
-import { checkCertificateEligibility, issueOrGetCertificate } from '../../../services/yaraLmsService';
+import { checkCertificateEligibility, issueOrGetCertificate, isCertificateUnlockedByAdmin } from '../../../services/yaraLmsService';
 import { getAllUserProgrammingCertificates } from '../../../services/programmingCoursesService';
 
 interface Props {
@@ -220,9 +220,20 @@ export const CertificatesTab: React.FC<Props> = ({
                           </div>
                         </div>
 
-                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                          <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Credential ID</div>
-                          <div className="text-[11px] font-mono font-bold text-slate-900 break-all">{cert.certificateNumber}</div>
+                        <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                          <div>
+                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Credential ID</div>
+                            <div className="text-[11px] font-mono font-bold text-slate-900 break-all">{cert.certificateNumber}</div>
+                          </div>
+                          {isCertificateUnlockedByAdmin(userId, cert.courseId) ? (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[9px] font-black uppercase flex items-center gap-1">
+                              <CheckCircle2 size={10} /> Unlocked by Admin
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-900 rounded-full text-[9px] font-black uppercase flex items-center gap-1">
+                              <Lock size={10} /> Pending Admin Sign-Off
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex gap-2">
@@ -232,9 +243,10 @@ export const CertificatesTab: React.FC<Props> = ({
                             {isCopied ? 'Copied!' : 'Share Link'}
                           </button>
                           <button onClick={handlePrint}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-white text-xs font-bold rounded-xl transition hover:opacity-90"
+                            disabled={!isCertificateUnlockedByAdmin(userId, cert.courseId)}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-white text-xs font-bold rounded-xl transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
                             style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
-                            <Printer className="w-3.5 h-3.5" /> Print
+                            <Printer className="w-3.5 h-3.5" /> {isCertificateUnlockedByAdmin(userId, cert.courseId) ? 'Print / Download' : 'Awaiting Unlock'}
                           </button>
                         </div>
                       </div>

@@ -35,6 +35,8 @@ import {
   getAllUserCompletions
 } from '../../services/yaraLmsService';
 import { AdminSessionVideoModal } from '../lms/AdminSessionVideoModal';
+import { CodingCoursesAdminManager } from './CodingCoursesAdminManager';
+import { CertificateUnlockAdminManager } from './CertificateUnlockAdminManager';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -57,7 +59,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => {
-  const [activeSection, setActiveSection] = useState<'curriculum' | 'capstones' | 'students' | 'kits' | 'certificates'>('curriculum');
+  const [activeSection, setActiveSection] = useState<'curriculum' | 'coding_courses' | 'capstones' | 'students' | 'kits' | 'certificates'>('coding_courses');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -262,6 +264,30 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
       {/* Sub-Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
         <button
+          onClick={() => setActiveSection('coding_courses')}
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
+            activeSection === 'coding_courses'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>1. Coding & Course Manager (Add / Edit)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('certificates')}
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
+            activeSection === 'certificates'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <Award className="w-4 h-4" />
+          <span>2. Certificate Unlocks (Admin Sign-Off)</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('curriculum')}
           className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
             activeSection === 'curriculum'
@@ -269,8 +295,8 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
           }`}
         >
-          <BookOpen className="w-4 h-4 text-indigo-600" />
-          <span>1. Curriculum & Course Videos</span>
+          <Video className="w-4 h-4 text-indigo-600" />
+          <span>3. Robotics Sessions & Video Studio</span>
         </button>
 
         <button
@@ -282,7 +308,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Award className="w-4 h-4 text-emerald-600" />
-          <span>2. Capstone Grading Queue</span>
+          <span>4. Capstone Grading Queue</span>
           {pendingCapstonesCount > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-black">
               {pendingCapstonesCount}
@@ -299,7 +325,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Users className="w-4 h-4 text-indigo-600" />
-          <span>3. Learner Progress & Rosters</span>
+          <span>5. Learner Roster & Progress</span>
         </button>
 
         <button
@@ -311,9 +337,19 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Package className="w-4 h-4 text-sky-600" />
-          <span>4. Starter Kits & Hardware Store</span>
+          <span>6. Hardware Kits Store</span>
         </button>
       </div>
+
+      {/* SECTION: CODING COURSES MANAGER */}
+      {activeSection === 'coding_courses' && (
+        <CodingCoursesAdminManager />
+      )}
+
+      {/* SECTION: CERTIFICATE UNLOCKS */}
+      {activeSection === 'certificates' && (
+        <CertificateUnlockAdminManager />
+      )}
 
       {/* SECTION 1: CURRICULUM & VIDEO STUDIO */}
       {activeSection === 'curriculum' && (

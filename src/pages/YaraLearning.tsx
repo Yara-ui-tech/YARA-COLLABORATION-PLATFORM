@@ -15,12 +15,14 @@ import { ProgrammingCoursesTab } from '../components/lms/tabs/ProgrammingCourses
 import { YaraLmsSessionPlayer } from '../components/lms/YaraLmsSessionPlayer';
 import { YaraLmsCapstoneSubmissionModal } from '../components/lms/YaraLmsCapstoneSubmissionModal';
 import { YaraLmsCertificateModal } from '../components/lms/YaraLmsCertificateModal';
+import { LmsMembershipLockModal } from '../components/lms/LmsMembershipLockModal';
 import { 
   calculateUserOverallProgress, 
   getAllUserCompletions, 
   getLearnerPortfolio, 
   getUserCapstoneSubmission,
-  checkCertificateEligibility
+  checkCertificateEligibility,
+  checkLmsCourseAccess
 } from '../services/yaraLmsService';
 import { COMPLETE_YARA_SESSIONS, getSessionById } from '../constants/yaraLmsCatalog';
 import { checkAndVerifyUserSubscription } from '../services/partnershipDonationService';
@@ -33,6 +35,11 @@ export default function YaraLearning() {
   const userId = user?.id || 'demo_learner_01';
   const studentName = profile?.name || user?.email?.split('@')[0] || 'YARA Learner';
   const userEmail = user?.email || 'learner@yara.org';
+
+  // Membership Lock Modal State
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockedCourseTitle, setLockedCourseTitle] = useState('');
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
 
   // Active Tab from URL search params
   const tabFromQuery = (searchParams.get('tab') as LearningTabId) || 'dashboard';
@@ -157,6 +164,22 @@ export default function YaraLearning() {
   };
 
   const handleStartSession = (sessionId: string) => {
+    const session = getSessionById(sessionId);
+    const access = checkLmsCourseAccess(
+      userId,
+      userEmail,
+      sessionId,
+      subscriptionStatus.isActive || Boolean(profile?.registration_paid),
+      profile?.role === 'admin' || profile?.approval_status === 'approved' || profile?.registration_paid
+    );
+
+    if (!access.isGranted && profile?.role !== 'admin') {
+      setLockedCourseTitle(session?.title || `Session ${sessionId}`);
+      setIsPendingApproval(access.reason === 'pending_approval');
+      setIsLockModalOpen(true);
+      return;
+    }
+
     setActiveSessionId(sessionId);
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
@@ -310,6 +333,14 @@ export default function YaraLearning() {
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}
         onNavigateToMembership={() => handleSelectTab('subscription')}
+      />
+
+      {/* 6. Membership Lock Modal (Free Trial Course 1 vs Course 2+) */}
+      <LmsMembershipLockModal
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        courseTitle={lockedCourseTitle}
+        isPendingApproval={isPendingApproval}
       />
     </div>
   );

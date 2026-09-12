@@ -72,16 +72,16 @@ export default function Layout() {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 sticky top-0 h-screen">
         <div className="p-5 border-b border-slate-100">
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-all overflow-hidden">
+            <div className="w-10 h-10 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/20 group-hover:scale-110 transition-all overflow-hidden p-0.5">
               {ASSETS.LOGO ? (
-                <img src={ASSETS.LOGO} alt="YARA" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={ASSETS.LOGO} alt="YARA" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-xl font-black tracking-tighter">Y</span>
+                <span className="text-xl font-black tracking-tighter text-blue-400">Y</span>
               )}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight leading-none">YARA</h1>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">Robotics Ecosystem</p>
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-none">YARA</h1>
+              <p className="text-[9px] text-blue-700 font-bold uppercase tracking-wider mt-1">Robotics Ecosystem</p>
             </div>
           </Link>
         </div>
@@ -96,14 +96,14 @@ export default function Layout() {
               className={cn(
                 "flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 group text-xs",
                 location.pathname === item.path
-                  ? "bg-indigo-50 text-indigo-600 font-bold shadow-xs"
+                  ? "bg-blue-50 text-blue-700 font-bold shadow-2xs border-l-4 border-blue-600"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
               )}
             >
               <div className="flex items-center space-x-2.5 min-w-0">
                 <item.icon className={cn(
                   "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                  location.pathname === item.path ? "text-indigo-600" : "text-slate-400"
+                  location.pathname === item.path ? "text-blue-600" : "text-slate-400"
                 )} />
                 <span className="truncate">{item.label}</span>
               </div>

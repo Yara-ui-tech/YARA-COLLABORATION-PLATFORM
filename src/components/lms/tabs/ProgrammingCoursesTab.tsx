@@ -31,6 +31,8 @@ import {
   getUserCourseStats,
   getAllUserProgrammingCertificates,
 } from '../../../services/programmingCoursesService';
+import { checkLmsCourseAccess } from '../../../services/yaraLmsService';
+import { LmsMembershipLockModal } from '../LmsMembershipLockModal';
 import { useAuth } from '../../AuthContext';
 
 interface Props {
@@ -731,6 +733,11 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
   const [toast, setToast] = useState<{ msg: string; type?: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, certificatesEarned: 0, inProgress: 0 });
 
+  // Membership Lock Modal State
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockedCourseTitle, setLockedCourseTitle] = useState('');
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+
   const loadData = () => {
     const allCourses = isAdmin ? getAllCourses() : getPublishedCourses();
     setCourses(allCourses);
@@ -753,6 +760,23 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
   });
 
   const handleEnroll = (course: ProgrammingCourse) => {
+    // Course 1 (first course in catalog) is FREE TRIAL for everyone
+    const isFirstCourse = courses[0]?.id === course.id || course.id === 'yara-prog-py-101';
+    const access = checkLmsCourseAccess(
+      userId,
+      userEmail,
+      isFirstCourse ? 0 : course.id,
+      profile?.registration_paid,
+      profile?.role === 'admin' || profile?.approval_status === 'approved' || profile?.registration_paid
+    );
+
+    if (!access.isGranted && !isAdmin) {
+      setLockedCourseTitle(course.title);
+      setIsPendingApproval(access.reason === 'pending_approval');
+      setIsLockModalOpen(true);
+      return;
+    }
+
     enrollUserInCourse(userId, course.id);
     loadData();
     showToast(`✅ Enrolled in "${course.title}"`);
@@ -966,6 +990,14 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
           }}
         />
       )}
+
+      {/* Membership Lock Modal (Free Trial Course 1 vs Course 2+) */}
+      <LmsMembershipLockModal
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        courseTitle={lockedCourseTitle}
+        isPendingApproval={isPendingApproval}
+      />
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>

@@ -33,6 +33,7 @@ import {
 } from '../../services/eventRegistrationService';
 import EducatorReceiptModal from '../../components/events/EducatorReceiptModal';
 import EducatorCertificateModal from '../../components/events/EducatorCertificateModal';
+import SecuredHandbookViewer from '../../components/events/SecuredHandbookViewer';
 
 export default function AiForEducatorsBootcamp() {
   const { user, profile } = useAuth();
@@ -41,7 +42,7 @@ export default function AiForEducatorsBootcamp() {
   const [codeInput, setCodeInput] = useState<string>('');
   const [accessResult, setAccessResult] = useState<EventAccessResult | null>(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'automation' | 'outcomes' | 'support' | 'live_stage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'automation' | 'outcomes' | 'support' | 'secured_handbook' | 'live_stage'>('overview');
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
 
@@ -653,6 +654,7 @@ export default function AiForEducatorsBootcamp() {
       <div className="flex border-b border-slate-200 overflow-x-auto gap-2">
         {[
           { id: 'overview', label: 'Programme Overview & Objectives', icon: BookOpen },
+          { id: 'secured_handbook', label: '📖 Official Handbook & Secured Docs', icon: FileCheck },
           { id: 'curriculum', label: 'Five-Day Learning Programme', icon: Brain },
           { id: 'automation', label: 'Practical Automation Areas', icon: Cpu },
           { id: 'outcomes', label: 'Expected Outcomes & Philosophy', icon: Award },
@@ -666,7 +668,7 @@ export default function AiForEducatorsBootcamp() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-5 py-3 font-bold text-xs flex items-center space-x-2 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === tab.id
-                  ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
+                  ? 'border-blue-600 text-blue-700 bg-blue-50/60'
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
@@ -676,6 +678,17 @@ export default function AiForEducatorsBootcamp() {
           );
         })}
       </div>
+
+      {/* TAB: SECURED HANDBOOK & BOOTCAMP DOCS */}
+      {activeTab === 'secured_handbook' && (
+        <div className="space-y-6">
+          <SecuredHandbookViewer 
+            isAccessGranted={Boolean(accessResult?.is_granted)} 
+            userEmail={user?.email} 
+            userName={profile?.display_name} 
+          />
+        </div>
+      )}
 
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (

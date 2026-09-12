@@ -37,8 +37,10 @@ import EducatorReceiptModal from '../events/EducatorReceiptModal';
 import EducatorCertificateModal from '../events/EducatorCertificateModal';
 import CertificateSettingsModal from './CertificateSettingsModal';
 import IndividualCertificateEditModal from './IndividualCertificateEditModal';
+import BootcampDocumentsAdminSection from './BootcampDocumentsAdminSection';
 
 export default function EventRegistrationsAdminTab() {
+  const [adminSubTab, setAdminSubTab] = useState<'participants' | 'bootcamp_docs'>('participants');
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -490,8 +492,39 @@ export default function EventRegistrationsAdminTab() {
         </div>
       </div>
 
-      {/* Google Meet & Live Room Configuration Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+      {/* Sub-Tab Navigation Bar */}
+      <div className="flex border-b border-slate-200 gap-2">
+        <button
+          onClick={() => setAdminSubTab('participants')}
+          className={`px-5 py-3 font-bold text-xs flex items-center space-x-2 border-b-2 transition-all cursor-pointer ${
+            adminSubTab === 'participants'
+              ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Participant Approvals & Google Meet Link</span>
+        </button>
+
+        <button
+          onClick={() => setAdminSubTab('bootcamp_docs')}
+          className={`px-5 py-3 font-bold text-xs flex items-center space-x-2 border-b-2 transition-all cursor-pointer ${
+            adminSubTab === 'bootcamp_docs'
+              ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>📖 Bootcamp Documents & Handbooks Vault</span>
+        </button>
+      </div>
+
+      {adminSubTab === 'bootcamp_docs' ? (
+        <BootcampDocumentsAdminSection />
+      ) : (
+        <>
+          {/* Google Meet & Live Room Configuration Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
@@ -1408,6 +1441,8 @@ export default function EventRegistrationsAdminTab() {
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* Official Printable & Downloadable Receipt Modal */}

@@ -1076,3 +1076,82 @@ export function buildLearnerPortfolio(userId: string, studentName: string): Lear
     badgesUnlocked
   };
 }
+
+// ============================================================================
+// 7. ADMIN CERTIFICATE UNLOCK & LMS MEMBERSHIP LOCK SYSTEM
+// ============================================================================
+const UNLOCKED_CERTS_KEY = 'yara_admin_unlocked_certificates_v1';
+
+export function isCertificateUnlockedByAdmin(userId: string, courseId: string): boolean {
+  try {
+    const raw = localStorage.getItem(UNLOCKED_CERTS_KEY);
+    if (!raw) return false;
+    const unlockedList: string[] = JSON.parse(raw);
+    const key = `${userId}_${courseId}`;
+    return unlockedList.includes(key) || unlockedList.includes(userId) || unlockedList.includes(courseId);
+  } catch {
+    return false;
+  }
+}
+
+export function unlockCertificateByAdmin(userId: string, courseId: string, adminUserId?: string): boolean {
+  try {
+    const raw = localStorage.getItem(UNLOCKED_CERTS_KEY);
+    const unlockedList: string[] = raw ? JSON.parse(raw) : [];
+    const key = `${userId}_${courseId}`;
+    if (!unlockedList.includes(key)) {
+      unlockedList.push(key);
+      localStorage.setItem(UNLOCKED_CERTS_KEY, JSON.stringify(unlockedList));
+    }
+    // Broadcast event for UI update
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('yara_certificate_unlocked', { detail: { userId, courseId } }));
+    }
+    return true;
+  } catch (err) {
+    console.error('Error unlocking certificate by admin:', err);
+    return false;
+  }
+}
+
+export function batchUnlockCertificatesByAdmin(keys: { userId: string; courseId: string }[]): number {
+  let count = 0;
+  keys.forEach(k => {
+    if (unlockCertificateByAdmin(k.userId, k.courseId)) count++;
+  });
+  return count;
+}
+
+export function checkLmsCourseAccess(
+  userId: string, 
+  userEmail: string, 
+  courseIdOrLevel: string | number,
+  isSubscribed?: boolean,
+  isApproved?: boolean
+): { isGranted: boolean; isFreeTrial: boolean; reason: 'free_trial' | 'granted' | 'subscription_required' | 'pending_approval' } {
+  // Course 1 / Level 0 is FREE TRIAL for everyone
+  const isFreeTrial = 
+    courseIdOrLevel === 0 || 
+    courseIdOrLevel === '0' || 
+    courseIdOrLevel === 'S00' || 
+    courseIdOrLevel === 'yara-prog-py-101' || 
+    courseIdOrLevel === 'level_0';
+
+  if (isFreeTrial) {
+    return { isGranted: true, isFreeTrial: true, reason: 'free_trial' };
+  }
+
+  // Beyond Course 1: Requires $15 Membership + Admin Approval
+  const hasPaidAndApproved = Boolean(isSubscribed && isApproved);
+
+  if (hasPaidAndApproved) {
+    return { isGranted: true, isFreeTrial: false, reason: 'granted' };
+  }
+
+  if (isSubscribed && !isApproved) {
+    return { isGranted: false, isFreeTrial: false, reason: 'pending_approval' };
+  }
+
+  return { isGranted: false, isFreeTrial: false, reason: 'subscription_required' };
+}
+
