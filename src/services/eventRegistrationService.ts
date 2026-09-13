@@ -440,6 +440,8 @@ export function setEventTimelineOverride(status: 'auto' | 'upcoming' | 'live' | 
  */
 export async function getAllEventRegistrations(eventId?: string): Promise<EventRegistration[]> {
   const localList = getLocalRegistrations();
+  // Use all canonical aliases so registrations stored under any variant are found
+  const aliases = eventId ? getCanonicalEventAliases(eventId) : null;
   
   try {
     let query = supabase
@@ -447,8 +449,8 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (eventId) {
-      query = query.eq('event_id', eventId);
+    if (aliases && aliases.length > 0) {
+      query = query.in('event_id', aliases);
     }
     
     const { data, error } = await query;
@@ -477,8 +479,9 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
     console.warn('Supabase fetch event registrations fallback to local:', err);
   }
   
-  if (eventId) {
-    return localList.filter(r => r.event_id === eventId);
+  // Fallback: filter local storage using all aliases
+  if (aliases && aliases.length > 0) {
+    return localList.filter(r => aliases.includes(r.event_id));
   }
   return localList;
 }

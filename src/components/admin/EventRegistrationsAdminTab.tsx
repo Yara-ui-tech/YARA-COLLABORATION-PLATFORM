@@ -798,7 +798,7 @@ export default function EventRegistrationsAdminTab() {
             onChange={e => setEventFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-hidden"
           >
-            <option value="ai_educators_bootcamp_2026">AI for Educators – Online Bootcamp</option>
+            <option value={AI_FOR_EDUCATORS_EVENT.id}>AI for Educators – Online Bootcamp</option>
             <option value="">All Events</option>
           </select>
 
