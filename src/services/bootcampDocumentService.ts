@@ -97,6 +97,7 @@ export const OFFICIAL_AI_HANDBOOK: BootcampDocument = {
         },
         {
           heading: 'AI Across a Typical School Day',
+          content: 'Use the table below as a quick reference for where AI can support your daily routine.',
           tableData: {
             headers: ['Time / Moment', 'Where AI Can Help'],
             rows: [
@@ -210,6 +211,7 @@ export const OFFICIAL_AI_HANDBOOK: BootcampDocument = {
       sections: [
         {
           heading: 'Before AI vs With AI Productivity Matrix',
+          content: 'See how AI saves time across typical teaching tasks:',
           tableData: {
             headers: ['Task', 'Before AI (Typical Time)', 'With AI (Typical Time)'],
             rows: [
@@ -233,6 +235,7 @@ export const OFFICIAL_AI_HANDBOOK: BootcampDocument = {
       sections: [
         {
           heading: 'The Golden Rule',
+          content: 'Every AI-generated educational content must pass through educator review before reaching learners.',
           callout: 'THE GOLDEN RULE: All AI-generated educational content must be reviewed by a qualified educator before being used with learners. AI augments educators. AI does not replace educators.',
           keyTakeaway: 'AI is a powerful assistant, not an infallible authority. Responsible use means treating every AI output as an unverified draft.'
         }

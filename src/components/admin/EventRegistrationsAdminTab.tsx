@@ -5,7 +5,7 @@ import {
   ExternalLink, Mail, Phone, School, Award, Sparkles, Check, 
   Trash2, Eye, ShieldAlert, ArrowUpRight, Video, Copy, Link, 
   Edit3, Save, Key, Calendar, Share2, FileText, Download, Printer,
-  Lock, Unlock
+  Lock, Unlock, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 

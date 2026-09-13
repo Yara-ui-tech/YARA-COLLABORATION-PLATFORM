@@ -290,11 +290,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const deviceId = getDeviceId();
       
       // Attempt to register session quietly in background without blocking
-      supabase.from('user_sessions').upsert({
+      Promise.resolve(supabase.from('user_sessions').upsert({
         user_id: user.id,
         device_id: deviceId,
         last_active: new Date().toISOString()
-      }, { onConflict: 'user_id,device_id' }).then(() => {}).catch(() => {});
+      }, { onConflict: 'user_id,device_id' })).then(() => {}).catch(() => {});
 
       let resolvedProfile: UserProfile | null = null;
 

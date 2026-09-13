@@ -3,7 +3,7 @@ import {
   Code2, Plus, Search, Filter, Play, CheckCircle2, Lock, Clock, Star,
   Award, Users, ChevronDown, ChevronUp, Edit3, Trash2, Eye, EyeOff,
   BookOpen, Layers, Zap, ArrowRight, Video, FileText, HelpCircle,
-  FolderOpen, AlertCircle, X, Save, Upload, GraduationCap, Zap
+  FolderOpen, AlertCircle, X, Save, Upload, GraduationCap
 } from 'lucide-react';
 import {
   ProgrammingCourse,

@@ -154,7 +154,7 @@ export default function Auth() {
         
         if (data.user) {
           // Asynchronously upsert profile to ensure fields are persisted
-          supabase.from('profiles').upsert({
+          Promise.resolve(supabase.from('profiles').upsert({
             id: data.user.id,
             display_name: displayName.trim(),
             email: cleanEmail,
@@ -166,7 +166,7 @@ export default function Auth() {
             trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
             subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
             is_halted: false,
-          }, { onConflict: 'id' }).then(() => {}).catch(() => {});
+          }, { onConflict: 'id' })).then(() => {}).catch(() => {});
 
           setShowSuccessModal(true);
           return;

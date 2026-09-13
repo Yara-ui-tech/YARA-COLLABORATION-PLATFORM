@@ -21,7 +21,6 @@ import {
   CreditCard,
   Package,
   Code2,
-  Zap,
   GraduationCap
 } from 'lucide-react';
 import { LearnerLevelNumber } from '../../../types/yaraLms';
