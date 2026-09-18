@@ -12,6 +12,7 @@ import VirtualCompetitionCard from '../components/competition/VirtualCompetition
 import VirtualCompetitionModal from '../components/competition/VirtualCompetitionModal';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
 import PublicTeamsList from '../components/competition/PublicTeamsList';
+import EventSignupsManager from '../components/events/EventSignupsManager';
 
 interface Event {
   id: string;
@@ -237,6 +238,9 @@ export default function Events() {
               </div>
             </div>
           </div>
+
+          {/* AI FOR EDUCATORS SIGNUPS & REGISTRATION MANAGER */}
+          <EventSignupsManager />
 
           {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
           {(activeFilter === 'all' || activeFilter === 'virtual') && (

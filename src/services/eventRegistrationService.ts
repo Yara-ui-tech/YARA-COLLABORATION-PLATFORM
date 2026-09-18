@@ -33,9 +33,19 @@ export function getCanonicalEventAliases(eventId: string = CANONICAL_AI_BOOTCAMP
     clean === 'ai_for_educators' || 
     clean === 'ai-for-educators' ||
     clean.includes('ai-for-educators') ||
-    clean.includes('ai_educators')
+    clean.includes('ai_educators') ||
+    clean.includes('educator')
   ) {
-    return ['ai-for-educators-2026', 'ai_educators_bootcamp_2026', 'ai-for-educators', 'ai_for_educators'];
+    return [
+      'ai-for-educators-2026', 
+      'ai_educators_bootcamp_2026', 
+      'ai-for-educators', 
+      'ai_for_educators',
+      'AI for Educators – Online Bootcamp',
+      'AI for Educators',
+      'ai_for_educators_bootcamp',
+      'ai_educators'
+    ];
   }
   return [eventId || CANONICAL_AI_BOOTCAMP_ID];
 }
@@ -440,9 +450,17 @@ export function setEventTimelineOverride(status: 'auto' | 'upcoming' | 'live' | 
  */
 export async function getAllEventRegistrations(eventId?: string): Promise<EventRegistration[]> {
   const localList = getLocalRegistrations();
-  // Use all canonical aliases so registrations stored under any variant are found
   const aliases = eventId ? getCanonicalEventAliases(eventId) : null;
   
+  const mergedMap = new Map<string, EventRegistration>();
+
+  // Populate map with local storage items first
+  localList.forEach(item => {
+    if (!aliases || aliases.includes(item.event_id)) {
+      mergedMap.set(item.id, item);
+    }
+  });
+
   try {
     let query = supabase
       .from('event_registrations')
@@ -454,9 +472,7 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
     }
     
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
-      // Merge with local to ensure offline resilience
-      const mergedMap = new Map<string, EventRegistration>();
+    if (!error && data) {
       data.forEach((item: any) => {
         const itemRecord = item as EventRegistration;
         if (!itemRecord.registration_code) {
@@ -464,26 +480,17 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
         }
         mergedMap.set(itemRecord.id, itemRecord);
       });
-      localList.forEach(item => {
-        if (!mergedMap.has(item.id)) {
-          mergedMap.set(item.id, item);
-        }
-      });
-      const combined = Array.from(mergedMap.values()).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      saveLocalRegistrations(combined);
-      return combined;
     }
   } catch (err) {
-    console.warn('Supabase fetch event registrations fallback to local:', err);
+    console.warn('Supabase fetch event registrations notice:', err);
   }
+
+  const combined = Array.from(mergedMap.values()).sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
   
-  // Fallback: filter local storage using all aliases
-  if (aliases && aliases.length > 0) {
-    return localList.filter(r => aliases.includes(r.event_id));
-  }
-  return localList;
+  saveLocalRegistrations(combined);
+  return combined;
 }
 
 export const getEventRegistrations = getAllEventRegistrations;
@@ -631,44 +638,52 @@ export async function getUserEventRegistration(
  */
 export async function registerForEvent(payload: {
   event_id: string;
-  event_title: string;
+  event_title?: string;
   user_id?: string;
   full_name: string;
   email: string;
   phone: string;
   school_institution: string;
   role_title: string;
-  province: string;
+  province?: string;
+  teaching_level?: string;
+  years_experience?: string;
+  country?: string;
+  city_province?: string;
   registration_fee?: number;
   continuous_support_opt_in?: boolean;
+  payment_status?: EventPaymentStatus;
+  approval_status?: EventApprovalStatus;
+  admin_notes?: string;
   payment_method?: 'ecocash' | 'innbucks' | 'card_stripe' | 'bank_transfer' | 'manual_admin' | 'zipit';
   payment_reference?: string;
   proof_of_payment_url?: string;
 }): Promise<EventRegistration> {
-  const isPaidDirectly = Boolean(payload.payment_reference || payload.proof_of_payment_url);
+  const isPaidDirectly = Boolean(payload.payment_reference || payload.proof_of_payment_url || payload.payment_status === 'verified');
   const regCode = generateRegistrationCode();
   
   const record: EventRegistration = {
     id: 'evt_reg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
     registration_code: regCode,
     event_id: payload.event_id,
-    event_title: payload.event_title,
+    event_title: payload.event_title || 'AI for Educators – Online Bootcamp',
     user_id: payload.user_id,
     full_name: payload.full_name.trim(),
     email: payload.email.trim().toLowerCase(),
     phone: payload.phone.trim(),
     school_institution: payload.school_institution.trim() || 'Independent Educator',
     role_title: payload.role_title.trim() || 'Educator',
-    province: payload.province || 'Harare',
+    province: payload.province || payload.city_province || 'Harare',
     registration_fee: payload.registration_fee || 10,
     currency: 'USD',
     continuous_support_opt_in: Boolean(payload.continuous_support_opt_in),
-    payment_status: isPaidDirectly ? 'submitted' : 'pending',
+    payment_status: payload.payment_status || (isPaidDirectly ? 'submitted' : 'pending'),
     payment_method: payload.payment_method,
     payment_reference: payload.payment_reference?.trim(),
     proof_of_payment_url: payload.proof_of_payment_url,
     paid_at: isPaidDirectly ? new Date().toISOString() : undefined,
-    approval_status: 'pending',
+    approval_status: payload.approval_status || 'pending',
+    admin_notes: payload.admin_notes,
     has_entered_event: false,
     entry_count: 0,
     created_at: new Date().toISOString(),
@@ -793,6 +808,7 @@ export async function updateRegistrationStatus(
     approval_status?: EventApprovalStatus;
     admin_notes?: string;
     rejection_reason?: string;
+    certificate_unlocked?: boolean;
   }
 ): Promise<EventRegistration | null> {
   const list = getLocalRegistrations();
@@ -807,6 +823,7 @@ export async function updateRegistrationStatus(
     ...current,
     payment_status: newPayment,
     approval_status: newApproval,
+    certificate_unlocked: updates.certificate_unlocked !== undefined ? updates.certificate_unlocked : current.certificate_unlocked,
     admin_notes: updates.admin_notes !== undefined ? updates.admin_notes : current.admin_notes,
     rejection_reason: updates.rejection_reason !== undefined ? updates.rejection_reason : current.rejection_reason,
     paid_at: newPayment === 'verified' && !current.paid_at ? new Date().toISOString() : current.paid_at,
@@ -821,6 +838,7 @@ export async function updateRegistrationStatus(
     await supabase.from('event_registrations').update({
       payment_status: updated.payment_status,
       approval_status: updated.approval_status,
+      certificate_unlocked: updated.certificate_unlocked,
       admin_notes: updated.admin_notes,
       rejection_reason: updated.rejection_reason,
       paid_at: updated.paid_at,

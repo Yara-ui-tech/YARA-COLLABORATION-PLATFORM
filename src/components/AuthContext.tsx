@@ -346,18 +346,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Complete offline/network failure handling
         const cached = getCachedProfile(user.id);
         resolvedProfile = cached || buildFallbackProfile(user);
-      }
-
-      if (isSubscribed && resolvedProfile) {
-        const isAdmin = isUserAdmin(user.email, resolvedProfile.role);
-        const finalProfile = {
-          ...resolvedProfile,
-          role: isAdmin ? 'admin' : resolvedProfile.role,
-          registration_paid: isAdmin ? true : !!resolvedProfile.registration_paid
-        };
-        setProfile(finalProfile);
-        persistProfileLocally(finalProfile);
-        setLoading(false);
+      } finally {
+        if (isSubscribed) {
+          const finalProfile = resolvedProfile || getCachedProfile(user.id) || buildFallbackProfile(user);
+          const isAdmin = isUserAdmin(user.email, finalProfile.role);
+          const completeProfile = {
+            ...finalProfile,
+            role: isAdmin ? 'admin' : finalProfile.role,
+            registration_paid: isAdmin ? true : !!finalProfile.registration_paid
+          };
+          setProfile(completeProfile);
+          persistProfileLocally(completeProfile);
+          setIsAuthReady(true);
+          setLoading(false);
+        }
       }
     };
 

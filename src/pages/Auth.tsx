@@ -154,19 +154,23 @@ export default function Auth() {
         
         if (data.user) {
           // Asynchronously upsert profile to ensure fields are persisted
-          Promise.resolve(supabase.from('profiles').upsert({
-            id: data.user.id,
-            display_name: displayName.trim(),
-            email: cleanEmail,
-            role: finalRole,
-            tier: resolvedTier,
-            educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
-            member_id: generatedMemberId,
-            registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
-            trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
-            subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
-            is_halted: false,
-          }, { onConflict: 'id' })).then(() => {}).catch(() => {});
+          try {
+            await supabase.from('profiles').upsert({
+              id: data.user.id,
+              display_name: displayName.trim(),
+              email: cleanEmail,
+              role: finalRole,
+              tier: resolvedTier,
+              educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
+              member_id: generatedMemberId,
+              registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
+              trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
+              subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
+              is_halted: false,
+            }, { onConflict: 'id' });
+          } catch (e) {
+            console.warn('Profile upsert warning:', e);
+          }
 
           setShowSuccessModal(true);
           return;
@@ -571,7 +575,16 @@ export default function Auth() {
               </div>
 
               <button
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  if (role === 'teacher') {
+                    navigate('/educator-portal');
+                  } else if (role === 'admin') {
+                    navigate('/admin');
+                  } else {
+                    navigate('/dashboard');
+                  }
+                }}
                 className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all"
               >
                 Start Exploring
