@@ -2818,6 +2818,201 @@ ON public.site_content_sections FOR ALL
 USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+-- =========================================================================
+CREATE OR REPLACE VIEW public.admin_event_analytics_summary AS
+SELECT 
+  event_id,
+  COUNT(*) AS total_registrations,
+  COUNT(*) FILTER (WHERE payment_status = 'verified') AS verified_paid_count,
+  COUNT(*) FILTER (WHERE payment_status = 'submitted') AS proof_submitted_count,
+  COUNT(*) FILTER (WHERE payment_status = 'pending') AS pending_payment_count,
+  COUNT(*) FILTER (WHERE approval_status = 'approved') AS admin_approved_count,
+  COUNT(*) FILTER (WHERE certificate_unlocked = true) AS certificates_unlocked_count,
+  COUNT(*) FILTER (WHERE continuous_support_opt_in = true) AS continuous_support_count,
+  COALESCE(SUM(registration_fee) FILTER (WHERE payment_status = 'verified'), 0) AS total_revenue_usd,
+  COUNT(*) FILTER (WHERE has_entered_event = true) AS live_attendees_entered
+FROM public.event_registrations
+GROUP BY event_id;
+
+-- Grant select permissions on analytics view to authenticated admins and service role
+GRANT SELECT ON public.admin_event_analytics_summary TO authenticated, service_role;
+
+-- =========================================================================
+-- 29. MONITORING & EVALUATION (M&E) IMPACT & FINANCIAL AUDIT LEDGER
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.impact_ledger (
+  id TEXT PRIMARY KEY DEFAULT ('imp_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  reference_id TEXT NOT NULL,
+  timestamp TIMESTAMPTZ DEFAULT now(),
+  transaction_type TEXT NOT NULL DEFAULT 'event_registration' 
+    CHECK (transaction_type IN ('event_registration', 'competition_entry', 'hardware_deposit', 'lms_subscription', 'sponsorship_donation', 'chapter_grant', 'mentor_stipend')),
+  source_module TEXT NOT NULL DEFAULT 'events' 
+    CHECK (source_module IN ('events', 'competitions', 'lms', 'donations', 'chapters', 'finance')),
+  title TEXT NOT NULL,
+  payer_name TEXT NOT NULL,
+  payer_email TEXT NOT NULL,
+  school_institution TEXT,
+  province TEXT,
+  amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  payment_method TEXT DEFAULT 'ecocash_usd',
+  payment_status TEXT DEFAULT 'verified' 
+    CHECK (payment_status IN ('verified', 'pending', 'audited', 'refunded')),
+  approval_status TEXT DEFAULT 'approved' 
+    CHECK (approval_status IN ('approved', 'pending', 'rejected')),
+  approved_by TEXT,
+  approved_at TIMESTAMPTZ,
+  beneficiaries_count INTEGER DEFAULT 0,
+  girls_count INTEGER DEFAULT 0,
+  boys_count INTEGER DEFAULT 0,
+  school_category TEXT DEFAULT 'public_urban'
+    CHECK (school_category IN ('public_rural', 'public_urban', 'mission_school', 'private', 'university', 'other')),
+  sdg_targets TEXT[] DEFAULT '{"SDG 4: Quality Education", "SDG 5: Gender Equality", "SDG 9: Industry & Innovation"}',
+  m_and_e_notes TEXT,
+  audit_hash TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.impact_ledger ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins and Executive Auditors can read impact ledger" ON public.impact_ledger;
+CREATE POLICY "Admins and Executive Auditors can read impact ledger"
+  ON public.impact_ledger FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND (role = 'admin' OR is_executive_auditor = true)
+    )
+    OR auth.role() = 'service_role'
+  );
+
+DROP POLICY IF EXISTS "Admins can manage impact ledger" ON public.impact_ledger;
+CREATE POLICY "Admins can manage impact ledger"
+  ON public.impact_ledger FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'admin'
+    )
+    OR auth.role() = 'service_role'
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'admin'
+    )
+    OR auth.role() = 'service_role'
+  );
+
+CREATE INDEX IF NOT EXISTS idx_impact_ledger_timestamp ON public.impact_ledger(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_impact_ledger_module ON public.impact_ledger(source_module);
+CREATE INDEX IF NOT EXISTS idx_impact_ledger_status ON public.impact_ledger(payment_status, approval_status);
+CREATE INDEX IF NOT EXISTS idx_impact_ledger_email ON public.impact_ledger(lower(payer_email));
+CREATE INDEX IF NOT EXISTS idx_impact_ledger_ref ON public.impact_ledger(reference_id);
+
+-- =========================================================================
+-- 30. EXECUTIVE FINANCIAL AUDITORS ROSTER
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.executive_auditors (
+  id TEXT PRIMARY KEY DEFAULT ('exec_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  authorized_by TEXT NOT NULL,
+  authorized_at TIMESTAMPTZ DEFAULT now(),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.executive_auditors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can read executive auditors" ON public.executive_auditors;
+CREATE POLICY "Admins can read executive auditors"
+  ON public.executive_auditors FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  );
+
+DROP POLICY IF EXISTS "Master Admins can manage executive auditors" ON public.executive_auditors;
+CREATE POLICY "Master Admins can manage executive auditors"
+  ON public.executive_auditors FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  );
+
+INSERT INTO public.executive_auditors (id, email, name, title, authorized_by, authorized_at, is_active)
+VALUES 
+  ('exec_1', 'goyaracorp@gmail.com', 'T. Mukombwe', 'Master Administrator & Lead Trustee', 'Board Resolution 2026/01', '2026-01-01T00:00:00Z', true),
+  ('exec_2', 'director@yaria.org', 'Dr. C. Chidemo', 'Regional President & Executive Auditor', 'goyaracorp@gmail.com', '2026-02-15T00:00:00Z', true)
+ON CONFLICT (email) DO UPDATE SET
+  name = EXCLUDED.name,
+  title = EXCLUDED.title,
+  is_active = EXCLUDED.is_active;
+
+-- =========================================================================
+-- 31. M&E IMPACT SUMMARY ANALYTICS VIEW
+-- =========================================================================
+CREATE OR REPLACE VIEW public.impact_ledger_summary_view AS
+SELECT 
+  source_module,
+  transaction_type,
+  COUNT(*) AS total_transactions,
+  COALESCE(SUM(amount) FILTER (WHERE payment_status = 'verified' OR payment_status = 'audited'), 0) AS total_revenue_usd,
+  COALESCE(SUM(beneficiaries_count), 0) AS total_beneficiaries,
+  COALESCE(SUM(girls_count), 0) AS total_girls_reached,
+  COALESCE(SUM(boys_count), 0) AS total_boys_reached
+FROM public.impact_ledger
+GROUP BY source_module, transaction_type;
+
+GRANT SELECT ON public.impact_ledger_summary_view TO authenticated, service_role;
+
+-- =========================================================================
+-- Universal Site Content & Dynamic CMS Sections
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.site_content_sections (
+  id TEXT PRIMARY KEY,
+  page TEXT NOT NULL DEFAULT 'home',
+  section_type TEXT NOT NULL DEFAULT 'hero_banner',
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  content TEXT,
+  badge_text TEXT,
+  theme_color TEXT DEFAULT 'indigo',
+  image_url TEXT,
+  cta_text TEXT,
+  cta_link TEXT,
+  secondary_cta_text TEXT,
+  secondary_cta_link TEXT,
+  items JSONB,
+  sort_order INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.site_content_sections ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view active site content sections" ON public.site_content_sections;
+CREATE POLICY "Public can view active site content sections"
+ON public.site_content_sections FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage site content sections" ON public.site_content_sections;
+CREATE POLICY "Admins can manage site content sections"
+ON public.site_content_sections FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
 
 -- =========================================================================
 -- 32. SEED DATA — EVENTS & COMPETITIONS (Idempotent)
@@ -2826,6 +3021,7 @@ USING (
 -- =========================================================================
 
 -- AI for Educators Bootcamp (Events Table)
+-- Uses a fixed UUID so ON CONFLICT (id) works correctly on re-runs
 INSERT INTO public.events (
   id,
   title,
@@ -2837,7 +3033,7 @@ INSERT INTO public.events (
   is_upcoming,
   category
 ) VALUES (
-  'ai-for-educators-evt-2026',
+  'a1000000-1000-4000-8000-000000000001'::uuid,
   'AI for Educators – Online Bootcamp 2026',
   'A 5-day intensive online bootcamp equipping educators with Artificial Intelligence, Digital Pedagogy, and STEM integration skills. Hosted daily via Google Meet from 17:00–19:30 CAT. Certificate of completion issued to all approved and verified participants.',
   '2026-08-31T17:00:00+02:00',
@@ -2855,8 +3051,8 @@ INSERT INTO public.events (
   updated_at = now();
 
 -- YARA Educational Robotics Competition 2026 (Competitions Table)
+-- Uses ON CONFLICT (slug) since slug is the unique TEXT identifier — avoids UUID string cast issues
 INSERT INTO public.competitions (
-  id,
   slug,
   title,
   subtitle,
@@ -2878,7 +3074,6 @@ INSERT INTO public.competitions (
   display_order,
   tags
 ) VALUES (
-  'yara-2026-flagship',
   'yara-2026',
   'YARA Educational Robotics Competition 2026',
   'National Championship — Robotics, Autonomous & Aquatic Innovation',
@@ -2899,7 +3094,7 @@ INSERT INTO public.competitions (
   true,
   1,
   ARRAY['robotics', 'STEM', 'Zimbabwe', '2026', 'youth', 'flagship', 'autonomous', 'aquatic']
-) ON CONFLICT (id) DO UPDATE SET
+) ON CONFLICT (slug) DO UPDATE SET
   title = EXCLUDED.title,
   subtitle = EXCLUDED.subtitle,
   description = EXCLUDED.description,
