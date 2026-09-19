@@ -1114,6 +1114,23 @@ export function unlockCertificateByAdmin(userId: string, courseId: string, admin
   }
 }
 
+export function lockCertificateByAdmin(userId: string, courseId: string): boolean {
+  try {
+    const raw = localStorage.getItem(UNLOCKED_CERTS_KEY);
+    let unlockedList: string[] = raw ? JSON.parse(raw) : [];
+    const key = `${userId}_${courseId}`;
+    unlockedList = unlockedList.filter(k => k !== key && k !== userId && k !== courseId);
+    localStorage.setItem(UNLOCKED_CERTS_KEY, JSON.stringify(unlockedList));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('yara_certificate_locked', { detail: { userId, courseId } }));
+    }
+    return true;
+  } catch (err) {
+    console.error('Error locking certificate by admin:', err);
+    return false;
+  }
+}
+
 export function batchUnlockCertificatesByAdmin(keys: { userId: string; courseId: string }[]): number {
   let count = 0;
   keys.forEach(k => {
