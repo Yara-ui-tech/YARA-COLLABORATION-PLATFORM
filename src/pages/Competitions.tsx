@@ -109,7 +109,7 @@ export default function Competitions() {
                 className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
               >
                 <Users className="w-4 h-4 text-indigo-400" />
-                <span>Team Registration (2B+2G)</span>
+                <span>Team Portal (2B+2G)</span>
               </Link>
               <Link
                 to="/competition/live-results"
@@ -124,6 +124,27 @@ export default function Competitions() {
               >
                 <Award className="w-4 h-4 text-cyan-400" />
                 <span>Judge Panel</span>
+              </Link>
+              <Link
+                to="/competition/sponsors"
+                className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
+              >
+                <DollarSign className="w-4 h-4 text-amber-400" />
+                <span>Sponsors & Tiers</span>
+              </Link>
+              <Link
+                to="/volunteer"
+                className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
+              >
+                <Users className="w-4 h-4 text-purple-400" />
+                <span>Volunteer Corps</span>
+              </Link>
+              <Link
+                to="/competition/impact"
+                className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
+              >
+                <Layers className="w-4 h-4 text-blue-400" />
+                <span>Impact & Ledger</span>
               </Link>
             </div>
           </div>
