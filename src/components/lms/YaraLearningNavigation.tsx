@@ -10,7 +10,8 @@ import {
   CreditCard, 
   Zap,
   Package,
-  Code2
+  Code2,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -24,7 +25,8 @@ export type LearningTabId =
   | 'certificates' 
   | 'subscription' 
   | 'resources'
-  | 'programming';
+  | 'programming'
+  | 'admin-center';
 
 interface TabItem {
   id: LearningTabId;
@@ -44,7 +46,8 @@ export const LEARNING_NAV_TABS: TabItem[] = [
   { id: 'projects', label: 'Projects', icon: FolderGit2, badge: 'Portfolio' },
   { id: 'certificates', label: 'Certificates', icon: Award },
   { id: 'subscription', label: 'Subscription', icon: CreditCard },
-  { id: 'resources', label: 'Resources', icon: Package }
+  { id: 'resources', label: 'Resources', icon: Package },
+  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin', highlight: true }
 ];
 
 interface Props {

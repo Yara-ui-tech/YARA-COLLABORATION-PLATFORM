@@ -12,6 +12,7 @@ import { CertificatesTab } from '../components/lms/tabs/CertificatesTab';
 import { SubscriptionTab } from '../components/lms/tabs/SubscriptionTab';
 import { ResourcesTab } from '../components/lms/tabs/ResourcesTab';
 import { ProgrammingCoursesTab } from '../components/lms/tabs/ProgrammingCoursesTab';
+import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
 import { YaraLmsSessionPlayer } from '../components/lms/YaraLmsSessionPlayer';
 import { YaraLmsCapstoneSubmissionModal } from '../components/lms/YaraLmsCapstoneSubmissionModal';
 import { YaraLmsCertificateModal } from '../components/lms/YaraLmsCertificateModal';
@@ -293,6 +294,10 @@ export default function YaraLearning() {
             userEmail={userEmail}
             onNavigateTab={handleSelectTab}
           />
+        )}
+
+        {activeTab === 'admin-center' && (
+          <LearningAcademyAdminCenter adminUserId={userId} />
         )}
       </main>
 
