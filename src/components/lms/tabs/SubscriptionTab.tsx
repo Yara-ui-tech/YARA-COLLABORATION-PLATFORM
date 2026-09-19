@@ -13,6 +13,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 
+import { useAuth } from '../../AuthContext';
+import { CertificateUnlockAdminManager } from '../../admin/CertificateUnlockAdminManager';
+
 interface Props {
   userId: string;
   userEmail: string;
@@ -28,6 +31,8 @@ export const SubscriptionTab: React.FC<Props> = ({
   userEmail,
   subscriptionStatus
 }) => {
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
   const [selectedPlan, setSelectedPlan] = useState<'innovator' | 'student'>('innovator');
   const [paymentMethod, setPaymentMethod] = useState<'ecocash' | 'bank' | 'card'>('ecocash');
   const [transactionRef, setTransactionRef] = useState('');
@@ -60,6 +65,13 @@ export const SubscriptionTab: React.FC<Props> = ({
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Admin Subscriptions & Approvals Console */}
+      {isAdmin && (
+        <div className="border border-emerald-500/30 rounded-3xl p-4 sm:p-6 bg-slate-900/90 shadow-2xl">
+          <CertificateUnlockAdminManager />
+        </div>
+      )}
+
       {/* 1. Header */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="max-w-3xl space-y-2">

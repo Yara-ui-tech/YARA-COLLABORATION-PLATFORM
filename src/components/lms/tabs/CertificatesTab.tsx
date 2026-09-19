@@ -25,6 +25,8 @@ import { ProgrammingCertificate } from '../../../types/lmsCourseTypes';
 import { COURSE_CATEGORY_LABELS, COURSE_CATEGORY_COLORS } from '../../../types/lmsCourseTypes';
 import { checkCertificateEligibility, issueOrGetCertificate, isCertificateUnlockedByAdmin } from '../../../services/yaraLmsService';
 import { getAllUserProgrammingCertificates } from '../../../services/programmingCoursesService';
+import { useAuth } from '../../AuthContext';
+import { CertificateUnlockAdminManager } from '../../admin/CertificateUnlockAdminManager';
 
 interface Props {
   userId: string;
@@ -90,10 +92,20 @@ export const CertificatesTab: React.FC<Props> = ({
     setTimeout(() => setCopiedCertId(null), 3000);
   };
 
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
+
   const totalCerts = (certificate ? 1 : 0) + programmingCerts.length;
 
   return (
     <div className="space-y-8 pb-12">
+      {/* ─── Admin Certification Council Panel ─────────────────────────────────── */}
+      {isAdmin && (
+        <div className="border border-amber-500/30 rounded-3xl p-4 sm:p-6 bg-slate-900/90 shadow-2xl">
+          <CertificateUnlockAdminManager />
+        </div>
+      )}
+
       {/* ─── Hero Header ─────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl text-white border border-slate-800"
         style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0c1a2e 100%)' }}>

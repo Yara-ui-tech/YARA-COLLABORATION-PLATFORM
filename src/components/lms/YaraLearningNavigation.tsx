@@ -38,16 +38,16 @@ interface TabItem {
 
 export const LEARNING_NAV_TABS: TabItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin', highlight: true },
   { id: 'courses', label: 'Robotics Courses', icon: BookOpen, badge: 'L0–L8' },
-  { id: 'programming', label: 'Programming', icon: Code2, badge: 'Python · JS · Scratch', highlight: true },
+  { id: 'programming', label: 'Programming', icon: Code2, badge: 'Python · JS · Scratch' },
   { id: 'my-courses', label: 'My Courses', icon: GraduationCap },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
   { id: 'assessments', label: 'Assessments', icon: CheckSquare },
   { id: 'projects', label: 'Projects', icon: FolderGit2, badge: 'Portfolio' },
   { id: 'certificates', label: 'Certificates', icon: Award },
   { id: 'subscription', label: 'Subscription', icon: CreditCard },
-  { id: 'resources', label: 'Resources', icon: Package },
-  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin', highlight: true }
+  { id: 'resources', label: 'Resources', icon: Package }
 ];
 
 interface Props {
