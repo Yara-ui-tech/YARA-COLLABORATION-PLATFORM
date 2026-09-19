@@ -1,7 +1,6 @@
 -- =========================
 -- 0) Extensions
 -- =========================
-DROP TABLE IF EXISTS public.events CASCADE;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =========================
@@ -368,7 +367,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
     CASE
-      WHEN NEW.email IN ('goyaracorp@gmail.com', 'yariaofficial@gmail.com') THEN 'admin'
+      WHEN NEW.email IN ('goyaracorp@gmail.com', 'yariaofficial@gmail.com', 'manongwasimbarashe394@gmail.com') THEN 'admin'
       WHEN pre_app.email IS NOT NULL THEN pre_app.role
       WHEN NEW.raw_user_meta_data->>'role' IN ('teacher', 'mentor', 'innovator', 'admin') THEN NEW.raw_user_meta_data->>'role'
       ELSE 'innovator'
@@ -689,15 +688,27 @@ CREATE TABLE IF NOT EXISTS public.events (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  date TIMESTAMPTZ NOT NULL,
+  date TIMESTAMPTZ NOT NULL DEFAULT now(),
   location TEXT,
   image_url TEXT,
   registration_link TEXT,
   is_upcoming BOOLEAN DEFAULT true,
-  category TEXT CHECK (category IN ('competition', 'workshop', 'outreach', 'other')) DEFAULT 'other',
+  -- category is free-text to support any event type (bootcamp, workshop, competition, seminar, etc.)
+  category TEXT DEFAULT 'other',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Idempotent migrations for events table
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_upcoming BOOLEAN DEFAULT true;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_link TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+DROP TRIGGER IF EXISTS update_events_updated_at ON public.events;
+CREATE TRIGGER update_events_updated_at
+  BEFORE UPDATE ON public.events
+  FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
 
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 
@@ -2565,40 +2576,50 @@ ON CONFLICT (key) DO UPDATE SET
 -- 27. SUPABASE STORAGE BUCKETS & ASSET SECURITY POLICIES
 -- =========================================================================
 -- Ensure storage extension and schema are active
+-- Storage Buckets: All required buckets including flyers for admin uploads
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
   ('event-proofs', 'event-proofs', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   ('certificates', 'certificates', true, 15728640, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   ('chapter-media', 'chapter-media', true, 20971520, ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'video/mp4']),
-  ('lesson-plans', 'lesson-plans', true, 26214400, ARRAY['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'image/jpeg', 'image/png'])
+  ('lesson-plans', 'lesson-plans', true, 26214400, ARRAY['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'image/jpeg', 'image/png']),
+  ('flyers', 'flyers', true, 20971520, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])
 ON CONFLICT (id) DO UPDATE SET
   public = true,
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage RLS: Public Read Access
+-- Storage RLS: Public Read Access (all buckets including flyers)
 DROP POLICY IF EXISTS "Public can view event proofs" ON storage.objects;
 CREATE POLICY "Public can view event proofs"
   ON storage.objects FOR SELECT
-  USING (bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans'));
+  USING (bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans', 'flyers'));
 
--- Storage RLS: Anyone can upload event proof or lesson plan submissions
+-- Storage RLS: Anyone can upload event proof, lesson plan submissions, or flyers
 DROP POLICY IF EXISTS "Public upload to event proofs" ON storage.objects;
 CREATE POLICY "Public upload to event proofs"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id IN ('event-proofs', 'chapter-media', 'lesson-plans'));
+  WITH CHECK (bucket_id IN ('event-proofs', 'chapter-media', 'lesson-plans', 'flyers'));
 
 -- Storage RLS: Admins have full control over all storage buckets
 DROP POLICY IF EXISTS "Admins have full storage access" ON storage.objects;
 CREATE POLICY "Admins have full storage access"
   ON storage.objects FOR ALL
   USING (
-    bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans')
+    bucket_id IN ('event-proofs', 'certificates', 'chapter-media', 'lesson-plans', 'flyers')
     AND (
       EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
       OR auth.role() = 'service_role'
     )
   );
+
+-- Authenticated users can update/delete their own uploads in flyers bucket
+DROP POLICY IF EXISTS "Auth users can manage own flyer uploads" ON storage.objects;
+CREATE POLICY "Auth users can manage own flyer uploads"
+  ON storage.objects FOR ALL
+  TO authenticated
+  USING (bucket_id = 'flyers' AND (storage.foldername(name))[1] = 'yara_flyers')
+  WITH CHECK (bucket_id = 'flyers');
 
 -- =========================================================================
 -- 28. ADMINISTRATIVE REAL-TIME ANALYTICS & REGISTRATION STATS VIEW
@@ -2799,8 +2820,95 @@ USING (
 );
 
 -- =========================================================================
--- END OF YARA INSTITUTIONAL DATABASE SCHEMA & MIGRATION SCRIPT
+-- 32. SEED DATA — EVENTS & COMPETITIONS (Idempotent)
+-- These ensure the AI for Educators Bootcamp and YARA 2026 Competition
+-- always exist in the database and are visible in the Admin panel.
 -- =========================================================================
 
+-- AI for Educators Bootcamp (Events Table)
+INSERT INTO public.events (
+  id,
+  title,
+  description,
+  date,
+  location,
+  image_url,
+  registration_link,
+  is_upcoming,
+  category
+) VALUES (
+  'ai-for-educators-evt-2026',
+  'AI for Educators – Online Bootcamp 2026',
+  'A 5-day intensive online bootcamp equipping educators with Artificial Intelligence, Digital Pedagogy, and STEM integration skills. Hosted daily via Google Meet from 17:00–19:30 CAT. Certificate of completion issued to all approved and verified participants.',
+  '2026-08-31T17:00:00+02:00',
+  'Online (Google Meet) — Zimbabwe & Pan-Africa',
+  '/assets/flyer-ai-educators-2026.jpg',
+  'https://bit.ly/yara-ai-educators',
+  true,
+  'AI Bootcamp & Workshop'
+) ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  location = EXCLUDED.location,
+  is_upcoming = EXCLUDED.is_upcoming,
+  category = EXCLUDED.category,
+  updated_at = now();
 
+-- YARA Educational Robotics Competition 2026 (Competitions Table)
+INSERT INTO public.competitions (
+  id,
+  slug,
+  title,
+  subtitle,
+  description,
+  category,
+  format,
+  status,
+  start_date,
+  end_date,
+  registration_deadline,
+  location,
+  image_url,
+  registration_link,
+  prize_pool,
+  entry_fee,
+  max_teams,
+  eligibility,
+  is_featured,
+  display_order,
+  tags
+) VALUES (
+  'yara-2026-flagship',
+  'yara-2026',
+  'YARA Educational Robotics Competition 2026',
+  'National Championship — Robotics, Autonomous & Aquatic Innovation',
+  'The flagship annual YARA robotics championship bringing together the best youth robotics teams across Zimbabwe and the Pan-African region. Teams compete in underwater ROV, autonomous vehicles, micromouse maze solving, and STEM project showcases. Gender-balanced teams of 4 (2 Boys + 2 Girls) from high schools, universities, and youth clubs.',
+  'flagship_robotics',
+  'in_person',
+  'upcoming',
+  '2026-10-01T08:00:00+02:00',
+  '2026-10-04T18:00:00+02:00',
+  '2026-09-20T23:59:59+02:00',
+  'Harare, Zimbabwe',
+  '/assets/flyer-yara-robotics-2026.jpg',
+  'https://bit.ly/yara-competition-2026',
+  '$10,000 + Tech Grants & Trophies',
+  0.00,
+  64,
+  'Open to High Schools, Universities & Youth Clubs — Gender-Balanced Teams (2 Boys + 2 Girls)',
+  true,
+  1,
+  ARRAY['robotics', 'STEM', 'Zimbabwe', '2026', 'youth', 'flagship', 'autonomous', 'aquatic']
+) ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  subtitle = EXCLUDED.subtitle,
+  description = EXCLUDED.description,
+  status = EXCLUDED.status,
+  start_date = EXCLUDED.start_date,
+  end_date = EXCLUDED.end_date,
+  is_featured = EXCLUDED.is_featured,
+  updated_at = now();
 
+-- =========================================================================
+-- END OF ALL MIGRATIONS
+-- =========================================================================
