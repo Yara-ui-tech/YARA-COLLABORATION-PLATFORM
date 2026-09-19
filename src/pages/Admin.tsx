@@ -20,6 +20,7 @@ import EventRegistrationsAdminTab from '../components/admin/EventRegistrationsAd
 import ImpactLedgerAdminTab from '../components/admin/ImpactLedgerAdminTab';
 import AdminManagementSection from '../components/admin/AdminManagementSection';
 import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
+import ImageUploader from '../components/ImageUploader';
 import { Sliders } from 'lucide-react';
 
 interface UserProfile {
@@ -1290,13 +1291,11 @@ export default function Admin() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Image URL</label>
-                    <input
-                      type="url"
+                    <ImageUploader
                       value={eventForm.image_url}
-                      onChange={(e) => setEventForm({ ...eventForm, image_url: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
-                      placeholder="https://..."
+                      onChange={(url) => setEventForm({ ...eventForm, image_url: url })}
+                      bucket="flyers"
+                      label="Event Flyer / Banner Image"
                     />
                   </div>
                   <div>
@@ -1307,6 +1306,7 @@ export default function Admin() {
                       onChange={(e) => setEventForm({ ...eventForm, registration_link: e.target.value })}
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
                       placeholder="Google Form or Website link"
+
                     />
                   </div>
                 </div>
@@ -1422,13 +1422,11 @@ export default function Admin() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Image URL</label>
-                    <input
-                      type="url"
+                    <ImageUploader
                       value={compForm.image_url}
-                      onChange={(e) => setCompForm({ ...compForm, image_url: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
-                      placeholder="https://..."
+                      onChange={(url) => setCompForm({ ...compForm, image_url: url })}
+                      bucket="flyers"
+                      label="Competition Flyer / Banner Image"
                     />
                   </div>
                   <div>
@@ -1442,6 +1440,7 @@ export default function Admin() {
                     />
                   </div>
                 </div>
+
 
                 <button
                   type="submit"

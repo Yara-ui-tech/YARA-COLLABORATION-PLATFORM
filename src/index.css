@@ -5,25 +5,27 @@
    YARA Design System – Premium CSS Custom Properties
    ============================================================ */
 :root {
-  /* Brand Colors – YARA Logo Corporate Palette */
-  --yara-navy: 10 17 40;     /* #0A1128 Deep Corporate Dark Navy */
-  --yara-royal: 30 64 175;   /* #1E40AF Royal Blue */
-  --yara-blue: 37 99 235;    /* #2563EB Corporate Cobalt */
-  --yara-cyan: 14 165 233;   /* #0EA5E9 Electric Cyan */
-  --yara-sky: 56 189 248;    /* #38BDF8 Sky Accent */
-  --yara-slate: 15 23 42;    /* #0F172A */
+  /* Brand Colors – YARA Official Flyer & Logo Corporate Palette */
+  --yara-deep-navy: 2 6 23;     /* #020617 Deep Midnight Navy */
+  --yara-navy: 5 11 20;         /* #050B14 Corporate Flyer Dark */
+  --yara-blue-dark: 8 14 36;    /* #080E24 Electric Dark Navy */
+  --yara-royal: 0 56 168;       /* #0038A8 Deep Electric Royal */
+  --yara-blue: 0 114 245;       /* #0072F5 YARA Luminous Blue */
+  --yara-cyan: 0 210 255;       /* #00D2FF Flyer Neon Cyan */
+  --yara-sky: 56 189 248;       /* #38BDF8 Sky Cyan */
+  --yara-slate: 15 23 42;       /* #0F172A */
 
   /* Surfaces */
   --surface-glass: rgba(255, 255, 255, 0.85);
-  --surface-glass-dark: rgba(10, 17, 40, 0.88);
+  --surface-glass-dark: rgba(2, 6, 23, 0.92);
   --surface-frosted: rgba(248, 250, 252, 0.9);
 
-  /* Shadows */
+  /* Shadows & Glows */
+  --shadow-glow-cyan: 0 0 35px rgba(0, 210, 255, 0.3);
+  --shadow-glow-blue: 0 0 35px rgba(0, 114, 245, 0.35);
   --shadow-glow-indigo: 0 0 30px rgba(37, 99, 235, 0.2);
-  --shadow-glow-blue: 0 0 30px rgba(30, 64, 175, 0.25);
-  --shadow-glow-emerald: 0 0 30px rgba(14, 165, 233, 0.2);
-  --shadow-premium: 0 4px 24px -4px rgba(10, 17, 40, 0.12), 0 2px 8px -2px rgba(10, 17, 40, 0.06);
-  --shadow-card: 0 1px 3px rgba(10,17,40,0.06), 0 1px 2px rgba(10,17,40,0.04);
+  --shadow-premium: 0 4px 24px -4px rgba(2, 6, 23, 0.18), 0 2px 8px -2px rgba(2, 6, 23, 0.08);
+  --shadow-card: 0 1px 3px rgba(2,6,23,0.06), 0 1px 2px rgba(2,6,23,0.04);
 
   /* Transitions */
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -47,8 +49,8 @@ html {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #020617;
+  color: #f8fafc;
 }
 
 code, pre, .font-mono {
@@ -68,12 +70,12 @@ code, pre, .font-mono {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1e293b;
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #00D2FF;
 }
 
 .scrollbar-none::-webkit-scrollbar {
@@ -99,7 +101,7 @@ code, pre, .font-mono {
   background: var(--surface-glass-dark);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.15);
 }
 
 .glass-frosted {
@@ -109,28 +111,32 @@ code, pre, .font-mono {
 }
 
 /* ============================================================
-   Premium Gradients (Matching YARA Logo Palette)
+   Premium Gradients (Matching YARA Flyer Palette)
    ============================================================ */
 .gradient-yara {
-  background: linear-gradient(135deg, #0A1128 0%, #1E40AF 50%, #0EA5E9 100%);
+  background: linear-gradient(135deg, #020617 0%, #0038A8 50%, #00D2FF 100%);
+}
+
+.gradient-yara-flyer {
+  background: linear-gradient(135deg, #020617 0%, #050B14 30%, #0038A8 70%, #00A3FF 100%);
 }
 
 .gradient-yara-accent {
-  background: linear-gradient(135deg, #1D4ED8 0%, #0EA5E9 100%);
+  background: linear-gradient(135deg, #0052D4 0%, #00D2FF 100%);
 }
 
 .gradient-yara-dark {
-  background: linear-gradient(135deg, #0A1128 0%, #0B193C 50%, #031B33 100%);
+  background: linear-gradient(135deg, #020617 0%, #080E24 50%, #050B14 100%);
 }
 
 .gradient-hero {
-  background: radial-gradient(ellipse at top right, rgba(37,99,235,0.15) 0%, transparent 60%),
-              radial-gradient(ellipse at bottom left, rgba(14,165,233,0.1) 0%, transparent 60%),
-              linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: radial-gradient(ellipse at top right, rgba(0,210,255,0.2) 0%, transparent 60%),
+              radial-gradient(ellipse at bottom left, rgba(0,56,168,0.3) 0%, transparent 60%),
+              linear-gradient(180deg, #020617 0%, #080E24 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #1E40AF, #2563EB, #0EA5E9);
+  background: linear-gradient(135deg, #60A5FA, #00D2FF, #38BDF8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

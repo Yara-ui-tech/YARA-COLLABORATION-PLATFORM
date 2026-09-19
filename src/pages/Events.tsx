@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School } from 'lucide-react';
+import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School, Plus, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
@@ -13,18 +13,11 @@ import VirtualCompetitionModal from '../components/competition/VirtualCompetitio
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
 import PublicTeamsList from '../components/competition/PublicTeamsList';
 import EventSignupsManager from '../components/events/EventSignupsManager';
+import EventEditModal from '../components/events/EventEditModal';
+import { fetchAllEvents, saveEventItem, deleteEventItem, EventItem } from '../constants/eventsData';
+import { useAuth } from '../components/AuthContext';
 
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  location: string;
-  image_url: string;
-  registration_link: string;
-  is_upcoming: boolean;
-  category: string;
-}
+interface Event extends EventItem {}
 
 interface Competition {
   id: string;
@@ -38,11 +31,18 @@ interface Competition {
 }
 
 export default function Events() {
-  const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS as Event[]);
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
+
+  const [events, setEvents] = useState<Event[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
   const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');
+
+  // Modal for Event Editing / Adding
+  const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
   // Modal for Virtual Challenge
   const [selectedVirtualComp, setSelectedVirtualComp] = useState<VirtualCompetition | null>(null);
@@ -59,11 +59,8 @@ export default function Events() {
   async function fetchData() {
     setLoading(true);
     try {
-      const { data: eventsData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('is_upcoming', true)
-        .order('date', { ascending: true });
+      const eventsData = await fetchAllEvents();
+      setEvents(eventsData);
 
       const { data: compsData } = await supabase
         .from('competitions')
@@ -83,12 +80,6 @@ export default function Events() {
         deletedCompIds = [];
       }
 
-      if (eventsData && eventsData.length > 0) {
-        setEvents(eventsData);
-      } else {
-        setEvents(INITIAL_EVENTS as Event[]);
-      }
-
       if (compsData && compsData.length > 0) {
         setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id)));
       } else {
@@ -99,20 +90,25 @@ export default function Events() {
       setVirtualCompetitions(vCompsData || []);
     } catch (error) {
       console.error('Error fetching events:', error);
-      let deletedCompIds: string[] = [];
-      try {
-        const raw = localStorage.getItem('yaria_deleted_competitions');
-        if (raw) deletedCompIds = JSON.parse(raw);
-      } catch {
-        deletedCompIds = [];
-      }
-      setEvents(INITIAL_EVENTS as Event[]);
-      setCompetitions((INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id)));
+      const eventsData = await fetchAllEvents();
+      setEvents(eventsData);
       setVirtualCompetitions([]);
     } finally {
       setLoading(false);
     }
   }
+
+  const handleSaveEvent = async (saved: EventItem) => {
+    await saveEventItem(saved);
+    await fetchData();
+  };
+
+  const handleDeleteEvent = async (eventId: string, title: string) => {
+    if (confirm(`Are you sure you want to remove event "${title}"?`)) {
+      await deleteEventItem(eventId);
+      await fetchData();
+    }
+  };
 
   const handleOpenVirtualChallenge = (vComp: VirtualCompetition) => {
     setSelectedVirtualComp(vComp);
@@ -120,48 +116,63 @@ export default function Events() {
   };
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-8 pb-16 text-white bg-slate-950">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-800 pb-6">
         <div className="space-y-2">
-          <div className="flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest">
-            <Trophy className="w-4 h-4" />
-            <span>Competitive Arena & Hackathons</span>
+          <div className="flex items-center space-x-2 text-cyan-400 font-black text-xs uppercase tracking-widest">
+            <Trophy className="w-4 h-4 text-cyan-400" />
+            <span>Competitive Arena & Educational Bootcamps</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-            Events & Competitions
+          <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+            Events & Bootcamps Hub
           </h2>
-          <p className="text-slate-500 font-medium text-sm max-w-xl">
-            Compete in virtual simulation sprints, PCB design challenges, hardware showcases, and robotics hackathons.
+          <p className="text-slate-400 font-medium text-sm max-w-xl leading-relaxed">
+            Compete in virtual simulation sprints, PCB design challenges, educator bootcamps, and robotics hackathons.
           </p>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center space-x-2 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm shrink-0">
-          {[
-            { id: 'all', label: 'All Arena Events' },
-            { id: 'virtual', label: 'Virtual Challenges', badge: virtualCompetitions.length },
-            { id: 'physical', label: 'Physical Events', badge: events.length + competitions.length }
-          ].map(filter => (
+        <div className="flex items-center space-x-3">
+          {isAdmin && (
             <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id as any)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                activeFilter === filter.id
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
+              onClick={() => {
+                setEditingEvent(null);
+                setIsEventModalOpen(true);
+              }}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 flex items-center space-x-2 transition-all"
             >
-              <span>{filter.label}</span>
-              {filter.badge !== undefined && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  activeFilter === filter.id ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {filter.badge}
-                </span>
-              )}
+              <Plus className="w-4 h-4" />
+              <span>Add New Event</span>
             </button>
-          ))}
+          )}
+
+          {/* Filter Pills */}
+          <div className="flex items-center space-x-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shrink-0">
+            {[
+              { id: 'all', label: 'All Events' },
+              { id: 'virtual', label: 'Virtual Challenges', badge: virtualCompetitions.length },
+              { id: 'physical', label: 'Physical Events', badge: events.length + competitions.length }
+            ].map(filter => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id as any)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  activeFilter === filter.id
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <span>{filter.label}</span>
+                {filter.badge !== undefined && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                    activeFilter === filter.id ? 'bg-slate-950 text-cyan-400' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {filter.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -220,9 +231,43 @@ export default function Events() {
               </div>
 
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+                {isAdmin && (
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        const bootcampEvt = events.find(e => e.id === 'ai-for-educators-2026') || {
+                          id: 'ai-for-educators-2026',
+                          title: 'AI for Educators – Online Bootcamp',
+                          description: 'A high-impact 5-day professional development programme equipping teachers and lecturers with practical AI tools.',
+                          date: '31 Aug – 4 Sep 2026',
+                          location: 'Live Google Meet Hall',
+                          image_url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80',
+                          registration_link: '/events/ai-for-educators',
+                          is_upcoming: true,
+                          category: 'Virtual Bootcamp'
+                        };
+                        setEditingEvent(bootcampEvt);
+                        setIsEventModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold rounded-xl text-xs border border-cyan-500/30 flex items-center space-x-1.5 transition-all"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit Event & Flyer</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteEvent('ai-for-educators-2026', 'AI for Educators – Online Bootcamp')}
+                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold rounded-xl text-xs border border-red-500/30 flex items-center space-x-1.5 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
+
                 <Link
                   to="/events/ai-for-educators"
-                  className="px-8 py-4 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-amber-400/20 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02]"
+                  className="px-8 py-4 bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400 hover:from-cyan-300 hover:to-cyan-200 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-cyan-400/20 flex items-center justify-center space-x-2 transition-all transform hover:scale-[1.02]"
                 >
                   <Brain className="w-4 h-4" />
                   <span>View Event & Register</span>
@@ -247,12 +292,12 @@ export default function Events() {
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
                     <Zap className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                      Virtual Online Challenges & Sprints
+                    <h3 className="text-xl font-bold text-white tracking-tight">
+                      Virtual Online Challenges &amp; Sprints
                     </h3>
                     <p className="text-xs text-slate-400 font-medium">
                       Simulate, wire, and code in Wokwi, Tinkercad, or EasyEDA within timed windows
@@ -287,12 +332,12 @@ export default function Events() {
           {(activeFilter === 'all' || activeFilter === 'physical') && (
             <section className="space-y-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                    On-Site Events & Community Hackathons
+                  <h3 className="text-xl font-bold text-white tracking-tight">
+                    On-Site Events &amp; Community Hackathons
                   </h3>
                   <p className="text-xs text-slate-400 font-medium">
                     Hands-on build days, showcase pitches, and regional robotics exhibitions
@@ -480,16 +525,36 @@ export default function Events() {
                           </p>
 
                           {event.registration_link && (
-                            <div className="pt-4 flex flex-wrap gap-4">
+                            <div className="pt-4 flex flex-wrap items-center justify-between gap-4">
                               <a 
                                 href={event.registration_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
+                                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 transition-all flex items-center space-x-2"
                               >
                                 <span>Register For Event</span>
                                 <ArrowRight className="w-4 h-4" />
                               </a>
+
+                              {isAdmin && (
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingEvent(event);
+                                      setIsEventModalOpen(true);
+                                    }}
+                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold rounded-xl text-xs border border-slate-700 flex items-center space-x-1.5 transition-all"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEvent(event.id, event.title)}
+                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-red-400 font-bold rounded-xl text-xs border border-slate-700 flex items-center space-x-1.5 transition-all"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -507,6 +572,17 @@ export default function Events() {
           </section>
         </div>
       )}
+
+      {/* Event Edit & Add Modal */}
+      <EventEditModal
+        event={editingEvent}
+        isOpen={isEventModalOpen}
+        onClose={() => {
+          setIsEventModalOpen(false);
+          setEditingEvent(null);
+        }}
+        onSave={handleSaveEvent}
+      />
 
       {/* Virtual Challenge Modal */}
       <VirtualCompetitionModal

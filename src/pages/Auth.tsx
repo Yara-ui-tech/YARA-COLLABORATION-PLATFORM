@@ -18,6 +18,7 @@ export default function Auth() {
   const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [signupHasSession, setSignupHasSession] = useState(false);
   const [error, setError] = useState('');
   const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
   const navigate = useNavigate();
@@ -172,6 +173,9 @@ export default function Auth() {
             console.warn('Profile upsert warning:', e);
           }
 
+          // If we have an immediate session (email confirmation disabled), we can navigate
+          const hasImmediateSession = !!data.session;
+          setSignupHasSession(hasImmediateSession);
           setShowSuccessModal(true);
           return;
         }
@@ -556,10 +560,22 @@ export default function Auth() {
                 You have been registered as <span className="font-bold text-indigo-600 uppercase">{role === 'mentor' || role === 'admin' ? role : tier}</span>.
               </p>
               
+              {!signupHasSession && (
+                <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-5 mb-6">
+                  <div className="flex items-center justify-center space-x-2 text-blue-700 font-bold mb-2">
+                    <Mail className="w-5 h-5" />
+                    <span>Check Your Email</span>
+                  </div>
+                  <p className="text-blue-600 text-sm font-medium">
+                    A confirmation link has been sent to <strong>{email}</strong>. Please verify your email to activate your account, then sign in below.
+                  </p>
+                </div>
+              )}
+
               <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-6 mb-8">
                 <div className="flex items-center justify-center space-x-2 text-amber-700 font-bold mb-2">
                   <DollarSign className="w-5 h-5" />
-                  <span>Platform Access & Training</span>
+                  <span>Platform Access &amp; Training</span>
                 </div>
                 <p className="text-amber-600 text-sm font-medium mb-4">
                   {courseFee.message.includes(courseFee.amount.toString()) ? courseFee.message : `${courseFee.message} (Amount: ${courseFee.currency}$${courseFee.amount})`}
@@ -574,21 +590,33 @@ export default function Auth() {
                 </p>
               </div>
 
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  if (role === 'teacher') {
-                    navigate('/educator-portal');
-                  } else if (role === 'admin') {
-                    navigate('/admin');
-                  } else {
-                    navigate('/dashboard');
-                  }
-                }}
-                className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all"
-              >
-                Start Exploring
-              </button>
+              {signupHasSession ? (
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    if (role === 'teacher') {
+                      navigate('/educator-portal');
+                    } else if (role === 'admin') {
+                      navigate('/admin');
+                    } else {
+                      navigate('/dashboard');
+                    }
+                  }}
+                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all"
+                >
+                  Start Exploring
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    setIsLogin(true);
+                  }}
+                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all"
+                >
+                  Go to Sign In
+                </button>
+              )}
             </motion.div>
           </div>
         )}
