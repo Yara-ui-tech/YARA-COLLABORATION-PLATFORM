@@ -248,10 +248,10 @@ export default function Home() {
             </Link>
 
             <Link
-              to="/events"
+              to="/competitions"
               className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center space-x-2 transition-all"
             >
-              <span>View All Events & Standings</span>
+              <span>View All Competitions</span>
             </Link>
           </div>
         </div>

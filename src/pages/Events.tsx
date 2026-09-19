@@ -353,105 +353,26 @@ export default function Events() {
                 </div>
               ) : (
                 <div className="grid gap-8">
-                  {/* Competitions */}
-                  {competitions.map((comp, index) => (
-                    <motion.div
-                      key={comp.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-xl shadow-indigo-50/50 group"
+                  {/* Competitions Hub Banner (Directs to Competitions) */}
+                  <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-indigo-950 border border-amber-500/30 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                        <Trophy className="w-4 h-4" />
+                        <span>Continental Flagship Championship</span>
+                      </div>
+                      <h4 className="text-xl sm:text-2xl font-black text-white">YARA Educational Robotics Competition 2026</h4>
+                      <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
+                        Looking for official competition guidelines, team registration (2 Boys + 2 Girls), Underwater Drone missions, and dynamic arena scoreboards? The YARA 2026 Championship is housed under the <strong>Competitions Hub</strong>.
+                      </p>
+                    </div>
+                    <Link
+                      to="/competitions/yara-2026"
+                      className="shrink-0 px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 flex items-center space-x-2 transition-all hover:scale-105"
                     >
-                      <div className="relative h-64 md:h-80 overflow-hidden">
-                        {comp.image_url ? (
-                          <img
-                            src={comp.image_url}
-                            alt={comp.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = ASSETS.EVENT_PLACEHOLDER;
-                            }}
-                          />
-                        ) : (
-                          <PlaceholderImage type="project" text={comp.title} />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-                        <div className="absolute bottom-8 left-8 right-8">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                              Competition
-                            </span>
-                            <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white rounded-full text-xs font-bold uppercase tracking-wider">
-                              {comp.status}
-                            </span>
-                          </div>
-                          <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{comp.title}</h3>
-                        </div>
-                      </div>
-
-                      <div className="p-8 md:p-12">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                              <Calendar className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Duration</p>
-                              <p className="text-sm font-bold text-slate-700">
-                                {new Date(comp.start_date).toLocaleDateString()} - {new Date(comp.end_date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-                              <Trophy className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Status</p>
-                              <p className="text-sm font-bold text-slate-700 capitalize">{comp.status}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          <p className="text-slate-600 font-medium leading-relaxed text-sm md:text-base">
-                            {comp.description}
-                          </p>
-
-                          <div className="pt-4 flex flex-wrap items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedTeamComp({
-                                  id: comp.id,
-                                  title: comp.title,
-                                  category: 'Robotics & STEM Arena'
-                                });
-                                setIsTeamModalOpen(true);
-                              }}
-                              className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-2"
-                            >
-                              <Users className="w-4 h-4" />
-                              <span>Register Team (2 Boys + 2 Girls)</span>
-                            </button>
-
-                            {comp.registration_link && (
-                              <a 
-                                href={comp.registration_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-5 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center space-x-1.5"
-                              >
-                                <span>Official Guide</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      <span>Explore Competitions Hub</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
 
                   {/* Events */}
                   {events.map((event, index) => (
