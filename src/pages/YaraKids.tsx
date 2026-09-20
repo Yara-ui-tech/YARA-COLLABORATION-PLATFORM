@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DEFAULT_KIDS_VIDEOS, DEFAULT_KIDS_SONGS, 
   DEFAULT_KIDS_FLASHCARDS, DEFAULT_KIDS_CHALLENGES,
-  KidsVideo, KidsSong, KidsFlashcard, KidsChallenge 
+  KidsVideo, KidsSong, KidsFlashcard, KidsChallenge,
+  getKidsContentByType
 } from '../services/yaraKidsService';
 import { 
   Sparkles, Play, Pause, Music, Video, BookOpen, Trophy, 
@@ -15,6 +16,28 @@ export default function YaraKids() {
   
   // Star Rewards state for kids
   const [stars, setStars] = useState(25);
+
+  // Dynamic Content arrays initialized with defaults
+  const [videos, setVideos] = useState<KidsVideo[]>(DEFAULT_KIDS_VIDEOS);
+  const [songs, setSongs] = useState<KidsSong[]>(DEFAULT_KIDS_SONGS);
+  const [flashcards, setFlashcards] = useState<KidsFlashcard[]>(DEFAULT_KIDS_FLASHCARDS);
+  const [challenges, setChallenges] = useState<KidsChallenge[]>(DEFAULT_KIDS_CHALLENGES);
+
+  useEffect(() => {
+    async function loadData() {
+      const [v, s, f, c] = await Promise.all([
+        getKidsContentByType('video'),
+        getKidsContentByType('song'),
+        getKidsContentByType('flashcard'),
+        getKidsContentByType('challenge')
+      ]);
+      if (v?.length) setVideos(v);
+      if (s?.length) setSongs(s);
+      if (f?.length) setFlashcards(f);
+      if (c?.length) setChallenges(c);
+    }
+    loadData();
+  }, []);
 
   // Video modal state
   const [activeVideo, setActiveVideo] = useState<KidsVideo | null>(null);
@@ -127,7 +150,7 @@ export default function YaraKids() {
       {/* TAB 1: ANIMATED VIDEOS */}
       {activeTab === 'videos' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {DEFAULT_KIDS_VIDEOS.map((vid) => (
+          {videos.map((vid) => (
             <div
               key={vid.id}
               className="bg-white rounded-[2.5rem] overflow-hidden shadow-lg border-2 border-slate-100 hover:shadow-2xl transition-all group flex flex-col justify-between"
@@ -171,7 +194,7 @@ export default function YaraKids() {
       {/* TAB 2: AUDIO SONGS & RHYMES */}
       {activeTab === 'songs' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {DEFAULT_KIDS_SONGS.map((song) => {
+          {songs.map((song) => {
             const isPlaying = playingSongId === song.id;
             return (
               <div
@@ -216,7 +239,7 @@ export default function YaraKids() {
       {/* TAB 3: PICTURE FLASHCARDS */}
       {activeTab === 'flashcards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {DEFAULT_KIDS_FLASHCARDS.map((card) => {
+          {flashcards.map((card) => {
             const isFlipped = flippedCardId === card.id;
             return (
               <div
@@ -256,7 +279,7 @@ export default function YaraKids() {
       {/* TAB 4: KIDS CHALLENGES */}
       {activeTab === 'challenges' && (
         <div className="max-w-3xl mx-auto space-y-6">
-          {DEFAULT_KIDS_CHALLENGES.map((chal) => {
+          {challenges.map((chal) => {
             const isSolved = solvedChallenges[chal.id];
             const selectedOpt = selectedAnswers[chal.id];
 

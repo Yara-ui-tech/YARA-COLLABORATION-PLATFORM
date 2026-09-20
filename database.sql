@@ -958,19 +958,23 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 -- =========================
 -- Live Sessions (Google Meet Clone)
 -- =========================
+-- Live Sessions (Google Meet / WebRTC Studio & Streaming)
+-- =========================
 CREATE TABLE IF NOT EXISTS public.live_sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  mentor_name TEXT,
   title TEXT NOT NULL,
-  category TEXT CHECK (category IN ('junior', 'intermediate', 'senior', 'teachers')) DEFAULT 'junior',
+  category TEXT DEFAULT 'junior',
   room_id TEXT NOT NULL UNIQUE,
   is_live BOOLEAN DEFAULT true,
-  is_approved BOOLEAN DEFAULT false, -- Admin must approve
-  student_count INTEGER DEFAULT 0,
-  required_skills TEXT[], -- Skills needed for additional mentors
-  video_url TEXT, -- For recorded sessions or external links
-  description TEXT, -- For announcements or session details
-  is_external BOOLEAN DEFAULT false, -- Whether the session is on another platform
+  is_approved BOOLEAN DEFAULT true, -- Default approved for easy access
+  student_count INTEGER DEFAULT 1,
+  required_skills TEXT[],
+  video_url TEXT,
+  stream_url TEXT,
+  description TEXT,
+  is_external BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   ended_at TIMESTAMPTZ
 );
@@ -980,26 +984,103 @@ ALTER TABLE public.live_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone can view live sessions" ON public.live_sessions;
 CREATE POLICY "Anyone can view live sessions"
 ON public.live_sessions FOR SELECT
-USING (
-  is_approved = true
-  OR auth.uid() = mentor_id
-  OR EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
-  )
-);
+USING (true);
 
-DROP POLICY IF EXISTS "Mentors can manage their own live sessions" ON public.live_sessions;
-CREATE POLICY "Mentors can manage their own live sessions"
+DROP POLICY IF EXISTS "Authenticated users can create live sessions" ON public.live_sessions;
+CREATE POLICY "Authenticated users can create live sessions"
+ON public.live_sessions FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Hosts and admins can manage live sessions" ON public.live_sessions;
+CREATE POLICY "Hosts and admins can manage live sessions"
 ON public.live_sessions FOR ALL
 TO authenticated
 USING (
-  (auth.uid() = mentor_id AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'mentor')
-  OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  auth.uid() = mentor_id
+  OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'mentor'))
 )
 WITH CHECK (
-  (auth.uid() = mentor_id AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'mentor')
-  OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  auth.uid() = mentor_id
+  OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'mentor'))
+);
+
+-- =========================
+-- YARA Kids Portal Content
+-- =========================
+CREATE TABLE IF NOT EXISTS public.yara_kids_content (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  type TEXT NOT NULL CHECK (type IN ('video', 'song', 'flashcard', 'challenge')),
+  title TEXT NOT NULL,
+  description TEXT,
+  media_url TEXT,
+  thumbnail_url TEXT,
+  category TEXT DEFAULT 'General STEM',
+  age_group TEXT DEFAULT '3-8 Years',
+  lyrics TEXT,
+  duration TEXT,
+  word TEXT,
+  definition TEXT,
+  fun_fact TEXT,
+  difficulty TEXT DEFAULT 'Fun',
+  reward_stars INTEGER DEFAULT 10,
+  question TEXT,
+  options JSONB,
+  correct_option INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.yara_kids_content ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view yara kids content" ON public.yara_kids_content;
+CREATE POLICY "Anyone can view yara kids content"
+ON public.yara_kids_content FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage yara kids content" ON public.yara_kids_content;
+CREATE POLICY "Admins can manage yara kids content"
+ON public.yara_kids_content FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+)
+WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- =========================
+-- User Testimonials & Community Feedback
+-- =========================
+CREATE TABLE IF NOT EXISTS public.testimonials (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  author_name TEXT NOT NULL,
+  author_role TEXT DEFAULT 'Innovator',
+  avatar_url TEXT,
+  rating INTEGER DEFAULT 5,
+  category TEXT DEFAULT 'general',
+  content TEXT NOT NULL,
+  is_featured BOOLEAN DEFAULT true,
+  is_approved BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view testimonials" ON public.testimonials;
+CREATE POLICY "Anyone can view testimonials"
+ON public.testimonials FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can submit testimonials" ON public.testimonials;
+CREATE POLICY "Authenticated users can submit testimonials"
+ON public.testimonials FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Admins can manage testimonials" ON public.testimonials;
+CREATE POLICY "Admins can manage testimonials"
+ON public.testimonials FOR ALL
+USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- Live Session Mentor Requests

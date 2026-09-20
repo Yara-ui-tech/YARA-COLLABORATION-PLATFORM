@@ -55,6 +55,7 @@ export default function Home() {
   const [featuredMentors, setFeaturedMentors] = useState<any[]>([]);
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
   const [selectedHomePost, setSelectedHomePost] = useState<OrganizationPost | null>(null);
+  const [trendingPopupPost, setTrendingPopupPost] = useState<OrganizationPost | null>(null);
   const [stats, setStats] = useState({
     projects: 0,
     innovators: 0,
@@ -68,7 +69,14 @@ export default function Home() {
     const fetchRecentData = async () => {
       try {
         const posts = await getOrganizationPosts();
-        if (isSubscribed) setRecentPosts((posts || []).slice(0, 3));
+        if (isSubscribed && posts && posts.length > 0) {
+          setRecentPosts(posts.slice(0, 3));
+          // Auto popup trending news once per session if available
+          const hasSeenPopup = sessionStorage.getItem('yara_trending_popup_seen');
+          if (!hasSeenPopup && posts[0]) {
+            setTrendingPopupPost(posts[0]);
+          }
+        }
         const { data: ideas } = await supabase
           .from('ideas')
           .select('*')
@@ -164,6 +172,11 @@ export default function Home() {
       }
     };
   }, [user?.id]);
+
+  const dismissTrendingPopup = () => {
+    sessionStorage.setItem('yara_trending_popup_seen', 'true');
+    setTrendingPopupPost(null);
+  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -592,8 +605,71 @@ export default function Home() {
         </div>
       )}
 
-      {/* Post Modal Preview on Home */}
+      {/* Post Modal Preview & Trending News Popup on Home */}
       <AnimatePresence>
+        {trendingPopupPost && (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative border border-indigo-100 overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-500" />
+              
+              <button
+                onClick={dismissTrendingPopup}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center space-x-1">
+                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <span>🔥 Trending News Alert</span>
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">{trendingPopupPost.category}</span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900 leading-snug">
+                  {trendingPopupPost.title}
+                </h3>
+                <p className="text-xs text-slate-500 line-clamp-3 mt-2 font-medium leading-relaxed">
+                  {trendingPopupPost.content}
+                </p>
+              </div>
+
+              {trendingPopupPost.image_url && (
+                <div className="h-44 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
+                  <img src={trendingPopupPost.image_url} alt={trendingPopupPost.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                <button
+                  onClick={dismissTrendingPopup}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                >
+                  Dismiss
+                </button>
+                <button
+                  onClick={() => {
+                    const post = trendingPopupPost;
+                    dismissTrendingPopup();
+                    setSelectedHomePost(post);
+                  }}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center space-x-1"
+                >
+                  <span>Read Full News</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {selectedHomePost && (
           <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
             <motion.div

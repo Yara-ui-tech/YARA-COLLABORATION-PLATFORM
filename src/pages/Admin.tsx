@@ -20,8 +20,10 @@ import EventRegistrationsAdminTab from '../components/admin/EventRegistrationsAd
 import ImpactLedgerAdminTab from '../components/admin/ImpactLedgerAdminTab';
 import AdminManagementSection from '../components/admin/AdminManagementSection';
 import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
+import YaraKidsAdminTab from '../components/admin/YaraKidsAdminTab';
+import FeedbacksTestimonialsAdminTab from '../components/admin/FeedbacksTestimonialsAdminTab';
 import ImageUploader from '../components/ImageUploader';
-import { Sliders } from 'lucide-react';
+import { Sliders, Heart } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -993,6 +995,37 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('yara_kids')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'yara_kids' 
+              ? "bg-amber-500 text-white font-black shadow-amber-200" 
+              : "bg-white/90 text-amber-900 hover:bg-white hover:text-amber-950 border border-amber-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span className="font-extrabold">YARA Kids Manager</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+              Ages 3-8
+            </span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('feedbacks_testimonials')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'feedbacks_testimonials' 
+              ? "bg-pink-600 text-white font-black shadow-pink-200" 
+              : "bg-white/90 text-pink-900 hover:bg-white hover:text-pink-950 border border-pink-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Heart className="w-4 h-4 text-pink-500" />
+            <span className="font-extrabold">Feedbacks &amp; Testimonials</span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('chapters')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1524,6 +1557,8 @@ export default function Admin() {
       </AnimatePresence>
 
       <section className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-indigo-50/50 overflow-hidden">
+        {activeTab === 'yara_kids' && <YaraKidsAdminTab />}
+        {activeTab === 'feedbacks_testimonials' && <FeedbacksTestimonialsAdminTab />}
         {activeTab === 'events' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
