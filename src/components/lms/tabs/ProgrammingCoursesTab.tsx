@@ -463,7 +463,7 @@ const CourseCard: React.FC<{
         {/* Meta */}
         <div className="flex items-center gap-3 text-[11px] text-slate-500">
           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.estimatedHours}h</span>
-          <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {course.modules.length} modules</span>
+          <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> {(course.modules || []).length} modules</span>
           {course.certificationEnabled && (
             <span className="flex items-center gap-1 text-amber-600"><Award className="w-3 h-3" /> Certificate</span>
           )}
@@ -493,11 +493,11 @@ const CourseCard: React.FC<{
         {expanded && (
           <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100 animate-fade-up">
             {course.description && <p className="text-[11px] text-slate-600 leading-relaxed">{course.description}</p>}
-            {course.learningOutcomes.length > 0 && (
+            {(course.learningOutcomes || []).length > 0 && (
               <div>
                 <div className="text-[10px] font-black uppercase text-slate-500 mb-1.5">What you'll learn</div>
                 <ul className="space-y-1">
-                  {course.learningOutcomes.map((outcome, i) => (
+                  {(course.learningOutcomes || []).map((outcome, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-700">
                       <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0 mt-0.5" />
                       {outcome}
@@ -506,11 +506,11 @@ const CourseCard: React.FC<{
                 </ul>
               </div>
             )}
-            {course.modules.length > 0 && (
+            {(course.modules || []).length > 0 && (
               <div>
                 <div className="text-[10px] font-black uppercase text-slate-500 mb-1.5">Modules</div>
                 <ul className="space-y-1">
-                  {course.modules.map((m, i) => (
+                  {(course.modules || []).map((m, i) => (
                     <li key={i} className="flex items-center gap-1.5 text-[11px] text-slate-600">
                       <span>{(moduleTypeIcons as any)[m.type] || '📌'}</span>
                       <span>{m.title}</span>
@@ -564,7 +564,7 @@ const CoursePlayerModal: React.FC<{
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [marked, setMarked] = useState(false);
 
-  const activeModule = course.modules[activeModuleIdx];
+  const activeModule = (course.modules || [])[activeModuleIdx];
   const completedIds = enrollment?.completedModuleIds || [];
   const isModuleCompleted = completedIds.includes(activeModule?.id);
 
@@ -603,14 +603,14 @@ const CoursePlayerModal: React.FC<{
             <div className="p-3 border-b border-slate-800">
               <div className="text-[10px] font-black uppercase text-slate-500">Course Modules</div>
               <div className="text-[10px] text-slate-400 mt-0.5">
-                {completedIds.length} / {course.modules.length} completed
+                {completedIds.length} / {(course.modules || []).length} completed
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full mt-2 overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all"
-                  style={{ width: `${course.modules.length > 0 ? (completedIds.length / course.modules.length) * 100 : 0}%` }} />
+                  style={{ width: `${(course.modules || []).length > 0 ? (completedIds.length / (course.modules || []).length) * 100 : 0}%` }} />
               </div>
             </div>
-            {course.modules.map((m, i) => {
+            {(course.modules || []).map((m, i) => {
               const done = completedIds.includes(m.id);
               const icons = { video: <Video className="w-3 h-3" />, reading: <FileText className="w-3 h-3" />, quiz: <HelpCircle className="w-3 h-3" />, project: <FolderOpen className="w-3 h-3" /> };
               return (
@@ -697,7 +697,7 @@ const CoursePlayerModal: React.FC<{
                     </button>
                   )}
 
-                  {activeModuleIdx < course.modules.length - 1 && (
+                  {activeModuleIdx < (course.modules || []).length - 1 && (
                     <button onClick={() => { setActiveModuleIdx(i => i + 1); setMarked(false); }}
                       className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition">
                       Next Module <ArrowRight className="w-3.5 h-3.5" />

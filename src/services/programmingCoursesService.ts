@@ -26,13 +26,16 @@ export function getAllCourses(): ProgrammingCourse[] {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
       const parsed = JSON.parse(stored) as ProgrammingCourse[];
-      if (parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Normalize: ensure modules is always an array (handles old persisted data)
+        return parsed.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+      }
     }
     // Initialize with starter courses
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(STARTER_PROGRAMMING_COURSES));
-    return STARTER_PROGRAMMING_COURSES;
+    return STARTER_PROGRAMMING_COURSES.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
   } catch {
-    return STARTER_PROGRAMMING_COURSES;
+    return STARTER_PROGRAMMING_COURSES.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
   }
 }
 
@@ -172,13 +175,14 @@ export function completeModule(
 
   // Calculate progress
   const course = getCourseById(courseId);
-  const totalModules = course?.modules.length || 1;
+  const courseModules = Array.isArray(course?.modules) ? course!.modules : [];
+  const totalModules = courseModules.length || 1;
   enrollment.progressPercent = Math.round((enrollment.completedModuleIds.length / totalModules) * 100);
 
   // Check if course is now complete
   const isNowComplete =
     enrollment.progressPercent >= 100 &&
-    (course?.modules.every((m) => enrollment.completedModuleIds.includes(m.id)) ?? false);
+    (courseModules.length === 0 || courseModules.every((m) => enrollment.completedModuleIds.includes(m.id)));
 
   let certificateEarned = false;
 
