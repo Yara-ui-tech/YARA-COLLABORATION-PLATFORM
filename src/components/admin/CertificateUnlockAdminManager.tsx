@@ -258,8 +258,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
           payment_status: newUnlockedState ? 'verified' : 'submitted',
           approval_status: newUnlockedState ? 'approved' : 'pending',
           certificate_unlocked: newUnlockedState
-        },
-        'YARA Master Admin'
+        }
       );
     }
 
@@ -289,8 +288,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
       if (p.rawReg) {
         await updateRegistrationStatus(
           p.rawReg.id,
-          { payment_status: 'verified', approval_status: 'approved', certificate_unlocked: true },
-          'YARA Master Admin'
+          { payment_status: 'verified', approval_status: 'approved', certificate_unlocked: true }
         );
       }
     });
@@ -318,8 +316,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
             payment_status: 'verified',
             approval_status: 'approved',
             certificate_unlocked: true
-          },
-          'YARA Master Admin'
+          }
         );
       }
 
