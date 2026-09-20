@@ -38,8 +38,12 @@ export default function Home() {
     ],
   };
 
-  const userLevel = profile?.educational_level || 'junior';
-  const currentRecommendations = recommendations[userLevel as keyof typeof recommendations];
+  const userLevel = (profile?.educational_level || 'junior').toLowerCase();
+  const currentRecommendations = 
+    recommendations[userLevel as keyof typeof recommendations] ||
+    (userLevel.includes('teacher') || userLevel.includes('mentor') || userLevel.includes('tertiary') ? recommendations.tertiary :
+     userLevel.includes('secondary') || userLevel.includes('senior') || userLevel.includes('intermediate') ? recommendations.secondary :
+     recommendations.junior);
 
   const tools = [
     { name: 'Altium Designer', desc: 'Professional PCB Design', icon: Layers },
@@ -325,7 +329,7 @@ export default function Home() {
           </h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {currentRecommendations.map((rec, i) => (
+          {(currentRecommendations || recommendations.junior).map((rec, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0.9 }}
