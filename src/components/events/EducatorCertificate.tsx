@@ -439,8 +439,8 @@ export default function EducatorCertificate({
 
         {/* ================= HEADER SECTION ================= */}
         <div className="relative z-10 flex flex-col items-center text-center">
-          {/* Organization Official Logo & Brand Header */}
-          <div className="flex items-center gap-3.5 mb-2">
+          {/* Organization Official Logo & Brand Header & Partner Logos */}
+          <div className="flex flex-wrap items-center justify-center gap-3.5 mb-2">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 shadow-md border border-amber-300 flex items-center justify-center overflow-hidden shrink-0">
               <img 
                 src={data.logo_url || ASSETS.LOGO} 
@@ -457,6 +457,17 @@ export default function EducatorCertificate({
                 {data.sub_organization_name || 'In Collaboration with YARA Zimbabwe • Executive Directorate'}
               </p>
             </div>
+
+            {/* Partner & Institutional Logos */}
+            {data.partner_logos && data.partner_logos.length > 0 && (
+              <div className="flex items-center gap-2 ml-auto sm:ml-4 border-l border-amber-300/60 pl-3">
+                {data.partner_logos.map((partner, idx) => (
+                  <div key={idx} className="h-10 sm:h-12 px-2 py-1 bg-white rounded-xl border border-amber-200 shadow-xs flex items-center justify-center">
+                    <img src={partner.logo_url} alt={partner.name} className="h-full object-contain max-w-[70px]" referrerPolicy="no-referrer" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="w-28 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent my-1"></div>

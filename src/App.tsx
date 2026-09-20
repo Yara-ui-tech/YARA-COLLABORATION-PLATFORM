@@ -39,6 +39,8 @@ import Chapters from './pages/Chapters';
 import Competitions from './pages/Competitions';
 import AiForEducatorsBootcamp from './pages/events/AiForEducatorsBootcamp';
 import EducatorPortal from './pages/EducatorPortal';
+import YaraLiveHub from './pages/YaraLiveHub';
+import YaraKids from './pages/YaraKids';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -159,7 +161,12 @@ const AppContent = () => {
           <Route path="sponsorship" element={<DonationsAndSponsorships />} />
           <Route path="contact" element={<Contact />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="live" element={<YaraLiveHub />} />
+          <Route path="live-sessions" element={<YaraLiveHub />} />
           <Route path="live/:roomId" element={<LiveRoom />} />
+          <Route path="kids" element={<YaraKids />} />
+          <Route path="yara-kids" element={<YaraKids />} />
+          <Route path="infants" element={<YaraKids />} />
         </Route>
       </Routes>
     </Router>

@@ -16,6 +16,7 @@ import {
 import { CertificateEligibilityCheck } from '../../types/yaraLms';
 import { Certificate } from '../../types/curriculum';
 import { checkCertificateEligibility, issueOrGetCertificate } from '../../services/yaraLmsService';
+import { ASSETS } from '../../constants/assets';
 
 interface Props {
   userId: string;
@@ -270,13 +271,24 @@ export const YaraLmsCertificateModal: React.FC<Props> = ({
                 Grade Awarded: {certificate?.grade} ({certificate?.score}%)
               </div>
 
-              {/* Signatures & Verification */}
-              <div className="mt-10 pt-8 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left items-end">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider">Date of Award</div>
-                  <div className="text-xs font-bold text-slate-300 mt-0.5">{certificate?.issue_date}</div>
+              {/* Signatures, Partner Branding & Verification Footer */}
+              <div className="mt-8 pt-6 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left items-end">
+                {/* Founder & Lead Instructor Signature */}
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-12 flex items-end justify-center mb-1">
+                    <img 
+                      src={ASSETS.SIGNATURE_MANONGWA} 
+                      alt="Mr. S.O. Manongwa Signature" 
+                      className="max-h-10 object-contain mix-blend-screen opacity-90"
+                    />
+                  </div>
+                  <div className="w-36 border-t border-slate-700 pt-1">
+                    <p className="text-[11px] font-bold text-slate-200">Mr. S.O. Manongwa</p>
+                    <p className="text-[9px] text-slate-400">Founder & Lead Instructor</p>
+                  </div>
                 </div>
 
+                {/* Official YARA Seal */}
                 <div className="text-center">
                   <div className="w-16 h-16 border border-amber-400/40 rounded-full mx-auto flex items-center justify-center text-amber-400/80 mb-1">
                     <ShieldCheck size={32} />
@@ -284,10 +296,31 @@ export const YaraLmsCertificateModal: React.FC<Props> = ({
                   <div className="text-[9px] uppercase tracking-widest text-amber-400 font-bold">Official YARA Seal</div>
                 </div>
 
+                {/* Regional President Signature */}
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-12 flex items-end justify-center mb-1">
+                    <img 
+                      src={ASSETS.SIGNATURE_CHIAMBIRO} 
+                      alt="Ms. A.M. Chiambiro Signature" 
+                      className="max-h-10 object-contain mix-blend-screen opacity-90"
+                    />
+                  </div>
+                  <div className="w-36 border-t border-slate-700 pt-1">
+                    <p className="text-[11px] font-bold text-slate-200">Ms. A.M. Chiambiro</p>
+                    <p className="text-[9px] text-slate-400">Regional President</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs">
+                <div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider">Date of Award</div>
+                  <div className="text-xs font-bold text-slate-300 mt-0.5">{certificate?.issue_date}</div>
+                </div>
+
                 <div className="text-right">
                   <div className="text-[10px] text-slate-500 uppercase tracking-wider">Verification ID</div>
                   <div className="text-xs font-mono font-bold text-amber-400 mt-0.5">{certificate?.certificate_number}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5">yaria.org/verify-certificate</div>
                 </div>
               </div>
             </div>

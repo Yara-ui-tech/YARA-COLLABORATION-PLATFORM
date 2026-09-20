@@ -7,6 +7,8 @@ import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
+import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
+
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [loginMethod, setLoginMethod] = useState<'memberId' | 'email'>('memberId');
@@ -18,6 +20,7 @@ export default function Auth() {
   const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [signupHasSession, setSignupHasSession] = useState(false);
   const [error, setError] = useState('');
   const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
@@ -381,7 +384,18 @@ export default function Auth() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Password</label>
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Password</label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:underline transition-all"
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </div>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                   <input
@@ -621,6 +635,12 @@ export default function Auth() {
           </div>
         )}
       </AnimatePresence>
+
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        defaultEmail={email || memberId}
+      />
     </div>
   );
 }

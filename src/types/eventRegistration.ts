@@ -118,6 +118,7 @@ export interface EducatorCertificateData {
   honors?: string;
 
   // Custom Additions, Links, Endorsements, and Badges
+  partner_logos?: Array<{ name: string; logo_url: string }>;
   official_whatsapp_link?: string;
   curriculum_syllabus_url?: string;
   endorsement_text?: string;

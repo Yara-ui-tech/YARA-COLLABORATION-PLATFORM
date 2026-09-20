@@ -6,7 +6,7 @@ import {
   MessageSquare, ShieldCheck, Info, Cpu, BarChart3, 
   Handshake, Phone, Brain, Trophy, Heart, UserCheck,
   Award, MonitorPlay, QrCode, DollarSign, Radio, Building2,
-  GraduationCap
+  GraduationCap, Sparkles
 } from 'lucide-react';
 import { safeSignOut } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -24,6 +24,8 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/live', icon: Radio, label: 'YARA Live', badge: 'Stream' },
+  { path: '/kids', icon: Sparkles, label: 'YARA Kids', badge: 'Ages 3-8' },
   { path: '/learning', icon: Brain, label: 'Learning Academy', badge: 'LMS' },
   { path: '/competitions', icon: Trophy, label: 'Competitions', badge: 'Hub' },
   { path: '/events', icon: Calendar, label: 'Events', badge: 'Hub' },

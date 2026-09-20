@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign } from 'lucide-react';
+import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
 import LaunchCountdown from '../components/LaunchCountdown';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
+import { OrganizationPost } from '../types/organizationPosts';
+import { getOrganizationPosts } from '../services/organizationPostsService';
 
 export default function Home() {
   const { profile, user } = useAuth();
@@ -47,6 +49,8 @@ export default function Home() {
   ];
 
   const [featuredMentors, setFeaturedMentors] = useState<any[]>([]);
+  const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
+  const [selectedHomePost, setSelectedHomePost] = useState<OrganizationPost | null>(null);
   const [stats, setStats] = useState({
     projects: 0,
     innovators: 0,
@@ -59,6 +63,8 @@ export default function Home() {
     let isSubscribed = true;
     const fetchRecentData = async () => {
       try {
+        const posts = await getOrganizationPosts();
+        if (isSubscribed) setRecentPosts((posts || []).slice(0, 3));
         const { data: ideas } = await supabase
           .from('ideas')
           .select('*')
@@ -517,6 +523,147 @@ export default function Home() {
           <p className="relative z-10 text-[10px] text-slate-400 font-medium italic mt-6">* Amounts updated by YARIA Admin</p>
         </div>
       </div>
+
+      {/* Official YARA Updates & Press Releases Feed */}
+      {recentPosts && recentPosts.length > 0 && (
+        <div className="pt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
+              <Megaphone className="w-6 h-6 text-indigo-600" />
+              <span>Official YARA Announcements</span>
+            </h3>
+            <Link to="/posts" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center space-x-1">
+              <span>View all feed</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {recentPosts.map((post) => (
+              <motion.div
+                key={post.id}
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-3xl border border-slate-100 hover:border-indigo-200 p-5 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all flex flex-col justify-between group cursor-pointer"
+                onClick={() => setSelectedHomePost(post)}
+              >
+                <div className="space-y-3">
+                  {post.image_url ? (
+                    <div className="h-40 rounded-2xl overflow-hidden bg-slate-100 relative">
+                      <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <span className="absolute top-2.5 left-2.5 bg-slate-950/70 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm uppercase tracking-wider">
+                        {post.category}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="h-16 rounded-2xl bg-indigo-50/80 p-3 flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+                        <Megaphone className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">
+                        {post.category}
+                      </span>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors">
+                      {post.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-normal leading-relaxed">
+                      {post.content}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                  <span>{post.author_name}</span>
+                  <span className="text-indigo-600 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center space-x-1">
+                    <span>Read press</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Post Modal Preview on Home */}
+      <AnimatePresence>
+        {selectedHomePost && (
+          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 space-y-6 shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto"
+            >
+              <button
+                onClick={() => setSelectedHomePost(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-2">
+                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full uppercase tracking-wider">
+                  {selectedHomePost.category}
+                </span>
+                <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
+                  {selectedHomePost.title}
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Published by {selectedHomePost.author_name} • {new Date(selectedHomePost.created_at).toLocaleDateString()}
+                </p>
+              </div>
+
+              {selectedHomePost.image_url && (
+                <div className="rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 max-h-72">
+                  <img src={selectedHomePost.image_url} alt={selectedHomePost.title} className="w-full h-full object-cover" />
+                </div>
+              )}
+
+              <div className="text-slate-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium">
+                {selectedHomePost.content}
+              </div>
+
+              {selectedHomePost.attachments && selectedHomePost.attachments.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Official Downloads</p>
+                  {selectedHomePost.attachments.map((att, i) => (
+                    <a
+                      key={i}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl transition text-xs font-bold text-slate-800 group"
+                    >
+                      <span className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4 text-indigo-600" />
+                        <span>{att.name}</span>
+                      </span>
+                      <span className="text-indigo-600 flex items-center space-x-1">
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <Link
+                  to="/posts"
+                  onClick={() => setSelectedHomePost(null)}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition"
+                >
+                  Go to Feed Portal
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
           <div className="flex items-center justify-between pt-8">
             <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
