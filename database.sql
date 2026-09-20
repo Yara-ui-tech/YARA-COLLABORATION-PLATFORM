@@ -963,7 +963,7 @@ INSERT INTO public.organization_posts (
   'YARA Hardware Division',
   620,
   41,
-  ARRAY[],
+  ARRAY[]::TEXT[],
   '[]'::jsonb,
   NOW() - INTERVAL '8 days'
 )
