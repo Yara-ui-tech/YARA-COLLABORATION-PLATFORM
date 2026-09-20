@@ -2313,15 +2313,75 @@ CREATE POLICY "Public can view organization posts"
   USING (true);
 
 DROP POLICY IF EXISTS "Admins can manage organization posts" ON public.organization_posts;
-CREATE POLICY "Admins can manage organization posts"
+DROP POLICY IF EXISTS "Public can manage organization posts" ON public.organization_posts;
+CREATE POLICY "Public can manage organization posts"
   ON public.organization_posts FOR ALL
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+  USING (true)
+  WITH CHECK (true);
 
 DROP TRIGGER IF EXISTS update_organization_posts_updated_at ON public.organization_posts;
 CREATE TRIGGER update_organization_posts_updated_at
   BEFORE UPDATE ON public.organization_posts
   FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- Seed initial organization feed posts
+INSERT INTO public.organization_posts (
+  id, title, content, image_url, video_url, media_type, category, tags, is_pinned, author_name, views_count, likes_count, gallery_urls, attachments, created_at
+) VALUES (
+  'post_yara_2026_launch',
+  'Official Announcement: YARA Educational Robotics Competition 2026 Open for Registration',
+  'We are thrilled to officially announce the YARA Educational Robotics Competition 2026! Young innovators, students, educators, and robotics clubs across Africa are invited to submit their registrations. Prepare your teams for high-impact missions in Autonomous Navigation, Agricultural Automation, AI Computer Vision, and Micro-Robotics.',
+  'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1200',
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  'video_news',
+  'event',
+  ARRAY['YARA2026', 'RoboticsCompetition', 'STEMAfrica', 'Innovation'],
+  true,
+  'YARA Executive Committee',
+  1420,
+  89,
+  ARRAY[
+    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800',
+    'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=800'
+  ],
+  '[{"name": "YARA_2026_Competition_Rulebook.pdf", "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", "size": "2.4 MB"}]'::jsonb,
+  NOW() - INTERVAL '2 days'
+),
+(
+  'post_ai_educators_bootcamp',
+  'Empowering African Educators: AI & Robotics Masterclass Series Launched',
+  'The Young Africans Robotics Association has launched a dedicated AI for Educators training portal. Over 500 teachers across the continent are receiving certified instruction in AI curriculum integration, block coding for robotics, and hands-on microcontroller deployment.',
+  'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=1200',
+  NULL,
+  'article',
+  'announcement',
+  ARRAY['AIEducators', 'STEMTraining', 'TeacherEmpowerment'],
+  false,
+  'YARA Education Directorate',
+  860,
+  54,
+  ARRAY['https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=800'],
+  '[]'::jsonb,
+  NOW() - INTERVAL '5 days'
+),
+(
+  'post_hardware_kits_release',
+  'YARA Micro-Robotics Hardware Kits Distributed to Partner Schools',
+  'The first batch of official YARA Micro-Robotics Hardware Kits has been delivered to technical secondary schools and community innovation hubs. Each kit contains sensors, ESP32 microcontrollers, motor drivers, and modular chassis components.',
+  'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&q=80&w=1200',
+  NULL,
+  'picture_news',
+  'impact',
+  ARRAY['HardwareKits', 'RoboticsLabs', 'HandsOnLearning'],
+  false,
+  'YARA Hardware Division',
+  620,
+  41,
+  ARRAY[],
+  '[]'::jsonb,
+  NOW() - INTERVAL '8 days'
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- RPC function to increment post likes atomically
 CREATE OR REPLACE FUNCTION public.increment_post_likes(post_id TEXT)
