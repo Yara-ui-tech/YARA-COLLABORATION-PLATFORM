@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   Send, Plus, Trash2, Globe, Share2, Radio, CheckCircle2, 
   AlertCircle, Loader2, Sparkles, Image as ImageIcon, Link as LinkIcon,
-  Tag, ExternalLink, Settings, RefreshCw, Pin, ThumbsUp, Eye, Copy, Check, Video
+  Tag, ExternalLink, Settings, RefreshCw, Pin, ThumbsUp, Eye, Copy, Check, Video, Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
