@@ -928,16 +928,16 @@ export default function Admin() {
           onClick={() => setActiveTab('learning_academy')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'learning_academy' 
+            (activeTab === 'learning_academy' || activeTab === 'lms_evaluations' || activeTab === 'curriculum') 
               ? "bg-indigo-600 text-white shadow-indigo-200" 
               : "bg-white/80 text-indigo-700 hover:bg-white hover:text-indigo-900 border border-indigo-100"
           )}
         >
           <div className="flex items-center space-x-2">
             <BookOpen className="w-4 h-4 text-indigo-300" />
-            <span className="font-extrabold">Learning Academy & LMS</span>
+            <span className="font-extrabold">Learning Academy, LMS & Approvals</span>
             <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] uppercase font-black tracking-wider">
-              16 Courses + Videos
+              Unified Console
             </span>
           </div>
         </button>
@@ -1019,18 +1019,6 @@ export default function Admin() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('lms_evaluations')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'lms_evaluations' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-emerald-500" />
-            <span>LMS Capstones & Grading</span>
-          </div>
-        </button>
-        <button
           onClick={() => setActiveTab('members')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
@@ -1040,18 +1028,6 @@ export default function Admin() {
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4" />
             <span>Members</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('curriculum')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'curriculum' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <BookOpen className="w-4 h-4" />
-            <span>Curriculum & LMS</span>
           </div>
         </button>
         <button
