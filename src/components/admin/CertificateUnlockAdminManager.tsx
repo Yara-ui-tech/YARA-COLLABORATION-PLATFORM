@@ -12,7 +12,7 @@ import {
 } from '../../services/yaraLmsService';
 import { getAllCourses, getAllUserProgrammingCertificates } from '../../services/programmingCoursesService';
 import { supabase } from '../../lib/supabase';
-import { getAllEventRegistrations, updateRegistrationPaymentStatus } from '../../services/eventRegistrationService';
+import { getAllEventRegistrations, updateRegistrationStatus } from '../../services/eventRegistrationService';
 import IndividualCertificateEditModal from './IndividualCertificateEditModal';
 
 interface StudentCertificateRow {
@@ -42,7 +42,7 @@ interface SubscriptionRow {
   amountUsd: number;
   paymentMethod: string;
   paymentReference: string;
-  paymentStatus: 'pending' | 'submitted' | 'verified';
+  paymentStatus: 'pending' | 'submitted' | 'verified' | 'rejected';
   approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   rawReg?: any;
@@ -252,7 +252,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
 
     if (row.rawReg) {
       // Sync Event Registration in DB
-      await updateRegistrationPaymentStatus(
+      await updateRegistrationStatus(
         row.rawReg.id,
         {
           payment_status: newUnlockedState ? 'verified' : 'submitted',
@@ -287,7 +287,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
 
     pending.forEach(async p => {
       if (p.rawReg) {
-        await updateRegistrationPaymentStatus(
+        await updateRegistrationStatus(
           p.rawReg.id,
           { payment_status: 'verified', approval_status: 'approved', certificate_unlocked: true },
           'YARA Master Admin'
@@ -312,7 +312,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
   const handleApproveSubscription = async (sub: SubscriptionRow) => {
     try {
       if (sub.rawReg) {
-        await updateRegistrationPaymentStatus(
+        await updateRegistrationStatus(
           sub.rawReg.id,
           {
             payment_status: 'verified',
