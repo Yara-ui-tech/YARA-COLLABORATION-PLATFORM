@@ -17,6 +17,7 @@ import {
   broadcastToWebhook,
   generateSocialShareLinks
 } from '../../services/organizationPostsService';
+import ImageUploader from '../ImageUploader';
 
 export default function OrganizationPostsAdminTab() {
   const { profile } = useAuth();
@@ -340,18 +341,14 @@ export default function OrganizationPostsAdminTab() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase">Cover Image URL</label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 text-xs font-medium text-slate-900 focus:border-indigo-600 outline-none"
-                  />
-                  <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                </div>
+              <div>
+                <ImageUploader
+                  label="Cover Picture (Upload File or Enter URL)"
+                  value={formData.image_url}
+                  onChange={(url) => setFormData({ ...formData, image_url: url })}
+                  bucket="project-images"
+                  placeholder="Click Upload Image or paste URL..."
+                />
               </div>
             </div>
 
@@ -371,15 +368,15 @@ export default function OrganizationPostsAdminTab() {
               <p className="text-[11px] text-indigo-600/80">Embedded directly in post viewer with responsive playback for members.</p>
             </div>
 
-            {/* Photo Gallery URLs */}
+            {/* Photo Gallery File Upload / URLs */}
             <div className="space-y-2 p-4 bg-amber-50/40 rounded-2xl border border-amber-100">
-              <label className="block text-xs font-bold text-amber-900 uppercase">Multi-Photo Story Gallery URLs</label>
-              <div className="flex space-x-2">
+              <label className="block text-xs font-bold text-amber-900 uppercase">Multi-Photo Story Gallery</label>
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
                 <input
                   type="url"
                   value={formData.galleryInput}
                   onChange={e => setFormData({ ...formData, galleryInput: e.target.value })}
-                  placeholder="Paste image URL and click Add"
+                  placeholder="Paste image URL..."
                   className="flex-1 bg-white border-2 border-amber-100 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 outline-none"
                 />
                 <button
@@ -393,10 +390,34 @@ export default function OrganizationPostsAdminTab() {
                       });
                     }
                   }}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer"
                 >
-                  Add Photo
+                  Add URL
                 </button>
+                <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer flex items-center space-x-1">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload File</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const res = ev.target?.result as string;
+                        if (res) {
+                          setFormData(prev => ({
+                            ...prev,
+                            gallery_urls: [...prev.gallery_urls, res]
+                          }));
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
               </div>
               {formData.gallery_urls.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2">
