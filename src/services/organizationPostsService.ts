@@ -12,71 +12,7 @@ export const DEFAULT_BROADCAST_CONFIG: SocialBroadcastConfig = {
   hashtags: '#YARA2026 #AfricanRobotics #STEMInclusion #YouthEngineering'
 };
 
-export const DEFAULT_SEED_POSTS: OrganizationPost[] = [
-  {
-    id: 'post_yara_2026_launch',
-    title: 'Official Announcement: YARA Educational Robotics Competition 2026 Open for Registration',
-    content: 'We are thrilled to officially announce the YARA Educational Robotics Competition 2026! Young innovators, students, educators, and robotics clubs across Africa are invited to submit their registrations. Prepare your teams for high-impact missions in Autonomous Navigation, Agricultural Automation, AI Computer Vision, and Micro-Robotics.',
-    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=1200',
-    video_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    media_type: 'video_news',
-    category: 'event',
-    tags: ['YARA2026', 'RoboticsCompetition', 'STEMAfrica', 'Innovation'],
-    is_pinned: true,
-    is_breaking: true,
-    social_channels: { twitter: true, facebook: true, linkedin: true, instagram: true, whatsapp: true },
-    broadcast_status: 'published',
-    author_name: 'YARA Executive Committee',
-    views_count: 1420,
-    likes_count: 89,
-    gallery_urls: [
-      'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=800'
-    ],
-    attachments: [
-      { name: 'YARA_2026_Competition_Rulebook.pdf', url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', size: '2.4 MB', type: 'pdf' }
-    ],
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'post_ai_educators_bootcamp',
-    title: 'Empowering African Educators: AI & Robotics Masterclass Series Launched',
-    content: 'The Young Africans Robotics Association has launched a dedicated AI for Educators training portal. Over 500 teachers across the continent are receiving certified instruction in AI curriculum integration, block coding for robotics, and hands-on microcontroller deployment.',
-    image_url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=1200',
-    media_type: 'article',
-    category: 'announcement',
-    tags: ['AIEducators', 'STEMTraining', 'TeacherEmpowerment'],
-    is_pinned: false,
-    social_channels: { twitter: true, facebook: true, linkedin: true, instagram: true, whatsapp: true },
-    broadcast_status: 'published',
-    author_name: 'YARA Education Directorate',
-    views_count: 860,
-    likes_count: 54,
-    gallery_urls: [
-      'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=800'
-    ],
-    attachments: [],
-    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'post_hardware_kits_release',
-    title: 'YARA Micro-Robotics Hardware Kits Distributed to Partner Schools',
-    content: 'The first batch of official YARA Micro-Robotics Hardware Kits has been delivered to technical secondary schools and community innovation hubs. Each kit contains sensors, ESP32 microcontrollers, motor drivers, and modular chassis components.',
-    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&q=80&w=1200',
-    media_type: 'picture_news',
-    category: 'impact',
-    tags: ['HardwareKits', 'RoboticsLabs', 'HandsOnLearning'],
-    is_pinned: false,
-    social_channels: { twitter: true, facebook: true, linkedin: true, instagram: true, whatsapp: true },
-    broadcast_status: 'published',
-    author_name: 'YARA Hardware Division',
-    views_count: 620,
-    likes_count: 41,
-    gallery_urls: [],
-    attachments: [],
-    created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
+export const DEFAULT_SEED_POSTS: OrganizationPost[] = [];
 
 export async function getOrganizationPosts(): Promise<OrganizationPost[]> {
   let localPosts: OrganizationPost[] = [];
@@ -87,8 +23,6 @@ export async function getOrganizationPosts(): Promise<OrganizationPost[]> {
     localPosts = [];
   }
 
-  let dbPosts: OrganizationPost[] | null = null;
-
   try {
     const { data, error } = await supabase
       .from('organization_posts')
@@ -96,63 +30,15 @@ export async function getOrganizationPosts(): Promise<OrganizationPost[]> {
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      dbPosts = data as OrganizationPost[];
-      localStorage.setItem('yara_organization_posts', JSON.stringify(dbPosts));
-      return dbPosts;
+    if (!error && data) {
+      localStorage.setItem('yara_organization_posts', JSON.stringify(data));
+      return data as OrganizationPost[];
     }
   } catch (e) {
     console.warn('Note loading organization posts from Supabase:', e);
   }
 
-  // Combine default seed posts with any locally created posts
-  const postMap = new Map<string, OrganizationPost>();
-  DEFAULT_SEED_POSTS.forEach(p => postMap.set(p.id, p));
-  localPosts.forEach(p => postMap.set(p.id, p));
-
-  const combined = Array.from(postMap.values()).sort((a, b) => {
-    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
-
-  localStorage.setItem('yara_organization_posts', JSON.stringify(combined));
-
-  // Seed Supabase DB in background if Supabase was empty or missing rows
-  if (dbPosts === null || (Array.isArray(dbPosts) && dbPosts.length === 0)) {
-    seedDatabasePosts(combined).catch(() => {});
-  }
-
-  return combined;
-}
-
-async function seedDatabasePosts(posts: OrganizationPost[]) {
-  try {
-    for (const p of posts) {
-      await supabase.from('organization_posts').upsert({
-        id: p.id,
-        title: p.title,
-        content: p.content,
-        image_url: p.image_url || null,
-        video_url: p.video_url || null,
-        media_type: p.media_type || 'article',
-        gallery_urls: p.gallery_urls || [],
-        attachments: p.attachments || [],
-        category: p.category || 'announcement',
-        tags: p.tags || [],
-        is_pinned: p.is_pinned || false,
-        is_breaking: p.is_breaking || false,
-        social_channels: p.social_channels || { twitter: true, facebook: true, linkedin: true, instagram: true },
-        broadcast_status: p.broadcast_status || 'published',
-        author_id: p.author_id || null,
-        author_name: p.author_name || 'YARA Leadership',
-        views_count: p.views_count || 0,
-        likes_count: p.likes_count || 0,
-        created_at: p.created_at || new Date().toISOString()
-      }, { onConflict: 'id' });
-    }
-  } catch (err) {
-    console.warn('Background post seeding notice:', err);
-  }
+  return localPosts;
 }
 
 export async function createOrganizationPost(post: Omit<OrganizationPost, 'id' | 'views_count' | 'likes_count' | 'created_at'>): Promise<{ success: boolean; data?: OrganizationPost; error?: string }> {
