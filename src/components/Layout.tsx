@@ -13,6 +13,7 @@ import { useAuth } from './AuthContext';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../constants/assets';
+import { OfflineBanner } from './OfflineBanner';
 
 interface NavItem {
   path: string;
@@ -208,6 +209,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-y-auto relative">
+        <OfflineBanner />
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
             <Outlet />

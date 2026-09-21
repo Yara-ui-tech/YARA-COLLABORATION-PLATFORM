@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Award, Download, Share2, CheckCircle2, ShieldCheck, Printer, X as CloseIcon, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Certificate } from '../../types/curriculum';
 import { ASSETS } from '../../constants/assets';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { RequireInternetModal } from '../OfflineBanner';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -12,14 +14,24 @@ interface CertificateModalProps {
 
 export default function CertificateModal({ isOpen, onClose, certificate }: CertificateModalProps) {
   const certRef = useRef<HTMLDivElement>(null);
+  const isOnline = useOnlineStatus();
+  const [showInternetNeeded, setShowInternetNeeded] = useState(false);
 
   if (!isOpen) return null;
 
   const handlePrint = () => {
+    if (!isOnline) {
+      setShowInternetNeeded(true);
+      return;
+    }
     window.print();
   };
 
   const handleCopyLink = () => {
+    if (!isOnline) {
+      setShowInternetNeeded(true);
+      return;
+    }
     const url = `${window.location.origin}/curriculum?cert=${certificate.certificate_number}`;
     navigator.clipboard.writeText(url);
     alert('Certificate verification link copied to clipboard!');
@@ -184,6 +196,12 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
           </div>
         </div>
       </motion.div>
+
+      <RequireInternetModal
+        isOpen={showInternetNeeded}
+        onClose={() => setShowInternetNeeded(false)}
+        featureName="Official Certificate PDF Download & Verification"
+      />
     </div>
   );
 }

@@ -12,6 +12,13 @@
     <meta name="description" content="YARIA (Youth Academy for Robotics & Industrial Automation) empowers young innovators through robotics, engineering, and digital literacy." />
     <meta name="keywords" content="YARIA, Robotics, Industrial Automation, Stem Kumusha, Young Africans Robotics Association" />
     
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="./assets/logo-yara-official.jpg" />
+
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="YARIA - Youth Academy for Robotics & Industrial Automation" />
@@ -23,11 +30,20 @@
     <meta name="twitter:title" content="YARIA - Youth Academy for Robotics & Industrial Automation" />
     <meta name="twitter:description" content="Empowering young innovators through robotics, engineering, and digital literacy." />
     <meta name="twitter:image" content="./assets/logo-yara-official.jpg" />
-    <script type="module" crossorigin src="/assets/index-ia8Qt07e.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CadygDEp.css">
+    <script type="module" crossorigin src="/assets/index-BX_sKnmF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CJUnETHc.css">
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
+            .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>
 

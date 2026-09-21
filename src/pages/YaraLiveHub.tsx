@@ -8,6 +8,8 @@ import {
   HelpCircle, Hand, AlertCircle, CheckCircle2, Copy, Share2, Volume2, VolumeX, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { RequireInternetModal } from '../components/OfflineBanner';
 
 interface LiveSession {
   id: string;
@@ -35,6 +37,8 @@ interface ChatMessage {
 export default function YaraLiveHub() {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
+  const [showInternetNeeded, setShowInternetNeeded] = useState(false);
 
   // State
   const [sessions, setSessions] = useState<LiveSession[]>([]);
@@ -227,7 +231,13 @@ export default function YaraLiveHub() {
 
           {(profile?.role === 'admin' || profile?.role === 'mentor') && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                if (!isOnline) {
+                  setShowInternetNeeded(true);
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-4 rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center space-x-2 shrink-0 transition-all hover:scale-105"
             >
               <Plus className="w-5 h-5" />
@@ -576,6 +586,12 @@ export default function YaraLiveHub() {
           </div>
         )}
       </AnimatePresence>
+
+      <RequireInternetModal
+        isOpen={showInternetNeeded}
+        onClose={() => setShowInternetNeeded(false)}
+        featureName="YARA Live Video Broadcast & Streaming"
+      />
     </div>
   );
 }

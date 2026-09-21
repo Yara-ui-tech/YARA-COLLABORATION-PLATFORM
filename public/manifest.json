@@ -1,0 +1,22 @@
+{
+  "short_name": "YARIA",
+  "name": "YARIA - Youth Academy for Robotics & Industrial Automation",
+  "icons": [
+    {
+      "src": "/assets/logo-yara-official.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/assets/logo-yara-official.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "description": "Youth Academy for Robotics & Industrial Automation collaboration platform. Empowering young innovators through robotics, engineering, and STEM digital literacy offline and online."
+}
