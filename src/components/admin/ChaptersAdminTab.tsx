@@ -11,7 +11,7 @@ import {
 import { 
   Chapter, ChapterReport, ChapterCategory, ChapterStatus, 
   NationalExecutiveAssessment, ReportStatus, ChapterLeader, ChapterLeaderRole,
-  ChapterRegistrationRequest
+  ChapterRegistrationRequest, ChapterJoinRequest
 } from '../../types/chapters';
 import { 
   getChapters, createChapter, updateChapter, deleteChapter,
@@ -19,7 +19,8 @@ import {
   toggleChapterReportLock, approveChapterLeader, revokeChapterLeaderApproval,
   approveChapterSecretary, revokeChapterSecretary,
   addChapterLeader, updateChapterLeader, deleteChapterLeader,
-  getChapterRegistrationRequests, approveChapterRegistration, rejectChapterRegistration
+  getChapterRegistrationRequests, approveChapterRegistration, rejectChapterRegistration,
+  getJoinRequests, approveJoinRequest, rejectJoinRequest
 } from '../../services/chaptersService';
 import { cn } from '../../lib/utils';
 
@@ -27,10 +28,11 @@ export default function ChaptersAdminTab() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [reports, setReports] = useState<ChapterReport[]>([]);
   const [registrationRequests, setRegistrationRequests] = useState<ChapterRegistrationRequest[]>([]);
+  const [joinRequests, setJoinRequests] = useState<ChapterJoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sub-tabs: 'chapters' | 'leaders' | 'reports' | 'requests'
-  const [activeSubTab, setActiveSubTab] = useState<'chapters' | 'secretaries' | 'reports' | 'requests'>('chapters');
+  // Sub-tabs
+  const [activeSubTab, setActiveSubTab] = useState<'chapters' | 'secretaries' | 'reports' | 'requests' | 'join_requests'>('chapters');
 
   // Chapter Registration Requests State
   const [requestFilterStatus, setRequestFilterStatus] = useState<'ALL' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -111,14 +113,16 @@ export default function ChaptersAdminTab() {
 
   const loadData = async () => {
     setLoading(true);
-    const [allChapters, allReports, allRequests] = await Promise.all([
+    const [allChapters, allReports, allRequests, allJoinReqs] = await Promise.all([
       getChapters(true), // load full with confidential info
       getChapterReports(),
-      getChapterRegistrationRequests()
+      getChapterRegistrationRequests(),
+      getJoinRequests()
     ]);
     setChapters(allChapters);
     setReports(allReports);
     setRegistrationRequests(allRequests);
+    setJoinRequests(allJoinReqs);
     setLoading(false);
   };
 
@@ -771,6 +775,24 @@ export default function ChaptersAdminTab() {
           >
             <FileText className="w-4 h-4" />
             <span>Reports & Financial Statements ({reports.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('join_requests')}
+            className={cn(
+              "px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center space-x-2 relative",
+              activeSubTab === 'join_requests'
+                ? "bg-emerald-600 text-white shadow-md font-black"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            )}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Member Join Requests ({joinRequests.length})</span>
+            {joinRequests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                {joinRequests.filter(r => r.status === 'pending').length} Pending
+              </span>
+            )}
           </button>
         </div>
 
@@ -2386,6 +2408,235 @@ export default function ChaptersAdminTab() {
                     )}
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SUB-TAB 5: MEMBER JOIN REQUESTS */}
+      {activeSubTab === 'join_requests' && (
+        <JoinRequestsPanel
+          joinRequests={joinRequests}
+          onApprove={async (id, notes) => {
+            try {
+              await approveJoinRequest(id, 'National Executive Admin', notes);
+              showNotification('success', 'Join request approved — applicant added as chapter member!');
+              await loadData();
+            } catch (e: any) {
+              showNotification('error', e.message || 'Failed to approve join request.');
+            }
+          }}
+          onReject={async (id, notes) => {
+            try {
+              await rejectJoinRequest(id, 'National Executive Admin', notes);
+              showNotification('success', 'Join request rejected with feedback.');
+              await loadData();
+            } catch (e: any) {
+              showNotification('error', e.message || 'Failed to reject join request.');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// JOIN REQUESTS PANEL (inline sub-component)
+// ============================================================
+
+interface JoinRequestsPanelProps {
+  joinRequests: ChapterJoinRequest[];
+  onApprove: (id: string, notes?: string) => Promise<void>;
+  onReject: (id: string, notes: string) => Promise<void>;
+}
+
+function JoinRequestsPanel({ joinRequests, onApprove, onReject }: JoinRequestsPanelProps) {
+  const [filterStatus, setFilterStatus] = React.useState<'ALL' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [inspecting, setInspecting] = React.useState<ChapterJoinRequest | null>(null);
+  const [reviewNote, setReviewNote] = React.useState('');
+  const [processing, setProcessing] = React.useState(false);
+
+  const filtered = filterStatus === 'ALL' ? joinRequests : joinRequests.filter(r => r.status === filterStatus);
+
+  const STATUS_COLORS: Record<string, string> = {
+    pending: 'bg-amber-100 text-amber-800 border-amber-200',
+    approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    rejected: 'bg-red-100 text-red-800 border-red-200'
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-3xl border border-slate-200 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="font-black text-slate-900 text-base">Member Join Requests</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Review membership applications from users who want to join a chapter. Approving adds them as official members.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {(['pending', 'approved', 'rejected', 'ALL'] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={cn(
+                  'px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all',
+                  filterStatus === s
+                    ? s === 'pending' ? 'bg-amber-500 text-white' : s === 'approved' ? 'bg-emerald-600 text-white' : s === 'rejected' ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                )}
+              >
+                {s} {s !== 'ALL' ? `(${joinRequests.filter(r => r.status === s).length})` : `(${joinRequests.length})`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-16 text-slate-400">
+            <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-bold">No {filterStatus === 'ALL' ? '' : filterStatus} join requests found.</p>
+            <p className="text-xs mt-1">Applications submitted by users will appear here for review.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map(req => (
+              <div
+                key={req.id}
+                className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200 hover:border-slate-300 bg-white hover:shadow-sm transition-all"
+              >
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0">
+                  {req.full_name.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-slate-900 text-sm">{req.full_name}</span>
+                    <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-black border capitalize', STATUS_COLORS[req.status] || 'bg-slate-100 text-slate-600')}>
+                      {req.status}
+                    </span>
+                    {req.chapter_category && (
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-bold capitalize">
+                        {req.chapter_category.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    <span className="font-bold text-indigo-600">{req.chapter_name}</span> • {req.province}
+                  </p>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <span className="text-[10px] text-slate-400">{req.email}</span>
+                    <span className="text-[10px] text-slate-400">{req.phone}</span>
+                    <span className="text-[10px] text-slate-400">{req.institution}</span>
+                    <span className="text-[10px] text-slate-400 italic">Role: {req.role_applying_for}</span>
+                  </div>
+                  {req.skills && req.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {req.skills.slice(0, 4).map(s => (
+                        <span key={s} className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md">{s}</span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-600 mt-2 line-clamp-2 italic">"{req.motivation}"</p>
+                  {req.reviewed_by && (
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Reviewed by {req.reviewed_by} • {req.review_notes}
+                    </p>
+                  )}
+                </div>
+
+                {req.status === 'pending' && (
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <button
+                      onClick={() => { setInspecting(req); setReviewNote('Welcome to the chapter! Your application has been approved.'); }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black text-xs transition-all"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => { setInspecting(req); setReviewNote(''); }}
+                      className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs transition-all"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Review Modal */}
+      <AnimatePresence>
+        {inspecting && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg p-6 space-y-4"
+            >
+              <h3 className="font-black text-slate-900 text-base">Review Application: {inspecting.full_name}</h3>
+              <div className="p-4 bg-slate-50 rounded-2xl text-xs space-y-2">
+                <p><strong>Chapter:</strong> {inspecting.chapter_name}</p>
+                <p><strong>Province:</strong> {inspecting.province}</p>
+                <p><strong>Institution:</strong> {inspecting.institution} ({inspecting.grade_or_year})</p>
+                <p><strong>Role Applied For:</strong> {inspecting.role_applying_for}</p>
+                <p className="italic">Motivation: "{inspecting.motivation}"</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                  Review Notes / Feedback to Applicant *
+                </label>
+                <textarea
+                  value={reviewNote}
+                  onChange={e => setReviewNote(e.target.value)}
+                  rows={3}
+                  placeholder="Message to send to applicant..."
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => { setInspecting(null); setReviewNote(''); }}
+                  className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!reviewNote.trim()) return;
+                    setProcessing(true);
+                    try {
+                      await onReject(inspecting.id, reviewNote);
+                      setInspecting(null);
+                      setReviewNote('');
+                    } finally { setProcessing(false); }
+                  }}
+                  disabled={processing || !reviewNote.trim()}
+                  className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs disabled:opacity-50"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={async () => {
+                    setProcessing(true);
+                    try {
+                      await onApprove(inspecting.id, reviewNote || undefined);
+                      setInspecting(null);
+                      setReviewNote('');
+                    } finally { setProcessing(false); }
+                  }}
+                  disabled={processing}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs disabled:opacity-50 flex items-center gap-2"
+                >
+                  {processing ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Approve & Add as Member
+                </button>
               </div>
             </motion.div>
           </div>

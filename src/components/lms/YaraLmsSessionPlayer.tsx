@@ -502,8 +502,25 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
               </div>
 
               {/* Video Embed Player */}
-              <div className="aspect-video w-full bg-slate-950 relative">
-                {activeClip?.videoUrl?.includes('youtube.com') || activeClip?.videoUrl?.includes('youtu.be') ? (
+              <div className="aspect-video w-full bg-slate-950 relative overflow-hidden flex items-center justify-center">
+                {!activeClip?.videoUrl || !activeClip.videoUrl.trim() ? (
+                  <div className="p-8 text-center space-y-3 max-w-md">
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto">
+                      <Play className="w-8 h-8 text-indigo-400 ml-1" />
+                    </div>
+                    <div>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 inline-block mb-2">
+                        Video Lecture Coming Soon
+                      </span>
+                      <h4 className="text-base font-bold text-white">
+                        Recording in Production
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                        The video recording for "{activeClip?.title || session.title}" is being compiled. You can study the hardware schematic, interactive simulator, and firmware notes below in the meantime.
+                      </p>
+                    </div>
+                  </div>
+                ) : activeClip.videoUrl.includes('youtube.com') || activeClip.videoUrl.includes('youtu.be') ? (
                   <iframe
                     src={activeClip.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
                     title={activeClip?.title || session.title}

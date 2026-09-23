@@ -30,6 +30,7 @@ const mainNavItems: NavItem[] = [
   { path: '/learning', icon: Brain, label: 'Learning Academy', badge: 'LMS' },
   { path: '/competitions', icon: Trophy, label: 'Competitions', badge: 'Hub' },
   { path: '/events', icon: Calendar, label: 'Events', badge: 'Hub' },
+  { path: '/impact-gallery', icon: Sparkles, label: 'Impact Gallery', badge: '2025' },
   { path: '/chapters', icon: Building2, label: 'YARA Chapters', badge: 'Chapters' },
   { path: '/ideas', icon: Lightbulb, label: 'Ideas Hub' },
   { path: '/posts', icon: Radio, label: 'Organization Feed' },

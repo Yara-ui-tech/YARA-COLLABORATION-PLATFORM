@@ -37,6 +37,7 @@ import {
 import { AdminSessionVideoModal } from '../lms/AdminSessionVideoModal';
 import { CodingCoursesAdminManager } from './CodingCoursesAdminManager';
 import { CertificateUnlockAdminManager } from './CertificateUnlockAdminManager';
+import CertificateTemplatesAdminManager from './CertificateTemplatesAdminManager';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -59,7 +60,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => {
-  const [activeSection, setActiveSection] = useState<'curriculum' | 'coding_courses' | 'capstones' | 'students' | 'kits' | 'certificates'>('coding_courses');
+  const [activeSection, setActiveSection] = useState<'curriculum' | 'coding_courses' | 'capstones' | 'students' | 'kits' | 'certificates' | 'certificate_templates'>('coding_courses');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -288,6 +289,18 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
         </button>
 
         <button
+          onClick={() => setActiveSection('certificate_templates')}
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
+            activeSection === 'certificate_templates'
+              ? 'bg-violet-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <Award className="w-4 h-4" />
+          <span>3. Certificate Templates (Edit Designs)</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('curriculum')}
           className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
             activeSection === 'curriculum'
@@ -349,6 +362,11 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
       {/* SECTION: CERTIFICATE UNLOCKS */}
       {activeSection === 'certificates' && (
         <CertificateUnlockAdminManager />
+      )}
+
+      {/* SECTION: CERTIFICATE TEMPLATES */}
+      {activeSection === 'certificate_templates' && (
+        <CertificateTemplatesAdminManager />
       )}
 
       {/* SECTION 1: CURRICULUM & VIDEO STUDIO */}

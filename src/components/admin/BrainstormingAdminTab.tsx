@@ -20,6 +20,7 @@ import { BrainstormingQuestion, BrainstormingCategory } from '../../types/brains
 import { INITIAL_BRAINSTORMING_QUESTIONS } from '../../constants/brainstormingData';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
+import ImageUploader from '../ImageUploader';
 
 export default function BrainstormingAdminTab() {
   const [questions, setQuestions] = useState<BrainstormingQuestion[]>(INITIAL_BRAINSTORMING_QUESTIONS);
@@ -342,27 +343,13 @@ export default function BrainstormingAdminTab() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Diagram / Visual Image URL</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="url"
-                      required
-                      value={form.image_url}
-                      onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                      className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 font-medium text-xs"
-                      placeholder="https://images.unsplash.com/..."
-                    />
-                    {form.image_url && (
-                      <a 
-                        href={form.image_url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="p-3 bg-slate-100 rounded-2xl hover:bg-slate-200 text-slate-600"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
+                  <ImageUploader
+                    label="Diagram / Visual Image (File Upload or URL)"
+                    value={form.image_url}
+                    onChange={url => setForm({ ...form, image_url: url })}
+                    bucket="flyers"
+                    placeholder="https://images.unsplash.com/... or upload image"
+                  />
                 </div>
 
                 <div>

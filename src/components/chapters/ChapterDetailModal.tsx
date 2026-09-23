@@ -411,8 +411,16 @@ export default function ChapterDetailModal({
               </div>
 
               {!chapter.projects || chapter.projects.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
-                  No active projects documented yet for this chapter.
+                <div className="p-10 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 inline-block">
+                    Coming Soon
+                  </span>
+                  <p className="text-slate-700 text-xs font-bold block">
+                    No active student hardware projects submitted for this chapter yet.
+                  </p>
+                  <p className="text-slate-400 text-[11px]">
+                    Innovations and capstone rovers built by members of this chapter will appear here.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -474,8 +482,16 @@ export default function ChapterDetailModal({
               </div>
 
               {!chapter.activities || chapter.activities.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
-                  No public workshops or events logged yet.
+                <div className="p-10 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 inline-block">
+                    Coming Soon
+                  </span>
+                  <p className="text-slate-700 text-xs font-bold block">
+                    No public workshops or outreach events logged yet for this chapter.
+                  </p>
+                  <p className="text-slate-400 text-[11px]">
+                    Upcoming STEM bootcamps and community hackathons will be posted here.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">

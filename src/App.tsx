@@ -21,6 +21,7 @@ import YaraRoboticsCompetition2026 from './pages/YaraRoboticsCompetition2026';
 import About from './pages/About';
 import Programs from './pages/Programs';
 import Impact from './pages/Impact';
+import ImpactGalleryPage from './pages/ImpactGallery';
 import Partners from './pages/Partners';
 import Contact from './pages/Contact';
 import DonationsAndSponsorships from './pages/DonationsAndSponsorships';
@@ -156,6 +157,9 @@ const AppContent = () => {
           <Route path="about" element={<About />} />
           <Route path="programs" element={<Programs />} />
           <Route path="impact" element={<Impact />} />
+          <Route path="impact-gallery" element={<ImpactGalleryPage />} />
+          <Route path="impact-galleries" element={<ImpactGalleryPage />} />
+          <Route path="gallery" element={<ImpactGalleryPage />} />
           <Route path="partners" element={<Partners />} />
           <Route path="donate" element={<DonationsAndSponsorships />} />
           <Route path="sponsorship" element={<DonationsAndSponsorships />} />

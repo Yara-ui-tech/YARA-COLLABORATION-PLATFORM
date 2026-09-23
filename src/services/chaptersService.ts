@@ -97,6 +97,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     approval_status: 'approved',
     is_provincial_lead_university: true,
     supervised_chapter_count: 3,
+    motto: 'Innovate. Build. Lead.',
+    website_url: 'https://cut.ac.zw/yara-chapter',
     total_members_count: 42,
     active_projects_count: 3,
     public_email: 'cut.chapter@yara.org.zw',
@@ -322,6 +324,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     is_provincial_lead_university: false,
     assigned_provincial_university_id: 'ch-cut-01',
     assigned_provincial_university_name: 'YARA Chinhoyi University of Technology (CUT) Chapter',
+    motto: 'Faith. Science. Service.',
+    website_url: 'https://kutamacollege.org',
     total_members_count: 26,
     active_projects_count: 2,
     public_email: 'kutama.robotics@yara.org.zw',
@@ -453,6 +457,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     is_provincial_lead_university: false,
     assigned_provincial_university_id: 'ch-cut-01',
     assigned_provincial_university_name: 'YARA Chinhoyi University of Technology (CUT) Chapter',
+    motto: 'Science Empowers. Technology Transforms.',
+    website_url: 'https://chinhoyihigh.edu.zw',
     total_members_count: 22,
     active_projects_count: 1,
     public_email: 'chinhoyi.high@yara.org.zw',
@@ -527,6 +533,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     approval_status: 'approved',
     is_provincial_lead_university: true,
     supervised_chapter_count: 2,
+    motto: 'Engineering Zimbabwe. Engineering Africa.',
+    website_url: 'https://uz.ac.zw/engineering/yara',
     total_members_count: 58,
     active_projects_count: 4,
     public_email: 'uz.chapter@yara.org.zw',
@@ -671,6 +679,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     approval_status: 'approved',
     is_provincial_lead_university: false,
     assigned_provincial_university_name: 'YARA NUST Bulawayo Chapter',
+    motto: 'Every Child, A Builder. Every Youth, A Maker.',
+    website_url: 'https://byo-youthtech.org.zw',
     total_members_count: 36,
     active_projects_count: 2,
     public_email: 'bulawayo.youth@yara.org.zw',
@@ -798,6 +808,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     is_provincial_lead_university: false,
     assigned_provincial_university_id: 'ch-uz-02',
     assigned_provincial_university_name: 'YARA University of Zimbabwe (UZ) Chapter',
+    motto: 'Tenacity. Precision. Excellence.',
+    website_url: 'https://princeedwardschool.ac.zw',
     total_members_count: 28,
     active_projects_count: 2,
     public_email: 'pe.robotics@yara.org.zw',
@@ -925,6 +937,8 @@ const INITIAL_CHAPTERS: Chapter[] = [
     approval_status: 'approved',
     is_provincial_lead_university: false,
     assigned_provincial_university_name: 'YARA University of Zimbabwe (UZ) Chapter',
+    motto: 'Build Big Dreams. Start Small. Start Now.',
+    website_url: 'https://yara.org.zw/junior-chapters',
     total_members_count: 24,
     active_projects_count: 1,
     public_email: 'primary.chapters@yara.org.zw',
@@ -1532,17 +1546,25 @@ export async function deleteChapterMember(
 // -------------------------------------------------------------
 
 export async function getChapters(includeConfidential: boolean = false): Promise<Chapter[]> {
-  const local = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  // Load the persistent deleted-ID blacklist so deleted items never reappear
+  const deletedIds = getLocal<string[]>('yara_chapters_deleted_ids', []);
+  const applyDeleteFilter = (chs: Chapter[]) => 
+    deletedIds.length > 0 ? chs.filter(c => !deletedIds.includes(c.id)) : chs;
+
+  const local = applyDeleteFilter(getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS));
   try {
     const { data, error } = await supabase.from('chapters').select('*').order('created_at', { ascending: false });
     if (!error && data && data.length > 0) {
+      const filtered = applyDeleteFilter(data);
+      // Also update local cache with latest Supabase data
+      setLocal('yara_chapters_data', filtered);
       if (!includeConfidential) {
-        return data.map(ch => ({
+        return filtered.map(ch => ({
           ...ch,
           confidential_info: undefined
         }));
       }
-      return data;
+      return filtered;
     }
   } catch {
     // fallback to local
@@ -1606,10 +1628,18 @@ export async function updateChapter(id: string, updates: Partial<Chapter>): Prom
 }
 
 export async function deleteChapter(id: string): Promise<boolean> {
+  // 1. Add to permanently-deleted blacklist so it doesn't reappear from seed data
+  const deletedIds = getLocal<string[]>('yara_chapters_deleted_ids', []);
+  if (!deletedIds.includes(id)) {
+    setLocal('yara_chapters_deleted_ids', [...deletedIds, id]);
+  }
+
+  // 2. Remove from local chapters cache
   const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
   const filtered = chapters.filter(c => c.id !== id);
   setLocal('yara_chapters_data', filtered);
 
+  // 3. Delete from Supabase
   try {
     await supabase.from('chapters').delete().eq('id', id);
   } catch {
@@ -2302,8 +2332,155 @@ export async function deleteChapterReport(reportId: string): Promise<boolean> {
     throw new Error('Cannot delete a locked National submission. Unlock first in the National Admin Console.');
   }
 
+  // Persist deleted report IDs so they don't come back from INITIAL_REPORTS
+  const deletedReportIds = getLocal<string[]>('yara_chapter_reports_deleted_ids', []);
+  if (!deletedReportIds.includes(reportId)) {
+    setLocal('yara_chapter_reports_deleted_ids', [...deletedReportIds, reportId]);
+  }
+
   const filtered = reports.filter(r => r.id !== reportId);
   setLocal('yara_chapter_reports', filtered);
   return true;
 }
 
+// -------------------------------------------------------------
+// CHAPTER MEMBER JOIN REQUESTS
+// -------------------------------------------------------------
+
+import type { ChapterJoinRequest } from '../types/chapters';
+
+const INITIAL_JOIN_REQUESTS: ChapterJoinRequest[] = [];
+
+export async function getJoinRequests(chapterId?: string): Promise<ChapterJoinRequest[]> {
+  const all = getLocal<ChapterJoinRequest[]>('yara_chapter_join_requests', INITIAL_JOIN_REQUESTS);
+  try {
+    const query = supabase.from('chapter_join_requests').select('*').order('submitted_at', { ascending: false });
+    const { data, error } = chapterId ? await query.eq('chapter_id', chapterId) : await query;
+    if (!error && data && data.length > 0) {
+      // Merge with local: local may have items not yet synced
+      const remoteIds = new Set(data.map((d: any) => d.id));
+      const localOnly = all.filter(r => !remoteIds.has(r.id));
+      const merged = [...data, ...localOnly];
+      setLocal('yara_chapter_join_requests', merged);
+      return chapterId ? merged.filter(r => r.chapter_id === chapterId) : merged;
+    }
+  } catch {
+    // fallback
+  }
+  return chapterId ? all.filter(r => r.chapter_id === chapterId) : all;
+}
+
+export async function submitJoinRequest(
+  req: Omit<ChapterJoinRequest, 'id' | 'status' | 'submitted_at' | 'created_at' | 'updated_at'>
+): Promise<ChapterJoinRequest> {
+  const newReq: ChapterJoinRequest = {
+    ...req,
+    id: 'join-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
+    status: 'pending',
+    submitted_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  const all = getLocal<ChapterJoinRequest[]>('yara_chapter_join_requests', INITIAL_JOIN_REQUESTS);
+  setLocal('yara_chapter_join_requests', [newReq, ...all]);
+
+  try {
+    await supabase.from('chapter_join_requests').insert(newReq);
+  } catch {
+    // safe fallback – stored locally
+  }
+
+  return newReq;
+}
+
+export async function approveJoinRequest(
+  requestId: string,
+  reviewerName: string,
+  notes?: string
+): Promise<ChapterJoinRequest | null> {
+  const all = getLocal<ChapterJoinRequest[]>('yara_chapter_join_requests', INITIAL_JOIN_REQUESTS);
+  const idx = all.findIndex(r => r.id === requestId);
+  if (idx < 0) return null;
+
+  all[idx].status = 'approved';
+  all[idx].reviewed_by = reviewerName;
+  all[idx].reviewed_at = new Date().toISOString();
+  all[idx].review_notes = notes || 'Welcome to the chapter!';
+  all[idx].updated_at = new Date().toISOString();
+
+  setLocal('yara_chapter_join_requests', all);
+
+  // Add approved applicant as chapter member
+  const r = all[idx];
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === r.chapter_id);
+  if (chIdx >= 0) {
+    const newMember: ChapterMember = {
+      id: 'mem-' + Date.now().toString(36),
+      name: r.full_name,
+      email: r.email,
+      phone: r.phone,
+      role: r.role_applying_for || 'Member',
+      department_or_grade: r.grade_or_year,
+      student_or_staff_id: r.student_id,
+      joined_date: new Date().toISOString().split('T')[0],
+      status: 'active',
+      skills: r.skills
+    };
+    chapters[chIdx].members = [...(chapters[chIdx].members || []), newMember];
+    chapters[chIdx].total_members_count = (chapters[chIdx].members || []).length;
+    chapters[chIdx].updated_at = new Date().toISOString();
+    setLocal('yara_chapters_data', chapters);
+
+    try {
+      await supabase.from('chapters').update({
+        members: chapters[chIdx].members,
+        total_members_count: chapters[chIdx].total_members_count,
+        updated_at: chapters[chIdx].updated_at
+      }).eq('id', r.chapter_id);
+    } catch { /* fallback */ }
+  }
+
+  try {
+    await supabase.from('chapter_join_requests').update({
+      status: 'approved',
+      reviewed_by: reviewerName,
+      reviewed_at: all[idx].reviewed_at,
+      review_notes: all[idx].review_notes,
+      updated_at: all[idx].updated_at
+    }).eq('id', requestId);
+  } catch { /* fallback */ }
+
+  return all[idx];
+}
+
+export async function rejectJoinRequest(
+  requestId: string,
+  reviewerName: string,
+  notes: string
+): Promise<ChapterJoinRequest | null> {
+  const all = getLocal<ChapterJoinRequest[]>('yara_chapter_join_requests', INITIAL_JOIN_REQUESTS);
+  const idx = all.findIndex(r => r.id === requestId);
+  if (idx < 0) return null;
+
+  all[idx].status = 'rejected';
+  all[idx].reviewed_by = reviewerName;
+  all[idx].reviewed_at = new Date().toISOString();
+  all[idx].review_notes = notes;
+  all[idx].updated_at = new Date().toISOString();
+
+  setLocal('yara_chapter_join_requests', all);
+
+  try {
+    await supabase.from('chapter_join_requests').update({
+      status: 'rejected',
+      reviewed_by: reviewerName,
+      reviewed_at: all[idx].reviewed_at,
+      review_notes: notes,
+      updated_at: all[idx].updated_at
+    }).eq('id', requestId);
+  } catch { /* fallback */ }
+
+  return all[idx];
+}

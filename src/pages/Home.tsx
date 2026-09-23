@@ -22,19 +22,19 @@ export default function Home() {
 
   const recommendations = {
     junior: [
-      { title: 'Introduction to Arduino', type: 'Course', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'Simple LED Circuits', type: 'Project', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'Block-based Coding', type: 'Resource', icon: Code, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      { title: 'YARA Kids Exploration', type: 'Specialized Track', path: '/kids', desc: 'Interactive STEM & robotics games for young minds (Ages 3-8)', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50' },
+      { title: 'Introduction to Electronics', type: 'Curriculum Module', path: '/curriculum', desc: 'Master basic circuits, LEDs, breadboards, and safety', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+      { title: 'Block-based Robotics Coding', type: 'Learning Academy', path: '/learning', desc: 'Visual programming for beginner microcontrollers', icon: Code, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ],
     secondary: [
-      { title: 'MicroPython for Robotics', type: 'Course', icon: Terminal, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'PCB Design with Proteus', type: 'Workshop', icon: Layers, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'Line Follower Robot', type: 'Project', icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      { title: 'MicroPython & Robotics Control', type: 'Learning Academy', path: '/learning', desc: 'Write Python code for sensors, motors, and line followers', icon: Terminal, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+      { title: 'YARA 2026 Robotics Championship', type: 'Competition', path: '/competitions', desc: 'Join or form a team for the upcoming Zimbabwe Micromouse contest', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50' },
+      { title: 'Community Chapter Networking', type: 'Grassroots', path: '/chapters', desc: 'Connect with your local Mashwest or school YARA chapter', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ],
     tertiary: [
-      { title: 'Advanced Altium Designer', type: 'Masterclass', icon: Layers, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'Embedded Systems with C++', type: 'Course', icon: Code, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'AI in Robotics', type: 'Research', icon: Lightbulb, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      { title: 'Advanced PCB & Hardware Projects', type: 'Innovation', path: '/projects', desc: 'Collaborate on schematic capture, board layout, and prototyping', icon: Layers, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+      { title: 'AI for Educators & Mentors', type: 'Masterclass', path: '/events/ai-for-educators', desc: 'Specialized 4-week bootcamp for STEM teachers and mentors', icon: Brain, color: 'text-amber-600', bg: 'bg-amber-50' },
+      { title: 'Mentorship & Peer Guidance', type: 'Mentorship', path: '/mentorship', desc: 'Book one-on-one sessions with verified robotics mentors', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ],
   };
 
@@ -340,6 +340,7 @@ export default function Home() {
             <TrendingUp className="w-6 h-6 text-indigo-600" />
             <span>Recommended for You ({userLevel})</span>
           </h3>
+          <span className="text-xs font-semibold text-slate-400">Tailored to your learning level</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {(currentRecommendations || recommendations.junior).map((rec, i) => (
@@ -349,13 +350,27 @@ export default function Home() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="bg-white p-6 rounded-[2rem] border border-slate-100 hover:border-indigo-100 transition-all shadow-sm group"
             >
-              <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4", rec.bg, rec.color)}>
-                <rec.icon className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">{rec.type}</p>
-              <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{rec.title}</h4>
+              <Link
+                to={rec.path || '/learning'}
+                className="block bg-white p-6 rounded-[2rem] border border-slate-100 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50/50 transition-all group h-full flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", rec.bg, rec.color)}>
+                      <rec.icon className="w-6 h-6" />
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">{rec.type}</p>
+                  <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{rec.title}</h4>
+                  <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">{rec.desc}</p>
+                </div>
+                <div className="pt-4 mt-4 border-t border-slate-50 flex items-center text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
+                  <span>Explore Now</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </div>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -419,53 +434,28 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Community Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Recent Ideas */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Impact Outreach: Mashwest Province */}
-          <section className="space-y-6 overflow-hidden">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-                <Users className="w-6 h-6 text-indigo-600" />
-                <span>2025 Impact Outreach: Mashwest Province Gallery</span>
-              </h3>
+      {/* Impact Outreach Callout Banner */}
+      <section className="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl border border-emerald-500/20 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Outreach & Grassroots Impact</span>
             </div>
-            
-            <div className="relative flex overflow-hidden group">
-              <motion.div 
-                className="flex space-x-4 py-4"
-                animate={{
-                  x: [0, -1000],
-                }}
-                transition={{
-                  x: {
-                    repeat: Infinity,
-                    repeatType: "loop",
-                    duration: 25,
-                    ease: "linear",
-                  },
-                }}
-              >
-                {[...ASSETS.OUTREACH, ...ASSETS.OUTREACH].map((img, i) => (
-                  <div
-                    key={i}
-                    className="w-64 h-64 flex-shrink-0 rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500"
-                  >
-                    <img 
-                      src={img} 
-                      alt={`Mashwest Outreach ${i + 1}`} 
-                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = ASSETS.PROJECT_PLACEHOLDER;
-                      }}
-                    />
-                  </div>
-                ))}
-              </motion.div>
-            </div>
-         </section>
+            <h3 className="text-2xl md:text-3xl font-black">2025 Mashwest Impact Outreach</h3>
+            <p className="text-slate-300 text-sm font-medium leading-relaxed">
+              Explore 1,200+ students reached, community photos, video highlights, and provincial outreach achievements in our dedicated gallery.
+            </p>
+          </div>
+          <Link
+            to="/impact-gallery"
+            className="shrink-0 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center space-x-2 text-sm hover:scale-105"
+          >
+            <span>View Full Gallery</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
 
       {/* Financial & Learning Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -745,7 +735,11 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-          <div className="flex items-center justify-between pt-8">
+      {/* Community Section: Ideas, Projects & Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Main Ideas & Projects Column */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
             <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
               <Lightbulb className="w-6 h-6 text-indigo-600" />
               <span>Trending Ideas</span>
@@ -831,49 +825,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Community Stats */}
+        {/* Community Stats Column */}
         <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-            <Users className="w-6 h-6 text-indigo-600" />
-            <span>2025 Mashwest Outreach Moments</span>
-          </h3>
-          <div className="bg-white rounded-[2rem] border border-slate-100 p-4 shadow-sm overflow-hidden">
-            <motion.div 
-              className="flex space-x-2"
-              animate={{
-                x: [0, -1200],
-              }}
-              transition={{
-                x: {
-                  repeat: Infinity,
-                  repeatType: "loop",
-                  duration: 40,
-                  ease: "linear",
-                },
-              }}
-            >
-              {[...ASSETS.GALLERY, ...ASSETS.GALLERY].map((img, i) => (
-                <div
-                  key={i}
-                  className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-slate-100"
-                >
-                  <img 
-                    src={img} 
-                    alt={`Gallery ${i + 1}`} 
-                    className="w-full h-full object-cover hover:scale-125 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = ASSETS.PROJECT_PLACEHOLDER;
-                    }}
-                  />
-                </div>
-              ))}
-            </motion.div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mt-4">
-              2025 Mashwest Outreach in Action
-            </p>
-          </div>
-
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3 pt-4">
             <Users className="w-6 h-6 text-indigo-600" />
             <span>Community Stats</span>

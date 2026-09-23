@@ -22,7 +22,10 @@ import AdminManagementSection from '../components/admin/AdminManagementSection';
 import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
 import YaraKidsAdminTab from '../components/admin/YaraKidsAdminTab';
 import FeedbacksTestimonialsAdminTab from '../components/admin/FeedbacksTestimonialsAdminTab';
+import ImpactGalleryAdminTab from '../components/admin/ImpactGalleryAdminTab';
 import ImageUploader from '../components/ImageUploader';
+import { deleteEventItem } from '../constants/eventsData';
+import { deleteCompetition as deleteCompetitionService } from '../services/competitionsService';
 import { Sliders, Heart } from 'lucide-react';
 
 interface UserProfile {
@@ -90,7 +93,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings'>('site_content');
+  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'impact_gallery' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings' | 'yara_kids' | 'feedbacks_testimonials'>('site_content');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -553,10 +556,9 @@ export default function Admin() {
   const deleteEvent = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
-      const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) throw error;
+      await deleteEventItem(id);
       setEvents(prev => prev.filter(e => e.id !== id));
-      setSuccessMessage('Event deleted.');
+      setSuccessMessage('Event deleted permanently.');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
@@ -566,10 +568,9 @@ export default function Admin() {
   const deleteCompetition = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this competition?')) return;
     try {
-      const { error } = await supabase.from('competitions').delete().eq('id', id);
-      if (error) throw error;
+      await deleteCompetitionService(id);
       setCompetitions(prev => prev.filter(c => c.id !== id));
-      setSuccessMessage('Competition deleted.');
+      setSuccessMessage('Competition deleted permanently.');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
@@ -974,6 +975,23 @@ export default function Admin() {
             <span className="font-extrabold">M&E Impact & Audit Ledger</span>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase tracking-wider">
               Audited CSV
+            </span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('impact_gallery')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'impact_gallery' 
+              ? "bg-teal-600 text-white font-black shadow-teal-200" 
+              : "bg-white/90 text-teal-900 hover:bg-white hover:text-teal-950 border border-teal-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-teal-400" />
+            <span className="font-extrabold">Impact Galleries</span>
+            <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-[10px] uppercase font-black tracking-wider">
+              2025 Outreach
             </span>
           </div>
         </button>
@@ -1643,6 +1661,12 @@ export default function Admin() {
         {activeTab === 'impact_ledger' && (
           <div className="p-6 md:p-8">
             <ImpactLedgerAdminTab />
+          </div>
+        )}
+
+        {activeTab === 'impact_gallery' && (
+          <div className="p-6 md:p-8">
+            <ImpactGalleryAdminTab />
           </div>
         )}
 

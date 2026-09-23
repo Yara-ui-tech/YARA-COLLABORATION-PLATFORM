@@ -82,25 +82,11 @@ export default function YaraLiveHub() {
       if (data && !error) {
         setSessions(data);
       } else {
-        // Fallback default active session if table is empty
-        setSessions([
-          {
-            id: 'demo-1',
-            room_id: 'yara-stem-masterclass-2026',
-            title: 'YARA AI & Robotics National Bootcamp: Live Stream',
-            description: 'Live interactive session covering Autonomous Navigation, ROS2 Nodes, and Sensor Integration.',
-            mentor_name: 'Eng. Simbarashe Manongwa',
-            mentor_id: user?.id || 'admin',
-            status: 'live',
-            is_approved: true,
-            scheduled_at: new Date().toISOString(),
-            student_count: 42,
-            created_at: new Date().toISOString()
-          }
-        ]);
+        setSessions([]);
       }
     } catch (e) {
       console.warn('Error fetching live sessions:', e);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -449,11 +435,16 @@ export default function YaraLiveHub() {
         {loading ? (
           <div className="p-12 text-center text-slate-400">Loading YARA Live Sessions...</div>
         ) : sessions.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
-            <Radio className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-slate-900 mb-2">No Active Live Sessions</h3>
-            <p className="text-slate-500 text-sm max-w-md mx-auto mb-6">
-              Check back soon for upcoming masterclasses and mentorship broadcasts.
+          <div className="bg-white rounded-[2.5rem] p-12 text-center border border-dashed border-slate-200 shadow-xs space-y-3">
+            <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+              <Radio className="w-7 h-7 text-indigo-600" />
+            </div>
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 inline-block">
+              Coming Soon
+            </span>
+            <h3 className="text-xl font-bold text-slate-900">No Live Broadcasts Right Now</h3>
+            <p className="text-slate-500 text-xs max-w-md mx-auto leading-relaxed">
+              Check back soon for live masterclasses, robotics build-alongs, and national mentorship streams.
             </p>
           </div>
         ) : (

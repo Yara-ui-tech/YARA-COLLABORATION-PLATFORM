@@ -3193,5 +3193,312 @@ INSERT INTO public.competitions (
   updated_at = now();
 
 -- =========================================================================
+-- 33. CHAPTERS ENHANCEMENTS, MEMBER JOIN REQUESTS & REGISTRATION REQUESTS
+-- =========================================================================
+
+-- Idempotent column updates on public.chapters
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS motto TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS website_url TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS is_provincial_lead_university BOOLEAN DEFAULT false;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS assigned_provincial_university_id TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS assigned_provincial_university_name TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS supervised_chapter_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'approved';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS registration_request_id TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS members JSONB DEFAULT '[]'::jsonb;
+
+-- Chapter Member Join Requests Table
+CREATE TABLE IF NOT EXISTS public.chapter_join_requests (
+  id TEXT PRIMARY KEY DEFAULT ('join_req_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  chapter_id TEXT REFERENCES public.chapters(id) ON DELETE CASCADE NOT NULL,
+  chapter_name TEXT NOT NULL,
+  chapter_code TEXT NOT NULL,
+  province TEXT,
+  chapter_category TEXT,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  institution TEXT,
+  grade_or_year TEXT,
+  role_applying_for TEXT DEFAULT 'Member',
+  skills TEXT[] DEFAULT '{}',
+  motivation TEXT,
+  student_id TEXT,
+  id_document_url TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  review_notes TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.chapter_join_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can submit chapter join requests" ON public.chapter_join_requests;
+CREATE POLICY "Public can submit chapter join requests"
+  ON public.chapter_join_requests FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view their own join requests or admins/leaders view all" ON public.chapter_join_requests;
+CREATE POLICY "Users can view their own join requests or admins/leaders view all"
+  ON public.chapter_join_requests FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR lower(email) = lower(COALESCE(auth.jwt()->>'email', ''))
+    OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+DROP POLICY IF EXISTS "Admins can update chapter join requests" ON public.chapter_join_requests;
+CREATE POLICY "Admins can update chapter join requests"
+  ON public.chapter_join_requests FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins can delete chapter join requests" ON public.chapter_join_requests;
+CREATE POLICY "Admins can delete chapter join requests"
+  ON public.chapter_join_requests FOR DELETE
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Chapter Registration Requests Table
+CREATE TABLE IF NOT EXISTS public.chapter_registration_requests (
+  id TEXT PRIMARY KEY DEFAULT ('chap_req_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  proposed_name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('university', 'high_school', 'primary_school', 'community_youth', 'polytechnic', 'provincial_hub')),
+  institution_or_community TEXT NOT NULL,
+  province TEXT NOT NULL,
+  district_or_city TEXT NOT NULL,
+  logo_url TEXT,
+  banner_url TEXT,
+  description TEXT NOT NULL,
+  physical_location TEXT,
+  meeting_schedule TEXT,
+  focus_areas TEXT[] DEFAULT '{}',
+  public_email TEXT,
+  public_phone TEXT,
+  total_members_count INTEGER DEFAULT 0,
+  proposed_members JSONB DEFAULT '[]'::jsonb,
+  proposed_leaders JSONB DEFAULT '[]'::jsonb,
+  available_equipment TEXT,
+  patron_advisor JSONB DEFAULT '{}'::jsonb,
+  assigned_provincial_university_id TEXT,
+  assigned_provincial_university_name TEXT,
+  applicant_name TEXT,
+  applicant_email TEXT,
+  applicant_phone TEXT,
+  applicant_role TEXT,
+  status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+  admin_review_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.chapter_registration_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can submit chapter registration requests" ON public.chapter_registration_requests;
+CREATE POLICY "Public can submit chapter registration requests"
+  ON public.chapter_registration_requests FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can view chapter registration requests" ON public.chapter_registration_requests;
+CREATE POLICY "Public can view chapter registration requests"
+  ON public.chapter_registration_requests FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can update chapter registration requests" ON public.chapter_registration_requests;
+CREATE POLICY "Admins can update chapter registration requests"
+  ON public.chapter_registration_requests FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- =========================================================================
+-- 34. CERTIFICATE TEMPLATES CONFIGURATION TABLE
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.certificate_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  issuer TEXT NOT NULL DEFAULT 'Young Africans Robotics Association (YARA)',
+  primary_color TEXT DEFAULT '#4f46e5',
+  accent_color TEXT DEFAULT '#06b6d4',
+  border_style TEXT DEFAULT 'gold_seal',
+  signatories JSONB DEFAULT '[]'::jsonb,
+  watermark_url TEXT,
+  logo_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.certificate_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view certificate templates" ON public.certificate_templates;
+CREATE POLICY "Public can view certificate templates"
+  ON public.certificate_templates FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage certificate templates" ON public.certificate_templates;
+CREATE POLICY "Admins can manage certificate templates"
+  ON public.certificate_templates FOR ALL
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Seed Default Certificate Templates (Robotics, Coding, AI for Educators, Capstone)
+INSERT INTO public.certificate_templates (id, name, title, subtitle, issuer, primary_color, accent_color, border_style, signatories, is_active)
+VALUES 
+  ('lms_robotics_cert', 'LMS Robotics & Embedded Systems Certificate', 'CERTIFICATE OF EXCELLENCE', 'ADVANCED EMBEDDED SYSTEMS & HARDWARE ROBOTICS', 'YARA Academy & National Engineering Directorate', '#4f46e5', '#06b6d4', 'gold_seal', '[{"name": "Eng. Simbarashe Manongwa", "title": "Founder & Director of Engineering"}, {"name": "Dr. C. Chidemo", "title": "Academic Council Chair"}]'::jsonb, true),
+  ('lms_coding_cert', 'Software & Firmware Coding Certificate', 'CERTIFICATE OF ACHIEVEMENT', 'EMBEDDED C++ & ROS2 SOFTWARE ARCHITECTURE', 'YARA Software Systems Division', '#0284c7', '#10b981', 'modern_tech', '[{"name": "Farai Makoni", "title": "Lead Software Architect"}, {"name": "Eng. Simbarashe Manongwa", "title": "Patron"}]'::jsonb, true),
+  ('ai_educators_cert', 'AI for Educators Certificate', 'CERTIFICATE OF ACCREDITATION', 'AI PEDAGOGY & DIGITAL STEM CURRICULUM INTEGRATION', 'YARA National Educator Network', '#7c3aed', '#f59e0b', 'executive', '[{"name": "Mr. S.O. Manongwa", "title": "Lead Facilitator"}, {"name": "Ms. A.M. Chiambiro", "title": "Regional President"}]'::jsonb, true),
+  ('capstone_cert', 'National Capstone Innovation Award', 'CAPSTONE INNOVATION DIPLOMA', '21-POINT ROBOTICS CAPSTONE PROTOTYPE', 'YARA National Innovation Council', '#059669', '#3b82f6', 'gold_seal', '[{"name": "Eng. Simbarashe Manongwa", "title": "Chief Technology Officer"}, {"name": "Board of Trustees", "title": "YARA Pan-Africa"}]'::jsonb, true)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  title = EXCLUDED.title,
+  subtitle = EXCLUDED.subtitle,
+  primary_color = EXCLUDED.primary_color,
+  accent_color = EXCLUDED.accent_color,
+  signatories = EXCLUDED.signatories,
+  updated_at = now();
+
+-- Indexes for speedy queries
+CREATE INDEX IF NOT EXISTS idx_chapter_join_requests_chapter_id ON public.chapter_join_requests(chapter_id);
+CREATE INDEX IF NOT EXISTS idx_chapter_join_requests_email ON public.chapter_join_requests(lower(email));
+CREATE INDEX IF NOT EXISTS idx_chapter_join_requests_status ON public.chapter_join_requests(status);
+CREATE INDEX IF NOT EXISTS idx_chapter_reg_requests_status ON public.chapter_registration_requests(status);
+CREATE INDEX IF NOT EXISTS idx_chapters_province ON public.chapters(province);
+CREATE INDEX IF NOT EXISTS idx_chapters_category ON public.chapters(category);
+
+-- =========================================================================
+-- 35. DELETED RECORDS BLACKLIST TABLE (PERMANENT DELETION PERSISTENCE)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.deleted_records_blacklist (
+  record_id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL, -- 'event', 'competition', 'chapter', 'report', 'post', 'hardware_kit', etc.
+  deleted_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  deleted_by_name TEXT,
+  deleted_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.deleted_records_blacklist ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view deleted records blacklist" ON public.deleted_records_blacklist;
+CREATE POLICY "Public can view deleted records blacklist"
+  ON public.deleted_records_blacklist FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage deleted records blacklist" ON public.deleted_records_blacklist;
+CREATE POLICY "Admins can manage deleted records blacklist"
+  ON public.deleted_records_blacklist FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  );
+
+CREATE INDEX IF NOT EXISTS idx_deleted_records_entity ON public.deleted_records_blacklist(entity_type);
+
+-- =========================================================================
+-- 36. PROVINCIAL IMPACT GALLERIES & OUTREACH MEDIA REPOSITORY
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.impact_galleries (
+  id TEXT PRIMARY KEY DEFAULT ('gal_' || floor(extract(epoch from now()))::text || '_' || substr(md5(random()::text), 1, 6)),
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  province TEXT NOT NULL DEFAULT 'Mashonaland West',
+  year INTEGER NOT NULL DEFAULT 2025,
+  description TEXT NOT NULL,
+  cover_image_url TEXT,
+  video_url TEXT,
+  gallery_urls TEXT[] DEFAULT '{}',
+  achievements TEXT[] DEFAULT '{}',
+  people_reached INTEGER DEFAULT 0,
+  girls_reached INTEGER DEFAULT 0,
+  boys_reached INTEGER DEFAULT 0,
+  schools_impacted INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.impact_galleries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view impact galleries" ON public.impact_galleries;
+CREATE POLICY "Public can view impact galleries"
+  ON public.impact_galleries FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage impact galleries" ON public.impact_galleries;
+CREATE POLICY "Admins can manage impact galleries"
+  ON public.impact_galleries FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    OR auth.role() = 'service_role'
+  );
+
+-- Seed Initial 2025 Mashwest Province Impact Gallery
+INSERT INTO public.impact_galleries (
+  id,
+  title,
+  subtitle,
+  province,
+  year,
+  description,
+  cover_image_url,
+  video_url,
+  gallery_urls,
+  achievements,
+  people_reached,
+  girls_reached,
+  boys_reached,
+  schools_impacted,
+  is_featured
+) VALUES (
+  'mashwest_2025_gallery',
+  '2025 Impact Outreach: Mashwest Province Gallery',
+  'Chinhoyi, Karoi & Banket Hands-On Robotics & AI Bootcamp',
+  'Mashonaland West',
+  2025,
+  'Hands-on STEM and autonomous robotics training delivered across high schools, primary schools, and community youth hubs in Mashonaland West Province. Over 450 students built ESP32 micro-rovers and learned C++ firmware logic.',
+  '/assets/outreach-1.jpg',
+  'https://www.youtube.com/watch?v=FCMxA3m_Imc',
+  ARRAY[
+    '/assets/outreach-1.jpg',
+    '/assets/outreach-2.jpg',
+    '/assets/outreach-3.jpg',
+    '/assets/outreach-4.jpg',
+    '/assets/outreach-5.jpg',
+    '/assets/outreach-6.jpg'
+  ],
+  ARRAY[
+    '450+ Youth Trained in Micro-Rover Fabrication',
+    '62% Female Student Participation Rate',
+    '12 High School Robotics Clubs Established',
+    '3 Provincial Competition Qualifying Teams'
+  ],
+  450,
+  280,
+  170,
+  14,
+  true
+) ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  description = EXCLUDED.description,
+  updated_at = now();
+
+CREATE INDEX IF NOT EXISTS idx_impact_galleries_province ON public.impact_galleries(province);
+CREATE INDEX IF NOT EXISTS idx_impact_galleries_year ON public.impact_galleries(year);
+
+-- =========================================================================
 -- END OF ALL MIGRATIONS
 -- =========================================================================
+
+

@@ -118,6 +118,8 @@ export interface Chapter {
 
   total_members_count: number;
   active_projects_count: number;
+  motto?: string; // Chapter motto/slogan e.g. "Innovate. Build. Lead."
+  website_url?: string; // Chapter or institution website URL
   public_email?: string;
   public_phone?: string;
   public_social_links?: {
@@ -284,4 +286,42 @@ export interface ChapterReport {
   leadership_verification_method?: 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session';
   secretary_verification_method?: 'roster_email' | 'access_pin' | 'admin_override' | 'auth_session';
   document_seal_code?: string;
+}
+
+// ---------------------------------------------------------------
+// CHAPTER MEMBER JOIN REQUEST
+// ---------------------------------------------------------------
+
+export type ChapterJoinRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ChapterJoinRequest {
+  id: string;
+  chapter_id: string;
+  chapter_name: string;
+  chapter_code: string;
+  province: string;
+  chapter_category: ChapterCategory;
+  
+  // Applicant personal info
+  full_name: string;
+  email: string;
+  phone: string;
+  institution: string;          // School/university/community name
+  grade_or_year: string;        // e.g. "Form 4", "Year 2", "N/A - Community"
+  role_applying_for: string;    // e.g. "Member", "Cadet", "Hardware Builder"
+  skills: string[];             // Self-declared skills
+  motivation: string;           // Why they want to join
+  student_id?: string;          // Optional student number
+  id_document_url?: string;     // Optional URL to uploaded ID/student card
+  
+  // Status & Review
+  status: ChapterJoinRequestStatus;
+  user_id?: string;             // If logged in
+  reviewed_by?: string;         // Name of reviewer (leadership/admin)
+  reviewed_at?: string;
+  review_notes?: string;        // Feedback on approval/rejection
+  
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
 }

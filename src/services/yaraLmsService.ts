@@ -111,7 +111,7 @@ function generateDefaultModularVideos(session: any): SessionVideoClip[] {
     return session.videoClips;
   }
 
-  const baseEmbed = session?.video_url || 'https://www.youtube.com/watch?v=FCMxA3m_Imc';
+  const baseEmbed = session?.video_url || '';
   const title = session?.title || 'Robotics & Innovation';
 
   return [

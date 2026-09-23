@@ -15,6 +15,7 @@ import {
 } from '../../services/competitionsService';
 import { cn } from '../../lib/utils';
 import YaraCompetitionAdminTab from './YaraCompetitionAdminTab';
+import ImageUploader from '../ImageUploader';
 
 const CATEGORY_OPTIONS = [
   { value: 'flagship_robotics', label: 'Flagship Robotics Championship', color: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -735,13 +736,12 @@ export default function CompetitionsAdminTab() {
                 {/* Media & Routes */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Banner Image URL</label>
-                    <input
-                      type="url"
+                    <ImageUploader
+                      label="Banner Image (File Upload or URL)"
                       value={formData.image_url || ''}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 font-medium"
+                      onChange={url => setFormData({ ...formData, image_url: url, banner_url: url })}
+                      bucket="flyers"
+                      placeholder="https://images.unsplash.com/... or upload flyer"
                     />
                   </div>
 

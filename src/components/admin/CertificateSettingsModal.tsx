@@ -19,6 +19,7 @@ import {
 } from '../../services/eventRegistrationService';
 import { ASSETS } from '../../constants/assets';
 import EducatorCertificate from '../events/EducatorCertificate';
+import ImageUploader from '../ImageUploader';
 
 interface CertificateSettingsModalProps {
   isOpen: boolean;
@@ -371,49 +372,22 @@ export default function CertificateSettingsModal({
                     </div>
 
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1.5">Official Signature Image</label>
-                      <div className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 flex items-center justify-between gap-4">
-                        <div className="h-16 flex-1 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
-                          {config.founder_signature_url ? (
-                            <img
-                              src={config.founder_signature_url}
-                              alt="Mr S.O. Manongwa Signature"
-                              className="max-h-full max-w-full object-contain mix-blend-multiply"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className="text-[11px] text-slate-400 italic">No signature image uploaded</span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <input
-                            type="file"
-                            ref={founderSigRef}
-                            onChange={e => handleImageUpload(e, 'founder_signature_url')}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => founderSigRef.current?.click()}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-colors"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Upload Signature</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfig({ ...config, founder_signature_url: ASSETS.SIGNATURE_MANONGWA })}
-                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer text-center"
-                          >
-                            Use Default
-                          </button>
-                        </div>
+                      <ImageUploader
+                        label="Official Founder Signature Image"
+                        value={config.founder_signature_url}
+                        onChange={url => setConfig({ ...config, founder_signature_url: url })}
+                        bucket="certificates"
+                        placeholder="https://... or upload PNG/JPG signature"
+                      />
+                      <div className="pt-1.5 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setConfig({ ...config, founder_signature_url: ASSETS.SIGNATURE_MANONGWA })}
+                          className="text-[10px] font-bold text-slate-500 hover:text-indigo-600 underline transition-colors"
+                        >
+                          Reset to Default Founder Signature
+                        </button>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        High-contrast blue or black pen signature on white paper is automatically transparency-blended on the certificate.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -457,49 +431,22 @@ export default function CertificateSettingsModal({
                     </div>
 
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1.5">Official Signature Image</label>
-                      <div className="p-3 bg-amber-50/40 rounded-xl border border-amber-200/60 flex items-center justify-between gap-4">
-                        <div className="h-16 flex-1 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
-                          {config.regional_president_signature_url ? (
-                            <img
-                              src={config.regional_president_signature_url}
-                              alt="Ms A.M. Chiambiro Signature"
-                              className="max-h-full max-w-full object-contain mix-blend-multiply"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span className="text-[11px] text-slate-400 italic">No signature image uploaded</span>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <input
-                            type="file"
-                            ref={presidentSigRef}
-                            onChange={e => handleImageUpload(e, 'regional_president_signature_url')}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => presidentSigRef.current?.click()}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-colors"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Upload Signature</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfig({ ...config, regional_president_signature_url: ASSETS.SIGNATURE_CHIAMBIRO })}
-                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer text-center"
-                          >
-                            Use Default
-                          </button>
-                        </div>
+                      <ImageUploader
+                        label="Official Regional President Signature Image"
+                        value={config.regional_president_signature_url}
+                        onChange={url => setConfig({ ...config, regional_president_signature_url: url })}
+                        bucket="certificates"
+                        placeholder="https://... or upload PNG/JPG signature"
+                      />
+                      <div className="pt-1.5 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setConfig({ ...config, regional_president_signature_url: ASSETS.SIGNATURE_CHIAMBIRO })}
+                          className="text-[10px] font-bold text-slate-500 hover:text-purple-600 underline transition-colors"
+                        >
+                          Reset to Default President Signature
+                        </button>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        High-contrast ink signature for A.M. Chiambiro automatically blends on the certificate canvas.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -523,46 +470,13 @@ export default function CertificateSettingsModal({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 pt-1">
-                    <div className="w-24 h-24 rounded-2xl bg-amber-50/50 border border-amber-200 p-2 flex items-center justify-center shrink-0">
-                      <img
-                        src={config.seal_url || ASSETS.EDUCATOR_SEAL}
-                        alt="Accredited Seal"
-                        className="max-h-full max-w-full object-contain drop-shadow-md"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-
-                    <div className="space-y-2 flex-1">
-                      <p className="text-xs text-slate-600 leading-snug">
-                        Upload custom high-res seal badge for AI for Educators Bootcamp, STEM Accreditation, or YARA Academy.
-                      </p>
-                      <input
-                        type="file"
-                        ref={sealFileRef}
-                        onChange={e => handleImageUpload(e, 'seal_url')}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => sealFileRef.current?.click()}
-                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition-colors cursor-pointer"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload New Seal</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfig({ ...config, seal_url: ASSETS.EDUCATOR_SEAL })}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
-                        >
-                          Reset Seal
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <ImageUploader
+                    label="Gold Foil Accreditation Seal"
+                    value={config.seal_url || ASSETS.EDUCATOR_SEAL}
+                    onChange={url => setConfig({ ...config, seal_url: url })}
+                    bucket="certificates"
+                    placeholder="https://... or upload seal badge"
+                  />
                 </div>
 
                 {/* Organization Official Crest / Logo */}
@@ -579,46 +493,13 @@ export default function CertificateSettingsModal({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 pt-1">
-                    <div className="w-24 h-24 rounded-2xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shrink-0">
-                      <img
-                        src={config.logo_url || ASSETS.LOGO}
-                        alt="YARA Academy Crest"
-                        className="max-h-full max-w-full object-contain rounded-xl shadow-xs"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-
-                    <div className="space-y-2 flex-1">
-                      <p className="text-xs text-slate-600 leading-snug">
-                        Official institutional crest displayed in the gold-bordered header banner of all issued certificates.
-                      </p>
-                      <input
-                        type="file"
-                        ref={logoFileRef}
-                        onChange={e => handleImageUpload(e, 'logo_url')}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => logoFileRef.current?.click()}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-xs transition-colors cursor-pointer"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload New Logo</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfig({ ...config, logo_url: ASSETS.LOGO })}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
-                        >
-                          Reset Logo
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <ImageUploader
+                    label="Institutional Emblem Crest Logo"
+                    value={config.logo_url || ASSETS.LOGO}
+                    onChange={url => setConfig({ ...config, logo_url: url })}
+                    bucket="certificates"
+                    placeholder="https://... or upload crest logo"
+                  />
                 </div>
 
               </div>

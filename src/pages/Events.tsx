@@ -74,16 +74,16 @@ export default function Events() {
 
       let deletedCompIds: string[] = [];
       try {
-        const raw = localStorage.getItem('yaria_deleted_competitions');
+        const raw = localStorage.getItem('yara_deleted_competition_ids');
         if (raw) deletedCompIds = JSON.parse(raw);
       } catch {
         deletedCompIds = [];
       }
 
       if (compsData && compsData.length > 0) {
-        setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id)));
+        setCompetitions(compsData.filter(c => !deletedCompIds.includes(c.id) && !deletedCompIds.includes((c as any).slug)));
       } else {
-        const filtered = (INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id));
+        const filtered = (INITIAL_COMPETITIONS as Competition[]).filter(c => !deletedCompIds.includes(c.id) && !deletedCompIds.includes((c as any).slug));
         setCompetitions(filtered);
       }
 
