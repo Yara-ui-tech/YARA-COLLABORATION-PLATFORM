@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
-import LaunchCountdown from '../components/LaunchCountdown';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
@@ -224,8 +223,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 72-Hour Official Launch Countdown */}
-      <LaunchCountdown />
+      {/* Official Approved Admin Announcement */}
+      {recentPosts.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-950 rounded-[2.5rem] p-6 md:p-8 text-white border border-indigo-500/30 shadow-xl relative overflow-hidden"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-black uppercase tracking-wider border border-indigo-400/30">
+                <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+                <span>Official Admin Announcement</span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-white">{recentPosts[0].title}</h3>
+              <p className="text-slate-300 text-sm line-clamp-2 font-medium leading-relaxed">{recentPosts[0].content}</p>
+              <div className="flex items-center space-x-3 text-xs text-slate-400 pt-1 font-semibold">
+                <span>By {recentPosts[0].author_name || 'YARA Executive Admin'}</span>
+                <span>•</span>
+                <span>{new Date(recentPosts[0].created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <Link
+              to="/posts"
+              className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all flex items-center space-x-2 hover:scale-105"
+            >
+              <span>Read Announcement</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.section>
+      )}
 
       {/* Admin-Managed Dynamic Custom Sections */}
       <DynamicSectionRenderer page="home" />

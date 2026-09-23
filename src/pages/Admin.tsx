@@ -23,6 +23,7 @@ import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
 import YaraKidsAdminTab from '../components/admin/YaraKidsAdminTab';
 import FeedbacksTestimonialsAdminTab from '../components/admin/FeedbacksTestimonialsAdminTab';
 import ImpactGalleryAdminTab from '../components/admin/ImpactGalleryAdminTab';
+import CertificateTemplatesAdminManager from '../components/admin/CertificateTemplatesAdminManager';
 import ImageUploader from '../components/ImageUploader';
 import { deleteEventItem } from '../constants/eventsData';
 import { deleteCompetition as deleteCompetitionService } from '../services/competitionsService';
@@ -93,7 +94,7 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'impact_gallery' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings' | 'yara_kids' | 'feedbacks_testimonials'>('site_content');
+  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'impact_gallery' | 'cert_templates' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings' | 'yara_kids' | 'feedbacks_testimonials'>('site_content');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -996,6 +997,23 @@ export default function Admin() {
           </div>
         </button>
         <button
+          onClick={() => setActiveTab('cert_templates')}
+          className={cn(
+            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
+            activeTab === 'cert_templates' 
+              ? "bg-violet-600 text-white font-black shadow-violet-200" 
+              : "bg-white/90 text-violet-900 hover:bg-white hover:text-violet-950 border border-violet-200"
+          )}
+        >
+          <div className="flex items-center space-x-2">
+            <Award className="w-4 h-4 text-violet-400" />
+            <span className="font-extrabold">Certificate Templates</span>
+            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-[10px] uppercase font-black tracking-wider">
+              All Sections
+            </span>
+          </div>
+        </button>
+        <button
           onClick={() => setActiveTab('admin_management')}
           className={cn(
             "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
@@ -1667,6 +1685,12 @@ export default function Admin() {
         {activeTab === 'impact_gallery' && (
           <div className="p-6 md:p-8">
             <ImpactGalleryAdminTab />
+          </div>
+        )}
+
+        {activeTab === 'cert_templates' && (
+          <div className="p-6 md:p-8">
+            <CertificateTemplatesAdminManager />
           </div>
         )}
 
