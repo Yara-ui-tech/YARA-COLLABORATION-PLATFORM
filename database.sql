@@ -3648,7 +3648,80 @@ CREATE POLICY "Universal write access for deleted_records_blacklist"
   WITH CHECK (true);
 
 -- =========================================================================
+-- SECTION 38: Live Sessions & Universal Realtime Broadcast Support
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.live_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'General',
+    mentor_id TEXT,
+    mentor_name TEXT DEFAULT 'YARA Host',
+    status TEXT DEFAULT 'live',
+    is_live BOOLEAN DEFAULT true,
+    is_approved BOOLEAN DEFAULT true,
+    scheduled_at TIMESTAMPTZ DEFAULT NOW(),
+    ended_at TIMESTAMPTZ,
+    student_count INTEGER DEFAULT 1,
+    video_url TEXT,
+    stream_url TEXT,
+    required_skills TEXT[] DEFAULT '{}',
+    is_external BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.live_sessions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view live sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Users can manage live sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Universal read access for live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Universal write access for live_sessions" ON public.live_sessions;
+
+CREATE POLICY "Universal read access for live_sessions"
+  ON public.live_sessions FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for live_sessions"
+  ON public.live_sessions FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.live_session_mentor_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID,
+    mentor_id UUID,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.live_session_mentor_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Universal read access for live_session_mentor_requests" ON public.live_session_mentor_requests;
+DROP POLICY IF EXISTS "Universal write access for live_session_mentor_requests" ON public.live_session_mentor_requests;
+
+CREATE POLICY "Universal read access for live_session_mentor_requests"
+  ON public.live_session_mentor_requests FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for live_session_mentor_requests"
+  ON public.live_session_mentor_requests FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- Enable Realtime for live_sessions
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.live_sessions;
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
+-- =========================================================================
 -- END OF ALL MIGRATIONS
 -- =========================================================================
+
 
 

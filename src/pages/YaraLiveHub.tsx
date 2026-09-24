@@ -81,6 +81,13 @@ export default function YaraLiveHub() {
 
       if (data && !error) {
         setSessions(data);
+        // Auto active session if a live stream is ongoing and user has not selected one
+        if (!activeSession) {
+          const currentLive = data.find(s => (s.status === 'live' || (s as any).is_live === true) && s.is_approved !== false);
+          if (currentLive) {
+            setActiveSession(currentLive);
+          }
+        }
       } else {
         setSessions([]);
       }
@@ -94,6 +101,18 @@ export default function YaraLiveHub() {
 
   useEffect(() => {
     fetchSessions();
+
+    // Subscribe to realtime live_sessions changes for all users
+    const liveChannel = supabase
+      .channel('live_sessions_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
+        fetchSessions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(liveChannel);
+    };
   }, []);
 
   // WebRTC Camera stream initialization when entering stream mode
@@ -146,6 +165,7 @@ export default function YaraLiveHub() {
         mentor_name: profile?.display_name || 'YARA Host',
         mentor_id: user?.id || 'host',
         status: 'live',
+        is_live: true,
         is_approved: isHostAdmin,
         student_count: 1,
         stream_url: newStreamUrl.trim() || undefined
@@ -158,11 +178,11 @@ export default function YaraLiveHub() {
         .single();
 
       if (data && !error) {
-        setSessions([data, ...sessions]);
+        setSessions(prev => [data, ...prev.filter(s => s.id !== data.id)]);
         setActiveSession(data);
       } else {
         const fallback = { ...newSessionObj, id: roomId, scheduled_at: new Date().toISOString(), created_at: new Date().toISOString() } as LiveSession;
-        setSessions([fallback, ...sessions]);
+        setSessions(prev => [fallback, ...prev]);
         setActiveSession(fallback);
       }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText, Sparkles, Building2, Trophy } from 'lucide-react';
+import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText, Sparkles, Building2, Trophy, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
@@ -18,6 +18,7 @@ export default function Home() {
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [activeLiveSession, setActiveLiveSession] = useState<any>(null);
 
   const recommendations = {
     junior: [
@@ -105,6 +106,20 @@ export default function Home() {
           .limit(1);
         if (isSubscribed && events && events.length > 0) setLatestEvent(events[0]);
 
+        // Fetch active live session
+        const { data: activeLive } = await supabase
+          .from('live_sessions')
+          .select('*')
+          .or('is_live.eq.true,status.eq.live')
+          .eq('is_approved', true)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (isSubscribed && activeLive && activeLive.length > 0) {
+          setActiveLiveSession(activeLive[0]);
+        } else if (isSubscribed) {
+          setActiveLiveSession(null);
+        }
+
         // Fetch stats
         const { count: projectCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
         const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
@@ -142,6 +157,7 @@ export default function Home() {
     // Real-time subscriptions
     let ideasSubscription: any = null;
     let projectsSubscription: any = null;
+    let liveSubscription: any = null;
 
     try {
       ideasSubscription = supabase
@@ -157,6 +173,24 @@ export default function Home() {
           setRecentProjects(prev => [payload.new, ...prev.slice(0, 2)]);
         })
         .subscribe();
+
+      liveSubscription = supabase
+        .channel('live_home')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, async () => {
+          const { data: liveData } = await supabase
+            .from('live_sessions')
+            .select('*')
+            .or('is_live.eq.true,status.eq.live')
+            .eq('is_approved', true)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (liveData && liveData.length > 0) {
+            setActiveLiveSession(liveData[0]);
+          } else {
+            setActiveLiveSession(null);
+          }
+        })
+        .subscribe();
     } catch {
       // Safe realtime fallback
     }
@@ -168,6 +202,9 @@ export default function Home() {
       }
       if (projectsSubscription) {
         try { supabase.removeChannel(projectsSubscription); } catch {}
+      }
+      if (liveSubscription) {
+        try { supabase.removeChannel(liveSubscription); } catch {}
       }
     };
   }, [user?.id]);
@@ -222,6 +259,40 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Live Stream Active Alert Banner */}
+      {activeLiveSession && (
+        <motion.section
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-gradient-to-r from-red-600 via-rose-700 to-indigo-900 rounded-[2.5rem] p-6 md:p-8 text-white border border-red-400/40 shadow-2xl relative overflow-hidden"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1 bg-white/20 text-white rounded-full text-xs font-black uppercase tracking-wider backdrop-blur-md">
+                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                <span>🔴 BROADCASTING LIVE NOW</span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-black text-white">{activeLiveSession.title}</h3>
+              <p className="text-rose-100 text-sm line-clamp-2 font-medium leading-relaxed">
+                {activeLiveSession.description || 'Host mentor is streaming live right now. Join the interactive broadcast room to participate!'}
+              </p>
+              <div className="flex items-center space-x-3 text-xs text-rose-200 pt-1 font-semibold">
+                <span>Host: {activeLiveSession.mentor_name || 'YARA Broadcaster'}</span>
+                <span>•</span>
+                <span>{activeLiveSession.student_count || 1} Viewers Active</span>
+              </div>
+            </div>
+            <Link
+              to="/live"
+              className="shrink-0 bg-white hover:bg-slate-100 text-red-700 font-black px-7 py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl transition-all flex items-center space-x-2 hover:scale-105"
+            >
+              <Radio className="w-4 h-4 text-red-600 animate-pulse" />
+              <span>Enter Live Workspace</span>
+            </Link>
+          </div>
+        </motion.section>
+      )}
 
       {/* Official Approved Admin Announcement */}
       {recentPosts.length > 0 && (
