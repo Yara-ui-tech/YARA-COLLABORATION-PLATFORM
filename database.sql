@@ -3498,6 +3498,156 @@ CREATE INDEX IF NOT EXISTS idx_impact_galleries_province ON public.impact_galler
 CREATE INDEX IF NOT EXISTS idx_impact_galleries_year ON public.impact_galleries(year);
 
 -- =========================================================================
+-- 37. GLOBAL RLS READ/WRITE UNIFICATION FOR ADMIN-MANAGED CONTENT & OUTREACH
+-- =========================================================================
+
+-- 1. Impact Galleries
+ALTER TABLE public.impact_galleries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view impact galleries" ON public.impact_galleries;
+DROP POLICY IF EXISTS "Admins can manage impact galleries" ON public.impact_galleries;
+DROP POLICY IF EXISTS "Universal read access for impact_galleries" ON public.impact_galleries;
+DROP POLICY IF EXISTS "Universal write access for impact_galleries" ON public.impact_galleries;
+
+CREATE POLICY "Universal read access for impact_galleries"
+  ON public.impact_galleries FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for impact_galleries"
+  ON public.impact_galleries FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 2. Organization Posts & Announcements
+ALTER TABLE public.organization_posts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view organization posts" ON public.organization_posts;
+DROP POLICY IF EXISTS "Admins can manage organization posts" ON public.organization_posts;
+DROP POLICY IF EXISTS "Universal read access for organization_posts" ON public.organization_posts;
+DROP POLICY IF EXISTS "Universal write access for organization_posts" ON public.organization_posts;
+
+CREATE POLICY "Universal read access for organization_posts"
+  ON public.organization_posts FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for organization_posts"
+  ON public.organization_posts FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 3. Events
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view events" ON public.events;
+DROP POLICY IF EXISTS "Admins can manage events" ON public.events;
+DROP POLICY IF EXISTS "Universal read access for events" ON public.events;
+DROP POLICY IF EXISTS "Universal write access for events" ON public.events;
+
+CREATE POLICY "Universal read access for events"
+  ON public.events FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for events"
+  ON public.events FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 4. Competitions
+ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view competitions" ON public.competitions;
+DROP POLICY IF EXISTS "Admins can manage competitions" ON public.competitions;
+DROP POLICY IF EXISTS "Universal read access for competitions" ON public.competitions;
+DROP POLICY IF EXISTS "Universal write access for competitions" ON public.competitions;
+
+CREATE POLICY "Universal read access for competitions"
+  ON public.competitions FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for competitions"
+  ON public.competitions FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 5. Chapters
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view chapters" ON public.chapters;
+DROP POLICY IF EXISTS "Admins can manage chapters" ON public.chapters;
+DROP POLICY IF EXISTS "Universal read access for chapters" ON public.chapters;
+DROP POLICY IF EXISTS "Universal write access for chapters" ON public.chapters;
+
+CREATE POLICY "Universal read access for chapters"
+  ON public.chapters FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for chapters"
+  ON public.chapters FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 6. Chapter Join Requests & Chapter Registration Requests
+ALTER TABLE public.chapter_join_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can submit chapter join requests" ON public.chapter_join_requests;
+DROP POLICY IF EXISTS "Users can view their own join requests or admins/leaders view all" ON public.chapter_join_requests;
+DROP POLICY IF EXISTS "Admins can update chapter join requests" ON public.chapter_join_requests;
+DROP POLICY IF EXISTS "Admins can delete chapter join requests" ON public.chapter_join_requests;
+DROP POLICY IF EXISTS "Universal read access for chapter_join_requests" ON public.chapter_join_requests;
+DROP POLICY IF EXISTS "Universal write access for chapter_join_requests" ON public.chapter_join_requests;
+
+CREATE POLICY "Universal read access for chapter_join_requests"
+  ON public.chapter_join_requests FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for chapter_join_requests"
+  ON public.chapter_join_requests FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+ALTER TABLE public.chapter_registration_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can submit chapter registration requests" ON public.chapter_registration_requests;
+DROP POLICY IF EXISTS "Public can view chapter registration requests" ON public.chapter_registration_requests;
+DROP POLICY IF EXISTS "Admins can update chapter registration requests" ON public.chapter_registration_requests;
+DROP POLICY IF EXISTS "Universal read access for chapter_registration_requests" ON public.chapter_registration_requests;
+DROP POLICY IF EXISTS "Universal write access for chapter_registration_requests" ON public.chapter_registration_requests;
+
+CREATE POLICY "Universal read access for chapter_registration_requests"
+  ON public.chapter_registration_requests FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for chapter_registration_requests"
+  ON public.chapter_registration_requests FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 7. Certificate Templates
+ALTER TABLE public.certificate_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view certificate templates" ON public.certificate_templates;
+DROP POLICY IF EXISTS "Admins can manage certificate templates" ON public.certificate_templates;
+DROP POLICY IF EXISTS "Universal read access for certificate_templates" ON public.certificate_templates;
+DROP POLICY IF EXISTS "Universal write access for certificate_templates" ON public.certificate_templates;
+
+CREATE POLICY "Universal read access for certificate_templates"
+  ON public.certificate_templates FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for certificate_templates"
+  ON public.certificate_templates FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- 8. Deleted Records Blacklist
+ALTER TABLE public.deleted_records_blacklist ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public can view deleted records blacklist" ON public.deleted_records_blacklist;
+DROP POLICY IF EXISTS "Admins can manage deleted records blacklist" ON public.deleted_records_blacklist;
+DROP POLICY IF EXISTS "Universal read access for deleted_records_blacklist" ON public.deleted_records_blacklist;
+DROP POLICY IF EXISTS "Universal write access for deleted_records_blacklist" ON public.deleted_records_blacklist;
+
+CREATE POLICY "Universal read access for deleted_records_blacklist"
+  ON public.deleted_records_blacklist FOR SELECT
+  USING (true);
+
+CREATE POLICY "Universal write access for deleted_records_blacklist"
+  ON public.deleted_records_blacklist FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+-- =========================================================================
 -- END OF ALL MIGRATIONS
 -- =========================================================================
 
