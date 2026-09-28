@@ -58,6 +58,23 @@ code, pre, .font-mono {
 }
 
 /* ============================================================
+   Global Input Fix – Prevent invisible text on light backgrounds
+   The body uses color: #f8fafc (near-white) for dark-mode pages,
+   so inputs/textareas must explicitly set a dark text color.
+   ============================================================ */
+input,
+textarea,
+select {
+  color: #0f172a;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+}
+
+
+/* ============================================================
    Scrollbar Styling
    ============================================================ */
 ::-webkit-scrollbar {

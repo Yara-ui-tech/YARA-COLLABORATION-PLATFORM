@@ -1,17 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Share, Linking } from 'react-native';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 export default function LiveStreamScreen() {
   const isOnline = useOnlineStatus();
   const [showInternetModal, setShowInternetModal] = useState(false);
 
-  const handleStartStream = () => {
+  const handleStartStream = async () => {
     if (!isOnline) {
       setShowInternetModal(true);
       return;
     }
-    alert('Connecting to YARA Mobile Live Streaming Server...');
+    
+    const streamUrl = 'https://www.youtube.com/live'; // Replace with your actual live stream URL
+    try {
+      const supported = await Linking.canOpenURL(streamUrl);
+      if (supported) {
+        await Linking.openURL(streamUrl);
+      } else {
+        alert("Cannot open stream URL.");
+      }
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  const handleShareStream = async () => {
+    try {
+      await Share.share({
+        message: 'Join the YARA AI & Robotics National Masterclass 2026 live stream! https://yara.app/live/masterclass-2026',
+        title: 'YARA Live Stream',
+      });
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -32,6 +54,9 @@ export default function LiveStreamScreen() {
         </Text>
         <TouchableOpacity style={styles.streamBtn} onPress={handleStartStream}>
           <Text style={styles.streamBtnText}>▶ Join / Go Live Stream</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.shareBtn} onPress={handleShareStream}>
+          <Text style={styles.shareBtnText}>📤 Share Stream Link</Text>
         </TouchableOpacity>
       </View>
 
@@ -79,8 +104,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    marginBottom: 10,
   },
   streamBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
+  shareBtn: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  shareBtnText: { color: '#ffffff', fontWeight: 'bold', fontSize: 14 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',

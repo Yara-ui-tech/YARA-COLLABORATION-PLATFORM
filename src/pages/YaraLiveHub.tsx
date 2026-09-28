@@ -163,8 +163,7 @@ export default function YaraLiveHub() {
         title: newTitle.trim(),
         description: newDesc.trim(),
         mentor_name: profile?.display_name || 'YARA Host',
-        mentor_id: user?.id || 'host',
-        status: 'live',
+        mentor_id: user?.id || undefined,
         is_live: true,
         is_approved: isHostAdmin,
         student_count: 1,
@@ -181,9 +180,9 @@ export default function YaraLiveHub() {
         setSessions(prev => [data, ...prev.filter(s => s.id !== data.id)]);
         setActiveSession(data);
       } else {
-        const fallback = { ...newSessionObj, id: roomId, scheduled_at: new Date().toISOString(), created_at: new Date().toISOString() } as LiveSession;
-        setSessions(prev => [fallback, ...prev]);
-        setActiveSession(fallback);
+        console.error('Failed to create live session:', error);
+        alert('Database Error: ' + (error?.message || 'Unknown error inserting session.'));
+        return;
       }
 
       setShowCreateModal(false);
