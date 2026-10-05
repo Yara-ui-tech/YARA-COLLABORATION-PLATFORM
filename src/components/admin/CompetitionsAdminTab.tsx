@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, Plus, Search, Edit2, Trash2, Calendar, MapPin, 
-  ExternalLink, Sparkles, AlertCircle, CheckCircle2, 
+  ExternalLink, AlertCircle, CheckCircle2, 
   X, Filter, DollarSign, Users, Award, ShieldCheck, 
   RefreshCw, Star, Layers, Compass, ArrowRight, Eye
 } from 'lucide-react';

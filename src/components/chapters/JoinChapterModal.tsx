@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, ChevronRight, ChevronLeft, MapPin, Building2, School, Users, Cpu,
   BookOpen, CheckCircle2, Clock, AlertCircle, User, Mail, Phone,
-  GraduationCap, Star, FileText, Sparkles, Globe, Layers, Heart,
+  GraduationCap, Star, FileText, Send, Globe, Layers, Heart,
   UserPlus, Landmark, Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -699,7 +699,7 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
+                        <Send className="w-4 h-4" />
                         <span>Submit Application</span>
                       </>
                     )

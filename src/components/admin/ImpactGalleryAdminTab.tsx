@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Plus, Trash2, Edit2, Save, Eye, Video, Image as ImageIcon,
-  CheckCircle2, X, Loader2, Sparkles, Filter, Award, MapPin, Calendar,
+  CheckCircle2, X, Loader2, Filter, Award, MapPin, Calendar,
   Globe, ExternalLink, Hash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

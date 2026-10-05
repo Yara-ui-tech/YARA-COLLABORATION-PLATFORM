@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Tag, FileText, Save, X, Sparkles, RefreshCw, Link as LinkIcon } from 'lucide-react';
+import { Calendar, MapPin, Tag, FileText, Save, X, RefreshCw, Link as LinkIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import ImageUploader from '../ImageUploader';
 

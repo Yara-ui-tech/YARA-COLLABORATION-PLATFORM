@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Brain, 
-  Sparkles, 
   HelpCircle, 
   CheckCircle2, 
   XCircle, 
@@ -108,7 +107,7 @@ export default function BrainstormingQuizModal({ isOpen, onClose }: Brainstormin
   };
 
   const categoryLabels: Record<string, { label: string; icon: any; color: string }> = {
-    pattern_recognition: { label: 'Patterns & Sequences', icon: Sparkles, color: 'text-purple-500 bg-purple-500/10' },
+    pattern_recognition: { label: 'Patterns & Sequences', icon: Compass, color: 'text-purple-500 bg-purple-500/10' },
     cause_and_effect: { label: 'Cause & Effect', icon: Layers, color: 'text-blue-500 bg-blue-500/10' },
     spatial_reasoning: { label: 'Spatial & 3D Reasoning', icon: Eye, color: 'text-cyan-500 bg-cyan-500/10' },
     logic_deduction: { label: 'Logic & Deduction', icon: Brain, color: 'text-emerald-500 bg-emerald-500/10' },
@@ -349,7 +348,7 @@ export default function BrainstormingQuizModal({ isOpen, onClose }: Brainstormin
                     className="p-5 rounded-3xl bg-slate-900 text-white space-y-3"
                   >
                     <div className="flex items-center space-x-2 text-amber-400 font-black text-xs uppercase tracking-wider">
-                      <Sparkles className="w-4 h-4" />
+                      <Lightbulb className="w-4 h-4" />
                       <span>The Engineering & Physics Principle: {currentQ.critical_thinking_principle}</span>
                     </div>
                     <p className="text-slate-300 text-xs md:text-sm leading-relaxed">

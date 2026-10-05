@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Image as ImageIcon, Link as LinkIcon, Check, X, RefreshCw, Sparkles, FileImage } from 'lucide-react';
+import { Upload, Image as ImageIcon, Link as LinkIcon, Check, X, RefreshCw, FileImage } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ImageUploaderProps {

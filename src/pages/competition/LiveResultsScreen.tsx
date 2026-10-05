@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Trophy, Sparkles, Waves, Compass, Lightbulb, 
+  Trophy, Waves, Compass, Lightbulb, 
   Maximize2, Minimize2, RefreshCw, Award, ShieldCheck, Flame
 } from 'lucide-react';
 import { getDigitalScores } from '../../services/competitionEcosystemService';

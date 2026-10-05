@@ -42,6 +42,8 @@ import AiForEducatorsBootcamp from './pages/events/AiForEducatorsBootcamp';
 import EducatorPortal from './pages/EducatorPortal';
 import YaraLiveHub from './pages/YaraLiveHub';
 import YaraKids from './pages/YaraKids';
+import { PortalProvider } from './context/PortalContext';
+import { PortalGatewaySelector } from './components/portal/PortalGatewaySelector';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -92,7 +94,9 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const AppContent = () => {
   return (
     <Router>
-      <Routes>
+      <PortalProvider>
+        <PortalGatewaySelector />
+        <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route
           path="/"
@@ -173,6 +177,7 @@ const AppContent = () => {
           <Route path="infants" element={<YaraKids />} />
         </Route>
       </Routes>
+      </PortalProvider>
     </Router>
   );
 };

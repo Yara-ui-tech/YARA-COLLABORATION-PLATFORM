@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Award, CheckCircle2, Lock, Unlock, Search, RefreshCw, Sparkles, UserCheck, Check,
+  Award, CheckCircle2, Lock, Unlock, Search, RefreshCw, UserCheck, Check,
   Eye, Edit3, Download, Printer, ShieldCheck, DollarSign, X, Clock, FileText, CheckCircle
 } from 'lucide-react';
 import { 

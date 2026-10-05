@@ -4,7 +4,7 @@ import {
   Trophy, Users, ShieldCheck, Download, Search, Filter, CheckCircle2, 
   XCircle, Clock, AlertTriangle, Eye, Edit3, Trash2, Calendar, 
   MapPin, Building2, Mail, Phone, FileText, Settings, Award, 
-  RefreshCw, Check, Sparkles, Send, Waves, Compass, Lightbulb, Lock, Unlock
+  RefreshCw, Check, Send, Waves, Compass, Lightbulb, Lock, Unlock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { 

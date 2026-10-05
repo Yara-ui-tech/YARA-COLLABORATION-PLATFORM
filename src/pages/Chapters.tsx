@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Building2, School, Users, Cpu, MapPin, Search, Filter, 
-  Sparkles, FileText, ExternalLink, ChevronRight, CheckCircle2, 
+  FileText, ExternalLink, ChevronRight, CheckCircle2, 
   Plus, Shield, Globe, Award, BookOpen, Layers, ArrowUpRight,
   Landmark, UserCheck, UserPlus, LayoutGrid, List
 } from 'lucide-react';

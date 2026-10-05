@@ -4,7 +4,7 @@ import {
   KidsVideo, KidsSong, KidsFlashcard, KidsChallenge 
 } from '../../services/yaraKidsService';
 import { 
-  Sparkles, Plus, Trash2, Video, Music, BookOpen, Trophy, 
+  Plus, Trash2, Video, Music, BookOpen, Trophy, 
   Play, Volume2, Link as LinkIcon, Save, Loader2, Star, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
@@ -165,7 +165,7 @@ export default function YaraKidsAdminTab() {
       <div className="bg-gradient-to-r from-amber-500 via-pink-500 to-indigo-600 p-8 rounded-3xl text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
         <div className="space-y-2">
           <div className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-amber-200" />
+            <Star className="w-4 h-4 text-amber-200" />
             <span>YARA Kids Content Manager</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-black">Early Childhood STEM Portal Admin</h2>

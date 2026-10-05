@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Building2, School, Users, Cpu, MapPin, Sparkles, X, Plus, 
+  Building2, School, Users, Cpu, MapPin, X, Plus, 
   Trash2, CheckCircle2, AlertCircle, Shield, Image, BookOpen, 
   HelpCircle, ChevronRight, FileText, Phone, Mail, Award, Landmark
 } from 'lucide-react';
@@ -268,7 +268,7 @@ export default function ChapterRegistrationModal({
 
           <div className="max-w-2xl space-y-2">
             <div className="inline-flex items-center space-x-2 px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Award className="w-3.5 h-3.5" />
               <span>Chapter Charter Application</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight">

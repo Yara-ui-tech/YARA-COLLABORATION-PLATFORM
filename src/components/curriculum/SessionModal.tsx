@@ -9,7 +9,6 @@ import {
   ExternalLink, 
   Send, 
   AlertCircle, 
-  Sparkles, 
   X, 
   Code, 
   Link as LinkIcon,
@@ -361,7 +360,7 @@ export default function SessionModal({ session, isOpen, onClose, onSessionUpdate
               {session.details?.activities && session.details.activities.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <BookOpen className="w-4 h-4 text-indigo-600" />
                     <span>Laboratory & Practical Activities</span>
                   </h4>
                   <div className="grid gap-2">

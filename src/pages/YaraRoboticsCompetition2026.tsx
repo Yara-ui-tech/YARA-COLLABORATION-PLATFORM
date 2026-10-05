@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Trophy, Calendar, MapPin, Clock, ArrowRight, ShieldCheck, 
-  Sparkles, Waves, Compass, Lightbulb, Users, CheckCircle2, 
+  Waves, Compass, Lightbulb, Users, CheckCircle2, 
   Award, HelpCircle, Layers, FileText, ChevronRight, Share2, 
   Info, Heart, DollarSign, UserCheck, QrCode, MonitorPlay, BarChart3
 } from 'lucide-react';

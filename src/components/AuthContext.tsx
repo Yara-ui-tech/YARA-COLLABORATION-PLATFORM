@@ -24,6 +24,9 @@ interface UserProfile {
   mentored_count: number;
   total_commission: number;
   commission_rate: number;
+  amount_paid?: number;
+  total_dues?: number;
+  phone_number?: string;
 }
 
 interface AuthContextType {
@@ -37,6 +40,7 @@ interface AuthContextType {
   isHalted: boolean;
   refreshProfile?: () => Promise<void>;
   signOut?: () => Promise<void>;
+  loginAsGuest?: (role?: 'innovator' | 'admin') => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -50,6 +54,7 @@ const AuthContext = createContext<AuthContextType>({
   isHalted: false,
   refreshProfile: async () => {},
   signOut: async () => {},
+  loginAsGuest: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -217,8 +222,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (mounted) {
           const currentUser = session?.user ?? null;
-          setUser(currentUser);
           if (currentUser) {
+            setUser(currentUser);
             const cached = getCachedProfile(currentUser.id);
             const initialProfile = cached || buildFallbackProfile(currentUser);
             const isAdmin = isUserAdmin(currentUser.email, initialProfile.role);
@@ -226,9 +231,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ...initialProfile,
               role: isAdmin ? 'admin' : initialProfile.role
             });
+          } else {
+            // Check for guest demo session
+            const guestStr = localStorage.getItem('yaria_guest_session');
+            if (guestStr) {
+              try {
+                const guest = JSON.parse(guestStr);
+                if (guest?.user && guest?.profile) {
+                  setUser(guest.user);
+                  setProfile(guest.profile);
+                }
+              } catch {}
+            }
           }
           setIsAuthReady(true);
-          if (!currentUser) setLoading(false);
+          setLoading(false);
         }
       } catch (err: any) {
         console.warn('Authentication initialization warning:', err?.message || err);
@@ -471,8 +488,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginAsGuest = (role: 'innovator' | 'admin' = 'innovator') => {
+    const guestId = 'guest_' + (role === 'admin' ? 'admin' : 'innovator');
+    const guestUser: any = {
+      id: guestId,
+      email: role === 'admin' ? 'admin@yara.org' : 'innovator@yara.org',
+      user_metadata: {
+        role: role,
+        display_name: role === 'admin' ? 'YARA System Admin' : 'YARA Innovator',
+        tier: 'T2',
+        member_id: role === 'admin' ? 'YARIA-ADMIN-01' : 'YARIA-2026-DEMO',
+        registration_paid: true,
+      }
+    };
+    const guestProfile: UserProfile = {
+      id: guestId,
+      display_name: role === 'admin' ? 'YARA System Admin' : 'YARA Innovator',
+      email: guestUser.email,
+      member_id: guestUser.user_metadata.member_id,
+      role: role,
+      educational_level: role === 'admin' ? 'tertiary' : 'junior',
+      registration_paid: true,
+      subscription_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      is_halted: false,
+      created_at: new Date().toISOString(),
+      rating: 5.0,
+      mentored_count: 0,
+      total_commission: 0,
+      commission_rate: 0.1,
+    };
+
+    localStorage.setItem('yaria_guest_session', JSON.stringify({ user: guestUser, profile: guestProfile }));
+    setUser(guestUser);
+    setProfile(guestProfile);
+    setLoading(false);
+    setIsAuthReady(true);
+  };
+
   const signOut = async () => {
     try {
+      localStorage.removeItem('yaria_guest_session');
       setUser(null);
       setProfile(null);
       setLoading(false);
@@ -480,6 +536,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.warn('Sign out handler notice:', err);
     } finally {
+      localStorage.removeItem('yaria_guest_session');
       setUser(null);
       setProfile(null);
       setLoading(false);
@@ -491,7 +548,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted, refreshProfile, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAuthReady, isAccountActive, isSubscriptionExpired, isTrialExpired, isHalted, refreshProfile, signOut, loginAsGuest }}>
       {children}
     </AuthContext.Provider>
   );

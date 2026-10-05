@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Lock, ShieldCheck, Search, ChevronRight, 
-  Sparkles, FileText, CheckCircle2, AlertTriangle, HelpCircle, 
+  FileText, CheckCircle2, AlertTriangle, HelpCircle, 
   Layers, Copy, Eye, Bookmark, X, AlertCircle, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -357,7 +357,7 @@ export default function SecuredHandbookViewer({
                   {sec.examplePrompt && (
                     <div className="p-4 rounded-xl bg-slate-900 text-white space-y-1.5 border border-slate-800">
                       <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center space-x-1">
-                        <Sparkles className="w-3 h-3" />
+                        <HelpCircle className="w-3 h-3" />
                         <span>Example Prompt Template</span>
                       </span>
                       <p className="text-xs font-mono text-slate-200 leading-relaxed">"{sec.examplePrompt}"</p>

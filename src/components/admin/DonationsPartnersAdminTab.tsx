@@ -8,7 +8,6 @@ import {
   XCircle, 
   Eye, 
   Trash2, 
-  Sparkles, 
   DollarSign, 
   Building, 
   Search, 

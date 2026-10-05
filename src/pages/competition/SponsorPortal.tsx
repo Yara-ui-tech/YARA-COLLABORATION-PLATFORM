@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
-  Trophy, Heart, ShieldCheck, CheckCircle2, Sparkles, 
+  Trophy, Heart, ShieldCheck, CheckCircle2, 
   DollarSign, FileText, Download, Printer, ArrowRight, 
   Users, Layers, Award, BarChart3, Building2, Mail, Phone, Globe
 } from 'lucide-react';

@@ -64,7 +64,7 @@ export default function About() {
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
               <Eye className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-bold">🌟 Vision</h3>
+            <h3 className="text-2xl font-bold">Vision</h3>
           </div>
           <p className="text-slate-300 text-lg font-medium leading-relaxed">
             To become Africa’s leading youth-driven robotics and innovation ecosystem, producing globally competitive innovators and engineers.
@@ -75,7 +75,7 @@ export default function About() {
       <section className="space-y-8">
         <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
           <Heart className="w-6 h-6 text-red-500" />
-          <span>💡 Core Values</span>
+          <span>Core Values</span>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[

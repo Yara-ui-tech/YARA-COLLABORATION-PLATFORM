@@ -9,7 +9,6 @@ import {
   HeartHandshake, 
   CheckCircle2, 
   Send, 
-  Sparkles, 
   Globe, 
   Mail, 
   Phone, 

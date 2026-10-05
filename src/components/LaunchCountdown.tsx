@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Rocket, Clock, Sparkles, Calendar, Zap, AlertCircle, RefreshCw } from 'lucide-react';
+import { Rocket, Clock, Calendar, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface LaunchConfig {

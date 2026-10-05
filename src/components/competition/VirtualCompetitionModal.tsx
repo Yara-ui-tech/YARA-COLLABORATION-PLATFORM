@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
   Clock, 
-  Sparkles, 
   CheckCircle2, 
   AlertCircle, 
   ExternalLink, 

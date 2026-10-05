@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Code, Plus, Edit2, Trash2, Eye, EyeOff, Save, X, Search, 
-  Sparkles, CheckCircle2, BookOpen, Video, Layers, Award, RefreshCw, AlertCircle
+  CheckCircle2, BookOpen, Video, Layers, Award, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { 
   ProgrammingCourse, 

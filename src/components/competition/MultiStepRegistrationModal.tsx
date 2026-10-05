@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Check, ChevronRight, ChevronLeft, Trophy, Users, ShieldCheck, 
-  Upload, FileText, CheckCircle2, AlertCircle, Sparkles, Building2, 
+  Upload, FileText, CheckCircle2, AlertCircle, Building2, 
   MapPin, Phone, Mail, User, Layers, Waves, Compass, Lightbulb, 
   Plus, Trash2, Crown, Download, Printer, ArrowRight, Video, FileCheck, Info
 } from 'lucide-react';

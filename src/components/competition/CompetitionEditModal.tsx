@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Calendar, MapPin, FileText, Save, X, Sparkles, RefreshCw, Award, Star } from 'lucide-react';
+import { Trophy, Calendar, MapPin, FileText, Save, X, RefreshCw, Award, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Competition } from '../../types/competition';
 import ImageUploader from '../ImageUploader';

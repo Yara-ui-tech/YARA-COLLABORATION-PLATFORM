@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Award, CheckCircle2, X, Save, Eye, Lock, Unlock, 
   Building2, MapPin, User, Calendar, FileText, Check, Upload,
-  ImageIcon, ShieldCheck, Globe, RefreshCw, Sparkles, Image as ImageLucide
+  ImageIcon, ShieldCheck, Globe, RefreshCw, Image as ImageLucide
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 

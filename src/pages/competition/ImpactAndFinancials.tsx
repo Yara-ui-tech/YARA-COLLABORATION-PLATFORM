@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { 
   BarChart3, DollarSign, Users, Award, ShieldCheck, 
   TrendingUp, CheckCircle2, Heart, Download, PieChart as PieIcon,
-  ArrowUpRight, ArrowDownLeft, Building2, Sparkles
+  ArrowUpRight, ArrowDownLeft, Building2
 } from 'lucide-react';
 import { getRegistrations } from '../../services/yaraCompetitionService';
 import { getSponsors, getFinancialTransactions, calculateImpactMetrics } from '../../services/competitionEcosystemService';

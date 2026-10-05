@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, DollarSign, Users, Award, ShieldCheck, 
   TrendingUp, CheckCircle2, Download, Search, Filter, 
-  Building2, Sparkles, Heart, AlertCircle, RefreshCw, 
+  Building2, Heart, AlertCircle, RefreshCw, 
   UserCheck, Plus, X, Lock, Check, FileSpreadsheet, Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

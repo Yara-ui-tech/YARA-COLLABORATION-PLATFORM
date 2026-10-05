@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Link as LinkIcon,
   Layers,
-  Sparkles,
   ChevronRight,
   X,
   Loader2,

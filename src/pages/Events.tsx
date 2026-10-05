@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Sparkles, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School, Plus, Edit3, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Award, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School, Plus, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
@@ -221,7 +221,7 @@ export default function Events() {
                       <span>Fee: US$10 Once-off</span>
                     </div>
                     <div className="flex items-center space-x-1.5 text-purple-300 font-medium">
-                      <Sparkles className="w-4 h-4" />
+                      <Award className="w-4 h-4" />
                       <span>Continuous Support: US$15 per term</span>
                     </div>
                     <div className="flex items-center space-x-1.5 text-amber-300 font-medium">

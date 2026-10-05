@@ -56,7 +56,7 @@ export default function Impact() {
             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-indigo-400">
               <Rocket className="w-6 h-6" />
             </div>
-            <h3 className="text-2xl font-bold">🚀 Future Goals</h3>
+            <h3 className="text-2xl font-bold">Future Strategic Goals</h3>
           </div>
           <div className="space-y-4">
             {goals.map((item, i) => (

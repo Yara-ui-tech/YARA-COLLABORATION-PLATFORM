@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, CheckCircle2, Waves, Compass, Lightbulb, Link as LinkIcon, FileText, Sparkles, AlertCircle } from 'lucide-react';
+import { X, Upload, CheckCircle2, Waves, Compass, Lightbulb, Link as LinkIcon, FileText, AlertCircle } from 'lucide-react';
 import { YaraCompetitionRegistration, UnderwaterDroneDetails, AutonomousMazeDetails, InnovationPitchDetails } from '../../types/yaraCompetition';
 import { updateRegistrationDetails } from '../../services/yaraCompetitionService';
 
@@ -92,7 +92,7 @@ export default function TechnicalSubmissionModal({ isOpen, onClose, team, onSucc
           <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
             <div>
               <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
+                <FileText className="w-3.5 h-3.5" />
                 <span>Technical Specifications & Pitch Deck Submission</span>
               </div>
               <h2 className="text-xl font-black">{team.team_name}</h2>

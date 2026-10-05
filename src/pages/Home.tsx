@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText, Sparkles, Building2, Trophy, Radio } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText, Building2, Trophy, Radio, Globe, GraduationCap, ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRICULUM } from '../constants/curriculum';
 import { cn } from '../lib/utils';
@@ -11,9 +11,12 @@ import PlaceholderImage from '../components/PlaceholderImage';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
+import { usePortal } from '../context/PortalContext';
 
 export default function Home() {
   const { profile, user } = useAuth();
+  const navigate = useNavigate();
+  const { portalMode, setPortalMode, openPortalSelector, portalStats } = usePortal();
   const [recentIdeas, setRecentIdeas] = useState<any[]>([]);
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>({});
@@ -22,7 +25,7 @@ export default function Home() {
 
   const recommendations = {
     junior: [
-      { title: 'YARA Kids Exploration', type: 'Specialized Track', path: '/kids', desc: 'Interactive STEM & robotics games for young minds (Ages 3-8)', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-50' },
+      { title: 'YARA Kids Exploration', type: 'Specialized Track', path: '/kids', desc: 'Interactive STEM & robotics games for young minds (Ages 3-8)', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
       { title: 'Introduction to Electronics', type: 'Curriculum Module', path: '/curriculum', desc: 'Master basic circuits, LEDs, breadboards, and safety', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
       { title: 'Block-based Robotics Coding', type: 'Learning Academy', path: '/learning', desc: 'Visual programming for beginner microcontrollers', icon: Code, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ],
@@ -216,6 +219,55 @@ export default function Home() {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Dual Portal Switcher & Selector Gateway Banner */}
+      <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-950 text-blue-400 border border-blue-800 flex items-center gap-1.5">
+                <Globe className="w-3 h-3 text-blue-400" />
+                Active Platform: YARA Public Webpage
+              </span>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                YARA Learning Academy Available
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Choose Between Public Webpage & YARA Learning Academy
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 mt-1">
+              You are currently viewing the <span className="text-blue-400 font-semibold">YARA Public Ecosystem</span> (Competitions, Chapters, Gallery & Live Streams). Looking for hands-on robotics curriculum & certificates?
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={() => {
+                setPortalMode('lms');
+                navigate('/learning');
+              }}
+              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-3 rounded-2xl font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all hover:scale-105"
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Launch YARA LMS</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={openPortalSelector}
+              className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-2xl font-semibold text-xs border border-slate-700 transition-all"
+            >
+              <Layers className="w-4 h-4 text-blue-400" />
+              <span>Gateway Selector</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Welcome Hero */}
       <section className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-indigo-200">
         <img 
@@ -538,7 +590,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Globe className="w-3.5 h-3.5" />
               <span>Outreach & Grassroots Impact</span>
             </div>
             <h3 className="text-2xl md:text-3xl font-black">2025 Mashwest Impact Outreach</h3>
@@ -570,7 +622,10 @@ export default function Home() {
               const nextSession = CURRICULUM.find(s => !feedbacks[s.id] || feedbacks[s.id].status === 'struggling' || feedbacks[s.id].status === 'partially');
               if (!nextSession) return (
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2">Curriculum Complete! 🏆</h3>
+                  <h3 className="text-2xl font-black text-slate-900 mb-2 flex items-center">
+                    <span>Curriculum Complete!</span>
+                    <Trophy className="w-6 h-6 text-amber-500 ml-2 inline" />
+                  </h3>
                   <p className="text-slate-500 font-medium">You've mastered all 14 sessions. Great job, Innovator!</p>
                 </div>
               );
@@ -716,7 +771,7 @@ export default function Home() {
               <div className="flex items-center space-x-2">
                 <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center space-x-1">
                   <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span>🔥 Trending News Alert</span>
+                  <span>Trending Announcement</span>
                 </span>
                 <span className="text-xs text-slate-400 font-semibold">{trendingPopupPost.category}</span>
               </div>

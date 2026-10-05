@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   GraduationCap, Award, BookOpen, Video, ShieldCheck, 
-  CheckCircle2, Clock, Calendar, Sparkles, School, 
+  CheckCircle2, Clock, Calendar, School, 
   FileText, Download, Printer, ExternalLink, ArrowRight, 
   Lock, AlertCircle, Copy, Check, Users, MessageSquare, 
   Cpu, Brain, Layers, Star, HelpCircle, FileCheck, RefreshCw
@@ -200,7 +200,7 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
                 to="/events/ai-for-educators"
                 className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2.5 shadow-xl shadow-amber-500/20 text-center"
               >
-                <Sparkles className="w-5 h-5 text-slate-950" />
+                <Award className="w-5 h-5 text-slate-950" />
                 <span>Register for Bootcamp ($10 USD)</span>
               </Link>
             ) : isCertUnlocked ? (
@@ -358,7 +358,7 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
                     to="/events/ai-for-educators"
                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition flex items-center justify-center gap-2 shadow-md"
                   >
-                    <Sparkles className="w-4 h-4" />
+                    <Award className="w-4 h-4" />
                     Register for Access
                   </Link>
                 ) : (
@@ -469,7 +469,7 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
                     to="/events/ai-for-educators"
                     className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 text-center"
                   >
-                    <Sparkles className="w-4 h-4 text-slate-950" />
+                    <Award className="w-4 h-4 text-slate-950" />
                     <span>Register to Qualify</span>
                   </Link>
                 </div>
@@ -523,7 +523,7 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950">
-              <Sparkles className="w-6 h-6" />
+              <Brain className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900">AI Teaching & Classroom Prompt Library</h2>

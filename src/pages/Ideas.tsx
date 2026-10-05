@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Lightbulb, Send, Clock, MessageSquare, Share2, Heart, Loader2, Brain, Sparkles } from 'lucide-react';
+import { Lightbulb, Send, Clock, MessageSquare, Share2, Heart, Loader2, Brain, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ASSETS } from '../constants/assets';
@@ -125,7 +125,7 @@ export default function Ideas() {
           onClick={() => setShowQuizModal(true)}
           className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3.5 rounded-2xl text-xs md:text-sm shadow-xl shadow-indigo-100 whitespace-nowrap flex items-center space-x-2 shrink-0 transition-all"
         >
-          <Sparkles className="w-4 h-4 text-amber-300" />
+          <Zap className="w-4 h-4 text-amber-300" />
           <span>Launch Image Quiz Arena</span>
         </button>
       </section>

@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Send, 
-  Sparkles, 
   Clock, 
   RefreshCw,
   LogOut,

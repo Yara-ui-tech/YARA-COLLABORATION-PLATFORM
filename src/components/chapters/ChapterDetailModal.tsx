@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Building2, MapPin, Calendar, Users, Cpu, FileText, 
   ExternalLink, Mail, Phone, ShieldCheck, Lock, Unlock, 
-  CheckCircle2, Sparkles, AlertCircle, X, ChevronRight,
+  CheckCircle2, AlertCircle, X, ChevronRight,
   Share2, Award, Clock, ArrowRight, Landmark, Search,
   GraduationCap, UserCheck, Shield
 } from 'lucide-react';

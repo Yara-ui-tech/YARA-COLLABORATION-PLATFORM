@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, 
-  AlertCircle, Sparkles, BookOpen, Brain, Users, Award, 
+  AlertCircle, BookOpen, Brain, Users, Award, 
   Video, ArrowRight, Lock, Check, FileText, Send, HelpCircle, 
   School, Laptop, Star, RefreshCw, XCircle, Share2, Layers, Cpu, 
   Building2, Key, Copy, ExternalLink, Link as LinkIcon, Info,
@@ -408,7 +408,7 @@ export default function AiForEducatorsBootcamp() {
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Continuous Support</span>
                 <p className="text-xs font-bold text-purple-300 flex items-center space-x-1">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                  <Award className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                   <span>US$15 per term</span>
                 </p>
               </div>
@@ -654,12 +654,12 @@ export default function AiForEducatorsBootcamp() {
       <div className="flex border-b border-slate-200 overflow-x-auto gap-2">
         {[
           { id: 'overview', label: 'Programme Overview & Objectives', icon: BookOpen },
-          { id: 'secured_handbook', label: '📖 Official Handbook & Secured Docs', icon: FileCheck },
+          { id: 'secured_handbook', label: 'Official Handbook & Secured Docs', icon: FileCheck },
           { id: 'curriculum', label: 'Five-Day Learning Programme', icon: Brain },
           { id: 'automation', label: 'Practical Automation Areas', icon: Cpu },
           { id: 'outcomes', label: 'Expected Outcomes & Philosophy', icon: Award },
-          { id: 'support', label: 'Continuous Support (US$15/term)', icon: Sparkles },
-          ...(accessResult?.is_granted ? [{ id: 'live_stage', label: '🔴 Live Google Meet Stage', icon: Video }] : [])
+          { id: 'support', label: 'Continuous Support (US$15/term)', icon: Award },
+          ...(accessResult?.is_granted ? [{ id: 'live_stage', label: 'Live Google Meet Stage', icon: Video }] : [])
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -725,7 +725,7 @@ export default function AiForEducatorsBootcamp() {
 
               <div className="space-y-3">
                 <h4 className="font-black text-sm uppercase tracking-wider text-slate-800 flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <BookOpen className="w-4 h-4 text-amber-500" />
                   <span>Programme Overview</span>
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -984,7 +984,7 @@ export default function AiForEducatorsBootcamp() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
             <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
+              <Award className="w-5 h-5 text-amber-400" />
               <h4 className="font-bold text-sm">Monthly Live Masterclasses</h4>
               <p className="text-xs text-slate-300">Deep-dive clinics on emerging tools, offline AI models, and student coding aids.</p>
             </div>

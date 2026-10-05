@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Sparkles, 
   MapPin, 
   Calendar, 
   Users, 
@@ -86,7 +85,7 @@ export default function ImpactGalleryPage() {
         {/* Header Section */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest">
-            <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <Award className="w-4 h-4 text-emerald-400" />
             <span>YARA Global Outreach & Impact</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
@@ -137,7 +136,7 @@ export default function ImpactGalleryPage() {
         ) : filteredGalleries.length === 0 ? (
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4">
             <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mx-auto">
-              <Sparkles className="w-8 h-8" />
+              <ImageIcon className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-bold text-white">No Outreach Galleries Found</h3>
             <p className="text-slate-400 text-sm">

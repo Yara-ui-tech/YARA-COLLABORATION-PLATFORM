@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Users, Trophy, Calendar, CheckCircle2, AlertCircle, 
-  FileText, Upload, Sparkles, Waves, Compass, Lightbulb, 
+  FileText, Upload, Waves, Compass, Lightbulb, 
   Clock, ShieldCheck, ArrowRight, Mail, Phone, MapPin, Award
 } from 'lucide-react';
 import { useAuth } from '../../components/AuthContext';
@@ -344,7 +344,7 @@ export default function ParticipantPortal() {
           {/* Announcements */}
           <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-bold text-base text-slate-900 flex items-center space-x-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
+              <Award className="w-5 h-5 text-amber-500" />
               <span>Broadcast Updates</span>
             </h3>
 

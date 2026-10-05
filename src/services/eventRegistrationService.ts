@@ -27,6 +27,9 @@ export const CANONICAL_AI_BOOTCAMP_ID = AI_FOR_EDUCATORS_EVENT.id; // 'ai-for-ed
  */
 export function getCanonicalEventAliases(eventId: string = CANONICAL_AI_BOOTCAMP_ID): string[] {
   const clean = (eventId || '').trim().toLowerCase();
+  if (!clean || clean === 'all' || clean === '*') {
+    return [];
+  }
   if (
     clean === 'ai-for-educators-2026' || 
     clean === 'ai_educators_bootcamp_2026' || 
@@ -34,7 +37,8 @@ export function getCanonicalEventAliases(eventId: string = CANONICAL_AI_BOOTCAMP
     clean === 'ai-for-educators' ||
     clean.includes('ai-for-educators') ||
     clean.includes('ai_educators') ||
-    clean.includes('educator')
+    clean.includes('educator') ||
+    clean.includes('bootcamp')
   ) {
     return [
       'ai-for-educators-2026', 
@@ -47,7 +51,7 @@ export function getCanonicalEventAliases(eventId: string = CANONICAL_AI_BOOTCAMP
       'ai_educators'
     ];
   }
-  return [eventId || CANONICAL_AI_BOOTCAMP_ID];
+  return [eventId];
 }
 
 export function generateRegistrationCode(): string {
@@ -451,23 +455,43 @@ export function setEventTimelineOverride(status: 'auto' | 'upcoming' | 'live' | 
 export async function getAllEventRegistrations(eventId?: string): Promise<EventRegistration[]> {
   const localList = getLocalRegistrations();
   const aliases = eventId ? getCanonicalEventAliases(eventId) : null;
+  const hasFilter = Boolean(aliases && aliases.length > 0);
   
   const mergedMap = new Map<string, EventRegistration>();
 
-  // Populate map with local storage items first
+  // 1. Populate map with local storage items first
   localList.forEach(item => {
-    if (!aliases || aliases.includes(item.event_id)) {
+    if (!hasFilter || (aliases && aliases.includes(item.event_id))) {
       mergedMap.set(item.id, item);
     }
   });
 
+  // 2. Fetch from Express Backend API (persisted on disk)
+  try {
+    const url = eventId && eventId !== 'all' ? `/api/bootcamp/registrations?eventId=${encodeURIComponent(eventId)}` : '/api/bootcamp/registrations';
+    const resp = await fetch(url);
+    if (resp.ok) {
+      const json = await resp.json();
+      if (json.registrations && Array.isArray(json.registrations)) {
+        json.registrations.forEach((r: any) => {
+          if (!hasFilter || (aliases && aliases.includes(r.event_id))) {
+            mergedMap.set(r.id, r);
+          }
+        });
+      }
+    }
+  } catch (backendErr) {
+    // Graceful offline fallback
+  }
+
+  // 3. Fetch from Supabase
   try {
     let query = supabase
       .from('event_registrations')
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (aliases && aliases.length > 0) {
+    if (hasFilter && aliases && aliases.length > 0) {
       query = query.in('event_id', aliases);
     }
     
@@ -702,6 +726,17 @@ export async function registerForEvent(payload: {
   } else {
     list.unshift(record);
     saveLocalRegistrations(list);
+  }
+
+  // Sync with Express backend (disk persistence)
+  try {
+    await fetch('/api/bootcamp/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+  } catch {
+    // ignore
   }
 
   // Sync with Supabase

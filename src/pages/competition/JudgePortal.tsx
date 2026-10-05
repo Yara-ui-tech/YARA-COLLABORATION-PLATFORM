@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Award, ShieldCheck, CheckCircle2, Lock, Unlock, 
-  Sparkles, FileText, ChevronRight, Waves, Compass, 
+  FileText, ChevronRight, Waves, Compass, 
   Lightbulb, Users, Clock, AlertCircle
 } from 'lucide-react';
 import { getJudges, getDigitalScores, submitJudgeScore, toggleScoreLock } from '../../services/competitionEcosystemService';
@@ -133,11 +133,11 @@ export default function JudgePortal() {
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <span className="px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-xs font-black uppercase tracking-wider">
-                ⚖️ YARA Robotics Competition — Official Judge Panel
+                YARA Robotics Competition — Official Judge Panel
               </span>
               {activeJudge.is_lead_judge && (
                 <span className="px-3 py-1 bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 rounded-full text-xs font-bold">
-                  ⭐ Chief Marshal & Lead Judge
+                  Chief Marshal & Lead Judge
                 </span>
               )}
             </div>

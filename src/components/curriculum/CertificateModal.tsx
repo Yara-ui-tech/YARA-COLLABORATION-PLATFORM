@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Award, Download, Share2, CheckCircle2, ShieldCheck, Printer, X as CloseIcon, Sparkles } from 'lucide-react';
+import { Award, Download, Share2, CheckCircle2, ShieldCheck, Printer, X as CloseIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Certificate } from '../../types/curriculum';
 import { ASSETS } from '../../constants/assets';

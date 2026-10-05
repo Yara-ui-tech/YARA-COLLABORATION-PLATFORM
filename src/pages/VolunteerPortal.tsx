@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
-  Users, Award, Cpu, Sparkles, CheckCircle2, 
+  Users, Award, Cpu, CheckCircle2, 
   Send, Clock, MapPin, Mail, Phone, ShieldCheck, 
   Video, HeartHandshake, Compass, AlertCircle, 
   FileCheck, Download, UserCheck, CheckSquare, Layers
@@ -197,7 +197,7 @@ const DEPARTMENTS: {
     id: 'custom_voluntary_duty', 
     title: 'Other / Custom Voluntary Duty', 
     desc: 'Propose a specialized voluntary role, professional service, or unique contribution to YARA’s mission.', 
-    icon: '✨',
+    icon: '🤝',
     category: 'leadership_grants'
   }
 ];

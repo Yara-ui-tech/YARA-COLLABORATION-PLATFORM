@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase, safeSignOut } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, Sparkles, Copy, Check, Building2, Award } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
@@ -95,6 +95,7 @@ interface Competition {
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'impact_gallery' | 'cert_templates' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings' | 'yara_kids' | 'feedbacks_testimonials'>('site_content');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'lms' | 'faculty' | 'finance' | 'competitions' | 'platform'>('all');
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -849,6 +850,48 @@ export default function Admin() {
     u.member_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const ADMIN_TABS: Array<{
+    id: any;
+    category: 'lms' | 'faculty' | 'finance' | 'competitions' | 'platform';
+    label: string;
+    icon: any;
+    badge?: string;
+  }> = [
+    // LMS & Academics
+    { id: 'learning_academy', category: 'lms', label: 'Learning Academy & LMS', icon: BookOpen, badge: 'LMS' },
+    { id: 'site_content', category: 'lms', label: 'Dynamic CMS & Content', icon: Sliders, badge: 'Universal' },
+    { id: 'cert_templates', category: 'lms', label: 'Certificate Templates', icon: Award },
+    { id: 'yara_kids', category: 'lms', label: 'YARA Kids STEM', icon: Star, badge: 'Ages 3-8' },
+    { id: 'brainstorming', category: 'lms', label: 'Critical Thinking Quizzes', icon: Brain },
+
+    // Faculty & Mentorship
+    { id: 'members', category: 'faculty', label: 'Member Directory & IDs', icon: Users },
+    { id: 'mentorship', category: 'faculty', label: 'Mentorship Requests', icon: MessageSquare },
+    { id: 'reviews', category: 'faculty', label: 'Faculty Reviews & Ratings', icon: Star },
+    { id: 'live', category: 'faculty', label: 'Live Session Approvals', icon: Video },
+    { id: 'mentor_req', category: 'faculty', label: 'Auto Mentor Match Requests', icon: UserPlus },
+
+    // Finance & Gateways
+    { id: 'finance', category: 'finance', label: 'Finance & Mentor Payouts', icon: DollarSign },
+    { id: 'donations_partners', category: 'finance', label: 'Donations & Payment Gateways', icon: CreditCard },
+    { id: 'impact_ledger', category: 'finance', label: 'M&E Audit Ledger (CSV)', icon: DollarSign, badge: 'Audited' },
+
+    // Competitions & Events
+    { id: 'competitions', category: 'competitions', label: 'Competitions & YARA 2026', icon: Trophy },
+    { id: 'competition_teams', category: 'competitions', label: 'Teams & Rosters (2B+2G)', icon: Users },
+    { id: 'events', category: 'competitions', label: 'Events Schedule', icon: Calendar },
+    { id: 'event_registrations', category: 'competitions', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10' },
+    { id: 'virtual_comp', category: 'competitions', label: 'Virtual Arena', icon: Zap },
+
+    // Platform & Governance
+    { id: 'admin_management', category: 'platform', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
+    { id: 'chapters', category: 'platform', label: 'Chapters & Secretaries', icon: Building2 },
+    { id: 'org_posts', category: 'platform', label: 'Press & Social Syndication', icon: Send },
+    { id: 'feedbacks_testimonials', category: 'platform', label: 'Feedbacks & Testimonials', icon: Heart },
+    { id: 'impact_gallery', category: 'platform', label: 'Impact Galleries', icon: Award },
+    { id: 'settings', category: 'platform', label: 'Platform & Launch Settings', icon: Save },
+  ];
+
   const isAdmin = profile?.role === 'admin';
 
   if (!isAdmin) {
@@ -909,340 +952,79 @@ export default function Admin() {
         </div>
       </header>
 
+      {/* Great Learning Enterprise Module Category Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-500 px-2 hidden sm:inline">Module Pillars:</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: 'all', label: 'All Modules' },
+              { id: 'lms', label: 'LMS & Academics' },
+              { id: 'faculty', label: 'Mentorship & Faculty' },
+              { id: 'finance', label: 'Finance & Gateways' },
+              { id: 'competitions', label: 'Competitions & Events' },
+              { id: 'platform', label: 'Platform & CMS' },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setCategoryFilter(cat.id as any);
+                  if (cat.id === 'lms') setActiveTab('learning_academy');
+                  else if (cat.id === 'faculty') setActiveTab('mentorship');
+                  else if (cat.id === 'finance') setActiveTab('finance');
+                  else if (cat.id === 'competitions') setActiveTab('competitions');
+                  else if (cat.id === 'platform') setActiveTab('admin_management');
+                }}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  categoryFilter === cat.id
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="text-[11px] font-bold text-slate-400 px-2 hidden lg:block">
+          YARA Enterprise Admin Console
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit max-w-full">
-        <button
-          onClick={() => setActiveTab('site_content')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'site_content' 
-              ? "bg-violet-600 text-white shadow-violet-200" 
-              : "bg-white/90 text-violet-800 hover:bg-white hover:text-violet-950 border border-violet-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Sliders className="w-4 h-4" />
-            <span className="font-extrabold">Site Content & Dynamic CMS</span>
-            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-[10px] uppercase font-black tracking-wider">
-              Universal Sections
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('learning_academy')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            (activeTab === 'learning_academy' || activeTab === 'lms_evaluations' || activeTab === 'curriculum') 
-              ? "bg-indigo-600 text-white shadow-indigo-200" 
-              : "bg-white/80 text-indigo-700 hover:bg-white hover:text-indigo-900 border border-indigo-100"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <BookOpen className="w-4 h-4 text-indigo-300" />
-            <span className="font-extrabold">Learning Academy, LMS & Approvals</span>
-            <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] uppercase font-black tracking-wider">
-              Unified Console
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('event_registrations')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'event_registrations' 
-              ? "bg-amber-500 text-slate-950 font-black shadow-amber-200" 
-              : "bg-white/90 text-amber-900 hover:bg-white hover:text-amber-950 border border-amber-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
-            <span className="font-extrabold">Event Registrations & Approvals</span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 text-[10px] font-black uppercase tracking-wider">
-              AI Bootcamp ($10)
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('impact_ledger')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'impact_ledger' 
-              ? "bg-emerald-600 text-white font-black shadow-emerald-200" 
-              : "bg-white/90 text-emerald-900 hover:bg-white hover:text-emerald-950 border border-emerald-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-            <span className="font-extrabold">M&E Impact & Audit Ledger</span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase tracking-wider">
-              Audited CSV
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('impact_gallery')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'impact_gallery' 
-              ? "bg-teal-600 text-white font-black shadow-teal-200" 
-              : "bg-white/90 text-teal-900 hover:bg-white hover:text-teal-950 border border-teal-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-teal-400" />
-            <span className="font-extrabold">Impact Galleries</span>
-            <span className="px-2 py-0.5 rounded-full bg-teal-500/20 text-[10px] uppercase font-black tracking-wider">
-              2025 Outreach
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('cert_templates')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'cert_templates' 
-              ? "bg-violet-600 text-white font-black shadow-violet-200" 
-              : "bg-white/90 text-violet-900 hover:bg-white hover:text-violet-950 border border-violet-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Award className="w-4 h-4 text-violet-400" />
-            <span className="font-extrabold">Certificate Templates</span>
-            <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-[10px] uppercase font-black tracking-wider">
-              All Sections
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('admin_management')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'admin_management' 
-              ? "bg-slate-900 text-white font-black shadow-slate-300" 
-              : "bg-white/90 text-slate-800 hover:bg-white hover:text-slate-950 border border-slate-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <UserPlus className="w-4 h-4 text-indigo-500" />
-            <span className="font-extrabold">Admins & Permissions</span>
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-black uppercase tracking-wider">
-              Council
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('yara_kids')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'yara_kids' 
-              ? "bg-amber-500 text-white font-black shadow-amber-200" 
-              : "bg-white/90 text-amber-900 hover:bg-white hover:text-amber-950 border border-amber-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="font-extrabold">YARA Kids Manager</span>
-            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black uppercase tracking-wider">
-              Ages 3-8
-            </span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('feedbacks_testimonials')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            activeTab === 'feedbacks_testimonials' 
-              ? "bg-pink-600 text-white font-black shadow-pink-200" 
-              : "bg-white/90 text-pink-900 hover:bg-white hover:text-pink-950 border border-pink-200"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Heart className="w-4 h-4 text-pink-500" />
-            <span className="font-extrabold">Feedbacks &amp; Testimonials</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('chapters')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'chapters' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Building2 className="w-4 h-4 text-indigo-600" />
-            <span>YARA Chapters & Secretaries</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('competitions')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm",
-            (activeTab === 'competitions' || activeTab === 'yara_competition')
-              ? "bg-amber-500 text-slate-950 font-black shadow-amber-200" 
-              : "text-slate-600 hover:text-slate-900 bg-white/70"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Trophy className="w-4 h-4 text-slate-950" />
-            <span>Competitions & YARA 2026 Hub</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('members')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'members' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4" />
-            <span>Members</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('virtual_comp')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'virtual_comp' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Zap className="w-4 h-4" />
-            <span>Virtual Arena</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('brainstorming')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'brainstorming' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Brain className="w-4 h-4 text-amber-500" />
-            <span>Critical Thinking Quizzes</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('finance')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'finance' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>Finance & Mentor Payouts</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('donations_partners')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'donations_partners' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <CreditCard className="w-4 h-4 text-rose-500" />
-            <span>Donations, Sponsors & Fees</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('org_posts')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'org_posts' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Send className="w-4 h-4 text-indigo-600" />
-            <span>Posts & Social Syndication</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('events')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'events' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4" />
-            <span>Events</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('competition_teams')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'competition_teams' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-emerald-600" />
-            <span>Teams & Rosters (2B+2G)</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('mentorship')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'mentorship' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <MessageSquare className="w-4 h-4" />
-            <span>Mentorship</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('reviews')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'reviews' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Star className="w-4 h-4" />
-            <span>Reviews</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('live')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'live' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Video className="w-4 h-4" />
-            <span>Live Approvals</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('mentor_req')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'mentor_req' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <UserPlus className="w-4 h-4" />
-            <span>Mentor Requests</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={cn(
-            "px-5 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'settings' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
-        >
-          <div className="flex items-center space-x-2">
-            <Save className="w-4 h-4" />
-            <span>Settings</span>
-          </div>
-        </button>
+        {ADMIN_TABS
+          .filter(t => categoryFilter === 'all' || t.category === categoryFilter)
+          .map(tab => {
+            const TabIcon = tab.icon;
+            const isActive = activeTab === tab.id || 
+              (tab.id === 'learning_academy' && (activeTab === 'lms_evaluations' || activeTab === 'curriculum')) ||
+              (tab.id === 'competitions' && activeTab === 'yara_competition');
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs flex items-center space-x-2",
+                  isActive
+                    ? "bg-indigo-600 text-white shadow-indigo-200"
+                    : "bg-white text-slate-700 hover:text-slate-950 hover:bg-slate-50 border border-slate-200"
+                )}
+              >
+                <TabIcon className={cn("w-3.5 h-3.5", isActive ? "text-white" : "text-slate-500")} />
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
+                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                  )}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
       </div>
 
       <AnimatePresence>
@@ -2315,7 +2097,7 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all"
               title="Generate Random ID"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onUpdate(user.id, user.email, user.display_name, newId)}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Sparkles, Building2, MapPin, Users, ArrowRight, ShieldCheck, 
+  Building2, MapPin, Users, ArrowRight, ShieldCheck, 
   Landmark, UserCheck, CheckCircle2, ChevronRight, FileText
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -45,7 +45,7 @@ export default function ChapterAutoSuggestCard({
         <div className="space-y-3 max-w-2xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-amber-400 text-slate-950 rounded-full text-xs font-black uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
+              <ShieldCheck className="w-3.5 h-3.5" />
               <span>Chapter Recognized</span>
             </span>
 

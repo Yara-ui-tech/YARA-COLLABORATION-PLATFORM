@@ -11,7 +11,6 @@ import {
   Save, 
   X, 
   Check, 
-  Sparkles, 
   Link as LinkIcon, 
   Image as ImageIcon,
   Layout,

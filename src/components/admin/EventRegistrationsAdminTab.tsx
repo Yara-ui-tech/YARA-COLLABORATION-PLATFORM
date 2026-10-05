@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, CheckCircle2, XCircle, Clock, DollarSign, Search, 
   Filter, ShieldCheck, AlertCircle, RefreshCw, Plus, UserPlus, 
-  ExternalLink, Mail, Phone, School, Award, Sparkles, Check, 
+  ExternalLink, Mail, Phone, School, Award, Zap, Check, 
   Trash2, Eye, ShieldAlert, ArrowUpRight, Video, Copy, Link, 
   Edit3, Save, Key, Calendar, Share2, FileText, Download, Printer,
   Lock, Unlock, BookOpen
@@ -44,7 +44,7 @@ export default function EventRegistrationsAdminTab() {
   const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [eventFilter, setEventFilter] = useState<string>(AI_FOR_EDUCATORS_EVENT.id);
+  const [eventFilter, setEventFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'unpaid' | 'verified'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -281,27 +281,6 @@ export default function EventRegistrationsAdminTab() {
     }
   };
 
-  // Filter registrations
-  const filtered = registrations.filter(r => {
-    const codeStr = r.registration_code || '';
-    const matchesSearch = 
-      r.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.school_institution.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      codeStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.phone && r.phone.includes(searchTerm));
-
-    if (!matchesSearch) return false;
-
-    if (statusFilter === 'pending') return r.approval_status === 'pending';
-    if (statusFilter === 'approved') return r.approval_status === 'approved';
-    if (statusFilter === 'rejected') return r.approval_status === 'rejected';
-    if (statusFilter === 'unpaid') return r.payment_status === 'pending' || r.payment_status === 'rejected';
-    if (statusFilter === 'verified') return r.payment_status === 'verified';
-
-    return true;
-  });
-
   // Open receipt for specific table registration
   const handleOpenReceiptForRegistration = (reg: EventRegistration) => {
     const receipt = buildEducatorReceipt(reg);
@@ -416,6 +395,28 @@ export default function EventRegistrationsAdminTab() {
   const fullAccessGrantedCount = registrations.filter(r => r.payment_status === 'verified' && r.approval_status === 'approved').length;
   const unlockedCertificatesCount = registrations.filter(r => r.certificate_unlocked).length;
   const continuousSupportCount = registrations.filter(r => r.continuous_support_opt_in).length;
+
+  // Filtered registrations for table display
+  const filtered = registrations.filter(r => {
+    // 1. Status Filter
+    if (statusFilter === 'pending' && r.approval_status !== 'pending') return false;
+    if (statusFilter === 'approved' && r.approval_status !== 'approved') return false;
+    if (statusFilter === 'rejected' && r.approval_status !== 'rejected') return false;
+    if (statusFilter === 'verified' && r.payment_status !== 'verified') return false;
+    if (statusFilter === 'unpaid' && r.payment_status === 'verified') return false;
+
+    // 2. Search query filter
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase().trim();
+      const matchName = (r.full_name || '').toLowerCase().includes(q);
+      const matchEmail = (r.email || '').toLowerCase().includes(q);
+      const matchCode = (r.registration_code || r.id || '').toLowerCase().includes(q);
+      const matchSchool = (r.school_institution || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail && !matchCode && !matchSchool) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -618,7 +619,7 @@ export default function EventRegistrationsAdminTab() {
                     onClick={handleGenerateGoogleMeetLink}
                     className="text-[11px] text-indigo-600 font-bold hover:underline flex items-center space-x-1"
                   >
-                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <Zap className="w-3 h-3 text-amber-500" />
                     <span>Generate Instant Meet Link</span>
                   </button>
                 </div>
@@ -762,7 +763,7 @@ export default function EventRegistrationsAdminTab() {
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-purple-600">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Support Subscribers</span>
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <ShieldCheck className="w-4 h-4 text-purple-600" />
           </div>
           <p className="text-2xl font-black text-purple-600">{continuousSupportCount}</p>
           <span className="text-[10px] text-purple-600 font-medium">$15/term support opt-ins</span>
@@ -798,8 +799,8 @@ export default function EventRegistrationsAdminTab() {
             onChange={e => setEventFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-hidden"
           >
+            <option value="all">All Events & Bootcamps</option>
             <option value={AI_FOR_EDUCATORS_EVENT.id}>AI for Educators – Online Bootcamp</option>
-            <option value="">All Events</option>
           </select>
 
           <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-[11px] font-bold">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Trophy, Calendar, MapPin, Users, ArrowRight, Clock, 
-  Sparkles, Search, Filter, ShieldCheck, CheckCircle2, 
+  Loader2, Zap, Search, Filter, ShieldCheck, CheckCircle2, 
   ExternalLink, Layers, Award, Waves, Compass, Lightbulb, 
   HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle
 } from 'lucide-react';
@@ -115,7 +115,7 @@ export default function Competitions() {
                 to="/competition/live-results"
                 className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-xs border border-slate-700 transition-all flex items-center space-x-2"
               >
-                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <Zap className="w-4 h-4 text-emerald-400" />
                 <span>Live Arena Screen</span>
               </Link>
               <Link
@@ -380,7 +380,7 @@ export default function Competitions() {
         {/* COMPETITIONS DIRECTORY CARDS */}
         {loading ? (
           <div className="py-20 text-center text-slate-400">
-            <Sparkles className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-500" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-indigo-500" />
             <p className="font-bold text-sm">Loading competitions roster...</p>
           </div>
         ) : filteredCompetitions.length === 0 ? (

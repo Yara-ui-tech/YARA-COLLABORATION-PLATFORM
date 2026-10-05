@@ -4,7 +4,7 @@ import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { 
   Radio, Video, Mic, MicOff, VideoOff, Monitor, Send, Users, 
-  Sparkles, Calendar, Clock, Plus, Play, Shield, MessageSquare, 
+  Calendar, Clock, Plus, Play, Shield, MessageSquare, 
   HelpCircle, Hand, AlertCircle, CheckCircle2, Copy, Share2, Volume2, VolumeX, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

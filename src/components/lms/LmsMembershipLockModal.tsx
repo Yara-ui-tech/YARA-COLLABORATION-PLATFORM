@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, ShieldAlert, Sparkles, CheckCircle2, Clock, X, ArrowRight, CreditCard, HelpCircle } from 'lucide-react';
+import { Lock, ShieldAlert, Award, CheckCircle2, Clock, X, ArrowRight, CreditCard, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Props {
@@ -34,7 +34,7 @@ export const LmsMembershipLockModal: React.FC<Props> = ({
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-black uppercase tracking-wider">
-            <Sparkles size={12} className="text-amber-600" />
+            <Award size={12} className="text-amber-600" />
             <span>Free Trial Completed • Membership Required</span>
           </div>
 
@@ -71,7 +71,7 @@ export const LmsMembershipLockModal: React.FC<Props> = ({
               <span>Step 2: $15 YARA Membership & Admin Approval</span>
             </div>
             <div className="flex items-center space-x-2 text-slate-400">
-              <Sparkles size={14} className="shrink-0" />
+              <Award size={14} className="shrink-0" />
               <span>Step 3: Unlimited LMS Courses & Certified Diploma</span>
             </div>
           </div>

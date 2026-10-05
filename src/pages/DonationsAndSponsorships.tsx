@@ -9,7 +9,6 @@ import {
   Truck, 
   CheckCircle2, 
   Send, 
-  Sparkles, 
   Phone, 
   Mail, 
   MapPin, 
@@ -31,6 +30,7 @@ import {
   getApprovedPublicDonations, 
   YARA_PAYMENT_CONFIG 
 } from '../services/partnershipDonationService';
+import { UniversalPaymentModal } from '../components/payments/UniversalPaymentModal';
 
 export default function DonationsAndSponsorships() {
   const [supportType, setSupportType] = useState<SupportType>('financial');
@@ -47,6 +47,7 @@ export default function DonationsAndSponsorships() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; text: string } | null>(null);
+  const [showExpressPayment, setShowExpressPayment] = useState(false);
 
   const [approvedDonations, setApprovedDonations] = useState<DonationSponsorship[]>([]);
   const [loadingDonations, setLoadingDonations] = useState(true);
@@ -189,6 +190,15 @@ export default function DonationsAndSponsorships() {
                 {YARA_PAYMENT_CONFIG.inquiryPhone2}
               </a>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowExpressPayment(true)}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg transition-all flex items-center gap-2 cursor-pointer hover:scale-105"
+            >
+              <CreditCard size={15} />
+              <span>Launch Express Payment Gateways</span>
+            </button>
           </div>
         </div>
       </section>
@@ -247,7 +257,7 @@ export default function DonationsAndSponsorships() {
           <form onSubmit={handleSubmit} className="space-y-6 pt-4 border-t border-slate-100">
             <div>
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
+                <Gift className="w-5 h-5 text-amber-500" />
                 <span>2. Contribution Details</span>
               </h3>
             </div>
@@ -556,6 +566,28 @@ export default function DonationsAndSponsorships() {
         </div>
 
       </div>
+
+      {/* Universal Payment Gateways Modal */}
+      <UniversalPaymentModal
+        isOpen={showExpressPayment}
+        onClose={() => setShowExpressPayment(false)}
+        defaultPurpose="donation"
+        defaultTitle="YARA Educational Robotics Donation"
+        defaultAmount={Number(amount) || 50}
+        defaultCurrency={currency as any}
+        payerName={donorName}
+        payerEmail={email}
+        payerPhone={phone}
+        onPaymentComplete={(tx) => {
+          setTransactionReference(tx.transactionReference);
+          setSubmitResult({
+            success: true,
+            text: `Thank you! Your payment of ${tx.currency} $${tx.amount} has been successfully processed (Receipt: ${tx.receiptNumber}).`
+          });
+          setShowExpressPayment(false);
+          fetchApproved();
+        }}
+      />
     </div>
   );
 }

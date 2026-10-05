@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
   ChevronDown, 
-  Sparkles, 
   ExternalLink, 
   Layers, 
   CheckCircle2, 

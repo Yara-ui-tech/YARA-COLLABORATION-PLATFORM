@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { MessageSquare, Send, Star, Loader2, CheckCircle2, User, Clock, Users, Heart, Sparkles } from 'lucide-react';
+import { MessageSquare, Send, Star, Loader2, CheckCircle2, User, Clock, Users, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
@@ -309,7 +309,7 @@ export default function Feedback() {
                         <p className="text-xs font-bold text-slate-900">{t.author_name}</p>
                         <p className="text-[10px] text-slate-400">{t.author_role}</p>
                       </div>
-                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <Star className="w-4 h-4 text-amber-400 fill-current" />
                     </div>
                   </div>
                 ))}

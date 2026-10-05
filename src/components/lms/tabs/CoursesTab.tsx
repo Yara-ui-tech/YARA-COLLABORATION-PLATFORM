@@ -14,13 +14,15 @@ import {
   Lightbulb, 
   Award, 
   Wrench, 
-  Phone,
-  Package,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  AlertCircle,
-  Film
+  Phone, 
+  Package, 
+  Check, 
+  ChevronDown, 
+  ChevronUp, 
+  AlertCircle, 
+  Film, 
+  Target,
+  GraduationCap
 } from 'lucide-react';
 import { YARALmsSession, LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
@@ -28,6 +30,50 @@ import { YARA_LMS_LEVELS } from '../../../constants/yaraLmsData';
 import { checkSessionPrerequisites } from '../../../services/yaraLmsService';
 import { useAuth } from '../../AuthContext';
 import { AdminSessionVideoModal } from '../AdminSessionVideoModal';
+import { GreatLearningCertificateModal } from '../GreatLearningCertificateModal';
+
+export const ROBOTICS_TIER_CATEGORIES = [
+  {
+    id: 1,
+    name: '1. Absolute Beginner or Explorer',
+    badge: 'Tier 1 • Absolute Beginner',
+    levels: [0, 1, 2],
+    sessionsSummary: 'S00 – S07 (Labs P01)',
+    color: 'border-sky-300 bg-sky-50/80 text-sky-900',
+    activeColor: 'bg-sky-600 text-white border-sky-600',
+    description: 'Foundations of robotics, Ohm’s law, breadboarding, and visual block coding.'
+  },
+  {
+    id: 2,
+    name: '2. Intermediate Learner',
+    badge: 'Tier 2 • Intermediate',
+    levels: [3, 4],
+    sessionsSummary: 'S08 – S19',
+    color: 'border-indigo-300 bg-indigo-50/80 text-indigo-900',
+    activeColor: 'bg-indigo-600 text-white border-indigo-600',
+    description: 'Embedded C++, Arduino/ESP32, sensor interfacing, PWM motors & chassis mechanics.'
+  },
+  {
+    id: 3,
+    name: '3. Advanced Learner',
+    badge: 'Tier 3 • Advanced',
+    levels: [5, 6],
+    sessionsSummary: 'S20 – S27 (Labs P02, P03)',
+    color: 'border-purple-300 bg-purple-50/80 text-purple-900',
+    activeColor: 'bg-purple-600 text-white border-purple-600',
+    description: 'Autonomous navigation, PID control, line tracking, cloud telemetry & edge AI computer vision.'
+  },
+  {
+    id: 4,
+    name: '4. Robotics Masterclass for Real World Applications and Deployment',
+    badge: 'Tier 4 • Masterclass & Deployment',
+    levels: [7, 8],
+    sessionsSummary: 'S28 – S36 (Labs P04, P05)',
+    color: 'border-amber-300 bg-amber-50/80 text-amber-950',
+    activeColor: 'bg-amber-600 text-white border-amber-600',
+    description: 'Applied research, 5 Whys analysis, 21-point engineering documentation & defended capstones.'
+  }
+];
 
 interface Props {
   userId: string;
@@ -45,14 +91,24 @@ export const CoursesTab: React.FC<Props> = ({
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
+  const [selectedTier, setSelectedTier] = useState<number | 'all'>('all');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'online' | 'practical' | 'hardware'>('all');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [adminVideoModalSession, setAdminVideoModalSession] = useState<{ id: string; title: string } | null>(null);
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   // Filter sessions
   const filteredSessions = COMPLETE_YARA_SESSIONS.filter(session => {
+    // 4-Tier category filter
+    if (selectedTier !== 'all') {
+      const activeCategory = ROBOTICS_TIER_CATEGORIES.find(t => t.id === selectedTier);
+      if (activeCategory && !activeCategory.levels.includes(session.levelNumber)) {
+        return false;
+      }
+    }
+
     if (selectedLevel !== 'all' && session.levelNumber !== selectedLevel) return false;
     if (filterType === 'online' && session.type !== 'online') return false;
     if (filterType === 'practical' && session.type !== 'physical_lab') return false;
@@ -85,13 +141,101 @@ export const CoursesTab: React.FC<Props> = ({
             YARA Robotics & Innovation Foundation Programme
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
-            A continuous pathway spanning 42 structured sessions across 9 distinct progression tiers: 
-            from Curious Beginner (Level 0) to verified Young Innovator (Level 8).
+            A continuous pathway structured into 4 authoritative tiers: 
+            from Absolute Beginner or Explorer through to our elite Robotics Masterclass for Real World Applications and Deployment.
           </p>
           <div className="text-xs font-bold text-emerald-400 pt-1">
             Philosophy: Learn → Simulate → Build → Test → Debug → Research → Innovate → Demonstrate
           </div>
         </div>
+      </div>
+
+      {/* 4 Official Robotics Learning Tiers */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-emerald-600" />
+            <span>Robotics Learning & Certification Tiers</span>
+          </h3>
+          {selectedTier !== 'all' && (
+            <button
+              onClick={() => setSelectedTier('all')}
+              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline cursor-pointer"
+            >
+              Show All Tiers
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {ROBOTICS_TIER_CATEGORIES.map(tier => {
+            const isSelected = selectedTier === tier.id;
+            return (
+              <div
+                key={tier.id}
+                onClick={() => {
+                  setSelectedTier(prev => (prev === tier.id ? 'all' : tier.id));
+                  setSelectedLevel('all');
+                }}
+                className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+                  isSelected 
+                    ? tier.activeColor + ' shadow-md scale-[1.02]' 
+                    : tier.color + ' hover:border-slate-400 shadow-xs'
+                }`}
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider opacity-85">
+                      {tier.badge}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold opacity-75">
+                      {tier.sessionsSummary}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black tracking-tight leading-snug">
+                    {tier.name}
+                  </h4>
+                  <p className="text-xs opacity-85 leading-relaxed pt-1">
+                    {tier.description}
+                  </p>
+                </div>
+                <div className="pt-3 text-[10px] font-bold flex items-center gap-1 opacity-90">
+                  <span>{isSelected ? '✓ Filter Active (Click to reset)' : 'Click to filter sessions →'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* YARA Learning Academy Certification Guarantee Banner */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-indigo-500/10 border border-amber-500/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+            <Award className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                YARA Learning Academy Verified
+              </span>
+              <span className="text-xs font-bold text-slate-800">
+                Official Certificate of Completion Included
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Complete theoretical & practical sessions and score ≥70% on quizzes to unlock your verified credential with 1-click LinkedIn Add and vector PDF download.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsCertModalOpen(true)}
+          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-md transition shrink-0 cursor-pointer flex items-center gap-1.5"
+        >
+          <Award size={14} />
+          <span>Certificate Criteria & Claim</span>
+        </button>
       </div>
 
       {/* 2. Filter & Search Controls */}
@@ -289,19 +433,31 @@ export const CoursesTab: React.FC<Props> = ({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                       <div>
-                        <span className="font-bold text-slate-900 block mb-0.5">🎯 Learning Objective:</span>
+                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
+                          <Target className="w-3.5 h-3.5 text-indigo-600 mr-1.5 shrink-0" />
+                          <span>Learning Objective:</span>
+                        </span>
                         <p className="text-slate-600 leading-relaxed">{session.learningObjective}</p>
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 block mb-0.5">💡 Why Learn This:</span>
+                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
+                          <Lightbulb className="w-3.5 h-3.5 text-amber-500 mr-1.5 shrink-0" />
+                          <span>Industry Relevance:</span>
+                        </span>
                         <p className="text-slate-600 leading-relaxed">{session.whyLearnThis}</p>
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 block mb-0.5">🛠️ What You Will Build:</span>
+                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
+                          <Wrench className="w-3.5 h-3.5 text-slate-700 mr-1.5 shrink-0" />
+                          <span>Practical Implementation:</span>
+                        </span>
                         <p className="text-slate-600 leading-relaxed">{session.whatYouWillBuild}</p>
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 block mb-0.5">🚀 Innovator Contribution:</span>
+                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
+                          <Award className="w-3.5 h-3.5 text-emerald-600 mr-1.5 shrink-0" />
+                          <span>Professional Outcome:</span>
+                        </span>
                         <p className="text-slate-600 leading-relaxed">{session.innovatorContribution}</p>
                       </div>
                     </div>
@@ -341,6 +497,18 @@ export const CoursesTab: React.FC<Props> = ({
           onVideosUpdated={() => {}}
         />
       )}
+
+      {/* Great Learning Certificate Claim Modal */}
+      <GreatLearningCertificateModal
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
+        userId={userId}
+        userEmail={profile?.email || 'learner@yara.org'}
+        defaultStudentName={profile?.display_name || 'YARA Learner'}
+        courseId="robotics-foundation"
+        courseTitle="YARA Robotics & Innovation Foundation Programme (Levels 0 — 8)"
+        courseCategory="robotics"
+      />
     </div>
   );
 };

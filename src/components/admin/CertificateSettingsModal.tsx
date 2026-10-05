@@ -183,11 +183,11 @@ export default function CertificateSettingsModal({
   // Mock certificate data for live preview
   const sampleCertificateData: EducatorCertificateData = {
     certificate_number: 'YARA-AI-EDU-2026-PREVIEW',
-    recipient_name: 'Dr. Evelyn Chidhumo',
-    recipient_email: 'evelyn.chidhumo@school.ac.zw',
-    institution_name: 'Prince Edward School',
-    role_title: 'Head of STEM & Computer Science',
-    province: 'Harare Province',
+    recipient_name: 'Simbarashe Obvious Manongwa',
+    recipient_email: 'manongwasimbarashe394@gmail.com',
+    institution_name: 'Harare Institute of Technology',
+    role_title: 'Lead AI Educator & Director',
+    province: 'Harare',
     event_title: 'AI for Educators Online Bootcamp 2026',
     event_dates: '28 August – 04 September 2026',
     issue_date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),

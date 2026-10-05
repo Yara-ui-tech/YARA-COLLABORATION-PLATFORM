@@ -10,7 +10,6 @@ import {
   CheckCircle2, 
   X, 
   Loader2, 
-  Sparkles, 
   Eye, 
   Lightbulb, 
   AlertCircle 

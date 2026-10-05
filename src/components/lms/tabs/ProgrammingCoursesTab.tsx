@@ -33,6 +33,7 @@ import {
 } from '../../../services/programmingCoursesService';
 import { checkLmsCourseAccess } from '../../../services/yaraLmsService';
 import { LmsMembershipLockModal } from '../LmsMembershipLockModal';
+import { GreatLearningCertificateModal } from '../GreatLearningCertificateModal';
 import { useAuth } from '../../AuthContext';
 
 interface Props {
@@ -560,7 +561,8 @@ const CoursePlayerModal: React.FC<{
   onClose: () => void;
   onProgress: () => void;
   onCertificateEarned: (courseName: string) => void;
-}> = ({ course, enrollment, userId, studentName, onClose, onProgress, onCertificateEarned }) => {
+  onClaimCertificate?: () => void;
+}> = ({ course, enrollment, userId, studentName, onClose, onProgress, onCertificateEarned, onClaimCertificate }) => {
   const [activeModuleIdx, setActiveModuleIdx] = useState(0);
   const [marked, setMarked] = useState(false);
 
@@ -685,15 +687,24 @@ const CoursePlayerModal: React.FC<{
                 )}
 
                 {/* Mark complete */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   {isModuleCompleted || marked ? (
                     <div className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-xl">
                       <CheckCircle2 className="w-4 h-4" /> Module Completed
                     </div>
                   ) : (
-                    <button onClick={handleMarkComplete} className="flex items-center gap-2 px-5 py-2.5 text-white text-xs font-black rounded-xl hover:opacity-90 transition"
+                    <button onClick={handleMarkComplete} className="flex items-center gap-2 px-5 py-2.5 text-white text-xs font-black rounded-xl hover:opacity-90 transition cursor-pointer"
                       style={{ background: 'linear-gradient(135deg, #059669, #4f46e5)' }}>
                       <CheckCircle2 className="w-4 h-4" /> Mark as Complete
+                    </button>
+                  )}
+
+                  {onClaimCertificate && (
+                    <button
+                      onClick={onClaimCertificate}
+                      className="flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-xs font-black rounded-xl shadow-md transition animate-pulse cursor-pointer"
+                    >
+                      <Award className="w-4 h-4" /> Claim Certificate 🎓
                     </button>
                   )}
 
@@ -732,6 +743,7 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
   const [activeCourse, setActiveCourse] = useState<ProgrammingCourse | null>(null);
   const [toast, setToast] = useState<{ msg: string; type?: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState({ enrolled: 0, completed: 0, certificatesEarned: 0, inProgress: 0 });
+  const [claimCertModal, setClaimCertModal] = useState<{ courseId: string; courseTitle: string } | null>(null);
 
   // Membership Lock Modal State
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
@@ -767,7 +779,7 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
       userEmail,
       isFirstCourse ? 0 : course.id,
       profile?.registration_paid,
-      profile?.role === 'admin' || profile?.approval_status === 'approved' || profile?.registration_paid
+      profile?.role === 'admin' || (profile as any)?.approval_status === 'approved' || profile?.registration_paid
     );
 
     if (!access.isGranted && !isAdmin) {
@@ -988,6 +1000,21 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
             showToast(`🎓 Certificate Earned: ${courseName}!`);
             loadData();
           }}
+          onClaimCertificate={() => {
+            setClaimCertModal({ courseId: activeCourse.id, courseTitle: activeCourse.title });
+          }}
+        />
+      )}
+
+      {claimCertModal && (
+        <GreatLearningCertificateModal
+          isOpen={true}
+          onClose={() => { setClaimCertModal(null); loadData(); }}
+          userId={userId}
+          userEmail={userEmail}
+          defaultStudentName={studentName}
+          courseId={claimCertModal.courseId}
+          courseTitle={claimCertModal.courseTitle}
         />
       )}
 

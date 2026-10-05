@@ -15,7 +15,7 @@ import { ProgrammingCoursesTab } from '../components/lms/tabs/ProgrammingCourses
 import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
 import { YaraLmsSessionPlayer } from '../components/lms/YaraLmsSessionPlayer';
 import { YaraLmsCapstoneSubmissionModal } from '../components/lms/YaraLmsCapstoneSubmissionModal';
-import { YaraLmsCertificateModal } from '../components/lms/YaraLmsCertificateModal';
+import { GreatLearningCertificateModal } from '../components/lms/GreatLearningCertificateModal';
 import { LmsMembershipLockModal } from '../components/lms/LmsMembershipLockModal';
 import { 
   calculateUserOverallProgress, 
@@ -27,14 +27,17 @@ import {
 } from '../services/yaraLmsService';
 import { COMPLETE_YARA_SESSIONS, getSessionById } from '../constants/yaraLmsCatalog';
 import { checkAndVerifyUserSubscription } from '../services/partnershipDonationService';
+import { usePortal } from '../context/PortalContext';
+import { Globe, ArrowRight, Layers, GraduationCap } from 'lucide-react';
 
 export default function YaraLearning() {
   const { user, profile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { setPortalMode, openPortalSelector } = usePortal();
 
   const userId = user?.id || 'demo_learner_01';
-  const studentName = profile?.name || user?.email?.split('@')[0] || 'YARA Learner';
+  const studentName = profile?.display_name || user?.email?.split('@')[0] || 'YARA Learner';
   const userEmail = user?.email || 'learner@yara.org';
 
   // Membership Lock Modal State
@@ -171,7 +174,7 @@ export default function YaraLearning() {
       userEmail,
       sessionId,
       subscriptionStatus.isActive || Boolean(profile?.registration_paid),
-      profile?.role === 'admin' || profile?.approval_status === 'approved' || profile?.registration_paid
+      profile?.role === 'admin' || (profile as any)?.approval_status === 'approved' || profile?.registration_paid
     );
 
     if (!access.isGranted && profile?.role !== 'admin') {
@@ -203,6 +206,40 @@ export default function YaraLearning() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Portal Mode Switcher Header Banner */}
+      <div className="bg-slate-950 border-b border-slate-800 text-white px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Active Portal: YARA Learning Academy</span>
+          </div>
+          <span className="hidden md:inline text-xs text-slate-400">
+            Professional Academic Platform • 42 Robotics & Embedded Systems Sessions
+          </span>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              setPortalMode('webpage');
+              navigate('/');
+            }}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 text-xs font-semibold transition-all"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Switch to YARA Webpage</span>
+          </button>
+
+          <button
+            onClick={openPortalSelector}
+            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs transition-colors"
+            title="Open Gateway Selector"
+          >
+            <Layers className="w-4 h-4 text-emerald-400" />
+          </button>
+        </div>
+      </div>
+
       {/* 1. Sticky Navigation Tab Bar */}
       <YaraLearningNavigation
         activeTab={activeTab}
@@ -308,6 +345,8 @@ export default function YaraLearning() {
             <YaraLmsSessionPlayer
               session={currentPlayingSession}
               userId={userId}
+              studentName={studentName}
+              userEmail={userEmail}
               onBack={handleCloseSession}
               onNavigateSession={(nextId) => handleStartSession(nextId)}
               onRefreshProgress={loadLmsData}
@@ -330,14 +369,15 @@ export default function YaraLearning() {
         }}
       />
 
-      {/* 5. Certificate Modal */}
-      <YaraLmsCertificateModal
-        userId={userId}
-        studentName={studentName}
-        userEmail={userEmail}
+      {/* 5. Great Learning Certificate Modal */}
+      <GreatLearningCertificateModal
         isOpen={isCertModalOpen}
         onClose={() => setIsCertModalOpen(false)}
-        onNavigateToMembership={() => handleSelectTab('subscription')}
+        userId={userId}
+        userEmail={userEmail}
+        defaultStudentName={studentName}
+        courseId="robotics-foundation"
+        courseTitle="YARA Robotics & Innovation Foundation Programme (Levels 0 — 8)"
       />
 
       {/* 6. Membership Lock Modal (Free Trial Course 1 vs Course 2+) */}

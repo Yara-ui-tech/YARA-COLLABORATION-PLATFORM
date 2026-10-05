@@ -20,7 +20,6 @@ import {
   Rocket, 
   Video, 
   FileText, 
-  Sparkles, 
   Check, 
   ExternalLink,
   Flame,
@@ -241,7 +240,7 @@ export default function Curriculum() {
       <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1.5 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-            <Sparkles className="w-3.5 h-3.5" /> Full Academy Platform Available
+            <Award className="w-3.5 h-3.5" /> Full Academy Platform Available
           </div>
           <h3 className="text-xl sm:text-2xl font-black">YARA Robotics & Innovation Learning Platform</h3>
           <p className="text-xs sm:text-sm text-slate-300">
@@ -290,7 +289,7 @@ export default function Curriculum() {
           >
             <Brain className="w-4 h-4" />
             <span>Brainstorming Image Quiz</span>
-            <Sparkles className="w-3.5 h-3.5 fill-current" />
+            <Zap className="w-3.5 h-3.5 fill-current" />
           </button>
         </div>
 
@@ -320,7 +319,7 @@ export default function Curriculum() {
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center space-x-2">
               <span className="px-3 py-1 bg-amber-500/20 text-amber-300 font-bold text-xs rounded-full uppercase tracking-wider flex items-center space-x-1 border border-amber-500/30">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Award className="w-3.5 h-3.5" />
                 <span>Graduation Milestone</span>
               </span>
               {certificate && (

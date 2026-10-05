@@ -13,19 +13,26 @@ import {
   Award, 
   Clock, 
   ExternalLink,
-  ShieldCheck,
-  Check,
-  UploadCloud,
-  ChevronRight,
-  Package,
-  Wrench,
-  Settings,
-  Film,
-  SkipForward,
-  SkipBack,
-  ListVideo,
-  Zap,
-  Layers
+  ShieldCheck, 
+  Check, 
+  UploadCloud, 
+  ChevronRight, 
+  ChevronLeft,
+  Package, 
+  Wrench, 
+  Settings, 
+  Film, 
+  SkipForward, 
+  SkipBack, 
+  ListVideo, 
+  Zap, 
+  Layers,
+  MessageSquare,
+  Send,
+  ThumbsUp,
+  Bookmark,
+  Share2,
+  Maximize2
 } from 'lucide-react';
 import { YARALmsSession, SessionVideoClip } from '../../types/yaraLms';
 import { 
@@ -39,22 +46,49 @@ import {
   RandomizedQuestionPayload,
   getSessionVideos,
   getClipWatchProgress,
-  updateClipWatchProgress
+  updateClipWatchProgress,
+  calculateUserOverallProgress,
+  getAllUserCompletions
 } from '../../services/yaraLmsService';
+import { COMPLETE_YARA_SESSIONS } from '../../constants/yaraLmsCatalog';
 import { useAuth } from '../AuthContext';
 import { AdminSessionVideoModal } from './AdminSessionVideoModal';
+import { GreatLearningCertificateModal } from './GreatLearningCertificateModal';
 
 interface Props {
   session: YARALmsSession;
   userId: string;
+  studentName?: string;
+  userEmail?: string;
   onBack: () => void;
   onNavigateSession: (sessionId: string) => void;
   onRefreshProgress: () => void;
 }
 
+interface DoubtQuestion {
+  id: string;
+  authorName: string;
+  authorRole: 'student' | 'mentor' | 'faculty';
+  timestamp: string;
+  question: string;
+  upvotes: number;
+  hasUpvoted?: boolean;
+  replies: {
+    id: string;
+    authorName: string;
+    authorRole: 'student' | 'mentor' | 'faculty';
+    timestamp: string;
+    reply: string;
+  }[];
+}
+
+const DEFAULT_DOUBTS_STORAGE_KEY = 'yara_academy_session_doubts';
+
 export const YaraLmsSessionPlayer: React.FC<Props> = ({
   session,
   userId,
+  studentName = 'YARA Learner',
+  userEmail = 'learner@yara.org',
   onBack,
   onNavigateSession,
   onRefreshProgress
@@ -62,9 +96,15 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
-  const [activeTab, setActiveTab] = useState<'video' | 'reading' | 'quiz' | 'assignment' | 'project' | 'components'>('video');
+  const [activeTab, setActiveTab] = useState<'video' | 'reading' | 'quiz' | 'assignment' | 'project' | 'components' | 'discussion'>('video');
   const [completion, setCompletion] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Curriculum Drawer State (Collapsible Syllabus)
+  const [isSyllabusDrawerOpen, setIsSyllabusDrawerOpen] = useState(true);
+
+  // YARA Accredited Certificate Modal
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false);
 
   // Micro-lesson Video Clips state (max 7 mins each)
   const [videoClips, setVideoClips] = useState<SessionVideoClip[]>([]);
@@ -97,12 +137,123 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
   const [projectNotes, setProjectNotes] = useState('');
   const [projectSubmittedSuccess, setProjectSubmittedSuccess] = useState(false);
 
-  // Prerequisites
+  // Doubt Clearing / Mentor Discussion State
+  const [doubts, setDoubts] = useState<DoubtQuestion[]>([]);
+  const [newDoubtText, setNewDoubtText] = useState('');
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+
+  // Prerequisites & Navigation Index
   const { isUnlocked, missingPrerequisites } = checkSessionPrerequisites(userId, session.id);
+  const sessionIndex = COMPLETE_YARA_SESSIONS.findIndex(s => s.id === session.id);
+  const prevSession = sessionIndex > 0 ? COMPLETE_YARA_SESSIONS[sessionIndex - 1] : null;
+  const nextSession = sessionIndex < COMPLETE_YARA_SESSIONS.length - 1 ? COMPLETE_YARA_SESSIONS[sessionIndex + 1] : null;
+
+  // Overall Program Progress
+  const overallProgress = calculateUserOverallProgress(userId);
+  const allUserCompletions = getAllUserCompletions(userId);
 
   useEffect(() => {
     loadSessionState();
+    loadDoubts();
   }, [session.id, userId]);
+
+  const loadDoubts = () => {
+    try {
+      const raw = localStorage.getItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`);
+      if (raw) {
+        setDoubts(JSON.parse(raw));
+      } else {
+        // Starter initial sample doubts to jumpstart discussion
+        const initial: DoubtQuestion[] = [
+          {
+            id: 'd1',
+            authorName: 'Tinashe Moyo',
+            authorRole: 'student',
+            timestamp: 'Yesterday at 3:15 PM',
+            question: `What is the most effective approach to calibrate the sensors for this session without external oscilloscope equipment?`,
+            upvotes: 4,
+            replies: [
+              {
+                id: 'r1',
+                authorName: 'Mr. S.O. Manongwa',
+                authorRole: 'faculty',
+                timestamp: 'Yesterday at 4:30 PM',
+                reply: `Great question, Tinashe! You can use the Arduino Serial Plotter (9600 baud) to monitor live analog readings in real time and establish baseline thresholds.`
+              }
+            ]
+          }
+        ];
+        setDoubts(initial);
+        localStorage.setItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`, JSON.stringify(initial));
+      }
+    } catch {
+      setDoubts([]);
+    }
+  };
+
+  const handlePostDoubt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDoubtText.trim()) return;
+
+    const newQ: DoubtQuestion = {
+      id: `doubt_${Date.now()}`,
+      authorName: studentName || 'Student',
+      authorRole: isAdmin ? 'faculty' : 'student',
+      timestamp: 'Just now',
+      question: newDoubtText.trim(),
+      upvotes: 1,
+      replies: []
+    };
+
+    const updated = [newQ, ...doubts];
+    setDoubts(updated);
+    setNewDoubtText('');
+    localStorage.setItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`, JSON.stringify(updated));
+  };
+
+  const handlePostReply = (doubtId: string) => {
+    const text = replyTextMap[doubtId];
+    if (!text || !text.trim()) return;
+
+    const updated = doubts.map(d => {
+      if (d.id === doubtId) {
+        return {
+          ...d,
+          replies: [
+            ...d.replies,
+            {
+              id: `rep_${Date.now()}`,
+              authorName: isAdmin ? 'YARA Faculty' : (studentName || 'Student'),
+              authorRole: (isAdmin ? 'faculty' : 'student') as any,
+              timestamp: 'Just now',
+              reply: text.trim()
+            }
+          ]
+        };
+      }
+      return d;
+    });
+
+    setDoubts(updated);
+    setReplyTextMap(prev => ({ ...prev, [doubtId]: '' }));
+    localStorage.setItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`, JSON.stringify(updated));
+  };
+
+  const handleUpvote = (doubtId: string) => {
+    const updated = doubts.map(d => {
+      if (d.id === doubtId) {
+        const hasUpvoted = d.hasUpvoted;
+        return {
+          ...d,
+          upvotes: hasUpvoted ? d.upvotes - 1 : d.upvotes + 1,
+          hasUpvoted: !hasUpvoted
+        };
+      }
+      return d;
+    });
+    setDoubts(updated);
+    localStorage.setItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`, JSON.stringify(updated));
+  };
 
   const loadSessionState = async () => {
     setLoading(true);
@@ -164,16 +315,13 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
           const pct = Math.min(100, Math.round((next / totalDur) * 100));
           setWatchPercent(pct);
 
-          // Update segment
           const segStart = segmentStartRef.current;
           const currentSegments: [number, number][] = [...watchedSegmentsRef.current, [segStart, next]];
 
           if (pct >= 85) {
-            // Mark this individual clip complete
             updateClipWatchProgress(userId, session.id, activeClip.id, next, totalDur);
             setClipCompletedMap(prevMap => ({ ...prevMap, [activeClip.id]: true }));
 
-            // Check if all clips are now done
             const updatedClips = getSessionVideos(session.id);
             const allDone = updatedClips.every(c => c.id === activeClip.id || clipCompletedMap[c.id]);
             if (allDone) {
@@ -212,7 +360,6 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
     updateClipWatchProgress(userId, session.id, activeClip.id, dur, dur);
     setClipCompletedMap(prev => ({ ...prev, [activeClip.id]: true }));
 
-    // Check if all are complete
     const allDone = videoClips.every(c => c.id === activeClip.id || clipCompletedMap[c.id]);
     if (allDone) {
       setIsVideoDone(true);
@@ -303,7 +450,7 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
           <ul className="space-y-1.5 text-xs text-slate-300">
             {missingPrerequisites.map((p, idx) => (
               <li key={idx} className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 {p}
               </li>
             ))}
@@ -311,7 +458,7 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
         </div>
         <button
           onClick={onBack}
-          className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition"
+          className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition cursor-pointer"
         >
           Back to Curriculum
         </button>
@@ -319,717 +466,886 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
     );
   }
 
+  const isEligibleForCert = overallProgress.percentage >= 100;
+
   return (
-    <div className="space-y-6">
-      {/* Top Header & Navigation */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
+    <div className="flex flex-col min-h-[85vh] bg-slate-900 text-slate-100 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
+      {/* ─── 1. TOP LMS BAR ────────────────────────────────────── */}
+      <header className="bg-slate-950/90 border-b border-slate-800 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 backdrop-blur-md">
+        {/* Left: Breadcrumbs & Syllabus Drawer Toggle */}
+        <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition mb-2"
+            className="p-2 rounded-xl bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-bold"
+            title="Back to Course Overview"
           >
-            <ArrowLeft size={14} /> Back to Learning Pathway
+            <ArrowLeft size={14} />
+            <span className="hidden sm:inline">Back</span>
           </button>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              {session.id} • Level {session.levelNumber}
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
-              {session.part}
-            </span>
-            <span className="flex items-center gap-1 text-[11px] text-slate-400">
-              <Clock size={12} /> {session.durationMinutes} mins
-            </span>
-            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-semibold flex items-center gap-1">
-              <Film size={10} /> {videoClips.length} Micro-Lessons (&le;7m each)
-            </span>
+
+          <button
+            onClick={() => setIsSyllabusDrawerOpen(!isSyllabusDrawerOpen)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition ${
+              isSyllabusDrawerOpen 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                : 'bg-slate-850 border-slate-800 text-slate-300 hover:text-white'
+            }`}
+          >
+            <ListVideo size={13} />
+            <span>{isSyllabusDrawerOpen ? 'Hide Syllabus' : 'Show Syllabus'}</span>
+          </button>
+
+          {/* Breadcrumbs */}
+          <div className="hidden md:flex items-center gap-1.5 text-xs text-slate-400">
+            <span>Robotics Academy</span>
+            <ChevronRight size={12} />
+            <span className="text-slate-300 font-medium">Level {session.levelNumber}</span>
+            <ChevronRight size={12} />
+            <span className="text-white font-bold line-clamp-1 max-w-[220px]">{session.title}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white mt-1.5">{session.title}</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">{session.subtitle}</p>
         </div>
 
-        {/* Completion Badge & Admin Quick Actions */}
-        <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800">
+        {/* Right: Progress & Great Learning Certificate Button */}
+        <div className="flex items-center gap-3">
+          {/* Real-time progress metric */}
+          <div className="hidden sm:flex items-center gap-2 text-xs">
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 block font-bold uppercase">Course Progress</span>
+              <span className="font-mono font-bold text-emerald-400">{overallProgress.percentage}% Complete</span>
+            </div>
+            <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                style={{ width: `${overallProgress.percentage}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Great Learning "Claim Certificate" prominent action */}
+          <button
+            onClick={() => setIsCertModalOpen(true)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition shadow-lg cursor-pointer ${
+              isEligibleForCert
+                ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 animate-pulse shadow-amber-500/30'
+                : 'bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700'
+            }`}
+            title="View certificate criteria or claim your accredited credential"
+          >
+            <Award size={14} className={isEligibleForCert ? 'text-slate-950' : 'text-amber-400'} />
+            <span>{isEligibleForCert ? 'Claim Certificate' : 'Certificate Criteria'}</span>
+          </button>
+
+          {/* Admin Manage Videos Action */}
           {isAdmin && (
             <button
               onClick={() => setIsAdminVideoModalOpen(true)}
-              className="px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-bold flex items-center gap-1.5 transition"
-              title="Admin Video Studio: Upload or edit videos for this course"
+              className="p-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition"
+              title="Admin Video Studio"
             >
-              <Film size={14} className="text-indigo-400" />
-              Manage Course Videos
+              <Film size={14} />
             </button>
           )}
-
-          <div className="text-right">
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Status</div>
-            <div className={`text-xs font-bold flex items-center gap-1.5 ${completion?.isFullyCompleted ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {completion?.isFullyCompleted ? (
-                <>
-                  <CheckCircle size={14} /> Completed
-                </>
-              ) : (
-                <>
-                  <Clock size={14} /> In Progress
-                </>
-              )}
-            </div>
-          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 no-scrollbar">
-        {videoClips.length > 0 && (
-          <button
-            onClick={() => setActiveTab('video')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-              activeTab === 'video'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            <ListVideo size={14} /> Micro-Lessons ({videoClips.length}) {isVideoDone && <Check size={12} className="text-emerald-950 font-bold" />}
-          </button>
-        )}
-
-        <button
-          onClick={() => setActiveTab('reading')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-            activeTab === 'reading'
-              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-              : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <BookOpen size={14} /> Technical Guide
-        </button>
-
-        {session.hasPhysicalComponents && (
-          <button
-            onClick={() => setActiveTab('components')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-              activeTab === 'components'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            <Package size={14} /> Hardware Components
-          </button>
-        )}
-
-        {session.quizQuestions && session.quizQuestions.length > 0 && (
-          <button
-            onClick={() => setActiveTab('quiz')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-              activeTab === 'quiz'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            <HelpCircle size={14} /> Knowledge Quiz {completion?.quizPassed && <Check size={12} className="text-emerald-950 font-bold" />}
-          </button>
-        )}
-
-        {session.assignment && (
-          <button
-            onClick={() => setActiveTab('assignment')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-              activeTab === 'assignment'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            <FileText size={14} /> Assignment {completion?.assignmentSubmitted && <Check size={12} className="text-emerald-950 font-bold" />}
-          </button>
-        )}
-
-        {session.miniProject && (
-          <button
-            onClick={() => setActiveTab('project')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition ${
-              activeTab === 'project'
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-            }`}
-          >
-            <Cpu size={14} /> Hands-on Project {completion?.miniProjectSubmitted && <Check size={12} className="text-emerald-950 font-bold" />}
-          </button>
-        )}
-      </div>
-
-      {/* TAB CONTENT: BITE-SIZED VIDEO MICRO-LESSONS (MAX 7 MIN EACH) */}
-      {activeTab === 'video' && videoClips.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Main Player Area (8 cols) */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative">
-              
-              {/* Micro-Lesson Header Banner */}
-              <div className="px-5 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center">
-                    {activeClipIndex + 1}
+      {/* ─── 2. MAIN BODY (SYLLABUS SIDEBAR + CONTENT STAGE) ──────────────────────── */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Collapsible Curriculum Drawer (Left) */}
+        {isSyllabusDrawerOpen && (
+          <aside className="w-80 shrink-0 bg-slate-950 border-r border-slate-800 flex flex-col justify-between overflow-y-auto no-scrollbar hidden md:flex">
+            <div className="p-4 space-y-4">
+              {/* Pinned Certificate Qualification Status Card */}
+              <div 
+                onClick={() => setIsCertModalOpen(true)}
+                className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-amber-500/30 hover:border-amber-400 cursor-pointer transition shadow-md group"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                    <Award size={14} />
+                    <span>Certificate Progress</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">{overallProgress.percentage}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${overallProgress.percentage}%` }} />
+                </div>
+                <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                  <span>{overallProgress.completedCount} of {overallProgress.totalSessions} sessions</span>
+                  <span className="text-amber-300 font-bold group-hover:underline flex items-center gap-0.5">
+                    View checklist <ChevronRight size={10} />
                   </span>
-                  <div>
-                    <h3 className="text-xs font-bold text-white line-clamp-1">
-                      {activeClip?.title || 'Course Micro-Lesson'}
-                    </h3>
-                    <span className="text-[10px] text-slate-400">
-                      Lesson {activeClipIndex + 1} of {videoClips.length} • Max 7 Min Micro-Lesson Standard
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handlePrevClip}
-                    disabled={activeClipIndex === 0}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 transition"
-                    title="Previous Micro-Lesson"
-                  >
-                    <SkipBack size={14} />
-                  </button>
-                  <button
-                    onClick={handleNextClip}
-                    disabled={activeClipIndex === videoClips.length - 1}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 transition"
-                    title="Next Micro-Lesson"
-                  >
-                    <SkipForward size={14} />
-                  </button>
                 </div>
               </div>
 
-              {/* Video Embed Player */}
-              <div className="aspect-video w-full bg-slate-950 relative overflow-hidden flex items-center justify-center">
-                {!activeClip?.videoUrl || !activeClip.videoUrl.trim() ? (
-                  <div className="p-8 text-center space-y-3 max-w-md">
-                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto">
-                      <Play className="w-8 h-8 text-indigo-400 ml-1" />
-                    </div>
-                    <div>
-                      <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 inline-block mb-2">
-                        Video Lecture Coming Soon
-                      </span>
-                      <h4 className="text-base font-bold text-white">
-                        Recording in Production
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        The video recording for "{activeClip?.title || session.title}" is being compiled. You can study the hardware schematic, interactive simulator, and firmware notes below in the meantime.
-                      </p>
-                    </div>
-                  </div>
-                ) : activeClip.videoUrl.includes('youtube.com') || activeClip.videoUrl.includes('youtu.be') ? (
-                  <iframe
-                    src={activeClip.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
-                    title={activeClip?.title || session.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  ></iframe>
-                ) : (
-                  <video
-                    src={activeClip?.videoUrl}
-                    controls
-                    className="w-full h-full object-contain"
-                  ></video>
-                )}
-              </div>
-
-              {/* Anti-Cheat & Micro-Lesson Watch Progress */}
-              <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="w-full sm:w-1/2">
-                  <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                    <span className="text-slate-300 flex items-center gap-1.5">
-                      <ShieldCheck size={14} className="text-emerald-400" /> Watch Verification ({formatSecs(watchedSeconds)} / {formatSecs(activeClipDuration)})
-                    </span>
-                    <span className={watchPercent >= 85 ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
-                      {watchPercent}% {watchPercent >= 85 ? '✓ Verified' : '(85% required)'}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-300 ${watchPercent >= 85 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                      style={{ width: `${watchPercent}%` }}
-                    ></div>
-                  </div>
+              {/* Module Syllabus List */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 mb-1">
+                  Foundation Curriculum (42 Sessions)
                 </div>
 
-                {/* Control Actions */}
-                <div className="flex items-center gap-2 flex-wrap justify-end">
-                  {!videoTimerRunning ? (
-                    <button
-                      onClick={handleStartWatching}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Play size={13} /> Log Watch Time
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handlePauseWatching}
-                      className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
-                    >
-                      <Clock size={13} /> Pause Logger
-                    </button>
-                  )}
+                <div className="space-y-1 max-h-[55vh] overflow-y-auto pr-1">
+                  {COMPLETE_YARA_SESSIONS.map((s, idx) => {
+                    const isCurrent = s.id === session.id;
+                    const comp = (allUserCompletions[s.id] || {}) as any;
+                    const isDone = comp.isFullyCompleted;
+                    const { isUnlocked: sUnlocked } = checkSessionPrerequisites(userId, s.id);
 
-                  <button
-                    onClick={handleMarkClipComplete}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1"
-                    title="Mark this micro-lesson as watched"
-                  >
-                    <Check size={13} className="text-emerald-400" /> Complete Clip
-                  </button>
-
-                  {activeClipIndex < videoClips.length - 1 && (
-                    <button
-                      onClick={handleNextClip}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1"
-                    >
-                      Next <ChevronRight size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Micro-Lesson Description & Objectives */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  Micro-Lesson Takeaway
-                </h3>
-                <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 capitalize">
-                  {activeClip?.clipType || 'Concept'}
-                </span>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                {activeClip?.description || session.learningObjective}
-              </p>
-            </div>
-          </div>
-
-          {/* Micro-Lessons Playlist & Course Info Sidebar (4 cols) */}
-          <div className="lg:col-span-4 space-y-4">
-            
-            {/* Modular Playlist */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <ListVideo size={14} className="text-emerald-400" />
-                  Course Micro-Lessons
-                </h3>
-                <span className="text-[10px] font-bold text-slate-400">
-                  {videoClips.filter(c => clipCompletedMap[c.id]).length}/{videoClips.length} Completed
-                </span>
-              </div>
-
-              {/* Admin Manage Videos Action */}
-              {isAdmin && (
-                <button
-                  onClick={() => setIsAdminVideoModalOpen(true)}
-                  className="w-full py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 transition"
-                >
-                  <Film size={13} /> Manage / Upload Course Videos
-                </button>
-              )}
-
-              {/* Clip Items List */}
-              <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-                {videoClips.map((clip, idx) => {
-                  const isActive = idx === activeClipIndex;
-                  const isDone = clipCompletedMap[clip.id];
-
-                  return (
-                    <button
-                      key={clip.id}
-                      onClick={() => setActiveClipIndex(idx)}
-                      className={`w-full text-left p-3 rounded-xl border transition flex items-start justify-between gap-2.5 ${
-                        isActive
-                          ? 'bg-emerald-950/40 border-emerald-500/60 shadow-sm'
-                          : isDone
-                          ? 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700'
-                          : 'bg-slate-950/70 border-slate-800/60 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5 ${
-                          isDone 
-                            ? 'bg-emerald-500 text-slate-950' 
-                            : isActive 
-                            ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30' 
-                            : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {isDone ? <Check size={11} className="stroke-[3]" /> : idx + 1}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <h4 className={`text-xs font-semibold leading-tight line-clamp-2 ${
-                            isActive ? 'text-emerald-300 font-bold' : 'text-slate-200'
+                    return (
+                      <button
+                        key={s.id}
+                        disabled={!sUnlocked}
+                        onClick={() => onNavigateSession(s.id)}
+                        className={`w-full text-left p-2.5 rounded-xl border text-xs transition flex items-center justify-between gap-2 cursor-pointer disabled:cursor-not-allowed ${
+                          isCurrent
+                            ? 'bg-emerald-950/40 border-emerald-500 text-white font-bold shadow-sm'
+                            : isDone
+                            ? 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                            : sUnlocked
+                            ? 'bg-slate-900/30 border-slate-800/60 text-slate-400 hover:text-white hover:border-slate-700'
+                            : 'bg-slate-950/40 border-slate-900 text-slate-600 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                            isDone 
+                              ? 'bg-emerald-500 text-slate-950' 
+                              : isCurrent 
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                              : 'bg-slate-800 text-slate-400'
                           }`}>
-                            {clip.title}
-                          </h4>
-                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-                            <span className="flex items-center gap-1 font-mono text-emerald-400/90">
-                              <Clock size={10} /> {formatSecs(clip.durationSeconds)}
-                            </span>
-                            <span className="capitalize text-slate-400">
-                              {clip.clipType || 'Lesson'}
-                            </span>
+                            {isDone ? <Check size={11} className="stroke-[3]" /> : idx + 1}
+                          </div>
+
+                          <div className="truncate">
+                            <div className="truncate text-xs font-semibold leading-tight">{s.title}</div>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                              {s.id} • {s.durationMinutes}m
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {isActive && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0 animate-pulse"></div>
-                      )}
-                    </button>
-                  );
-                })}
+                        {!sUnlocked ? (
+                          <Lock size={12} className="text-slate-600 shrink-0" />
+                        ) : isCurrent ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Why Learn This & Resources Card */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Award size={14} className="text-emerald-400" /> Engineering Impact
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">{session.whyLearnThis}</p>
-
-              {session.resources && session.resources.length > 0 && (
-                <div className="border-t border-slate-800 pt-3 space-y-2">
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Official Documentation & Circuit Diagrams
-                  </h4>
-                  {session.resources.map((res, i) => (
-                    <a
-                      key={i}
-                      href={res.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 flex items-center justify-between text-xs text-slate-300 transition group"
-                    >
-                      <span className="font-medium group-hover:text-emerald-400 truncate max-w-[200px] text-[11px]">{res.title}</span>
-                      <ExternalLink size={11} className="text-slate-500 group-hover:text-emerald-400 flex-shrink-0" />
-                    </a>
-                  ))}
-                </div>
-              )}
+            <div className="p-4 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Standard: YARA Learning Academy</span>
+              <span className="text-emerald-400 font-mono font-bold">L0–L8</span>
             </div>
-          </div>
-        </div>
-      )}
+          </aside>
+        )}
 
-      {/* TAB CONTENT: READING / GUIDE */}
-      {activeTab === 'reading' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-4xl mx-auto space-y-6 text-slate-200">
-          <div className="border-b border-slate-800 pb-4">
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Technical Reading</span>
-            <h2 className="text-2xl font-bold text-white mt-1">{session.title}</h2>
-          </div>
-
-          <div className="prose prose-invert prose-emerald max-w-none text-sm sm:text-base leading-relaxed space-y-4">
-            <div className="whitespace-pre-line font-sans text-slate-300">
-              {session.reading_markdown}
-            </div>
-          </div>
-
-          <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-5 mt-8 flex items-center justify-between">
+        {/* Content Stage (Center) */}
+        <main className="flex-1 flex flex-col overflow-y-auto no-scrollbar p-4 sm:p-6 space-y-6">
+          {/* Session Header Banner */}
+          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h4 className="text-sm font-bold text-emerald-400">Completed the reading?</h4>
-              <p className="text-xs text-slate-400 mt-0.5">Test your understanding in the knowledge quiz.</p>
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                  {session.id} • Level {session.levelNumber}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                  {session.part}
+                </span>
+                <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                  <Clock size={12} /> {session.durationMinutes} mins
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">{session.title}</h1>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">{session.subtitle}</p>
             </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleMarkClipComplete}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              >
+                <Check size={14} />
+                <span>Mark Lesson Complete</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stage Tabs (Great Learning Standard) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 no-scrollbar">
+            <button
+              onClick={() => setActiveTab('video')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                activeTab === 'video'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+              }`}
+            >
+              <Film size={13} />
+              <span>Video Lecture ({videoClips.length})</span>
+              {isVideoDone && <Check size={12} className="stroke-[3]" />}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reading')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                activeTab === 'reading'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+              }`}
+            >
+              <BookOpen size={13} />
+              <span>Study Notes & Formulas</span>
+            </button>
+
             {session.quizQuestions && session.quizQuestions.length > 0 && (
               <button
                 onClick={() => setActiveTab('quiz')}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition"
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'quiz'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+                }`}
               >
-                Take Quiz →
+                <HelpCircle size={13} />
+                <span>Graded Quiz</span>
+                {completion?.quizPassed && <Check size={12} className="stroke-[3]" />}
+              </button>
+            )}
+
+            <button
+              onClick={() => setActiveTab('discussion')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                activeTab === 'discussion'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+              }`}
+            >
+              <MessageSquare size={13} />
+              <span>Ask Faculty & Mentors ({doubts.length})</span>
+            </button>
+
+            {session.hasPhysicalComponents && (
+              <button
+                onClick={() => setActiveTab('components')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'components'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+                }`}
+              >
+                <Package size={13} />
+                <span>Hardware Components</span>
+              </button>
+            )}
+
+            {session.assignment && (
+              <button
+                onClick={() => setActiveTab('assignment')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'assignment'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+                }`}
+              >
+                <FileText size={13} />
+                <span>Assignment</span>
+                {completion?.assignmentSubmitted && <Check size={12} className="stroke-[3]" />}
+              </button>
+            )}
+
+            {session.miniProject && (
+              <button
+                onClick={() => setActiveTab('project')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'project'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'bg-slate-950 text-slate-300 hover:bg-slate-850 border border-slate-800'
+                }`}
+              >
+                <Cpu size={13} />
+                <span>Hands-on Project</span>
+                {completion?.miniProjectSubmitted && <Check size={12} className="stroke-[3]" />}
               </button>
             )}
           </div>
-        </div>
-      )}
 
-      {/* TAB CONTENT: HARDWARE COMPONENTS */}
-      {activeTab === 'components' && session.componentsRequired && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
-          <div>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Lab Hardware Checklist</span>
-            <h2 className="text-xl font-bold text-white mt-1">Physical Components for this Session</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Verify you have the following components from your YARA Robotics Starter Kit before beginning physical assembly.
-            </p>
-          </div>
+          {/* ─── TAB 1: VIDEO MICRO-LESSONS ─────────────────────────────────────── */}
+          {activeTab === 'video' && (
+            <div className="space-y-4">
+              <div className="bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative">
+                {/* Micro-Lesson Header */}
+                <div className="px-5 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center">
+                      {activeClipIndex + 1}
+                    </span>
+                    <div>
+                      <h3 className="text-xs font-bold text-white line-clamp-1">
+                        {activeClip?.title || session.title}
+                      </h3>
+                      <span className="text-[10px] text-slate-400">
+                        Lesson {activeClipIndex + 1} of {videoClips.length} • Max 7 Min Micro-Lesson Standard
+                      </span>
+                    </div>
+                  </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {session.componentsRequired.map((comp, idx) => (
-              <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                  <Wrench size={18} />
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handlePrevClip}
+                      disabled={activeClipIndex === 0}
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 transition"
+                      title="Previous Micro-Lesson"
+                    >
+                      <SkipBack size={14} />
+                    </button>
+                    <button
+                      onClick={handleNextClip}
+                      disabled={activeClipIndex === videoClips.length - 1}
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-300 transition"
+                      title="Next Micro-Lesson"
+                    >
+                      <SkipForward size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    {comp.name}
-                    {comp.inStarterKit && (
-                      <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300">In Starter Kit</span>
+
+                {/* Video Stage Player */}
+                <div className="aspect-video w-full bg-slate-950 relative overflow-hidden flex items-center justify-center">
+                  {!activeClip?.videoUrl || !activeClip.videoUrl.trim() ? (
+                    <div className="p-8 text-center space-y-3 max-w-md">
+                      <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto">
+                        <Play className="w-8 h-8 text-indigo-400 ml-1" />
+                      </div>
+                      <div>
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 inline-block mb-2">
+                          Video Lecture Ready
+                        </span>
+                        <h4 className="text-base font-bold text-white">
+                          "{activeClip?.title || session.title}"
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                          Follow the study guide, interactive pinouts, and firmware walkthrough below. Use the watch logger below to log time and claim credit.
+                        </p>
+                      </div>
+                    </div>
+                  ) : activeClip.videoUrl.includes('youtube.com') || activeClip.videoUrl.includes('youtu.be') ? (
+                    <iframe
+                      src={activeClip.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'www.youtube.com/embed/')}
+                      title={activeClip?.title || session.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      src={activeClip?.videoUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+
+                {/* Micro-Lesson Watch Bar & Logger */}
+                <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="w-full sm:w-1/2">
+                    <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                      <span className="text-slate-300 flex items-center gap-1.5">
+                        <ShieldCheck size={14} className="text-emerald-400" /> Watch Verification ({formatSecs(watchedSeconds)} / {formatSecs(activeClipDuration)})
+                      </span>
+                      <span className={watchPercent >= 85 ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                        {watchPercent}% {watchPercent >= 85 ? '✓ Verified' : '(85% required)'}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${watchPercent >= 85 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                        style={{ width: `${watchPercent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {!videoTimerRunning ? (
+                      <button
+                        onClick={handleStartWatching}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <Play size={13} /> Log Watch Time
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePauseWatching}
+                        className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Clock size={13} /> Pause Logger
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleMarkClipComplete}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Check size={13} className="text-emerald-400" /> Complete Clip
+                    </button>
+
+                    {activeClipIndex < videoClips.length - 1 && (
+                      <button
+                        onClick={handleNextClip}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+                      >
+                        Next <ChevronRight size={13} />
+                      </button>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">Qty: {comp.quantity} • Purpose: {comp.purpose}</div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* TAB CONTENT: RANDOMIZED QUIZ */}
-      {activeTab === 'quiz' && quizData && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Server-Validated Exam</span>
-              <h2 className="text-xl font-bold text-white mt-1">Knowledge Assessment</h2>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-slate-400 block">Passing Threshold</span>
-              <span className="text-sm font-bold text-emerald-400">{quizData.passingScore}%</span>
-            </div>
-          </div>
-
-          {/* Quiz Result Banner */}
-          {quizSubmitted && quizResult && (
-            <div className={`p-5 rounded-2xl border ${quizResult.passed ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' : 'bg-red-950/30 border-red-500/40 text-red-300'}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    {quizResult.passed ? <CheckCircle size={20} className="text-emerald-400" /> : <AlertTriangle size={20} className="text-red-400" />}
-                    {quizResult.passed ? 'Quiz Passed with Distinction!' : 'Quiz Not Passed'}
+              {/* Micro-Lesson Description & Takeaway */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    Core Learning Objective
                   </h3>
-                  <p className="text-xs mt-1 text-slate-300">
-                    You scored {quizResult.score} / {quizResult.totalQuestions} ({quizResult.percentage}%).
-                  </p>
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 capitalize">
+                    {activeClip?.clipType || 'Concept'}
+                  </span>
                 </div>
-                {!quizResult.passed && (
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  {activeClip?.description || session.learningObjective}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── TAB 2: TECHNICAL READING & SUMMARY ─────────────────────────────── */}
+          {activeTab === 'reading' && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 text-slate-200">
+              <div className="border-b border-slate-800 pb-4">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Lecture Study Guide</span>
+                <h2 className="text-2xl font-bold text-white mt-1">{session.title}</h2>
+              </div>
+
+              <div className="prose prose-invert prose-emerald max-w-none text-sm sm:text-base leading-relaxed space-y-4">
+                <div className="whitespace-pre-line font-sans text-slate-300">
+                  {session.reading_markdown}
+                </div>
+              </div>
+
+              <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-5 mt-6 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-400">Understood the concept?</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Test your comprehension in the graded assessment.</p>
+                </div>
+                {session.quizQuestions && session.quizQuestions.length > 0 && (
                   <button
-                    onClick={() => {
-                      const generated = generateRandomizedQuiz(session.id);
-                      setQuizData(generated);
-                      setUserAnswers({});
-                      setQuizSubmitted(false);
-                      setQuizResult(null);
-                    }}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl transition"
+                    onClick={() => setActiveTab('quiz')}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition cursor-pointer"
                   >
-                    Retake Quiz
+                    Take Graded Quiz →
                   </button>
                 )}
               </div>
             </div>
           )}
 
-          {/* Question List */}
-          <div className="space-y-6">
-            {quizData.questions.map((q, qIndex) => {
-              const resultFeedback = quizResult?.feedback?.find((f: any) => f.questionId === q.id);
-              return (
-                <div key={q.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
-                  <div className="text-xs font-semibold text-slate-400">
-                    Question {qIndex + 1} of {quizData.questions.length}
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-white">{q.question}</h3>
-
-                  <div className="space-y-2.5">
-                    {q.options.map((opt, optIndex) => {
-                      const isSelected = userAnswers[q.id] === optIndex;
-                      let btnStyle = 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800';
-
-                      if (quizSubmitted && resultFeedback) {
-                        if (optIndex === resultFeedback.correctChoice) {
-                          btnStyle = 'bg-emerald-950/50 border-emerald-500 text-emerald-300 font-semibold';
-                        } else if (isSelected && !resultFeedback.isCorrect) {
-                          btnStyle = 'bg-red-950/50 border-red-500 text-red-300';
-                        }
-                      } else if (isSelected) {
-                        btnStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-semibold';
-                      }
-
-                      return (
-                        <button
-                          key={optIndex}
-                          onClick={() => handleQuizOptionSelect(q.id, optIndex)}
-                          disabled={quizSubmitted}
-                          className={`w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm transition flex items-center justify-between ${btnStyle}`}
-                        >
-                          <span>{opt}</span>
-                          {isSelected && <Check size={14} className="text-emerald-400 flex-shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {quizSubmitted && resultFeedback && (
-                    <div className="bg-slate-900/90 rounded-xl p-3.5 border border-slate-800 text-xs text-slate-300 mt-3">
-                      <span className="font-bold text-emerald-400 block mb-1">Explanation:</span>
-                      {resultFeedback.explanation}
-                    </div>
-                  )}
+          {/* ─── TAB 3: GRADED ASSESSMENT QUIZ ──────────────────────────────────── */}
+          {activeTab === 'quiz' && quizData && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div>
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Accredited Evaluation</span>
+                  <h2 className="text-xl font-bold text-white mt-1">Graded Module Assessment</h2>
                 </div>
-              );
-            })}
-          </div>
+                <div className="text-right">
+                  <span className="text-xs text-slate-400 block">Passing Mark</span>
+                  <span className="text-sm font-bold text-emerald-400">{quizData.passingScore}% (Required for Certificate)</span>
+                </div>
+              </div>
 
-          {!quizSubmitted && (
-            <div className="pt-4 flex justify-end">
-              <button
-                onClick={handleSubmitQuiz}
-                disabled={quizSubmitting || Object.keys(userAnswers).length < quizData.questions.length}
-                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-xl shadow-lg transition"
-              >
-                {quizSubmitting ? 'Evaluating Submission...' : 'Submit Answers for Grading'}
-              </button>
+              {/* Quiz Result Banner */}
+              {quizSubmitted && quizResult && (
+                <div className={`p-5 rounded-2xl border ${quizResult.passed ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' : 'bg-red-950/30 border-red-500/40 text-red-300'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-bold flex items-center gap-2">
+                        {quizResult.passed ? <CheckCircle size={20} className="text-emerald-400" /> : <AlertTriangle size={20} className="text-red-400" />}
+                        {quizResult.passed ? 'Quiz Cleared with Distinction!' : 'Passing Score Not Met'}
+                      </h3>
+                      <p className="text-xs mt-1 text-slate-300">
+                        You scored {quizResult.score} / {quizResult.totalQuestions} ({quizResult.percentage}%).
+                      </p>
+                    </div>
+                    {!quizResult.passed && (
+                      <button
+                        onClick={() => {
+                          const generated = generateRandomizedQuiz(session.id);
+                          setQuizData(generated);
+                          setUserAnswers({});
+                          setQuizSubmitted(false);
+                          setQuizResult(null);
+                        }}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                      >
+                        Retake Assessment
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Questions */}
+              <div className="space-y-6">
+                {quizData.questions.map((q, qIndex) => {
+                  const resultFeedback = quizResult?.feedback?.find((f: any) => f.questionId === q.id);
+                  return (
+                    <div key={q.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                      <div className="text-xs font-semibold text-slate-400">
+                        Question {qIndex + 1} of {quizData.questions.length}
+                      </div>
+                      <h3 className="text-sm sm:text-base font-bold text-white">{q.question}</h3>
+
+                      <div className="space-y-2.5">
+                        {q.options.map((opt, optIndex) => {
+                          const isSelected = userAnswers[q.id] === optIndex;
+                          let btnStyle = 'bg-slate-950 hover:bg-slate-850 text-slate-300 border-slate-800';
+
+                          if (quizSubmitted && resultFeedback) {
+                            if (optIndex === resultFeedback.correctChoice) {
+                              btnStyle = 'bg-emerald-950/50 border-emerald-500 text-emerald-300 font-semibold';
+                            } else if (isSelected && !resultFeedback.isCorrect) {
+                              btnStyle = 'bg-red-950/50 border-red-500 text-red-300';
+                            }
+                          } else if (isSelected) {
+                            btnStyle = 'bg-emerald-500/20 border-emerald-500 text-emerald-300 font-semibold';
+                          }
+
+                          return (
+                            <button
+                              key={optIndex}
+                              onClick={() => handleQuizOptionSelect(q.id, optIndex)}
+                              disabled={quizSubmitted}
+                              className={`w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm transition flex items-center justify-between cursor-pointer ${btnStyle}`}
+                            >
+                              <span>{opt}</span>
+                              {isSelected && <Check size={14} className="text-emerald-400 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {quizSubmitted && resultFeedback && (
+                        <div className="bg-slate-950 rounded-xl p-3.5 border border-slate-800 text-xs text-slate-300 mt-3">
+                          <span className="font-bold text-emerald-400 block mb-1">Explanation:</span>
+                          {resultFeedback.explanation}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {!quizSubmitted && (
+                <div className="pt-4 flex justify-end">
+                  <button
+                    onClick={handleSubmitQuiz}
+                    disabled={quizSubmitting || Object.keys(userAnswers).length < quizData.questions.length}
+                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-xl shadow-lg transition cursor-pointer"
+                  >
+                    {quizSubmitting ? 'Evaluating Submission…' : 'Submit Answers for Grading'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* TAB CONTENT: ASSIGNMENT SUBMISSION */}
-      {activeTab === 'assignment' && session.assignment && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
-          <div>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Required Submission</span>
-            <h2 className="text-xl font-bold text-white mt-1">{session.assignment.title}</h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-2">{session.assignment.description}</p>
-          </div>
+          {/* ─── TAB 4: DOUBT CLEARING & MENTOR Q&A ──────────────────────────────── */}
+          {activeTab === 'discussion' && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">YARA Academic Mentorship Forum</span>
+                  <h2 className="text-xl font-bold text-white mt-0.5">Doubt Resolution & Discussion</h2>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold">
+                  Active Faculty & Peer Assistance
+                </span>
+              </div>
 
-          <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-            <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Instructions</h4>
-            <ul className="space-y-1 text-xs text-slate-300">
-              {session.assignment.instructions.map((ins, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {ins}
-                </li>
-              ))}
-            </ul>
-          </div>
+              {/* Ask a Question Input */}
+              <form onSubmit={handlePostDoubt} className="space-y-3 p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+                <label className="text-xs font-bold text-slate-300 block">
+                  Have a question or concept doubt on this lesson?
+                </label>
+                <textarea
+                  rows={3}
+                  value={newDoubtText}
+                  onChange={e => setNewDoubtText(e.target.value)}
+                  placeholder="Ask a technical doubt or request guidance from YARA mentors and faculty..."
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
+                  required
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                  >
+                    <Send size={13} />
+                    <span>Post Question to Mentors</span>
+                  </button>
+                </div>
+              </form>
 
-          {assignmentSubmittedSuccess && (
-            <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle size={16} /> Assignment successfully submitted and recorded to your learning portfolio!
-            </div>
-          )}
+              {/* Doubt Threads */}
+              <div className="space-y-4">
+                {doubts.map(d => (
+                  <div key={d.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white">{d.authorName}</span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                            d.authorRole === 'faculty' 
+                              ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' 
+                              : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {d.authorRole}
+                          </span>
+                          <span className="text-[10px] text-slate-500">{d.timestamp}</span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-200 mt-2 font-medium leading-relaxed">
+                          {d.question}
+                        </p>
+                      </div>
 
-          <form onSubmit={handleSubmitAssignment} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Technical Write-up / Calculation / Code Text
-              </label>
-              <textarea
-                value={assignmentText}
-                onChange={e => setAssignmentText(e.target.value)}
-                placeholder="Write or paste your detailed calculations, formulas, or written submission here..."
-                rows={6}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
-                required
-              />
-            </div>
+                      <button
+                        onClick={() => handleUpvote(d.id)}
+                        className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 transition cursor-pointer ${
+                          d.hasUpvoted ? 'bg-indigo-600/30 border-indigo-500 text-indigo-300' : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <ThumbsUp size={12} />
+                        <span>{d.upvotes}</span>
+                      </button>
+                    </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Attachment / Google Drive / GitHub URL (Optional)
-              </label>
-              <input
-                type="url"
-                value={assignmentFileUrl}
-                onChange={e => setAssignmentFileUrl(e.target.value)}
-                placeholder="https://drive.google.com/... or https://github.com/..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
-            </div>
+                    {/* Replies */}
+                    {d.replies.length > 0 && (
+                      <div className="pl-4 border-l-2 border-emerald-500/40 space-y-2.5 pt-1">
+                        {d.replies.map(r => (
+                          <div key={r.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-emerald-400">{r.authorName}</span>
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold uppercase">
+                                Verified {r.authorRole}
+                              </span>
+                              <span className="text-[10px] text-slate-500">{r.timestamp}</span>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed">{r.reply}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-2"
-            >
-              <UploadCloud size={14} /> Submit Assignment
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* TAB CONTENT: HANDS-ON MINI PROJECT */}
-      {activeTab === 'project' && session.miniProject && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
-          <div>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Hands-on Mini Project</span>
-            <h2 className="text-xl font-bold text-white mt-1">{session.miniProject.title}</h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-2">{session.miniProject.description}</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-              <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Key Objectives</h4>
-              <ul className="space-y-1 text-xs text-slate-300">
-                {session.miniProject.objectives.map((obj, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {obj}
-                  </li>
+                    {/* Quick Reply Form */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Write a reply or answer..."
+                        value={replyTextMap[d.id] || ''}
+                        onChange={e => setReplyTextMap(prev => ({ ...prev, [d.id]: e.target.value }))}
+                        className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        onClick={() => handlePostReply(d.id)}
+                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-bold rounded-lg transition"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </div>
-
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Simulation / Bench</h4>
-              <p className="text-xs text-white font-medium">{session.miniProject.simulationPlatform || 'Tinkercad / Wokwi / Bench'}</p>
-            </div>
-          </div>
-
-          {projectSubmittedSuccess && (
-            <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
-              <CheckCircle size={16} /> Hands-on project link recorded!
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmitProject} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Simulation Link, Video Demo URL or GitHub Repo
-              </label>
-              <input
-                type="url"
-                value={projectUrl}
-                onChange={e => setProjectUrl(e.target.value)}
-                placeholder="https://www.tinkercad.com/things/... or https://wokwi.com/projects/..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
-                required
-              />
-            </div>
+          {/* ─── TAB 5: HARDWARE COMPONENTS ─────────────────────────────────────── */}
+          {activeTab === 'components' && session.componentsRequired && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Hardware Lab Checklist</span>
+                <h2 className="text-xl font-bold text-white mt-1">Physical Starter Kit Components</h2>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Project Notes & Results Description
-              </label>
-              <textarea
-                value={projectNotes}
-                onChange={e => setProjectNotes(e.target.value)}
-                placeholder="Describe how your circuit or code operated during testing..."
-                rows={4}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {session.componentsRequired.map((comp, idx) => (
+                  <div key={idx} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                      <Wrench size={18} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        {comp.name}
+                        {comp.inStarterKit && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-300">In Starter Kit</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-400 mt-0.5">Qty: {comp.quantity} • {comp.purpose}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
 
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-2"
-            >
-              <UploadCloud size={14} /> Record Project Completion
-            </button>
-          </form>
+          {/* ─── TAB 6: ASSIGNMENT ──────────────────────────────────────────────── */}
+          {activeTab === 'assignment' && session.assignment && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Technical Deliverable</span>
+                <h2 className="text-xl font-bold text-white mt-1">{session.assignment.title}</h2>
+                <p className="text-xs text-slate-300 mt-1">{session.assignment.description}</p>
+              </div>
+
+              {assignmentSubmittedSuccess && (
+                <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle size={16} /> Assignment recorded to your portfolio!
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitAssignment} className="space-y-4">
+                <textarea
+                  value={assignmentText}
+                  onChange={e => setAssignmentText(e.target.value)}
+                  placeholder="Paste your calculation, formula analysis, or written answer here..."
+                  rows={5}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  required
+                />
+                <input
+                  type="url"
+                  value={assignmentFileUrl}
+                  onChange={e => setAssignmentFileUrl(e.target.value)}
+                  placeholder="Optional Google Drive / GitHub repository link..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer"
+                >
+                  <UploadCloud size={14} /> Submit Assignment
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ─── TAB 7: PROJECT ─────────────────────────────────────────────────── */}
+          {activeTab === 'project' && session.miniProject && (
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+              <div>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Hands-On Innovation Lab</span>
+                <h2 className="text-xl font-bold text-white mt-1">{session.miniProject.title}</h2>
+                <p className="text-xs text-slate-300 mt-1">{session.miniProject.description}</p>
+              </div>
+
+              {projectSubmittedSuccess && (
+                <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle size={16} /> Hands-on project link recorded!
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitProject} className="space-y-4">
+                <input
+                  type="url"
+                  value={projectUrl}
+                  onChange={e => setProjectUrl(e.target.value)}
+                  placeholder="Simulation URL (Tinkercad, Wokwi) or Video demo link..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  required
+                />
+                <textarea
+                  value={projectNotes}
+                  onChange={e => setProjectNotes(e.target.value)}
+                  placeholder="Notes on testing results and observations..."
+                  rows={4}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer"
+                >
+                  <UploadCloud size={14} /> Record Project
+                </button>
+              </form>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* ─── 3. STICKY BOTTOM NAVIGATION BAR ────────────────── */}
+      <footer className="bg-slate-950 border-t border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        {/* Previous Lesson */}
+        {prevSession ? (
+          <button
+            onClick={() => onNavigateSession(prevSession.id)}
+            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <ChevronLeft size={14} />
+            <span className="hidden sm:inline">Previous:</span> {prevSession.id}
+          </button>
+        ) : (
+          <div />
+        )}
+
+        {/* Center Progress Indicator */}
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span>Session {sessionIndex + 1} of {COMPLETE_YARA_SESSIONS.length}</span>
+          <span>•</span>
+          <span className={completion?.isFullyCompleted ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+            {completion?.isFullyCompleted ? '✓ Completed' : 'In Progress'}
+          </span>
         </div>
-      )}
 
-      {/* Admin Session Video Manager Studio Modal */}
+        {/* Next Lesson */}
+        {nextSession ? (
+          <button
+            onClick={() => onNavigateSession(nextSession.id)}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-black flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+          >
+            <span>Next: {nextSession.id}</span>
+            <ChevronRight size={14} />
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsCertModalOpen(true)}
+            className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-xs font-black flex items-center gap-1.5 transition shadow-lg cursor-pointer"
+          >
+            <Award size={14} />
+            <span>Finish & Claim Certificate</span>
+          </button>
+        )}
+      </footer>
+
+      {/* ─── 4. GREAT LEARNING CERTIFICATE MODAL ─────────────────────────────────── */}
+      <GreatLearningCertificateModal
+        isOpen={isCertModalOpen}
+        onClose={() => {
+          setIsCertModalOpen(false);
+          loadSessionState();
+          onRefreshProgress();
+        }}
+        userId={userId}
+        userEmail={userEmail}
+        defaultStudentName={studentName}
+        courseId="robotics-foundation"
+        courseTitle="YARA Robotics & Innovation Foundation Programme (Levels 0 — 8)"
+        courseCategory="robotics"
+      />
+
+      {/* Admin Video Studio Modal */}
       {isAdmin && (
         <AdminSessionVideoModal
           sessionId={session.id}

@@ -10,7 +10,6 @@ import {
   Smile, 
   Check, 
   Loader2,
-  Sparkles,
   User
 } from 'lucide-react';
 import { 

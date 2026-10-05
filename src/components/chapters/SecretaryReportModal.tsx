@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   FileText, Send, Loader2, AlertCircle, CheckCircle2, 
   Link as LinkIcon, Calendar, Users, Building2, HelpCircle, X,
-  Lock, ShieldCheck, ShieldAlert, Key, UserCheck, Check, Sparkles,
+  Lock, ShieldCheck, ShieldAlert, Key, UserCheck, Check,
   DollarSign, PieChart, Landmark, Layers, FileSpreadsheet
 } from 'lucide-react';
 import { motion } from 'motion/react';

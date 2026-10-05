@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Award, Edit3, Eye, Save, X, ChevronDown, ChevronUp,
   GraduationCap, Code2, Brain, Cpu, CheckCircle2, Palette,
-  FileText, Shield, Star, Sparkles, RotateCcw, Trophy, Users, Heart
+  FileText, Shield, Star, RotateCcw, Trophy, Users, Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getLocal, setLocal } from '../../services/chaptersService';
@@ -178,7 +178,7 @@ const CERT_ICONS: Record<string, React.ElementType> = {
   'cert-ai-educators': Brain,
   'cert-capstone': GraduationCap,
   'cert-competition': Trophy,
-  'cert-kids': Sparkles,
+  'cert-kids': Star,
   'cert-mentorship': Users
 };
 

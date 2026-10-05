@@ -4,7 +4,7 @@ import {
   Building2, School, Users, FileText, CheckCircle2, AlertCircle, 
   ExternalLink, Search, Filter, Plus, Trash2, Edit3, Shield, 
   Lock, Unlock, Award, Clock, DollarSign, Send, ChevronDown, 
-  ChevronUp, Check, X, Sparkles, AlertTriangle, Key, Copy, CheckCheck,
+  ChevronUp, Check, X, AlertTriangle, Key, Copy, CheckCheck,
   UserCheck, UserX, Eye, EyeOff, ShieldCheck, ShieldAlert, RefreshCw,
   Landmark, Layers, Briefcase, Zap, MapPin
 } from 'lucide-react';

@@ -113,7 +113,7 @@ export default function Programs() {
             </ul>
           </div>
           <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/10 w-full md:w-80">
-            <h4 className="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-6">🏆 Key Programs</h4>
+            <h4 className="text-indigo-400 font-bold uppercase tracking-widest text-xs mb-6">Flagship Programs</h4>
             <div className="space-y-4">
               {[
                 'Robotics Outreach Programs',

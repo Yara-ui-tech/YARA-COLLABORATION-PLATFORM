@@ -4,7 +4,6 @@ import {
   Video, 
   Film, 
   Award, 
-  Sparkles, 
   CheckCircle2, 
   Clock, 
   Search, 
@@ -185,7 +184,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
               <span>Central Learning & LMS Management Hub</span>
             </div>
             <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">

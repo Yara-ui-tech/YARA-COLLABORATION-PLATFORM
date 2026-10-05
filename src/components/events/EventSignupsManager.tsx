@@ -3,7 +3,7 @@ import {
   Users, CheckCircle2, XCircle, Clock, DollarSign, Search, 
   Filter, ShieldCheck, AlertCircle, RefreshCw, Plus, UserPlus, 
   Edit3, Save, Trash2, Eye, Download, Printer, School, Mail, Phone,
-  ChevronDown, X, Award, Check, FileSpreadsheet, Sparkles
+  ChevronDown, X, Award, Check, FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -302,7 +302,7 @@ export default function EventSignupsManager() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center space-x-2 text-indigo-600 text-xs font-black uppercase tracking-wider mb-1">
-            <Sparkles className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4" />
             <span>Official Event Roster & Signups Manager</span>
           </div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">

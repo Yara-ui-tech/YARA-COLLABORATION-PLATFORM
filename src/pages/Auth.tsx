@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase, clearStaleSupabaseAuth, safeSignOut } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award } from 'lucide-react';
+import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award, Globe } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -25,7 +25,7 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
   const navigate = useNavigate();
-  const { user, profile, isAuthReady } = useAuth();
+  const { user, profile, isAuthReady, loginAsGuest } = useAuth();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -548,9 +548,53 @@ export default function Auth() {
               <span>Google</span>
             </button>
 
+            {/* Instant Gateway Access for Webpage vs LMS */}
+            <div className="mt-4 pt-5 border-t border-slate-100">
+              <div className="text-center mb-3">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Instant Platform Access
+                </span>
+                <p className="text-[11px] text-slate-400 mt-0.5">Choose your destination to explore immediately</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginAsGuest?.('innovator');
+                    localStorage.setItem('yara_portal_mode', 'webpage');
+                    navigate('/');
+                  }}
+                  className="p-3.5 rounded-2xl bg-blue-50/80 hover:bg-blue-100 border border-blue-200/80 text-blue-900 flex flex-col items-center justify-center text-center transition-all group shadow-2xs hover:shadow-md cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-600 mb-1.5 group-hover:scale-110 transition-transform">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold">YARA Webpage</span>
+                  <span className="text-[10px] text-blue-600/80 font-medium">Public Initiatives</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    loginAsGuest?.('innovator');
+                    localStorage.setItem('yara_portal_mode', 'lms');
+                    navigate('/learning');
+                  }}
+                  className="p-3.5 rounded-2xl bg-emerald-50/80 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-900 flex flex-col items-center justify-center text-center transition-all group shadow-2xs hover:shadow-md cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 mb-1.5 group-hover:scale-110 transition-transform">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold">YARA LMS</span>
+                  <span className="text-[10px] text-emerald-600/80 font-medium">42 Course Sessions</span>
+                </button>
+              </div>
+            </div>
+
             <button
               onClick={handleResetSession}
-              className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mt-4"
+              className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mt-2"
             >
               Having trouble? Reset local session data
             </button>

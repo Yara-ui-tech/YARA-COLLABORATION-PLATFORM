@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Printer, ShieldCheck, CheckCircle2, Copy, 
   Download, School, Mail, Phone, Calendar, Hash,
-  FileCheck, Sparkles, Building2, Check, Lock, ExternalLink, FileText, Loader2
+  FileCheck, Building2, Check, Lock, ExternalLink, FileText, Loader2
 } from 'lucide-react';
 import { EducatorReceiptData } from '../../types/eventRegistration';
 import { ASSETS } from '../../constants/assets';

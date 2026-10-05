@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Users, Trophy, CheckCircle2, AlertCircle, Plus, Trash2, 
-  Crown, School, MapPin, User, Mail, Phone, Sparkles, ShieldCheck,
+  Crown, School, MapPin, User, Mail, Phone, ShieldCheck,
   Info, Loader2, ArrowRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';

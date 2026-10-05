@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, CheckCircle2, XCircle, AlertCircle, HelpCircle, ArrowRight, RotateCcw, Sparkles, Check, X } from 'lucide-react';
+import { Award, CheckCircle2, XCircle, AlertCircle, HelpCircle, ArrowRight, RotateCcw, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FinalExamQuestion, FinalExamAttempt, Certificate } from '../../types/curriculum';
 import { FINAL_EXAM_QUESTIONS } from '../../constants/curriculum';
@@ -247,7 +247,7 @@ export default function FinalExamModal({ isOpen, onClose, onExamPassed, existing
                     className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>Submit Examination</span>
-                    <Sparkles className="w-4 h-4" />
+                    <Check className="w-4 h-4" />
                   </button>
                 )}
               </div>

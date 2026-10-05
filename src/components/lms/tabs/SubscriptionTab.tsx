@@ -15,6 +15,7 @@ import {
 
 import { useAuth } from '../../AuthContext';
 import { CertificateUnlockAdminManager } from '../../admin/CertificateUnlockAdminManager';
+import { UniversalPaymentModal } from '../../payments/UniversalPaymentModal';
 
 interface Props {
   userId: string;
@@ -39,6 +40,7 @@ export const SubscriptionTab: React.FC<Props> = ({
   const [receiptUrl, setReceiptUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const handleSubmitPayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,6 +211,31 @@ export const SubscriptionTab: React.FC<Props> = ({
           Payment Reference & Admin Approval Submission
         </h3>
 
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl text-white border border-indigo-500/30 shadow-lg">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                Payment Gateways Active & Ready
+              </span>
+            </div>
+            <h4 className="text-sm sm:text-base font-black text-white mt-1">
+              Pay Online via EcoCash, Bank Transfer, Visa / Card, or PayPal
+            </h4>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Instant automated receipt generation & real-time transaction recording.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPaymentModal(true)}
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-md shrink-0 cursor-pointer flex items-center gap-2"
+          >
+            <CreditCard size={14} />
+            <span>Pay $15 with Gateway</span>
+          </button>
+        </div>
+
         {submitSuccess ? (
           <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-2">
             <div className="flex items-center gap-2 text-sm font-black">
@@ -223,7 +250,7 @@ export const SubscriptionTab: React.FC<Props> = ({
           <form onSubmit={handleSubmitPayment} className="space-y-5">
             {/* Payment Method Switcher */}
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-2">Select Payment Channel:</label>
+              <label className="text-xs font-bold text-slate-700 block mb-2">Manual Reference Entry Option:</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
                   { id: 'ecocash', title: 'EcoCash / M-Pesa / Mobile', desc: 'Dial 0717468236 / Merchant Code' },
@@ -290,13 +317,29 @@ export const SubscriptionTab: React.FC<Props> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
             >
               {submitting ? 'Submitting Reference...' : 'Submit Payment for Administrator Approval'}
             </button>
           </form>
         )}
       </div>
+
+      {/* Universal Payment Gateway Modal */}
+      <UniversalPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        defaultPurpose="subscription"
+        defaultTitle={`YARA ${selectedPlan.toUpperCase()} Membership Subscription`}
+        defaultAmount={15}
+        payerEmail={userEmail}
+        payerName={profile?.display_name || userEmail.split('@')[0]}
+        onPaymentComplete={(tx) => {
+          setTransactionRef(tx.transactionReference);
+          setSubmitSuccess(true);
+          setShowPaymentModal(false);
+        }}
+      />
     </div>
   );
 };

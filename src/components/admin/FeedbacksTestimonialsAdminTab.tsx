@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { 
   MessageSquare, Star, CheckCircle2, Trash2, Heart, 
-  ShieldCheck, Loader2, Sparkles, Filter, Eye
+  ShieldCheck, Loader2, Filter, Eye
 } from 'lucide-react';
 
 interface Testimonial {

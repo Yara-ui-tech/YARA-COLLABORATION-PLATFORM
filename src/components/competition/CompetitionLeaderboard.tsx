@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Trophy, Medal, Award, Crown, Waves, Compass, Lightbulb, 
-  Search, ShieldCheck, Sparkles, Filter, Layers, CheckCircle2, UserCheck
+  Search, ShieldCheck, Filter, Layers, CheckCircle2, UserCheck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ChampionshipTeamStanding } from '../../types/yaraCompetition';

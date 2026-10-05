@@ -6,7 +6,7 @@ import {
   getKidsContentByType
 } from '../services/yaraKidsService';
 import { 
-  Sparkles, Play, Pause, Music, Video, BookOpen, Trophy, 
+  Play, Pause, Music, Video, BookOpen, Trophy, 
   Star, Volume2, RotateCcw, CheckCircle2, Award, Heart, HelpCircle, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -88,11 +88,11 @@ export default function YaraKids() {
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 text-center md:text-left">
             <div className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white font-black text-xs uppercase tracking-widest">
-              <Sparkles className="w-4 h-4 text-amber-200 animate-spin" />
+              <Star className="w-4 h-4 text-amber-200 fill-current" />
               <span>YARA Junior Explorers (Ages 3–8)</span>
             </div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight drop-shadow-md">
-              Welcome to YARA Kids STEM Portal! 🚀
+              Welcome to YARA Kids STEM Portal
             </h1>
             <p className="text-white/90 text-sm md:text-base font-semibold max-w-xl">
               Watch fun animated videos, sing along to STEM rhymes, flip picture cards, and earn shiny stars by solving mini hero challenges!
@@ -263,7 +263,7 @@ export default function YaraKids() {
                 ) : (
                   <div className="space-y-4 flex flex-col items-center justify-center flex-1 bg-emerald-50/50 p-4 rounded-3xl">
                     <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
-                      <Sparkles className="w-6 h-6" />
+                      <Star className="w-6 h-6 fill-current" />
                     </div>
                     <h4 className="text-base font-black text-emerald-900">Did You Know?</h4>
                     <p className="text-slate-700 text-xs font-medium leading-relaxed">{card.fun_fact}</p>

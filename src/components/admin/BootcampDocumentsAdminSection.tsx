@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Plus, Edit2, Trash2, ShieldCheck, Lock, Unlock, 
-  FileText, CheckCircle2, AlertCircle, Save, X, Eye, Sparkles, RefreshCw
+  FileText, CheckCircle2, AlertCircle, Save, X, Eye, RefreshCw
 } from 'lucide-react';
 import { 
   BootcampDocument, 
