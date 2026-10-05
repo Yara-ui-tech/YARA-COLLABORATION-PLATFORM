@@ -371,6 +371,8 @@ export default function EventRegistrationsAdminTab() {
     }
 
     setIsBatchUnlocking(true);
+    // Yield to the event loop so React renders the loading state immediately (INP < 16ms)
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
       const ids = eligibleRegistrations.map(r => r.id);
       const count = await batchUnlockEducatorCertificates(ids, 'YARA Executive Board');

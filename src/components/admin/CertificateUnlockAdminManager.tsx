@@ -285,6 +285,8 @@ export const CertificateUnlockAdminManager: React.FC = () => {
     }
 
     setIsBatchUnlocking(true);
+    // Yield to the event loop so React renders the loading state immediately (INP < 16ms)
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
       const keys = pending.map(p => ({ userId: p.userId, courseId: p.courseId }));
       const count = batchUnlockCertificatesByAdmin(keys);
