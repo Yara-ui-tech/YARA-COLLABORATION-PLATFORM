@@ -1,4 +1,4 @@
-﻿-- =========================================================================
+-- =========================================================================
 -- SECTION 39: YARA Learning Academy Accredited Certificates
 -- Distinct certificate types (robotics / programming / educator) and the
 -- 4 Robotics tiers. Also restores the real logged bootcamp member.
@@ -67,7 +67,7 @@ INSERT INTO public.event_registrations (
 )
 SELECT
   'evt_reg_simbarashe_2026', 'RBWHMNGF', 'ai-for-educators-2026',
-  'AI for Educators â€“ Online Bootcamp', 'Simbarashe Obvious Manongwa',
+  'AI for Educators - Online Bootcamp', 'Simbarashe Obvious Manongwa',
   'manongwasimbarashe394@gmail.com', 'Zimbabwe', 'verified', 'approved', true,
   'RBWHMNGF', 'Certificate of Completion - Introduction to RAG',
   'Restored logged member registration.'

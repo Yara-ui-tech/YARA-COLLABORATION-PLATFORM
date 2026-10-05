@@ -427,6 +427,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_mentor_review_added ON public.mentor_reviews;
 CREATE TRIGGER on_mentor_review_added
 AFTER INSERT OR UPDATE OR DELETE ON public.mentor_reviews
 FOR EACH ROW EXECUTE FUNCTION public.update_mentor_rating();
@@ -447,6 +448,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_mentorship_completed ON public.mentorship_requests;
 CREATE TRIGGER on_mentorship_completed
 AFTER UPDATE ON public.mentorship_requests
 FOR EACH ROW EXECUTE FUNCTION public.update_mentor_stats_on_completion();
@@ -1127,7 +1129,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS on_student_count_increase ON public.live_sessions;
-DROP TABLE IF EXISTS public.mentor_session_logs CASCADE;
 
 CREATE TRIGGER on_student_count_increase
 AFTER UPDATE OF student_count ON public.live_sessions
@@ -3794,7 +3795,7 @@ INSERT INTO public.event_registrations (
 )
 SELECT
   'evt_reg_simbarashe_2026', 'RBWHMNGF', 'ai-for-educators-2026',
-  'AI for Educators – Online Bootcamp', 'Simbarashe Obvious Manongwa',
+  'AI for Educators - Online Bootcamp', 'Simbarashe Obvious Manongwa',
   'manongwasimbarashe394@gmail.com', 'Zimbabwe', 'verified', 'approved', true,
   'RBWHMNGF', 'Certificate of Completion - Introduction to RAG',
   'Restored logged member registration.'
