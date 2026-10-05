@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Award, CheckCircle2, Lock, Unlock, Search, RefreshCw, UserCheck, Check,
-  Eye, Edit3, Download, Printer, ShieldCheck, DollarSign, X, Clock, FileText, CheckCircle
+  Eye, Edit3, Download, Printer, ShieldCheck, DollarSign, X, Clock, FileText, CheckCircle, Loader2
 } from 'lucide-react';
 import { 
   isCertificateUnlockedByAdmin, 
@@ -56,6 +56,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [searchCertQuery, setSearchCertQuery] = useState('');
   const [certFilterStatus, setCertFilterStatus] = useState<'all' | 'pending' | 'unlocked'>('all');
+  const [isBatchUnlocking, setIsBatchUnlocking] = useState(false);
 
   // Modal Editing & Viewing State
   const [editingCertRow, setEditingCertRow] = useState<StudentCertificateRow | null>(null);
@@ -275,26 +276,37 @@ export const CertificateUnlockAdminManager: React.FC = () => {
     );
   };
 
-  const handleBatchUnlockAll = () => {
+  const handleBatchUnlockAll = async () => {
+    if (isBatchUnlocking) return;
     const pending = certRows.filter(r => !r.isUnlocked);
     if (pending.length === 0) {
-      alert('No certificates currently awaiting unlock.');
+      showNotice('error', 'No certificates currently awaiting unlock.');
       return;
     }
-    const keys = pending.map(p => ({ userId: p.userId, courseId: p.courseId }));
-    const count = batchUnlockCertificatesByAdmin(keys);
 
-    pending.forEach(async p => {
-      if (p.rawReg) {
-        await updateRegistrationStatus(
-          p.rawReg.id,
-          { payment_status: 'verified', approval_status: 'approved', certificate_unlocked: true }
-        );
-      }
-    });
+    setIsBatchUnlocking(true);
+    try {
+      const keys = pending.map(p => ({ userId: p.userId, courseId: p.courseId }));
+      const count = batchUnlockCertificatesByAdmin(keys);
 
-    setCertRows(prev => prev.map(r => ({ ...r, isUnlocked: true })));
-    showNotice('success', `Successfully unlocked ${count} certificates! All students can download their credentials.`);
+      await Promise.all(
+        pending.map(async p => {
+          if (p.rawReg) {
+            await updateRegistrationStatus(
+              p.rawReg.id,
+              { payment_status: 'verified', approval_status: 'approved', certificate_unlocked: true }
+            );
+          }
+        })
+      );
+
+      setCertRows(prev => prev.map(r => ({ ...r, isUnlocked: true })));
+      showNotice('success', `Successfully unlocked ${count} certificates! All students can download their credentials.`);
+    } catch (err: any) {
+      showNotice('error', err?.message || 'Failed to batch unlock certificates.');
+    } finally {
+      setIsBatchUnlocking(false);
+    }
   };
 
   const handlePrintCertificate = (row: StudentCertificateRow) => {
@@ -469,11 +481,21 @@ export const CertificateUnlockAdminManager: React.FC = () => {
               </div>
 
               <button
+                disabled={isBatchUnlocking}
                 onClick={handleBatchUnlockAll}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-md shrink-0 cursor-pointer"
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-md shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                <Unlock size={14} />
-                <span>Batch Unlock</span>
+                {isBatchUnlocking ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Unlocking...</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock size={14} />
+                    <span>Batch Unlock</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

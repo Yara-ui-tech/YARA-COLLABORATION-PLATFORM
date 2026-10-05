@@ -370,10 +370,6 @@ export default function EventRegistrationsAdminTab() {
       return;
     }
 
-    if (!window.confirm(`Unlock official certificates for ${eligibleRegistrations.length} approved educators? They will immediately be able to download their certified diplomas.`)) {
-      return;
-    }
-
     setIsBatchUnlocking(true);
     try {
       const ids = eligibleRegistrations.map(r => r.id);
