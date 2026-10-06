@@ -81,7 +81,7 @@ export default function EducatorCertificate({
     }
 
     return await html2canvas(element, {
-      scale: 3, // Ultra-sharp 300 DPI resolution
+      scale: 2, // High-DPI crisp resolution without thread freeze
       useCORS: true,
       allowTaint: false, // Critical: prevent canvas security errors on toDataURL
       backgroundColor: '#ffffff',
@@ -103,6 +103,8 @@ export default function EducatorCertificate({
   const handleDownloadJpg = async () => {
     if (isLocked || !certificateRef.current) return;
     setIsGeneratingJpg(true);
+    // Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await renderCertificateCanvas(certificateRef.current);
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -117,7 +119,7 @@ export default function EducatorCertificate({
     } catch (err) {
       console.error('Failed to generate certificate JPG:', err);
       // Fallback directly to native print/save dialog
-      window.print();
+      setTimeout(() => window.print(), 50);
     } finally {
       setIsGeneratingJpg(false);
     }
@@ -127,6 +129,8 @@ export default function EducatorCertificate({
   const handleDownloadPng = async () => {
     if (isLocked || !certificateRef.current) return;
     setIsGeneratingPng(true);
+    // Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await renderCertificateCanvas(certificateRef.current);
       const imgData = canvas.toDataURL('image/png');
@@ -140,7 +144,7 @@ export default function EducatorCertificate({
       document.body.removeChild(link);
     } catch (err) {
       console.error('Failed to generate certificate PNG:', err);
-      window.print();
+      setTimeout(() => window.print(), 50);
     } finally {
       setIsGeneratingPng(false);
     }
@@ -150,6 +154,8 @@ export default function EducatorCertificate({
   const handleDownloadPdf = async () => {
     if (isLocked || !certificateRef.current) return;
     setIsGeneratingPdf(true);
+    // Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await renderCertificateCanvas(certificateRef.current);
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
@@ -166,7 +172,7 @@ export default function EducatorCertificate({
       pdf.save(`YARA_Certificate_${safeName}_${safeCert}.pdf`);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
-      window.print();
+      setTimeout(() => window.print(), 50);
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -174,7 +180,7 @@ export default function EducatorCertificate({
 
   const handlePrint = () => {
     if (isLocked) return;
-    window.print();
+    setTimeout(() => window.print(), 50);
   };
 
   const handleCopyLink = () => {

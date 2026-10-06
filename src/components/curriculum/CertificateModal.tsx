@@ -16,6 +16,7 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
   const certRef = useRef<HTMLDivElement>(null);
   const isOnline = useOnlineStatus();
   const [showInternetNeeded, setShowInternetNeeded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -24,7 +25,10 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
       setShowInternetNeeded(true);
       return;
     }
-    window.print();
+    // Yield to the paint loop first to prevent INP blocking
+    setTimeout(() => {
+      window.print();
+    }, 50);
   };
 
   const handleCopyLink = () => {
@@ -32,9 +36,10 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
       setShowInternetNeeded(true);
       return;
     }
-    const url = `${window.location.origin}/curriculum?cert=${certificate.certificate_number}`;
+    const url = `${window.location.origin}/verify-certificate?id=${certificate.certificate_number}`;
     navigator.clipboard.writeText(url);
-    alert('Certificate verification link copied to clipboard!');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   return (
@@ -63,8 +68,8 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all flex items-center space-x-1.5"
               title="Copy share link"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Share</span>
+              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Link Copied!' : 'Share'}</span>
             </button>
             <button
               onClick={handlePrint}

@@ -129,13 +129,15 @@ export const CertificatesTab: React.FC<Props> = ({
   const handleDownloadPdf = async (certNumber: string) => {
     const el = document.getElementById(`cert-card-${certNumber}`);
     if (!el) {
-      window.print();
+      setTimeout(() => window.print(), 50);
       return;
     }
     setExportingCertId(certNumber);
+    // CRITICAL FOR INP: Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await html2canvas(el, {
-        scale: 2.5,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#090d16'
@@ -152,7 +154,7 @@ export const CertificatesTab: React.FC<Props> = ({
       pdf.save(`${certNumber}.pdf`);
     } catch (err) {
       console.error('PDF export error:', err);
-      window.print();
+      setTimeout(() => window.print(), 50);
     } finally {
       setExportingCertId(null);
     }

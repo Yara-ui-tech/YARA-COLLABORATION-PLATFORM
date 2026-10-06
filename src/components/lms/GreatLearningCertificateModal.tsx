@@ -260,9 +260,11 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
   const handleDownloadPdf = async () => {
     if (!certRenderRef.current || !activeCert) return;
     setIsExportingPdf(true);
+    // CRITICAL FOR INP: Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await html2canvas(certRenderRef.current, {
-        scale: 2.5,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff'
@@ -279,7 +281,7 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
       pdf.save(`${activeCert.certificateNumber || 'YARA-Certificate'}.pdf`);
     } catch (err) {
       console.error('PDF export error:', err);
-      window.print();
+      setTimeout(() => window.print(), 50);
     } finally {
       setIsExportingPdf(false);
     }
@@ -288,9 +290,11 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
   const handleDownloadPng = async () => {
     if (!certRenderRef.current || !activeCert) return;
     setIsExportingPng(true);
+    // CRITICAL FOR INP: Yield to the paint loop so React renders loading state immediately
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const canvas = await html2canvas(certRenderRef.current, {
-        scale: 2.5,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff'

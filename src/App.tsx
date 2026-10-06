@@ -91,6 +91,30 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <>{children}</>;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
+  const isAdmin = profile?.role === 'admin' || 
+    user?.email === 'manongwasimbarashe394@gmail.com' || 
+    user?.email === 'goyaracorp@gmail.com' ||
+    profile?.email === 'manongwasimbarashe394@gmail.com' ||
+    profile?.email === 'goyaracorp@gmail.com';
+
+  if (!user || !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AppContent = () => {
   return (
     <Router>
@@ -168,7 +192,7 @@ const AppContent = () => {
           <Route path="donate" element={<DonationsAndSponsorships />} />
           <Route path="sponsorship" element={<DonationsAndSponsorships />} />
           <Route path="contact" element={<Contact />} />
-          <Route path="admin" element={<Admin />} />
+          <Route path="admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="live" element={<YaraLiveHub />} />
           <Route path="live-sessions" element={<YaraLiveHub />} />
           <Route path="live/:roomId" element={<LiveRoom />} />

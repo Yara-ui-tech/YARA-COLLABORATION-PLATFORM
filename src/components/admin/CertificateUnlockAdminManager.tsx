@@ -251,17 +251,10 @@ export const CertificateUnlockAdminManager: React.FC = () => {
   const handleToggleLockStatus = async (row: StudentCertificateRow) => {
     const newUnlockedState = !row.isUnlocked;
 
-    if (row.rawReg) {
-      // Sync Event Registration in DB
-      await updateRegistrationStatus(
-        row.rawReg.id,
-        {
-          payment_status: newUnlockedState ? 'verified' : 'submitted',
-          approval_status: newUnlockedState ? 'approved' : 'pending',
-          certificate_unlocked: newUnlockedState
-        }
-      );
-    }
+    // Optimistic UI state update immediately (INP < 16ms)
+    setCertRows(prev =>
+      prev.map(r => (r.userId === row.userId && r.courseId === row.courseId ? { ...r, isUnlocked: newUnlockedState } : r))
+    );
 
     if (newUnlockedState) {
       unlockCertificateByAdmin(row.userId, row.courseId);
@@ -271,9 +264,17 @@ export const CertificateUnlockAdminManager: React.FC = () => {
       showNotice('error', `Certificate for ${row.studentName} LOCKED again by Admin.`);
     }
 
-    setCertRows(prev =>
-      prev.map(r => (r.userId === row.userId && r.courseId === row.courseId ? { ...r, isUnlocked: newUnlockedState } : r))
-    );
+    if (row.rawReg) {
+      // Sync Event Registration in DB in background
+      await updateRegistrationStatus(
+        row.rawReg.id,
+        {
+          payment_status: newUnlockedState ? 'verified' : 'submitted',
+          approval_status: newUnlockedState ? 'approved' : 'pending',
+          certificate_unlocked: newUnlockedState
+        }
+      );
+    }
   };
 
   const handleBatchUnlockAll = async () => {
@@ -285,8 +286,8 @@ export const CertificateUnlockAdminManager: React.FC = () => {
     }
 
     setIsBatchUnlocking(true);
-    // Yield to the event loop so React renders the loading state immediately (INP < 16ms)
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Yield to the paint loop so React renders the loading state immediately (INP < 16ms)
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
     try {
       const keys = pending.map(p => ({ userId: p.userId, courseId: p.courseId }));
       const count = batchUnlockCertificatesByAdmin(keys);

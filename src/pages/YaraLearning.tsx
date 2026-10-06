@@ -39,6 +39,11 @@ export default function YaraLearning() {
   const userId = user?.id || 'demo_learner_01';
   const studentName = profile?.display_name || user?.email?.split('@')[0] || 'YARA Learner';
   const userEmail = user?.email || 'learner@yara.org';
+  const isAdmin = profile?.role === 'admin' || 
+    profile?.email === 'manongwasimbarashe394@gmail.com' || 
+    profile?.email === 'goyaracorp@gmail.com' || 
+    user?.email === 'manongwasimbarashe394@gmail.com' || 
+    user?.email === 'goyaracorp@gmail.com';
 
   // Membership Lock Modal State
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
@@ -245,6 +250,7 @@ export default function YaraLearning() {
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
         progressPercent={overallProgress.percentage}
+        isAdmin={isAdmin}
       />
 
       {/* 2. Main Content Container */}
@@ -334,7 +340,18 @@ export default function YaraLearning() {
         )}
 
         {activeTab === 'admin-center' && (
-          <LearningAcademyAdminCenter adminUserId={userId} />
+          isAdmin ? (
+            <LearningAcademyAdminCenter adminUserId={userId} />
+          ) : (
+            <LearningDashboardTab
+              userOverall={overallProgress}
+              subscriptionStatus={subscriptionStatus}
+              certificateStatus={certificateStatus}
+              quizStats={quizStats}
+              onStartSession={handleStartSession}
+              onNavigateTab={handleSelectTab}
+            />
+          )
         )}
       </main>
 

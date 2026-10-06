@@ -16,6 +16,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { YARA_HARDWARE_KITS } from '../../../constants/yaraLmsCatalog';
+import { useAuth } from '../../AuthContext';
 import { 
   CustomHardwareKit, 
   CustomDocument, 
@@ -28,6 +29,13 @@ import {
 } from '../../../services/resourcesService';
 
 export const ResourcesTab: React.FC = () => {
+  const { profile, user } = useAuth();
+  const isAdmin = profile?.role === 'admin' || 
+    profile?.email === 'manongwasimbarashe394@gmail.com' || 
+    profile?.email === 'goyaracorp@gmail.com' || 
+    user?.email === 'manongwasimbarashe394@gmail.com' || 
+    user?.email === 'goyaracorp@gmail.com';
+
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [customKits, setCustomKits] = useState<CustomHardwareKit[]>([]);
   const [customDocs, setCustomDocs] = useState<CustomDocument[]>([]);
@@ -145,20 +153,24 @@ export const ResourcesTab: React.FC = () => {
   const allKits = [...YARA_HARDWARE_KITS, ...customKits];
   const allDocs = [...staticDocs, ...customDocs];
 
+  const effectiveAdminMode = isAdmin && isAdminMode;
+
   return (
     <div className="space-y-8 pb-12 relative">
-      {/* Admin Toggle */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setIsAdminMode(!isAdminMode)}
-          className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition ${
-            isAdminMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          {isAdminMode ? 'Exit Admin Mode' : 'Enable Admin Mode'}
-        </button>
-      </div>
+      {/* Admin Toggle (Visible only to verified Admins) */}
+      {isAdmin && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setIsAdminMode(!isAdminMode)}
+            className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition ${
+              effectiveAdminMode ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            {effectiveAdminMode ? 'Exit Admin Mode' : 'Enable Admin Mode'}
+          </button>
+        </div>
+      )}
 
       {/* 1. Header Banner */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
@@ -197,7 +209,7 @@ export const ResourcesTab: React.FC = () => {
               Pre-packaged component sets required for physical laboratory sessions (P01–P05) and rover builds.
             </p>
           </div>
-          {isAdminMode && (
+          {effectiveAdminMode && (
             <button
               onClick={() => setShowAddKitModal(true)}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
@@ -215,7 +227,7 @@ export const ResourcesTab: React.FC = () => {
                 key={kit.id}
                 className="bg-white border border-slate-200 rounded-3xl overflow-hidden flex flex-col justify-between shadow-xs hover:border-emerald-500/50 transition group relative"
               >
-                {isAdminMode && isCustom && (
+                {effectiveAdminMode && isCustom && (
                   <button
                     onClick={() => {
                       deleteCustomKit(kit.id as string);
@@ -291,7 +303,7 @@ export const ResourcesTab: React.FC = () => {
               Download standard engineering blueprints, product catalogues, and specification files.
             </p>
           </div>
-          {isAdminMode && (
+          {effectiveAdminMode && (
             <button
               onClick={() => setShowAddDocModal(true)}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition shadow-sm"
@@ -331,7 +343,7 @@ export const ResourcesTab: React.FC = () => {
                   >
                     <Download className="w-4 h-4" />
                   </button>
-                  {isAdminMode && isCustom && (
+                  {effectiveAdminMode && isCustom && (
                     <button
                       onClick={() => {
                         deleteCustomDocument(doc.id);

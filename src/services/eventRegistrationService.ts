@@ -466,25 +466,7 @@ export async function getAllEventRegistrations(eventId?: string): Promise<EventR
     }
   });
 
-  // 2. Fetch from Express Backend API (persisted on disk)
-  try {
-    const url = eventId && eventId !== 'all' ? `/api/bootcamp/registrations?eventId=${encodeURIComponent(eventId)}` : '/api/bootcamp/registrations';
-    const resp = await fetch(url);
-    if (resp.ok) {
-      const json = await resp.json();
-      if (json.registrations && Array.isArray(json.registrations)) {
-        json.registrations.forEach((r: any) => {
-          if (!hasFilter || (aliases && aliases.includes(r.event_id))) {
-            mergedMap.set(r.id, r);
-          }
-        });
-      }
-    }
-  } catch (backendErr) {
-    // Graceful offline fallback
-  }
-
-  // 3. Fetch from Supabase
+  // 2. Fetch directly from Supabase (Official Cloud Database)
   try {
     let query = supabase
       .from('event_registrations')
@@ -728,18 +710,7 @@ export async function registerForEvent(payload: {
     saveLocalRegistrations(list);
   }
 
-  // Sync with Express backend (disk persistence)
-  try {
-    await fetch('/api/bootcamp/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record)
-    });
-  } catch {
-    // ignore
-  }
-
-  // Sync with Supabase
+  // Sync directly with Supabase Cloud Database
   try {
     await supabase.from('event_registrations').insert({
       id: record.id,

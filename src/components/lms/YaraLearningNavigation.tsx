@@ -54,13 +54,17 @@ interface Props {
   activeTab: LearningTabId;
   onSelectTab: (tab: LearningTabId) => void;
   progressPercent?: number;
+  isAdmin?: boolean;
 }
 
 export const YaraLearningNavigation: React.FC<Props> = ({
   activeTab,
   onSelectTab,
-  progressPercent = 0
+  progressPercent = 0,
+  isAdmin = false
 }) => {
+  const visibleTabs = LEARNING_NAV_TABS.filter(tab => tab.id !== 'admin-center' || isAdmin);
+
   return (
     <div className="bg-white border-b border-slate-200 sticky top-0 z-30" style={{ boxShadow: '0 1px 12px rgba(15,23,42,0.06)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -105,7 +109,7 @@ export const YaraLearningNavigation: React.FC<Props> = ({
 
         {/* Horizontal Navigation Tabs */}
         <div className="flex items-center space-x-0.5 overflow-x-auto py-2 scrollbar-none">
-          {LEARNING_NAV_TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (

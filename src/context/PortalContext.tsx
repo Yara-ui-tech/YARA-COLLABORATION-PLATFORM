@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export type PortalMode = 'webpage' | 'lms';
 
@@ -111,10 +112,28 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
-        const response = await fetch('/api/portal/stats');
-        if (response.ok) {
-          const data = await response.json();
-          if (isMounted) setPortalStats(data);
+        const [regCount, profCount, certCount] = await Promise.allSettled([
+          supabase.from('event_registrations').select('id', { count: 'exact', head: true }),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
+          supabase.from('yara_accredited_certificates').select('id', { count: 'exact', head: true }),
+        ]);
+
+        const totalEnrolled = 
+          (profCount.status === 'fulfilled' ? profCount.value.count || 0 : 0) +
+          (regCount.status === 'fulfilled' ? regCount.value.count || 0 : 0);
+
+        const totalCerts = 
+          certCount.status === 'fulfilled' ? certCount.value.count || 0 : 0;
+
+        if (isMounted) {
+          setPortalStats(prev => ({
+            ...prev,
+            lms: {
+              ...prev.lms,
+              enrolledInnovators: totalEnrolled > 0 ? totalEnrolled : prev.lms.enrolledInnovators,
+              certificatesAwarded: totalCerts > 0 ? totalCerts : prev.lms.certificatesAwarded
+            }
+          }));
         }
       } catch (err) {
         // Fall back to default verified stats

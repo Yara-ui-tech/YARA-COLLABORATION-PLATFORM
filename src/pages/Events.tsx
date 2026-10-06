@@ -285,8 +285,8 @@ export default function Events() {
               </div>
             </div>
 
-            {/* AI FOR EDUCATORS SIGNUPS & REGISTRATION MANAGER */}
-            <EventSignupsManager />
+            {/* AI FOR EDUCATORS SIGNUPS & REGISTRATION MANAGER (Admin Exclusive) */}
+            {isAdmin && <EventSignupsManager />}
 
             {/* SECTION 1: VIRTUAL ONLINE COMPETITIONS */}
             {(activeFilter === 'all' || activeFilter === 'virtual') && (

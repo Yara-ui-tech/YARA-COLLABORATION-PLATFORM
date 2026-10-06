@@ -96,6 +96,12 @@ interface Competition {
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const isAdmin = profile?.role === 'admin' || 
+    profile?.email === 'manongwasimbarashe394@gmail.com' || 
+    profile?.email === 'goyaracorp@gmail.com' || 
+    authUser?.email === 'manongwasimbarashe394@gmail.com' || 
+    authUser?.email === 'goyaracorp@gmail.com';
   
   const getHubForTab = (tab: string): AdminHub => {
     if (['event_registrations', 'members', 'admin_management'].includes(tab)) return 'members';
@@ -185,6 +191,7 @@ export default function Admin() {
   });
 
   useEffect(() => {
+    if (!isAdmin) return;
     if (activeTab === 'members') fetchUsers();
     if (activeTab === 'mentorship') fetchMentorshipRequests();
     if (activeTab === 'reviews') fetchMentorReviews();
@@ -193,7 +200,7 @@ export default function Admin() {
     if (activeTab === 'events') fetchEvents();
     if (activeTab === 'competitions') fetchCompetitions();
     if (activeTab === 'settings') fetchSettings();
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -981,8 +988,6 @@ export default function Admin() {
       { id: 'feedbacks_testimonials', label: 'Feedbacks & Testimonials', icon: Heart },
     ],
   };
-
-  const isAdmin = profile?.role === 'admin';
 
   if (!isAdmin) {
     return (

@@ -80,6 +80,7 @@ export default function EventSignupsManager() {
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
 
   const loadData = async () => {
+    if (!isAdmin) return;
     setIsRefreshing(true);
     try {
       const list = await getAllEventRegistrations(AI_FOR_EDUCATORS_EVENT.id);
@@ -93,8 +94,14 @@ export default function EventSignupsManager() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isAdmin) {
+      loadData();
+    }
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return null;
+  }
 
   const showNotice = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });

@@ -58,6 +58,20 @@ code, pre, .font-mono {
 }
 
 /* ============================================================
+   Core Web Vitals (INP) Optimization
+   Prevent SVG and path elements inside buttons/links from being
+   individual event targets, eliminating path-level dispatch lag.
+   ============================================================ */
+button svg,
+button svg *,
+a svg,
+a svg *,
+[role="button"] svg,
+[role="button"] svg * {
+  pointer-events: none;
+}
+
+/* ============================================================
    Global Input Fix – Prevent invisible text on light backgrounds
    The body uses color: #f8fafc (near-white) for dark-mode pages,
    so inputs/textareas must explicitly set a dark text color.
