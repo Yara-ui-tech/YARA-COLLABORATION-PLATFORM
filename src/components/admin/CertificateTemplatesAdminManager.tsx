@@ -191,6 +191,7 @@ export default function CertificateTemplatesAdminManager() {
   const [editForm, setEditForm] = useState<CertificateTemplate | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const isEditing = Boolean(editingId && editForm);
 
   const saveTemplates = (updated: CertificateTemplate[]) => {
     setLocal(STORAGE_KEY, updated);
@@ -262,7 +263,6 @@ export default function CertificateTemplatesAdminManager() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {templates.map(template => {
           const Icon = CERT_ICONS[template.id] || Award;
-          const isEditing = editingId === template.id;
 
           return (
             <div
