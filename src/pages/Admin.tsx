@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase, safeSignOut } from '../lib/supabase';
 import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award } from 'lucide-react';
@@ -94,8 +95,40 @@ interface Competition {
 
 export default function Admin() {
   const { profile, user: authUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'site_content' | 'learning_academy' | 'event_registrations' | 'impact_ledger' | 'impact_gallery' | 'cert_templates' | 'admin_management' | 'chapters' | 'members' | 'lms_evaluations' | 'curriculum' | 'virtual_comp' | 'brainstorming' | 'finance' | 'donations_partners' | 'org_posts' | 'yara_competition' | 'competition_teams' | 'events' | 'competitions' | 'mentorship' | 'reviews' | 'live' | 'mentor_req' | 'settings' | 'yara_kids' | 'feedbacks_testimonials'>('site_content');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'lms' | 'faculty' | 'finance' | 'competitions' | 'platform'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const getHubForTab = (tab: string): AdminHub => {
+    if (['event_registrations', 'members', 'admin_management'].includes(tab)) return 'members';
+    if (['learning_academy', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
+    if (['competitions', 'competition_teams', 'events', 'virtual_comp', 'yara_competition'].includes(tab)) return 'competitions';
+    if (['mentorship', 'live', 'reviews', 'mentor_req'].includes(tab)) return 'faculty';
+    return 'platform';
+  };
+
+  const initialTab = searchParams.get('tab') || 'event_registrations';
+  const [activeHub, setActiveHub] = useState<AdminHub>(() => getHubForTab(initialTab));
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  useEffect(() => {
+    const param = searchParams.get('tab');
+    if (param && param !== activeTab) {
+      setActiveTab(param);
+      setActiveHub(getHubForTab(param));
+    }
+  }, [searchParams]);
+
+  const handleSelectHub = (hubId: AdminHub) => {
+    setActiveHub(hubId);
+    const defaultSub = HUBS.find(h => h.id === hubId)?.defaultSub || 'event_registrations';
+    setActiveTab(defaultSub);
+    setSearchParams({ tab: defaultSub }, { replace: true });
+  };
+
+  const handleSelectSubTab = (subId: string) => {
+    setActiveTab(subId);
+    setSearchParams({ tab: subId }, { replace: true });
+  };
+
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [mentorshipRequests, setMentorshipRequests] = useState<MentorshipRequest[]>([]);
   const [mentorReviews, setMentorReviews] = useState<MentorReview[]>([]);
@@ -850,47 +883,104 @@ export default function Admin() {
     u.member_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const ADMIN_TABS: Array<{
-    id: any;
-    category: 'lms' | 'faculty' | 'finance' | 'competitions' | 'platform';
+  type AdminHub = 'members' | 'lms' | 'competitions' | 'faculty' | 'platform';
+
+  interface SubTabItem {
+    id: string;
     label: string;
     icon: any;
     badge?: string;
+  }
+
+  const HUBS: Array<{
+    id: AdminHub;
+    label: string;
+    tagline: string;
+    icon: any;
+    color: string;
+    defaultSub: string;
+    badge?: string;
   }> = [
-    // LMS & Academics
-    { id: 'learning_academy', category: 'lms', label: 'Learning Academy & LMS', icon: BookOpen, badge: 'LMS' },
-    { id: 'site_content', category: 'lms', label: 'Dynamic CMS & Content', icon: Sliders, badge: 'Universal' },
-    { id: 'cert_templates', category: 'lms', label: 'Certificate Templates', icon: Award },
-    { id: 'yara_kids', category: 'lms', label: 'YARA Kids STEM', icon: Star, badge: 'Ages 3-8' },
-    { id: 'brainstorming', category: 'lms', label: 'Critical Thinking Quizzes', icon: Brain },
-
-    // Faculty & Mentorship
-    { id: 'members', category: 'faculty', label: 'Member Directory & IDs', icon: Users },
-    { id: 'mentorship', category: 'faculty', label: 'Mentorship Requests', icon: MessageSquare },
-    { id: 'reviews', category: 'faculty', label: 'Faculty Reviews & Ratings', icon: Star },
-    { id: 'live', category: 'faculty', label: 'Live Session Approvals', icon: Video },
-    { id: 'mentor_req', category: 'faculty', label: 'Auto Mentor Match Requests', icon: UserPlus },
-
-    // Finance & Gateways
-    { id: 'finance', category: 'finance', label: 'Finance & Mentor Payouts', icon: DollarSign },
-    { id: 'donations_partners', category: 'finance', label: 'Donations & Payment Gateways', icon: CreditCard },
-    { id: 'impact_ledger', category: 'finance', label: 'M&E Audit Ledger (CSV)', icon: DollarSign, badge: 'Audited' },
-
-    // Competitions & Events
-    { id: 'competitions', category: 'competitions', label: 'Competitions & YARA 2026', icon: Trophy },
-    { id: 'competition_teams', category: 'competitions', label: 'Teams & Rosters (2B+2G)', icon: Users },
-    { id: 'events', category: 'competitions', label: 'Events Schedule', icon: Calendar },
-    { id: 'event_registrations', category: 'competitions', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10' },
-    { id: 'virtual_comp', category: 'competitions', label: 'Virtual Arena', icon: Zap },
-
-    // Platform & Governance
-    { id: 'admin_management', category: 'platform', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
-    { id: 'chapters', category: 'platform', label: 'Chapters & Secretaries', icon: Building2 },
-    { id: 'org_posts', category: 'platform', label: 'Press & Social Syndication', icon: Send },
-    { id: 'feedbacks_testimonials', category: 'platform', label: 'Feedbacks & Testimonials', icon: Heart },
-    { id: 'impact_gallery', category: 'platform', label: 'Impact Galleries', icon: Award },
-    { id: 'settings', category: 'platform', label: 'Platform & Launch Settings', icon: Save },
+    {
+      id: 'members',
+      label: 'Members & Registrations',
+      tagline: 'Bootcamp signups, directory & IDs',
+      icon: Users,
+      color: 'from-blue-600 to-indigo-600',
+      defaultSub: 'event_registrations',
+      badge: 'Core'
+    },
+    {
+      id: 'lms',
+      label: 'YARA Learning Academy',
+      tagline: 'Robotics Tiers 1–4, LMS & certs',
+      icon: BookOpen,
+      color: 'from-emerald-600 to-teal-600',
+      defaultSub: 'learning_academy',
+      badge: 'LMS'
+    },
+    {
+      id: 'competitions',
+      label: 'Competitions & Events',
+      tagline: 'YARA 2026, teams (2B+2G) & arena',
+      icon: Trophy,
+      color: 'from-amber-500 to-amber-600',
+      defaultSub: 'competitions'
+    },
+    {
+      id: 'faculty',
+      label: 'Mentorship & Faculty',
+      tagline: 'Live sessions, requests & ratings',
+      icon: MessageSquare,
+      color: 'from-purple-600 to-indigo-600',
+      defaultSub: 'mentorship'
+    },
+    {
+      id: 'platform',
+      label: 'Platform & Finance',
+      tagline: 'Gateways, payouts, countdown & CMS',
+      icon: Sliders,
+      color: 'from-slate-700 to-slate-900',
+      defaultSub: 'finance'
+    }
   ];
+
+  const HUB_SUBTABS: Record<AdminHub, SubTabItem[]> = {
+    members: [
+      { id: 'event_registrations', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10 Verified' },
+      { id: 'members', label: 'Member Directory & IDs', icon: Users },
+      { id: 'admin_management', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
+    ],
+    lms: [
+      { id: 'learning_academy', label: 'Academy Courses & Tiers', icon: BookOpen, badge: 'Tiers 1–4' },
+      { id: 'cert_templates', label: 'Accredited Certificate Templates', icon: Award },
+      { id: 'yara_kids', label: 'YARA Kids STEM (Ages 3–8)', icon: Star },
+      { id: 'brainstorming', label: 'Critical Thinking Quizzes', icon: Brain },
+    ],
+    competitions: [
+      { id: 'competitions', label: 'Competitions (YARA 2026)', icon: Trophy },
+      { id: 'competition_teams', label: 'Teams & Rosters (2B + 2G)', icon: Users },
+      { id: 'events', label: 'Events Schedule', icon: Calendar },
+      { id: 'virtual_comp', label: 'Virtual Arena', icon: Zap },
+    ],
+    faculty: [
+      { id: 'mentorship', label: 'Mentorship Requests', icon: MessageSquare },
+      { id: 'live', label: 'Live Session Approvals', icon: Video },
+      { id: 'reviews', label: 'Faculty Reviews & Ratings', icon: Star },
+      { id: 'mentor_req', label: 'Auto Mentor Match Requests', icon: UserPlus },
+    ],
+    platform: [
+      { id: 'finance', label: 'Finance & Payouts', icon: DollarSign },
+      { id: 'donations_partners', label: 'Payment Gateways & Donations', icon: CreditCard },
+      { id: 'impact_ledger', label: 'M&E Audit Ledger (CSV)', icon: DollarSign, badge: 'Audited' },
+      { id: 'site_content', label: 'Dynamic CMS & Content', icon: Sliders },
+      { id: 'settings', label: 'Platform & Launch Settings', icon: Save },
+      { id: 'chapters', label: 'Chapters & Secretaries', icon: Building2 },
+      { id: 'org_posts', label: 'Press & Social Posts', icon: Send },
+      { id: 'impact_gallery', label: 'Impact Galleries', icon: Award },
+      { id: 'feedbacks_testimonials', label: 'Feedbacks & Testimonials', icon: Heart },
+    ],
+  };
 
   const isAdmin = profile?.role === 'admin';
 
@@ -952,79 +1042,97 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* Great Learning Enterprise Module Category Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-500 px-2 hidden sm:inline">Module Pillars:</span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: 'all', label: 'All Modules' },
-              { id: 'lms', label: 'LMS & Academics' },
-              { id: 'faculty', label: 'Mentorship & Faculty' },
-              { id: 'finance', label: 'Finance & Gateways' },
-              { id: 'competitions', label: 'Competitions & Events' },
-              { id: 'platform', label: 'Platform & CMS' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setCategoryFilter(cat.id as any);
-                  if (cat.id === 'lms') setActiveTab('learning_academy');
-                  else if (cat.id === 'faculty') setActiveTab('mentorship');
-                  else if (cat.id === 'finance') setActiveTab('finance');
-                  else if (cat.id === 'competitions') setActiveTab('competitions');
-                  else if (cat.id === 'platform') setActiveTab('admin_management');
-                }}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all",
-                  categoryFilter === cat.id
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+      {/* 1. 5 Core Admin Hubs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {HUBS.map(hub => {
+          const HubIcon = hub.icon;
+          const isSelected = activeHub === hub.id;
+          return (
+            <button
+              key={hub.id}
+              onClick={() => handleSelectHub(hub.id)}
+              className={cn(
+                "group relative text-left p-4 rounded-3xl transition-all duration-200 border flex flex-col justify-between cursor-pointer",
+                isSelected
+                  ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10 scale-[1.02]"
+                  : "bg-white text-slate-800 border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 shadow-xs"
+              )}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105",
+                    isSelected
+                      ? "bg-gradient-to-tr " + hub.color + " text-white shadow-md"
+                      : "bg-slate-100 text-slate-600"
+                  )}
+                >
+                  <HubIcon className="w-5 h-5" />
+                </div>
+                {hub.badge && (
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                      isSelected
+                        ? "bg-white/20 text-white"
+                        : "bg-indigo-50 text-indigo-600"
+                    )}
+                  >
+                    {hub.badge}
+                  </span>
                 )}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="text-[11px] font-bold text-slate-400 px-2 hidden lg:block">
-          YARA Enterprise Admin Console
-        </div>
+              </div>
+              <div>
+                <h3 className={cn("font-black text-sm tracking-tight", isSelected ? "text-white" : "text-slate-900")}>
+                  {hub.label}
+                </h3>
+                <p className={cn("text-[11px] font-medium line-clamp-1 mt-0.5", isSelected ? "text-slate-300" : "text-slate-500")}>
+                  {hub.tagline}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit max-w-full">
-        {ADMIN_TABS
-          .filter(t => categoryFilter === 'all' || t.category === categoryFilter)
-          .map(tab => {
-            const TabIcon = tab.icon;
-            const isActive = activeTab === tab.id || 
-              (tab.id === 'learning_academy' && (activeTab === 'lms_evaluations' || activeTab === 'curriculum')) ||
-              (tab.id === 'competitions' && activeTab === 'yara_competition');
+      {/* 2. Contextual Sub-Tab Pill Bar */}
+      <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+        <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 px-2 hidden sm:inline">
+          {HUBS.find(h => h.id === activeHub)?.label}:
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {HUB_SUBTABS[activeHub].map(sub => {
+            const SubIcon = sub.icon;
+            const isCurrent = activeTab === sub.id ||
+              (sub.id === 'learning_academy' && (activeTab === 'lms_evaluations' || activeTab === 'curriculum')) ||
+              (sub.id === 'competitions' && activeTab === 'yara_competition');
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                key={sub.id}
+                onClick={() => handleSelectSubTab(sub.id)}
                 className={cn(
-                  "px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-xs flex items-center space-x-2",
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-indigo-200"
-                    : "bg-white text-slate-700 hover:text-slate-950 hover:bg-slate-50 border border-slate-200"
+                  "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer shadow-xs",
+                  isCurrent
+                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/20"
+                    : "bg-slate-50 text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-200"
                 )}
               >
-                <TabIcon className={cn("w-3.5 h-3.5", isActive ? "text-white" : "text-slate-500")} />
-                <span>{tab.label}</span>
-                {tab.badge && (
-                  <span className={cn(
-                    "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
-                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                  )}>
-                    {tab.badge}
+                <SubIcon className={cn("w-3.5 h-3.5", isCurrent ? "text-white" : "text-slate-500")} />
+                <span>{sub.label}</span>
+                {sub.badge && (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
+                      isCurrent ? "bg-white/25 text-white" : "bg-white text-indigo-700 border border-indigo-100"
+                    )}
+                  >
+                    {sub.badge}
                   </span>
                 )}
               </button>
             );
           })}
+        </div>
       </div>
 
       <AnimatePresence>
