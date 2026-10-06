@@ -33,6 +33,7 @@ import {
   SessionProject, 
   SessionResource 
 } from '../../types/curriculum';
+import { autoCreateCertificateTemplateForCourse } from '../../services/certificateTemplateService';
 import { cn } from '../../lib/utils';
 
 export default function CurriculumAdminTab() {
@@ -264,6 +265,18 @@ export default function CurriculumAdminTab() {
     setCourses([...courses, newCourse]);
     setSelectedCourseId(newId);
     setShowAddCourseModal(false);
+
+    // Automatically create a corresponding accredited certificate template
+    try {
+      autoCreateCertificateTemplateForCourse({
+        id: newId,
+        title: newCourseForm.title,
+        category: 'Robotics Curriculum'
+      });
+    } catch (err) {
+      console.warn('Could not auto-create certificate template for curriculum course:', err);
+    }
+
     setMessage({ type: 'success', text: `Course "${newCourseForm.title}" added to curriculum hierarchy!` });
     setTimeout(() => setMessage(null), 3500);
   };

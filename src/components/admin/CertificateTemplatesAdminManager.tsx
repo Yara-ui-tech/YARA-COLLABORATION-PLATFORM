@@ -1,176 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Award, Edit3, Eye, Save, X, ChevronDown, ChevronUp,
+  Award, Edit3, Eye, Save, X, Plus, ChevronDown, ChevronUp,
   GraduationCap, Code2, Brain, Cpu, CheckCircle2, Palette,
-  FileText, Shield, Star, RotateCcw, Trophy, Users, Heart
+  FileText, Shield, Star, RotateCcw, Trophy, Users, Heart,
+  Building2, Sparkles, Image, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getLocal, setLocal } from '../../services/chaptersService';
 import { cn } from '../../lib/utils';
+import { ASSETS } from '../../constants/assets';
+import { 
+  CertificateTemplate, 
+  getAllCertificateTemplates, 
+  saveCertificateTemplate, 
+  createCertificateTemplate,
+  deleteCertificateTemplate,
+  autoCreateCertificateTemplateForCourse,
+  DEFAULT_TEMPLATES 
+} from '../../services/certificateTemplateService';
+import { getAllCourses } from '../../services/programmingCoursesService';
+import { YaraAccreditedCertificateCanvas } from '../lms/YaraAccreditedCertificateCanvas';
 
-// ----------------------------------------------------------------
-// Types
-// ----------------------------------------------------------------
-
-export interface CertificateTemplate {
-  id: string;
-  name: string;
-  section: string;
-  subtitle: string;
-  description: string;
-  recipient_label: string;
-  completion_text: string;
-  primary_color: string;
-  secondary_color: string;
-  accent_color: string;
-  signatory_1_name: string;
-  signatory_1_title: string;
-  signatory_2_name: string;
-  signatory_2_title: string;
-  footer_text: string;
-  badge_text: string;
-  is_active: boolean;
-}
-
-// ----------------------------------------------------------------
-// Default Templates for All Sections
-// ----------------------------------------------------------------
-
-const DEFAULT_TEMPLATES: CertificateTemplate[] = [
-  {
-    id: 'cert-lms-robotics',
-    name: 'YARA Robotics LMS Certificate',
-    section: 'Learning Academy & LMS',
-    subtitle: 'Completion of Robotics Learning Management System Programme',
-    description: 'Awarded to learners who successfully complete the YARA Robotics Academy online learning modules, including embedded systems, drone telemetry, and autonomous programming.',
-    recipient_label: 'This is to certify that',
-    completion_text: 'has successfully completed the YARA Robotics Academy LMS Programme and demonstrated proficiency in robotics engineering, embedded systems, and autonomous systems design.',
-    primary_color: '#0f172a',
-    secondary_color: '#4f46e5',
-    accent_color: '#fbbf24',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA Academy',
-    signatory_2_name: 'Dr. E. Munetsi',
-    signatory_2_title: 'Academic Patron, Robotics Division',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'LMS',
-    is_active: true
-  },
-  {
-    id: 'cert-coding',
-    name: 'YARA Coding & Programming Certificate',
-    section: 'Coding Bootcamp & Software',
-    subtitle: 'Certificate of Completion — Coding & Software Engineering Track',
-    description: 'Awarded to participants who complete the YARA Coding curriculum covering Python, C++, web development, and application engineering fundamentals.',
-    recipient_label: 'This certifies that',
-    completion_text: 'has demonstrated mastery of programming fundamentals, software design principles, and practical coding skills through the YARA Coding & Programming Track.',
-    primary_color: '#064e3b',
-    secondary_color: '#059669',
-    accent_color: '#34d399',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA Academy',
-    signatory_2_name: 'Ms. R. Mutongi',
-    signatory_2_title: 'Lead Software Instructor, YARA',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'CODE',
-    is_active: true
-  },
-  {
-    id: 'cert-ai-educators',
-    name: 'AI for Educators Certificate',
-    section: 'Educator Portal & AI Bootcamp',
-    subtitle: 'Certificate of Completion — Artificial Intelligence for Educators Programme',
-    description: 'Awarded to educators who complete the YARA AI for Educators bootcamp, equipping them with skills to teach AI concepts in schools and communities across Zimbabwe.',
-    recipient_label: 'This is to certify that',
-    completion_text: 'has successfully completed the AI for Educators Programme and is now certified to deliver foundational Artificial Intelligence education in their school or community.',
-    primary_color: '#1e1b4b',
-    secondary_color: '#7c3aed',
-    accent_color: '#a78bfa',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA Academy',
-    signatory_2_name: 'Prof. M. Chikosi',
-    signatory_2_title: 'AI Programme Lead, YARA',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'AI EDU',
-    is_active: true
-  },
-  {
-    id: 'cert-capstone',
-    name: 'YARA Capstone Project Certificate',
-    section: 'Hardware & Capstone Projects',
-    subtitle: 'Certificate of Excellence — Capstone Innovation Project',
-    description: 'Awarded to teams and individuals who successfully design, build, and present a completed capstone robotics or technology project at the YARA national or provincial showcase.',
-    recipient_label: 'This certifies that',
-    completion_text: 'has successfully designed, built, and presented a Capstone Innovation Project, demonstrating exceptional technical skill, teamwork, and creative problem-solving in the field of robotics and technology.',
-    primary_color: '#431407',
-    secondary_color: '#b45309',
-    accent_color: '#f59e0b',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA Academy',
-    signatory_2_name: 'Engr. B. Moyo',
-    signatory_2_title: 'Capstone Evaluation Committee Chair',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'CAPSTONE',
-    is_active: true
-  },
-  {
-    id: 'cert-competition',
-    name: 'YARA National Robotics Competition Certificate',
-    section: 'Competitions & Micromouse Arena',
-    subtitle: 'Certificate of Achievement — YARA Robotics Championship',
-    description: 'Awarded to participants and teams taking part in the YARA Educational Robotics Competition, Micromouse Maze Solving, and Underwater Drone Arena.',
-    recipient_label: 'This is to certify that',
-    completion_text: 'has participated in the YARA National Robotics Competition, demonstrating outstanding performance in autonomous navigation, engineering design, and teamwork.',
-    primary_color: '#78350f',
-    secondary_color: '#d97706',
-    accent_color: '#fef3c7',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA',
-    signatory_2_name: 'Dr. G. Mpofu',
-    signatory_2_title: 'Chief Competition Judge',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'ARENA 2026',
-    is_active: true
-  },
-  {
-    id: 'cert-kids',
-    name: 'YARA Kids Early STEM Explorer Certificate',
-    section: 'YARA Kids Track (Ages 3-8)',
-    subtitle: 'Certificate of Discovery — Junior STEM & Robotics Explorer',
-    description: 'Awarded to young children completing introductory YARA Kids interactive STEM challenges and introductory logic activities.',
-    recipient_label: 'Super STEM Star Certificate for',
-    completion_text: 'has completed the YARA Kids Early STEM Exploration Track and shown awesome curiosity, creativity, and problem-solving skills!',
-    primary_color: '#831843',
-    secondary_color: '#db2777',
-    accent_color: '#fbcfe8',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA',
-    signatory_2_name: 'Auntie Sarah',
-    signatory_2_title: 'YARA Kids Learning Specialist',
-    footer_text: 'YARA Kids — Young African Robotics Association | yara.org.zw',
-    badge_text: 'STEM STAR',
-    is_active: true
-  },
-  {
-    id: 'cert-mentorship',
-    name: 'YARA Certified Mentor & Peer Educator Certificate',
-    section: 'Mentorship & Leadership',
-    subtitle: 'Certificate of Recognition — Master Mentor & Peer Leader',
-    description: 'Awarded to verified robotics mentors who contribute 50+ hours of peer guidance, technical assistance, and chapter support.',
-    recipient_label: 'This certificate of honor is presented to',
-    completion_text: 'in recognition of exemplary leadership, selfless technical mentorship, and dedication to raising the next generation of African technology leaders.',
-    primary_color: '#14532d',
-    secondary_color: '#16a34a',
-    accent_color: '#bbf7d0',
-    signatory_1_name: 'Eng. T. Chidzero',
-    signatory_1_title: 'National Director, YARA',
-    signatory_2_name: 'Mr. P. Mutero',
-    signatory_2_title: 'Mentorship Council President',
-    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
-    badge_text: 'MENTOR',
-    is_active: true
-  }
-];
+export type { CertificateTemplate };
 
 const CERT_ICONS: Record<string, React.ElementType> = {
   'cert-lms-robotics': Cpu,
@@ -182,20 +32,75 @@ const CERT_ICONS: Record<string, React.ElementType> = {
   'cert-mentorship': Users
 };
 
-const STORAGE_KEY = 'yara_certificate_templates';
-
 export default function CertificateTemplatesAdminManager() {
-  const savedTemplates = getLocal<CertificateTemplate[]>(STORAGE_KEY, DEFAULT_TEMPLATES);
-  const [templates, setTemplates] = useState<CertificateTemplate[]>(savedTemplates);
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<CertificateTemplate | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const isEditing = Boolean(editingId && editForm);
 
-  const saveTemplates = (updated: CertificateTemplate[]) => {
-    setLocal(STORAGE_KEY, updated);
-    setTemplates(updated);
+  // Form state for creating a new template
+  const [createForm, setCreateForm] = useState<Omit<CertificateTemplate, 'id'>>({
+    name: '',
+    section: 'Learning Academy & LMS',
+    subtitle: 'Certificate of Completion & Technical Proficiency',
+    description: 'Awarded to participants demonstrating verified competence and completion of hands-on assessments.',
+    recipient_label: 'This is to certify that',
+    completion_text: 'has successfully completed all required modules, practical labs, and assessments, demonstrating verified technical excellence.',
+    primary_color: '#0f172a',
+    secondary_color: '#0b4ea2',
+    accent_color: '#f59e0b',
+    logo_url: ASSETS.LOGO,
+    seal_enabled: true,
+    seal_type: 'gold_embossed',
+    seal_label: '★ VERIFIED ★ ACCREDITED',
+    seal_emblem_text: 'Y',
+    bg_pattern: 'guilloche',
+    watermark_enabled: true,
+    watermark_text: 'YARA',
+    watermark_opacity: 0.06,
+    has_partner: false,
+    partner_name: '',
+    partner_logo_url: '',
+    partner_badge_label: 'In Collaboration With',
+    signatory_1_name: 'Eng. T. Chidzero',
+    signatory_1_title: 'National Director, YARA Academy',
+    signatory_1_signature_url: ASSETS.SIGNATURE_MANONGWA,
+    signatory_2_name: 'Mr. S.O. Manongwa',
+    signatory_2_title: 'Lead Instructor & Evaluation Patron',
+    signatory_2_signature_url: ASSETS.SIGNATURE_CHIAMBIRO,
+    signatory_partner_name: '',
+    signatory_partner_title: '',
+    footer_text: 'YARA — Young African Robotics Association | yara.org.zw',
+    badge_text: 'ACCREDITED',
+    is_active: true
+  });
+
+  // Sync courses and load templates
+  useEffect(() => {
+    // 1. Ensure any newly added courses have matching certificate templates
+    try {
+      const courses = getAllCourses();
+      courses.forEach(c => {
+        autoCreateCertificateTemplateForCourse({
+          id: c.id,
+          title: c.title,
+          category: c.category,
+          instructorName: c.instructorName,
+          instructorTitle: c.instructorTitle
+        });
+      });
+    } catch (e) {
+      console.warn('Could not sync courses to certificate templates:', e);
+    }
+
+    setTemplates(getAllCertificateTemplates());
+  }, []);
+
+  const refreshTemplates = () => {
+    setTemplates(getAllCertificateTemplates());
   };
 
   const startEdit = (t: CertificateTemplate) => {
@@ -210,19 +115,37 @@ export default function CertificateTemplatesAdminManager() {
 
   const saveEdit = () => {
     if (!editForm) return;
-    const updated = templates.map(t => t.id === editForm.id ? editForm : t);
-    saveTemplates(updated);
+    const updated = saveCertificateTemplate(editForm);
+    setTemplates(updated);
     setEditingId(null);
     setEditForm(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const handleCreateNewTemplate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.name.trim()) return;
+
+    createCertificateTemplate(createForm);
+    refreshTemplates();
+    setShowCreateModal(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleDeleteTemplate = (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete the template "${name}"?`)) {
+      const updated = deleteCertificateTemplate(id);
+      setTemplates(updated);
+    }
+  };
+
   const resetToDefault = (id: string) => {
     const def = DEFAULT_TEMPLATES.find(t => t.id === id);
     if (!def) return;
-    const updated = templates.map(t => t.id === id ? { ...def } : t);
-    saveTemplates(updated);
+    const updated = saveCertificateTemplate(def);
+    setTemplates(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -238,24 +161,35 @@ export default function CertificateTemplatesAdminManager() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center text-white shadow-lg shadow-violet-200">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0b4ea2] to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
               <Award className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="font-black text-slate-900 text-xl tracking-tight">Section Certificate Templates</h2>
+              <h2 className="font-black text-slate-900 text-xl tracking-tight">Accredited Certificate Templates</h2>
               <p className="text-sm text-slate-500 font-medium mt-0.5">
-                Manage, edit, and preview certificate templates across all ecosystem sections (LMS, Coding, AI Bootcamp, Competitions, Capstone, Kids & Mentorship).
+                Corporate branded diplomas with official seal, logo, guilloche patterns, watermarks, and partner co-branding.
               </p>
             </div>
           </div>
-          {saved && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Saved System-Wide!</span>
-            </div>
-          )}
+          
+          <div className="flex items-center gap-3">
+            {saved && (
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Saved System-Wide!</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-md shadow-amber-500/20 cursor-pointer transition"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create New Category Template</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -267,41 +201,61 @@ export default function CertificateTemplatesAdminManager() {
           return (
             <div
               key={template.id}
-              className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 hover:border-violet-300 transition-all shadow-sm"
+              className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 hover:border-blue-300 transition-all shadow-sm"
             >
               {/* Card Header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md"
-                    style={{ backgroundColor: template.secondary_color }}
+                    style={{ backgroundColor: template.secondary_color || '#0b4ea2' }}
                   >
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md border border-violet-100">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#0b4ea2] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                       {template.section}
                     </span>
                     <h3 className="font-extrabold text-slate-900 text-lg mt-0.5">{template.name}</h3>
                   </div>
                 </div>
-                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-slate-700 bg-slate-100 border border-slate-200">
-                  {template.badge_text}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {template.has_partner && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 border border-amber-200">
+                      Partnered
+                    </span>
+                  )}
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-slate-700 bg-slate-100 border border-slate-200">
+                    {template.badge_text}
+                  </span>
+                </div>
               </div>
 
               <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
                 {template.description}
               </p>
 
+              {/* Attributes Chips */}
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold text-slate-600">
+                <span className="px-2 py-0.5 bg-slate-100 rounded-md">
+                  Pattern: {template.bg_pattern || 'guilloche'}
+                </span>
+                <span className="px-2 py-0.5 bg-slate-100 rounded-md">
+                  Seal: {template.seal_type || 'gold_embossed'}
+                </span>
+                <span className="px-2 py-0.5 bg-slate-100 rounded-md">
+                  Watermark: {template.watermark_text || 'YARA'}
+                </span>
+              </div>
+
               {/* Actions Bar */}
               <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
                 <button
                   onClick={() => setPreviewId(template.id)}
-                  className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 hover:text-violet-600 bg-slate-50 hover:bg-violet-50 px-4 py-2 rounded-xl transition border border-slate-200"
+                  className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-700 hover:text-[#0b4ea2] bg-slate-50 hover:bg-blue-50 px-4 py-2 rounded-xl transition border border-slate-200"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>Preview Certificate</span>
+                  <span>Preview Full Diploma</span>
                 </button>
 
                 <div className="flex items-center space-x-2">
@@ -315,7 +269,7 @@ export default function CertificateTemplatesAdminManager() {
 
                   <button
                     onClick={() => startEdit(template)}
-                    className="inline-flex items-center space-x-1.5 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 px-4 py-2 rounded-xl transition shadow-md shadow-violet-200"
+                    className="inline-flex items-center space-x-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-xl transition shadow-md"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Template</span>
@@ -327,7 +281,257 @@ export default function CertificateTemplatesAdminManager() {
         })}
       </div>
 
-      {/* Edit Template Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* 1. Create New Template Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-xs font-black uppercase text-amber-600">New Category</span>
+                  <h3 className="text-xl font-black text-slate-900">Create Certificate Template</h3>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateNewTemplate} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Template Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={createForm.name}
+                      onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                      placeholder="e.g. Autonomous Drone Telemetry & Avionics"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Section Category</label>
+                    <select
+                      value={createForm.section}
+                      onChange={e => setCreateForm({ ...createForm, section: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
+                    >
+                      <option value="Learning Academy & LMS">Learning Academy & LMS</option>
+                      <option value="Coding Bootcamp & Software">Coding Bootcamp & Software</option>
+                      <option value="Educator Portal & AI Bootcamp">Educator Portal & AI Bootcamp</option>
+                      <option value="Hardware & Capstone Projects">Hardware & Capstone Projects</option>
+                      <option value="Competitions & Micromouse Arena">Competitions & Arena</option>
+                      <option value="YARA Kids Track (Ages 3-8)">YARA Kids STEM</option>
+                      <option value="Mentorship & Leadership">Mentorship & Leadership</option>
+                      <option value="Partner Training & Accreditation">Partner Training & Accreditation</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subtitle / Program Track</label>
+                  <input
+                    type="text"
+                    value={createForm.subtitle}
+                    onChange={e => setCreateForm({ ...createForm, subtitle: e.target.value })}
+                    placeholder="Certificate of Completion — Advanced Avionics Track"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Citation Statement</label>
+                  <textarea
+                    rows={2}
+                    value={createForm.completion_text}
+                    onChange={e => setCreateForm({ ...createForm, completion_text: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-900"
+                  />
+                </div>
+
+                {/* Seal & Background Customizer */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Seal Style</label>
+                    <select
+                      value={createForm.seal_type}
+                      onChange={e => setCreateForm({ ...createForm, seal_type: e.target.value as any })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    >
+                      <option value="gold_embossed">Gold Embossed Official</option>
+                      <option value="royal_navy">Royal Navy Accredited</option>
+                      <option value="emerald_verified">Emerald Verified</option>
+                      <option value="gold_ribbon">Gold Ribbon Medal</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Background Pattern</label>
+                    <select
+                      value={createForm.bg_pattern}
+                      onChange={e => setCreateForm({ ...createForm, bg_pattern: e.target.value as any })}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    >
+                      <option value="guilloche">Guilloche Bank-Note Waves</option>
+                      <option value="circuit">Robotics Circuit Traces</option>
+                      <option value="crest_waves">Royal Luxury Arcs</option>
+                      <option value="minimal">Minimal Platinum Pinstripe</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Watermark Text</label>
+                    <input
+                      type="text"
+                      value={createForm.watermark_text}
+                      onChange={e => setCreateForm({ ...createForm, watermark_text: e.target.value })}
+                      placeholder="e.g. YARA"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Partner Training Section */}
+                <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="create_partner_check"
+                      checked={createForm.has_partner}
+                      onChange={e => setCreateForm({ ...createForm, has_partner: e.target.checked })}
+                      className="w-4 h-4 text-amber-500 rounded"
+                    />
+                    <label htmlFor="create_partner_check" className="text-xs font-bold text-amber-900 cursor-pointer">
+                      Training Has Partner Organization (Add Partner Logo & Signatory)
+                    </label>
+                  </div>
+
+                  {createForm.has_partner && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Name</label>
+                        <input
+                          type="text"
+                          value={createForm.partner_name || ''}
+                          onChange={e => setCreateForm({ ...createForm, partner_name: e.target.value })}
+                          placeholder="e.g. Ministry of ICT / IEEE"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Logo URL (Optional)</label>
+                        <input
+                          type="text"
+                          value={createForm.partner_logo_url || ''}
+                          onChange={e => setCreateForm({ ...createForm, partner_logo_url: e.target.value })}
+                          placeholder="https://.../partner.png"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Signatory Name</label>
+                        <input
+                          type="text"
+                          value={createForm.signatory_partner_name || ''}
+                          onChange={e => setCreateForm({ ...createForm, signatory_partner_name: e.target.value })}
+                          placeholder="e.g. Director T. Mavetera"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Signatory Title</label>
+                        <input
+                          type="text"
+                          value={createForm.signatory_partner_title || ''}
+                          onChange={e => setCreateForm({ ...createForm, signatory_partner_title: e.target.value })}
+                          placeholder="e.g. Permanent Secretary"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Signatories */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-black uppercase text-slate-500">Signatory 1 (Director)</span>
+                    <input
+                      type="text"
+                      value={createForm.signatory_1_name}
+                      onChange={e => setCreateForm({ ...createForm, signatory_1_name: e.target.value })}
+                      placeholder="Name"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold"
+                    />
+                    <input
+                      type="text"
+                      value={createForm.signatory_1_title}
+                      onChange={e => setCreateForm({ ...createForm, signatory_1_title: e.target.value })}
+                      placeholder="Title"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-black uppercase text-slate-500">Signatory 2 (Patron / Instructor)</span>
+                    <input
+                      type="text"
+                      value={createForm.signatory_2_name}
+                      onChange={e => setCreateForm({ ...createForm, signatory_2_name: e.target.value })}
+                      placeholder="Name"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold"
+                    />
+                    <input
+                      type="text"
+                      value={createForm.signatory_2_title}
+                      onChange={e => setCreateForm({ ...createForm, signatory_2_title: e.target.value })}
+                      placeholder="Title"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white shadow-lg transition flex items-center space-x-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Template</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* 2. Edit Template Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isEditing && editForm && (
           <motion.div
@@ -340,11 +544,11 @@ export default function CertificateTemplatesAdminManager() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl space-y-6 my-8"
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <span className="text-xs font-black uppercase text-violet-600">{editForm.section}</span>
+                  <span className="text-xs font-black uppercase text-[#0b4ea2]">{editForm.section}</span>
                   <h3 className="text-xl font-black text-slate-900">Edit {editForm.name}</h3>
                 </div>
                 <button
@@ -362,7 +566,7 @@ export default function CertificateTemplatesAdminManager() {
                     type="text"
                     value={editForm.name}
                     onChange={e => setField('name', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-violet-600"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
@@ -372,17 +576,7 @@ export default function CertificateTemplatesAdminManager() {
                     type="text"
                     value={editForm.subtitle}
                     onChange={e => setField('subtitle', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-violet-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Recipient Intro Text</label>
-                  <input
-                    type="text"
-                    value={editForm.recipient_label}
-                    onChange={e => setField('recipient_label', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-violet-600"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-600"
                   />
                 </div>
 
@@ -392,8 +586,110 @@ export default function CertificateTemplatesAdminManager() {
                     rows={3}
                     value={editForm.completion_text}
                     onChange={e => setField('completion_text', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-violet-600"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-900 focus:outline-none focus:border-blue-600"
                   />
+                </div>
+
+                {/* Seal & Background Pattern */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Seal Style</label>
+                    <select
+                      value={editForm.seal_type || 'gold_embossed'}
+                      onChange={e => setField('seal_type', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    >
+                      <option value="gold_embossed">Gold Embossed Official</option>
+                      <option value="royal_navy">Royal Navy Accredited</option>
+                      <option value="emerald_verified">Emerald Verified</option>
+                      <option value="gold_ribbon">Gold Ribbon Medal</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Background Pattern</label>
+                    <select
+                      value={editForm.bg_pattern || 'guilloche'}
+                      onChange={e => setField('bg_pattern', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    >
+                      <option value="guilloche">Guilloche Bank-Note Waves</option>
+                      <option value="circuit">Robotics Circuit Traces</option>
+                      <option value="crest_waves">Royal Luxury Arcs</option>
+                      <option value="minimal">Minimal Platinum Pinstripe</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Watermark Text</label>
+                    <input
+                      type="text"
+                      value={editForm.watermark_text || 'YARA'}
+                      onChange={e => setField('watermark_text', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Partner Training Support */}
+                <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="edit_partner_check"
+                      checked={Boolean(editForm.has_partner)}
+                      onChange={e => setField('has_partner', e.target.checked)}
+                      className="w-4 h-4 text-amber-500 rounded"
+                    />
+                    <label htmlFor="edit_partner_check" className="text-xs font-bold text-amber-900 cursor-pointer">
+                      Training Has Partner Organization (Add Partner Logo & Signatory)
+                    </label>
+                  </div>
+
+                  {editForm.has_partner && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Name</label>
+                        <input
+                          type="text"
+                          value={editForm.partner_name || ''}
+                          onChange={e => setField('partner_name', e.target.value)}
+                          placeholder="e.g. Ministry of ICT / IEEE"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Logo URL</label>
+                        <input
+                          type="text"
+                          value={editForm.partner_logo_url || ''}
+                          onChange={e => setField('partner_logo_url', e.target.value)}
+                          placeholder="https://.../partner.png"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Signatory Name</label>
+                        <input
+                          type="text"
+                          value={editForm.signatory_partner_name || ''}
+                          onChange={e => setField('signatory_partner_name', e.target.value)}
+                          placeholder="e.g. Director T. Mavetera"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase">Partner Signatory Title</label>
+                        <input
+                          type="text"
+                          value={editForm.signatory_partner_title || ''}
+                          onChange={e => setField('signatory_partner_title', e.target.value)}
+                          placeholder="e.g. Patron & Director"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -437,116 +733,97 @@ export default function CertificateTemplatesAdminManager() {
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Primary Color</label>
-                    <input
-                      type="color"
-                      value={editForm.primary_color}
-                      onChange={e => setField('primary_color', e.target.value)}
-                      className="w-full h-10 rounded-xl border border-slate-200 cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Secondary Color</label>
-                    <input
-                      type="color"
-                      value={editForm.secondary_color}
-                      onChange={e => setField('secondary_color', e.target.value)}
-                      className="w-full h-10 rounded-xl border border-slate-200 cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Badge Text</label>
-                    <input
-                      type="text"
-                      value={editForm.badge_text}
-                      onChange={e => setField('badge_text', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold uppercase"
-                    />
-                  </div>
-                </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <button
-                  onClick={cancelEdit}
-                  className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100 transition"
+                  type="button"
+                  onClick={() => handleDeleteTemplate(editForm.id, editForm.name)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition"
                 >
-                  Cancel
+                  Delete Template
                 </button>
-                <button
-                  onClick={saveEdit}
-                  className="px-6 py-2.5 rounded-xl font-bold text-xs bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-200 transition flex items-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Save Template Changes</span>
-                </button>
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={cancelEdit}
+                    className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    className="px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 text-white shadow-lg transition flex items-center space-x-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Preview Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* 3. WYSIWYG Full Certificate Preview Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {previewTemplate && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+            className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
           >
-            <div className="max-w-4xl w-full bg-white rounded-3xl p-8 relative shadow-2xl border-4" style={{ borderColor: previewTemplate.secondary_color }}>
-              <button
-                onClick={() => setPreviewId(null)}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-xl bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="text-center space-y-6 py-8 px-6 border-2 border-dashed border-slate-200 rounded-2xl relative bg-slate-50/50">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full text-white text-2xl font-black shadow-lg" style={{ backgroundColor: previewTemplate.secondary_color }}>
-                  Y
-                </div>
-
+            <div className="max-w-5xl w-full bg-slate-900 rounded-3xl p-6 sm:p-8 relative shadow-2xl border border-slate-800">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">YARA OFFICIAL CERTIFICATE OF ACCOMPLISHMENT</h4>
-                  <h2 className="text-3xl font-black text-slate-900 mt-2" style={{ color: previewTemplate.primary_color }}>
-                    {previewTemplate.name}
-                  </h2>
-                  <p className="text-sm font-semibold text-slate-500 mt-1">{previewTemplate.subtitle}</p>
+                  <span className="text-[10px] font-black uppercase text-amber-400">Live WYSIWYG Preview</span>
+                  <h3 className="text-lg font-bold text-white">{previewTemplate.name}</h3>
                 </div>
+                <button
+                  onClick={() => setPreviewId(null)}
+                  className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800 hover:bg-slate-700 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                <div className="py-4 space-y-2">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{previewTemplate.recipient_label}</p>
-                  <h3 className="text-2xl font-black text-indigo-700 underline decoration-indigo-300 decoration-wavy">
-                    [ SAMPLE RECIPIENT NAME ]
-                  </h3>
-                  <p className="text-sm text-slate-600 max-w-xl mx-auto font-medium leading-relaxed pt-2">
-                    {previewTemplate.completion_text}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-200 max-w-lg mx-auto">
-                  <div className="text-center space-y-1">
-                    <div className="border-b border-slate-400 pb-1 font-serif text-sm font-bold text-slate-800 italic">
-                      {previewTemplate.signatory_1_name}
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">{previewTemplate.signatory_1_title}</p>
-                  </div>
-                  <div className="text-center space-y-1">
-                    <div className="border-b border-slate-400 pb-1 font-serif text-sm font-bold text-slate-800 italic">
-                      {previewTemplate.signatory_2_name}
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">{previewTemplate.signatory_2_title}</p>
-                  </div>
-                </div>
-
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-4">
-                  {previewTemplate.footer_text}
-                </p>
+              {/* Render High-Definition Canvas */}
+              <div className="flex justify-center overflow-x-auto p-1 bg-slate-950 rounded-2xl border border-slate-800">
+                <YaraAccreditedCertificateCanvas
+                  data={{
+                    certificateNumber: 'GLA-YARA-2026-DEMO99',
+                    studentName: 'Simbarashe Obvious Manongwa',
+                    courseTitle: previewTemplate.name,
+                    certificateType: previewTemplate.id.includes('coding') ? 'programming' : previewTemplate.id.includes('educator') ? 'educator' : 'robotics',
+                    roboticsLevel: 2,
+                    issueDate: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    verificationUrl: 'https://yara.org/verify-certificate?id=GLA-YARA-2026-DEMO99',
+                    directorName: previewTemplate.signatory_1_name,
+                    directorTitle: previewTemplate.signatory_1_title,
+                    organizationName: 'YARA Learning Academy',
+                    coSignerName: previewTemplate.signatory_2_name,
+                    coSignerTitle: previewTemplate.signatory_2_title,
+                    citationText: previewTemplate.completion_text,
+                    logoUrl: previewTemplate.logo_url || ASSETS.LOGO,
+                    sealEnabled: previewTemplate.seal_enabled !== false,
+                    sealType: previewTemplate.seal_type || 'gold_embossed',
+                    sealLabel: previewTemplate.seal_label || '★ VERIFIED ★ CERTIFICATE',
+                    sealEmblemText: previewTemplate.seal_emblem_text || 'Y',
+                    bgPattern: previewTemplate.bg_pattern || 'guilloche',
+                    watermarkEnabled: previewTemplate.watermark_enabled !== false,
+                    watermarkText: previewTemplate.watermark_text || 'YARA',
+                    watermarkOpacity: previewTemplate.watermark_opacity ?? 0.06,
+                    hasPartner: previewTemplate.has_partner,
+                    partnerName: previewTemplate.partner_name,
+                    partnerLogoUrl: previewTemplate.partner_logo_url,
+                    partnerBadgeLabel: previewTemplate.partner_badge_label,
+                    partnerSignerName: previewTemplate.signatory_partner_name,
+                    partnerSignerTitle: previewTemplate.signatory_partner_title
+                  }}
+                />
               </div>
             </div>
           </motion.div>

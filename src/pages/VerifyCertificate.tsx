@@ -337,7 +337,22 @@ export default function VerifyCertificate() {
                         score: certificate.score,
                         skillsAcquired: certificate.skillsAcquired,
                         coSignerName: certificate.coSignerName,
-                        coSignerTitle: certificate.coSignerTitle
+                        coSignerTitle: certificate.coSignerTitle,
+                        logoUrl: (certificate as any).logoUrl || ASSETS.LOGO,
+                        sealEnabled: (certificate as any).sealEnabled !== false,
+                        sealType: (certificate as any).sealType,
+                        sealLabel: (certificate as any).sealLabel,
+                        bgPattern: (certificate as any).bgPattern,
+                        watermarkEnabled: (certificate as any).watermarkEnabled !== false,
+                        watermarkText: (certificate as any).watermarkText,
+                        watermarkOpacity: (certificate as any).watermarkOpacity,
+                        hasPartner: (certificate as any).hasPartner,
+                        partnerName: (certificate as any).partnerName,
+                        partnerLogoUrl: (certificate as any).partnerLogoUrl,
+                        partnerBadgeLabel: (certificate as any).partnerBadgeLabel,
+                        partnerSignerName: (certificate as any).partnerSignerName,
+                        partnerSignerTitle: (certificate as any).partnerSignerTitle,
+                        partnerSignatureUrl: (certificate as any).partnerSignatureUrl
                       }}
                     />
                   </div>

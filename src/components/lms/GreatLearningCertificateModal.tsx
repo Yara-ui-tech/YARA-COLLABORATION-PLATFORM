@@ -103,7 +103,20 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
     coSignerTitle: 'Regional President & Evaluation Chair',
     citationText: '',
     skillsAcquired: '',
-    sealLabel: 'Official YARA Seal'
+    sealLabel: '★ VERIFIED ★ CERTIFICATE',
+    sealType: 'gold_embossed' as 'gold_embossed' | 'royal_navy' | 'gold_ribbon' | 'emerald_verified',
+    sealEnabled: true,
+    bgPattern: 'guilloche' as 'guilloche' | 'circuit' | 'crest_waves' | 'minimal',
+    watermarkEnabled: true,
+    watermarkText: 'YARA',
+    watermarkOpacity: 0.06,
+    hasPartner: false,
+    partnerName: '',
+    partnerLogoUrl: '',
+    partnerBadgeLabel: 'In Collaboration With',
+    partnerSignerName: '',
+    partnerSignerTitle: '',
+    partnerSignatureUrl: ''
   });
 
   const certRenderRef = useRef<HTMLDivElement>(null);
@@ -756,6 +769,156 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
                     />
                   </div>
 
+                  {/* Seal Customizer */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Seal Style & Verification
+                    </label>
+                    <select
+                      value={editForm.sealType}
+                      onChange={e => setEditForm({ ...editForm, sealType: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                    >
+                      <option value="gold_embossed">Gold Embossed Official Seal</option>
+                      <option value="royal_navy">Royal Navy Accredited Seal</option>
+                      <option value="emerald_verified">Emerald Verified Seal</option>
+                      <option value="gold_ribbon">Gold Ribbon Medal Seal</option>
+                    </select>
+                  </div>
+
+                  {/* Seal Label Text */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Seal Label Text
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.sealLabel}
+                      onChange={e => setEditForm({ ...editForm, sealLabel: e.target.value })}
+                      placeholder="★ VERIFIED ★ CERTIFICATE"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Background Pattern */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Background Pattern
+                    </label>
+                    <select
+                      value={editForm.bgPattern}
+                      onChange={e => setEditForm({ ...editForm, bgPattern: e.target.value as any })}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                    >
+                      <option value="guilloche">Guilloche Bank-Note Curve Waves</option>
+                      <option value="circuit">Robotics & IoT Circuit Traces</option>
+                      <option value="crest_waves">Royal Luxury Concentric Arcs</option>
+                      <option value="minimal">Minimal Platinum Pinstripe</option>
+                    </select>
+                  </div>
+
+                  {/* Watermark Text */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Center Watermark Text
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.watermarkText}
+                      onChange={e => setEditForm({ ...editForm, watermarkText: e.target.value })}
+                      placeholder="e.g. YARA"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Watermark Opacity */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
+                      Watermark Opacity ({Math.round((editForm.watermarkOpacity || 0.06) * 100)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="0.25"
+                      step="0.01"
+                      value={editForm.watermarkOpacity}
+                      onChange={e => setEditForm({ ...editForm, watermarkOpacity: parseFloat(e.target.value) })}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+
+                  {/* Partner Collaboration Toggle */}
+                  <div className="space-y-2 md:col-span-2 lg:col-span-3 p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="has_partner_check"
+                        checked={editForm.hasPartner}
+                        onChange={e => setEditForm({ ...editForm, hasPartner: e.target.checked })}
+                        className="w-4 h-4 text-amber-500 rounded bg-slate-800 border-slate-700 focus:ring-amber-400"
+                      />
+                      <label htmlFor="has_partner_check" className="text-xs font-bold text-amber-300 cursor-pointer">
+                        Add Partner / Co-Host Organization (Logos & Signatories)
+                      </label>
+                    </div>
+
+                    {editForm.hasPartner && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Partner Organization Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.partnerName}
+                            onChange={e => setEditForm({ ...editForm, partnerName: e.target.value })}
+                            placeholder="e.g. Ministry of ICT / IEEE"
+                            className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Partner Logo URL (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.partnerLogoUrl}
+                            onChange={e => setEditForm({ ...editForm, partnerLogoUrl: e.target.value })}
+                            placeholder="https://... / logo.png"
+                            className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Partner Signatory Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.partnerSignerName}
+                            onChange={e => setEditForm({ ...editForm, partnerSignerName: e.target.value })}
+                            placeholder="e.g. Hon. T. Mavetera"
+                            className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Partner Signatory Title
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.partnerSignerTitle}
+                            onChange={e => setEditForm({ ...editForm, partnerSignerTitle: e.target.value })}
+                            placeholder="e.g. Patron & Director"
+                            className="w-full px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Citation text */}
                   <div className="space-y-1 md:col-span-2 lg:col-span-3">
                     <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
@@ -793,7 +956,21 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
                   score: activeCert?.score,
                   skillsAcquired: activeCert?.skillsAcquired,
                   coSignerName: editForm.coSignerName,
-                  coSignerTitle: editForm.coSignerTitle
+                  coSignerTitle: editForm.coSignerTitle,
+                  sealEnabled: editForm.sealEnabled,
+                  sealType: editForm.sealType,
+                  sealLabel: editForm.sealLabel,
+                  bgPattern: editForm.bgPattern,
+                  watermarkEnabled: editForm.watermarkEnabled,
+                  watermarkText: editForm.watermarkText,
+                  watermarkOpacity: editForm.watermarkOpacity,
+                  hasPartner: editForm.hasPartner,
+                  partnerName: editForm.partnerName,
+                  partnerLogoUrl: editForm.partnerLogoUrl,
+                  partnerBadgeLabel: editForm.partnerBadgeLabel,
+                  partnerSignerName: editForm.partnerSignerName,
+                  partnerSignerTitle: editForm.partnerSignerTitle,
+                  partnerSignatureUrl: editForm.partnerSignatureUrl
                 }}
               />
             </div>

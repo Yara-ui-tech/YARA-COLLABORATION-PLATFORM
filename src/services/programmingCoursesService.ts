@@ -6,6 +6,7 @@ import {
   STARTER_PROGRAMMING_COURSES,
   CourseDifficulty,
 } from '../types/lmsCourseTypes';
+import { autoCreateCertificateTemplateForCourse } from './certificateTemplateService';
 
 // ============================================================================
 // Storage Keys
@@ -61,6 +62,20 @@ export function saveCourse(course: ProgrammingCourse): ProgrammingCourse {
   }
 
   localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+
+  // Automatically create a matching corporate certificate template for the new course
+  try {
+    autoCreateCertificateTemplateForCourse({
+      id: updated.id,
+      title: updated.title,
+      category: updated.category,
+      instructorName: updated.instructorName,
+      instructorTitle: updated.instructorTitle
+    });
+  } catch (err) {
+    console.warn('Could not auto-create certificate template for course:', err);
+  }
+
   return updated;
 }
 
