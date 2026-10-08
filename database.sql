@@ -252,12 +252,33 @@ CREATE TABLE IF NOT EXISTS public.courses (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Upgrades for dynamic module fields
+-- Upgrades for dynamic module fields and backward compatibility with existing databases
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS track TEXT DEFAULT 'Robotics';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS tier INTEGER DEFAULT 1;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS level TEXT DEFAULT 'Beginner';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS short_summary TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS video_preview_url TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS instructor_id UUID;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS min_theory_modules INTEGER DEFAULT 6;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS total_modules INTEGER DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS total_labs INTEGER DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS total_assignments INTEGER DEFAULT 0;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS requires_research_project BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS requires_final_design_project BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS requires_level_exam BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS estimated_duration_hours INTEGER DEFAULT 20;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS hardware_required TEXT[] DEFAULT '{}';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS learning_outcomes TEXT[] DEFAULT '{}';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS prerequisites TEXT[] DEFAULT '{}';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
 
 -- ==============================================================================
 -- 05. LMS CORE — MODULE SPECIFICATION (8 REQUIRED COMPONENTS PER MODULE)
@@ -338,6 +359,7 @@ ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS troubleshooting_bench
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS mentor_support_topic TEXT;
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS mentor_support_channel TEXT DEFAULT 'live_room_or_discord';
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 
 -- ==============================================================================
 -- 06. LMS CORE — LESSONS & LEARNING RESOURCES
@@ -2207,15 +2229,42 @@ COMMENT ON SCHEMA public IS 'Young Africans Robotics Association (YARA) - Enterp
 -- Rule: ALL YARA courses must be managed, delivered, and completed inside the LMS.
 -- The LMS database is the single source of truth for all educational content.
 
--- Relax track check constraint safely to allow all central LMS catalog tracks
+-- Ensure all required course columns and constraints exist even on existing database instances
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS track TEXT DEFAULT 'Robotics';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS tier INTEGER DEFAULT 1;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS level TEXT DEFAULT 'Beginner';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS short_summary TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS estimated_duration_hours INTEGER DEFAULT 20;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+
 DO $$
 BEGIN
+  -- Ensure unique constraint on slug exists for ON CONFLICT (slug)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'courses_slug_key'
+  ) THEN
+    BEGIN
+      ALTER TABLE public.courses ADD CONSTRAINT courses_slug_key UNIQUE (slug);
+    EXCEPTION
+      WHEN OTHERS THEN NULL;
+    END;
+  END IF;
+
+  -- Relax track check constraint safely to allow all central LMS catalog tracks
   ALTER TABLE public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
   ALTER TABLE public.courses ADD CONSTRAINT courses_track_check 
     CHECK (track IN ('Robotics', 'Coding', 'Technology', 'Artificial Intelligence', 'IoT', 'Engineering', 'STEM', 'Specialized', 'Industrial Automation', 'Digital Literacy', 'Kids'));
 EXCEPTION
   WHEN OTHERS THEN NULL;
 END $$;
+
 
 -- Seed canonical courses into public.courses
 INSERT INTO public.courses (
