@@ -21,7 +21,8 @@ import {
   CreditCard,
   Package,
   Code2,
-  GraduationCap
+  GraduationCap,
+  Calendar
 } from 'lucide-react';
 import { LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
@@ -66,6 +67,23 @@ export const LearningDashboardTab: React.FC<Props> = ({
   const nextSessionDetails = COMPLETE_YARA_SESSIONS.find(s => s.id === nextSessionId) || COMPLETE_YARA_SESSIONS[0];
 
   const lockedCount = Math.max(0, userOverall.totalSessions - userOverall.completedCount);
+
+  // Study-Plan Pace Selector (Section 20: Relaxed, Normal, Intensive)
+  const [studyPace, setStudyPace] = React.useState<'relaxed' | 'normal' | 'intensive'>('normal');
+  const paceHoursPerWeek = {
+    relaxed: 3,
+    normal: 6,
+    intensive: 12
+  };
+  const totalPathwayEstimatedHours = 350; // Beginner 95h + Intermediate 110h + Advanced 145h
+  const completionRatio = userOverall.totalSessions > 0 ? (userOverall.completedCount / userOverall.totalSessions) : 0;
+  const remainingHours = Math.max(0, Math.round(totalPathwayEstimatedHours * (1 - completionRatio)));
+  const weeksToFinish = Math.max(1, Math.ceil(remainingHours / paceHoursPerWeek[studyPace]));
+  const estimatedFinishDate = new Date(Date.now() + weeksToFinish * 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
 
   // Skill matrices for all levels
   const skillDomains = [
@@ -256,6 +274,62 @@ export const LearningDashboardTab: React.FC<Props> = ({
             >
               View All <ChevronRight className="w-3 h-3" />
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2.5 Study Pace & Competency Progression Planner (Section 20 & 21) */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5" /> Learner Study-Plan & Pace Planner
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-slate-900">
+              Personal Study Pace: <span className="capitalize text-indigo-600">{studyPace}</span> ({paceHoursPerWeek[studyPace]} hrs/week)
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Target completion: <strong className="text-slate-900 font-bold">{estimatedFinishDate}</strong> (~{weeksToFinish} weeks remaining for ~{remainingHours} estimated curriculum hours).
+            </p>
+            <p className="text-[11px] text-amber-700 font-medium bg-amber-50/70 border border-amber-200/60 rounded-xl p-2.5 mt-2">
+              ⚠️ <strong>Competency-Based Standard:</strong> Study time is for your planning only. YARA does <em>not</em> gate you behind time quotas — you advance as soon as you demonstrate practical labs, pass assessments, and complete projects.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            {(['relaxed', 'normal', 'intensive'] as const).map(pace => {
+              const hours = paceHoursPerWeek[pace];
+              const isSelected = studyPace === pace;
+              return (
+                <button
+                  key={pace}
+                  type="button"
+                  onClick={() => setStudyPace(pace)}
+                  className={`px-4 py-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between min-w-[130px] ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
+                      {pace}
+                    </span>
+                    {pace === 'normal' && (
+                      <span className={`text-[8px] font-black px-1.5 py-0.2 rounded uppercase ${isSelected ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-800'}`}>
+                        Rec
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-base font-black leading-none">{hours} hrs</div>
+                    <div className={`text-[10px] font-semibold mt-0.5 ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>
+                      per week
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

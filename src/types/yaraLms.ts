@@ -179,6 +179,9 @@ export interface CapstoneProjectSubmission {
     pitchPresentation: number; // /10
   };
   totalScorePercentage?: number;
+  finalScore?: number;
+  problemDiscovery?: string;
+  solutionSummary?: string;
   instructorFeedback?: string;
   reviewedBy?: string;
   reviewedAt?: string;

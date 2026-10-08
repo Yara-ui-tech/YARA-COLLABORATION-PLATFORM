@@ -511,7 +511,7 @@ export default function ImpactLedgerAdminTab() {
                     required
                     value={auditorForm.email}
                     onChange={e => setAuditorForm({ ...auditorForm, email: e.target.value })}
-                    placeholder="executive@yaria.org"
+                    placeholder="executive@yara.org"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-600"
                   />
                 </div>

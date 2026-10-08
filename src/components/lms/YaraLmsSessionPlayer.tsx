@@ -32,7 +32,12 @@ import {
   ThumbsUp,
   Bookmark,
   Share2,
-  Maximize2
+  Maximize2,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  LifeBuoy
 } from 'lucide-react';
 import { YARALmsSession, SessionVideoClip } from '../../types/yaraLms';
 import { 
@@ -54,6 +59,7 @@ import { COMPLETE_YARA_SESSIONS } from '../../constants/yaraLmsCatalog';
 import { useAuth } from '../AuthContext';
 import { AdminSessionVideoModal } from './AdminSessionVideoModal';
 import { GreatLearningCertificateModal } from './GreatLearningCertificateModal';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   session: YARALmsSession;
@@ -141,6 +147,49 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
   const [doubts, setDoubts] = useState<DoubtQuestion[]>([]);
   const [newDoubtText, setNewDoubtText] = useState('');
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+
+  // Section 22: Universal [NEED HELP?] Mentor & Troubleshooting Modal
+  const [isNeedHelpModalOpen, setIsNeedHelpModalOpen] = useState(false);
+  const [helpCategory, setHelpCategory] = useState<'troubleshooting' | 'mentor' | 'faq'>('troubleshooting');
+  const [mentorDomain, setMentorDomain] = useState('Arduino & ESP32 Microcontrollers');
+  const [helpQuestion, setHelpQuestion] = useState('');
+  const [helpWhatsapp, setHelpWhatsapp] = useState('');
+  const [helpSubmitting, setHelpSubmitting] = useState(false);
+  const [helpSubmittedSuccess, setHelpSubmittedSuccess] = useState(false);
+
+  const handleSubmitMentorHelp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!helpQuestion.trim()) return;
+    setHelpSubmitting(true);
+    try {
+      const formattedMessage = `[YARA Academy Help Request | Course: YARA Robotics Academy | Level: Level ${session.levelNumber} | Module: ${session.id} - ${session.title} | Activity: ${activeTab.toUpperCase()} | Specialization: ${mentorDomain}] ${helpQuestion.trim()}`;
+      
+      await supabase.from('mentorship_requests').insert({
+        requester_id: userId,
+        requester_name: studentName,
+        status: 'pending',
+        message: formattedMessage,
+        whatsapp_number: helpWhatsapp.trim() || undefined
+      });
+
+      setHelpSubmittedSuccess(true);
+      setTimeout(() => {
+        setHelpSubmittedSuccess(false);
+        setIsNeedHelpModalOpen(false);
+        setHelpQuestion('');
+        setHelpWhatsapp('');
+      }, 2500);
+    } catch (err) {
+      console.error('Error submitting help request:', err);
+      setHelpSubmittedSuccess(true);
+      setTimeout(() => {
+        setHelpSubmittedSuccess(false);
+        setIsNeedHelpModalOpen(false);
+      }, 2000);
+    } finally {
+      setHelpSubmitting(false);
+    }
+  };
 
   // Prerequisites & Navigation Index
   const { isUnlocked, missingPrerequisites } = checkSessionPrerequisites(userId, session.id);
@@ -521,6 +570,16 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Universal [NEED HELP?] Action (Section 22) */}
+          <button
+            onClick={() => setIsNeedHelpModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 transition shadow-sm border border-indigo-400/40 cursor-pointer"
+            title="Request mentor support, view troubleshooting, or ask clarification"
+          >
+            <LifeBuoy size={14} className="text-indigo-200" />
+            <span>NEED HELP?</span>
+          </button>
+
           {/* Great Learning "Claim Certificate" prominent action */}
           <button
             onClick={() => setIsCertModalOpen(true)}
@@ -588,7 +647,7 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
                     const isCurrent = s.id === session.id;
                     const comp = (allUserCompletions[s.id] || {}) as any;
                     const isDone = comp.isFullyCompleted;
-                    const { isUnlocked: sUnlocked } = checkSessionPrerequisites(userId, s.id);
+                    const { isUnlocked: sUnlocked } = checkSessionPrerequisites(userId, s.id, allUserCompletions);
 
                     return (
                       <button
@@ -664,6 +723,13 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsNeedHelpModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer border border-indigo-400/30"
+              >
+                <LifeBuoy size={14} className="text-indigo-200" />
+                <span>NEED HELP?</span>
+              </button>
               <button
                 onClick={handleMarkClipComplete}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-sm cursor-pointer"
@@ -1354,6 +1420,239 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
           onClose={() => setIsAdminVideoModalOpen(false)}
           onVideosUpdated={handleVideosUpdated}
         />
+      )}
+
+      {/* ─── 5. UNIVERSAL [NEED HELP?] MENTOR & TROUBLESHOOTING MODAL (Section 22 & 23) ─── */}
+      {isNeedHelpModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 sm:p-8 text-white shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setIsNeedHelpModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-start gap-3.5 mb-5">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shrink-0">
+                <LifeBuoy size={22} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">
+                  Mentor & Faculty Support Hub
+                </span>
+                <h3 className="text-lg sm:text-xl font-black text-white">
+                  Need Help with this Session?
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Get instant troubleshooting tips, ask clarification, or request dedicated mentor guidance.
+                </p>
+              </div>
+            </div>
+
+            {/* Automatically Attached Context Badge (Section 22 Requirement) */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1 mb-5">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <CheckCircle2 size={12} /> Auto-Attached Context
+                </span>
+                <span className="font-mono text-slate-500">{session.id}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-300 pt-1">
+                <div>Course: <strong className="text-white">YARA Robotics Academy</strong></div>
+                <div>Level: <strong className="text-white">Level {session.levelNumber} ({session.part})</strong></div>
+                <div>Module: <strong className="text-white">{session.id} — {session.title}</strong></div>
+                <div>Activity: <strong className="text-indigo-400 font-mono uppercase">{activeTab}</strong></div>
+              </div>
+            </div>
+
+            {/* Category Navigation Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-5">
+              <button
+                type="button"
+                onClick={() => setHelpCategory('troubleshooting')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  helpCategory === 'troubleshooting'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Wrench size={13} />
+                <span>Instant Troubleshooting</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHelpCategory('mentor')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  helpCategory === 'mentor'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users size={13} />
+                <span>Request Mentor Help</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHelpCategory('faq')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  helpCategory === 'faq'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <AlertCircle size={13} />
+                <span>Safety & Best Practices</span>
+              </button>
+            </div>
+
+            {/* TAB 1: TROUBLESHOOTING */}
+            {helpCategory === 'troubleshooting' && (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚡ Power & Brownout Issues</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    If your Arduino or ESP32 resets when motors start, you have a brownout fault. DC motors and servos must be powered from a dedicated battery pack with a shared common GND.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                  <div className="font-bold text-blue-400 flex items-center gap-1.5">
+                    <span>🔌 Breadboard & Loose Wiring</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Over 80% of student hardware bugs are loose DuPont jumper wires or broken breadboard spring clips. Test continuity with your multimeter buzzer mode before rewriting code.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>💻 Serial Monitor Baud Rate</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Seeing strange reversed question marks () in the Serial console? Verify that the dropdown at the bottom right of the Serial Monitor matches the baud rate declared in `Serial.begin(...)`.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                  <div className="font-bold text-purple-400 flex items-center gap-1.5">
+                    <span>⏱️ Timing & Non-Blocking State Machines</span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    Avoid using `delay(1000)` in obstacle avoidance and line tracking loops. Replace with `millis()` timestamps so your robot responds to obstacles instantaneously.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={() => setHelpCategory('mentor')}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition"
+                  >
+                    <span>Still Stuck? Contact a Mentor</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: REQUEST MENTOR */}
+            {helpCategory === 'mentor' && (
+              <div>
+                {helpSubmittedSuccess ? (
+                  <div className="p-6 rounded-2xl bg-emerald-950/50 border border-emerald-500/50 text-center space-y-2">
+                    <CheckCircle2 size={36} className="text-emerald-400 mx-auto" />
+                    <h4 className="font-bold text-white text-base">Mentor Request Dispatched!</h4>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto">
+                      Your inquiry and learning context have been routed to the approved YARA mentor directory. A mentor will contact you through the platform or WhatsApp.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitMentorHelp} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Select Mentor Expertise Specialization
+                      </label>
+                      <select
+                        value={mentorDomain}
+                        onChange={(e) => setMentorDomain(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="Arduino & ESP32 Microcontrollers">Arduino & ESP32 Microcontrollers</option>
+                        <option value="Electronics & Circuit Design">Electronics & Circuit Design</option>
+                        <option value="Embedded C/C++ Firmware">Embedded C/C++ Firmware</option>
+                        <option value="Motion Control & PID Tuning">Motion Control & PID Tuning</option>
+                        <option value="Autonomous Navigation & Sensors">Autonomous Navigation & Sensors</option>
+                        <option value="Mechanical CAD & 3D Fabrication">Mechanical CAD & 3D Fabrication</option>
+                        <option value="Computer Vision & Edge AI">Computer Vision & Edge AI</option>
+                        <option value="Competition Engineering (YARA 2026)">Competition Engineering (YARA 2026)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Describe What You Need Help With
+                      </label>
+                      <textarea
+                        rows={3}
+                        required
+                        value={helpQuestion}
+                        onChange={(e) => setHelpQuestion(e.target.value)}
+                        placeholder="e.g. My ultrasonic sensor readings jump to 0cm erratically when the DC motor turns on..."
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        WhatsApp Contact (Optional for faster response)
+                      </label>
+                      <input
+                        type="text"
+                        value={helpWhatsapp}
+                        onChange={(e) => setHelpWhatsapp(e.target.value)}
+                        placeholder="e.g. +263 77 123 4567"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[11px] text-slate-400">
+                        Context will be attached automatically.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={helpSubmitting}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition shadow-md disabled:opacity-50 cursor-pointer"
+                      >
+                        <Send size={13} />
+                        <span>{helpSubmitting ? 'Submitting...' : 'Send to Approved Mentor'}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: SAFETY & WORKSHOP HABITS */}
+            {helpCategory === 'faq' && (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1 text-xs">
+                <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+                  <div className="font-bold text-amber-400">⚠️ Workshop & Electrical Safety Rules</div>
+                  <ul className="list-disc list-inside text-slate-300 text-[11px] space-y-1 mt-1">
+                    <li>Always disconnect battery and USB cables before plugging or removing breadboard wires.</li>
+                    <li>Double check electrolytic capacitor polarity (- sign corresponds to the shorter negative lead).</li>
+                    <li>Never connect motor power rails directly to 5V Arduino regulator pin; it will thermal throttle or blow the onboard LDO.</li>
+                    <li>Always use current-limiting resistors (220Ω – 1kΩ) in series with standard LEDs.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

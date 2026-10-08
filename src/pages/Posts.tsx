@@ -407,11 +407,11 @@ export default function Posts() {
               {selectedPost.video_url && (
                 <div className="rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-lg aspect-video">
                   {(() => {
-                    const embedUrl = getEmbeddableVideoUrl(selectedPost.video_url);
-                    if (embedUrl) {
+                    const videoMeta = getEmbeddableVideoUrl(selectedPost.video_url);
+                    if (videoMeta?.embedUrl) {
                       return (
                         <iframe
-                          src={embedUrl}
+                          src={videoMeta.embedUrl}
                           title={selectedPost.title}
                           className="w-full h-full border-0"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

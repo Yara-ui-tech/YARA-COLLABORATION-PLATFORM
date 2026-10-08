@@ -17,7 +17,9 @@ export const clearStaleSupabaseAuth = () => {
         key && 
         (key.startsWith('sb-') || 
          key.includes('supabase.auth') || 
+         key.startsWith('yara_cached_profile_') ||
          key.startsWith('yaria_cached_profile_') ||
+         key === 'yara_device_id' ||
          key === 'yaria_device_id')
       ) {
         keysToRemove.push(key);

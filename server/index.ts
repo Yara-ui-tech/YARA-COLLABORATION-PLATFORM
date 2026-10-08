@@ -98,8 +98,8 @@ app.get('/api/health', (_req: Request, res: Response) => {
   const memoryUsage = process.memoryUsage();
   res.json({
     status: 'healthy',
-    system: 'YARIA Enterprise Robotics & LMS Backend',
-    version: '2.5.0-yara-enterprise',
+    system: 'YARA Enterprise Robotics & LMS Backend',
+    version: '3.0.0-yara-enterprise',
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
@@ -119,8 +119,9 @@ app.get('/api/system/config', (_req: Request, res: Response) => {
     trialDays: 3,
     currency: 'USD',
     organization: {
-      name: 'Youth Academy for Robotics & Industrial Automation',
-      acronym: 'YARIA / YARA',
+      name: 'Young Africans Robotics Association',
+      acronym: 'YARA',
+      motto: 'Innovate Local, Build Global',
       registrationNumber: 'MA-00249/2026',
       contactEmail: 'inforyaraorg@gmail.com',
       contactPhone: '0717468236',

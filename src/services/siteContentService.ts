@@ -52,7 +52,7 @@ export interface SiteContentSection {
   updatedAt?: string;
 }
 
-const STORAGE_KEY = 'yaria_site_content_sections';
+const STORAGE_KEY = 'yara_site_content_sections';
 
 // Default built-in starter sections that can be edited or removed by admin
 const DEFAULT_SECTIONS: SiteContentSection[] = [

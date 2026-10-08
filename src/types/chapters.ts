@@ -229,11 +229,17 @@ export interface NationalExecutiveAssessment {
 }
 
 export interface ChapterFinancialData {
+  currency?: string;
   opening_balance_usd?: number;
   total_inflow_usd?: number;
+  total_income_usd?: number;
   total_expenditure_usd?: number;
+  total_expenses_usd?: number;
   closing_balance_usd?: number;
   grant_received_usd?: number;
+  grant_requested_usd?: number;
+  hardware_expenditure_usd?: number;
+  operational_expenditure_usd?: number;
   grant_acquittal_notes?: string;
   category_breakdown?: {
     hardware_and_components_usd?: number;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { YaraLearningNavigation, LearningTabId } from '../components/lms/YaraLearningNavigation';
 import { LearningDashboardTab } from '../components/lms/tabs/LearningDashboardTab';
@@ -28,7 +28,7 @@ import {
 import { COMPLETE_YARA_SESSIONS, getSessionById } from '../constants/yaraLmsCatalog';
 import { checkAndVerifyUserSubscription } from '../services/partnershipDonationService';
 import { usePortal } from '../context/PortalContext';
-import { Globe, ArrowRight, Layers, GraduationCap } from 'lucide-react';
+import { Globe, ArrowRight, Layers, GraduationCap, ShieldCheck } from 'lucide-react';
 
 export default function YaraLearning() {
   const { user, profile } = useAuth();
@@ -51,7 +51,7 @@ export default function YaraLearning() {
   const [isPendingApproval, setIsPendingApproval] = useState(false);
 
   // Active Tab from URL search params
-  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || 'dashboard';
+  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || (searchParams.get('course') ? 'courses' : 'dashboard');
   const [activeTab, setActiveTab] = useState<LearningTabId>(tabFromQuery);
 
   // Active Session Player modal
@@ -95,14 +95,18 @@ export default function YaraLearning() {
   }, [userId, userEmail]);
 
   useEffect(() => {
-    if (searchParams.get('tab')) {
-      setActiveTab(searchParams.get('tab') as LearningTabId);
-    }
-    if (searchParams.get('session')) {
-      setActiveSessionId(searchParams.get('session'));
-    } else {
-      setActiveSessionId(null);
-    }
+    const tabParam = searchParams.get('tab') as LearningTabId | null;
+    const courseParam = searchParams.get('course');
+    const sessionParam = searchParams.get('session');
+
+    React.startTransition(() => {
+      if (tabParam) {
+        setActiveTab(prev => (prev !== tabParam ? tabParam : prev));
+      } else if (courseParam) {
+        setActiveTab(prev => (prev !== 'courses' ? 'courses' : prev));
+      }
+      setActiveSessionId(prev => (prev !== sessionParam ? (sessionParam || null) : prev));
+    });
   }, [searchParams]);
 
   const loadLmsData = async () => {
@@ -163,12 +167,17 @@ export default function YaraLearning() {
   };
 
   const handleSelectTab = (tab: LearningTabId) => {
-    setActiveTab(tab);
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev);
-      next.set('tab', tab);
-      next.delete('session');
-      return next;
+    React.startTransition(() => {
+      setActiveTab(tab);
+      setSearchParams(prev => {
+        const currentTab = prev.get('tab');
+        const currentSession = prev.get('session');
+        if (currentTab === tab && !currentSession) return prev;
+        const next = new URLSearchParams(prev);
+        next.set('tab', tab);
+        next.delete('session');
+        return next;
+      }, { replace: true });
     });
   };
 
@@ -224,6 +233,17 @@ export default function YaraLearning() {
         </div>
 
         <div className="flex items-center space-x-2">
+          {isAdmin && (
+            <Link
+              to="/admin?tab=learning_academy"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all"
+              title="Open Learners & Approvals in Admin Portal"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+              <span>Learners &amp; Approvals</span>
+            </Link>
+          )}
+
           <button
             onClick={() => {
               setPortalMode('webpage');
@@ -273,6 +293,7 @@ export default function YaraLearning() {
             userCompletions={userCompletions}
             onSelectSession={handleStartSession}
             onNavigateTab={handleSelectTab}
+            initialCourseId={searchParams.get('course')}
           />
         )}
 
@@ -343,14 +364,21 @@ export default function YaraLearning() {
           isAdmin ? (
             <LearningAcademyAdminCenter adminUserId={userId} />
           ) : (
-            <LearningDashboardTab
-              userOverall={overallProgress}
-              subscriptionStatus={subscriptionStatus}
-              certificateStatus={certificateStatus}
-              quizStats={quizStats}
-              onStartSession={handleStartSession}
-              onNavigateTab={handleSelectTab}
-            />
+            <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center max-w-lg mx-auto my-12 space-y-4 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900">Administrator Access Required</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Learner records, approvals, and curriculum management are restricted to YARA administrators only.
+              </p>
+              <button
+                onClick={() => handleSelectTab('dashboard')}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Return to Dashboard
+              </button>
+            </div>
           )
         )}
       </main>

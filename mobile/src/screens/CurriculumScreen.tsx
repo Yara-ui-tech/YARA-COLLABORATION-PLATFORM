@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
   },
-  cardHeader: { flexDirection: 'row', justify: 'space-between', justifyContent: 'space-between', marginBottom: 8 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   badge: { backgroundColor: '#312e81', color: '#a5b4fc', fontSize: 10, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   sessionId: { color: '#38bdf8', fontSize: 12, fontWeight: 'bold' },
   cardTitle: { color: '#ffffff', fontSize: 15, fontWeight: 'bold', marginBottom: 4 },

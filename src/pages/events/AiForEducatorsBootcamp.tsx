@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Calendar, Clock, DollarSign, ShieldCheck, CheckCircle2, 
   AlertCircle, BookOpen, Brain, Users, Award, 
   Video, ArrowRight, Lock, Check, FileText, Send, HelpCircle, 
   School, Laptop, Star, RefreshCw, XCircle, Share2, Layers, Cpu, 
   Building2, Key, Copy, ExternalLink, Link as LinkIcon, Info,
-  Download, Printer, FileCheck, UploadCloud
+  Download, Printer, FileCheck, UploadCloud, GraduationCap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../components/AuthContext';
@@ -412,6 +413,28 @@ export default function AiForEducatorsBootcamp() {
                   <span>US$15 per term</span>
                 </p>
               </div>
+            </div>
+
+            {/* Centralized LMS Course Banner */}
+            <div className="p-4 rounded-2xl bg-indigo-950/70 border border-indigo-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">Deliver &amp; Track in YARA LMS</p>
+                  <p className="text-[11px] text-slate-300">
+                    All 4 modules, practical prompt labs, micro-videos, and verified certificates are centralized inside the LMS.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/learning?course=ai-for-educators"
+                className="shrink-0 px-4 py-2 bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-slate-950 font-black text-xs rounded-xl transition flex items-center gap-1.5 self-start sm:self-auto shadow-md"
+              >
+                <span>Enrol in LMS Course</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
 

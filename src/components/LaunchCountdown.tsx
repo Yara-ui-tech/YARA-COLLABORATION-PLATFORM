@@ -15,9 +15,9 @@ export default function LaunchCountdown() {
   const [launchDate, setLaunchDate] = useState<Date | null>(null);
   const [config, setConfig] = useState<LaunchConfig>({
     duration_hours: 72,
-    title: 'Official YARIA Global Launch',
+    title: 'Official YARA Global Launch',
     is_enabled: true,
-    banner_text: 'Countdown to the Official YARIA Platform Launch — 72 Hours of Innovation & Robotics'
+    banner_text: 'Countdown to the Official YARA Platform Launch — 72 Hours of Innovation & Robotics'
   });
   
   const [timeLeft, setTimeLeft] = useState({
@@ -54,12 +54,12 @@ export default function LaunchCountdown() {
           }
         } else {
           // Check localStorage as local fallback
-          const localStored = localStorage.getItem('yaria_official_launch_target');
+          const localStored = localStorage.getItem('yara_official_launch_target') || localStorage.getItem('yaria_official_launch_target');
           if (localStored && !isNaN(new Date(localStored).getTime()) && new Date(localStored).getTime() > Date.now()) {
             target = new Date(localStored);
           } else {
             target = new Date(Date.now() + 72 * 60 * 60 * 1000);
-            localStorage.setItem('yaria_official_launch_target', target.toISOString());
+            localStorage.setItem('yara_official_launch_target', target.toISOString());
           }
         }
         setLaunchDate(target);
@@ -140,7 +140,7 @@ export default function LaunchCountdown() {
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex flex-wrap items-center justify-center lg:justify-start gap-2">
-            <span>{config.title || 'Official YARIA Launch'}</span>
+            <span>{config.title || 'Official YARA Launch'}</span>
             <Rocket className="w-7 h-7 text-indigo-400 animate-bounce inline-block" />
           </h2>
 

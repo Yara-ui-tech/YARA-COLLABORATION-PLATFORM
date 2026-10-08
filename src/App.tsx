@@ -11,7 +11,7 @@ import Projects from './pages/Projects';
 import Mentorship from './pages/Mentorship';
 import Events from './pages/Events';
 import Resources from './pages/Resources';
-import Curriculum from './pages/Curriculum';
+import { useSearchParams } from 'react-router-dom';
 import Auth from './pages/Auth';
 import Feedback from './pages/Feedback';
 import Admin from './pages/Admin';
@@ -44,6 +44,10 @@ import YaraLiveHub from './pages/YaraLiveHub';
 import YaraKids from './pages/YaraKids';
 import { PortalProvider } from './context/PortalContext';
 import { PortalGatewaySelector } from './components/portal/PortalGatewaySelector';
+
+import PublicLayout from './components/public/PublicLayout';
+import Training from './pages/Training';
+import SchoolManagement from './pages/SchoolManagement';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -115,104 +119,160 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Smart redirector unifying legacy /curriculum links into the unified YARA Robotics Academy
+const CurriculumRedirect: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const cert = searchParams.get('cert');
+  const session = searchParams.get('session');
+
+  if (cert) {
+    return <Navigate to={`/verify-certificate?cert=${encodeURIComponent(cert)}`} replace />;
+  }
+  if (session) {
+    return <Navigate to={`/learning?session=${encodeURIComponent(session)}`} replace />;
+  }
+  return <Navigate to="/learning?tab=courses" replace />;
+};
+
 const AppContent = () => {
   return (
     <Router>
       <PortalProvider>
         <PortalGatewaySelector />
         <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Layout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Home />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="ideas" element={<Ideas />} />
-          <Route path="projects" element={<Projects />} />
-          <Route path="mentorship" element={<Mentorship />} />
-          <Route path="events" element={<Events />} />
-          <Route path="events/ai-for-educators" element={<AiForEducatorsBootcamp />} />
-          <Route path="events/ai-for-educators-bootcamp" element={<AiForEducatorsBootcamp />} />
-          <Route path="ai-for-educators" element={<AiForEducatorsBootcamp />} />
-          <Route path="bootcamp" element={<AiForEducatorsBootcamp />} />
-          <Route path="educators" element={<EducatorPortal />} />
-          <Route path="educator" element={<EducatorPortal />} />
-          <Route path="teacher" element={<EducatorPortal />} />
-          <Route path="teachers" element={<EducatorPortal />} />
-          <Route path="educator-portal" element={<EducatorPortal />} />
-          <Route path="educators-portal" element={<EducatorPortal />} />
-          <Route path="posts" element={<Posts />} />
-          <Route path="news" element={<Posts />} />
-          <Route path="announcements" element={<Posts />} />
-          <Route path="chapters" element={<Chapters />} />
-          <Route path="yara-chapters" element={<Chapters />} />
+          {/* ========================================================= */}
+          {/* PUBLIC YARA WEBSITE (Freely accessible without login)      */}
+          {/* ========================================================= */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/programs" element={<Programs />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/schools" element={<SchoolManagement />} />
+            <Route path="/school-management" element={<SchoolManagement />} />
+            <Route path="/clubs" element={<SchoolManagement />} />
 
-          {/* YARA Learning Academy */}
-          <Route path="learning" element={<YaraLearning />} />
-          <Route path="learning/*" element={<YaraLearning />} />
-          <Route path="lms" element={<Navigate to="/learning" replace />} />
-          <Route path="academy" element={<Navigate to="/learning" replace />} />
+            {/* Competitions Ecosystem */}
+            <Route path="/competitions" element={<Competitions />} />
+            <Route path="/all-competitions" element={<Competitions />} />
+            <Route path="/competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
+            <Route path="/yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
+            <Route path="/competition" element={<YaraRoboticsCompetition2026 />} />
+            <Route path="/competition/participant" element={<ParticipantPortal />} />
+            <Route path="/competition/sponsors" element={<SponsorPortal />} />
+            <Route path="/sponsors" element={<SponsorPortal />} />
+            <Route path="/competition/volunteers" element={<VolunteerPortal />} />
+            <Route path="/volunteer" element={<VolunteerPortal />} />
+            <Route path="/volunteers" element={<VolunteerPortal />} />
+            <Route path="/competition/judges" element={<JudgePortal />} />
+            <Route path="/judges" element={<JudgePortal />} />
+            <Route path="/competition/live-results" element={<LiveResultsScreen />} />
+            <Route path="/live-results" element={<LiveResultsScreen />} />
+            <Route path="/competition/impact" element={<ImpactAndFinancials />} />
 
-          {/* YARA Competitions Ecosystem & Hub */}
-          <Route path="competitions" element={<Competitions />} />
-          <Route path="all-competitions" element={<Competitions />} />
-          <Route path="competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
-          <Route path="yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
-          <Route path="competition" element={<YaraRoboticsCompetition2026 />} />
-          <Route path="competition/participant" element={<ParticipantPortal />} />
-          <Route path="competition/sponsors" element={<SponsorPortal />} />
-          <Route path="sponsors" element={<SponsorPortal />} />
-          <Route path="competition/volunteers" element={<VolunteerPortal />} />
-          <Route path="volunteer" element={<VolunteerPortal />} />
-          <Route path="volunteers" element={<VolunteerPortal />} />
-          <Route path="competition/judges" element={<JudgePortal />} />
-          <Route path="judges" element={<JudgePortal />} />
-          <Route path="competition/live-results" element={<LiveResultsScreen />} />
-          <Route path="live-results" element={<LiveResultsScreen />} />
-          <Route path="competition/impact" element={<ImpactAndFinancials />} />
-          <Route path="verify" element={<VerifyCertificate />} />
-          <Route path="verify-certificate" element={<VerifyCertificate />} />
+            {/* Public Events & Bootcamps */}
+            <Route path="/events" element={<Events />} />
+            <Route path="/events/ai-for-educators" element={<AiForEducatorsBootcamp />} />
+            <Route path="/events/ai-for-educators-bootcamp" element={<AiForEducatorsBootcamp />} />
+            <Route path="/ai-for-educators" element={<AiForEducatorsBootcamp />} />
+            <Route path="/bootcamp" element={<AiForEducatorsBootcamp />} />
 
-          <Route path="resources" element={<Resources />} />
-          <Route path="curriculum" element={<Curriculum />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="feedback" element={<Feedback />} />
-          <Route path="about" element={<About />} />
-          <Route path="programs" element={<Programs />} />
-          <Route path="impact" element={<Impact />} />
-          <Route path="impact-gallery" element={<ImpactGalleryPage />} />
-          <Route path="impact-galleries" element={<ImpactGalleryPage />} />
-          <Route path="gallery" element={<ImpactGalleryPage />} />
-          <Route path="partners" element={<Partners />} />
-          <Route path="donate" element={<DonationsAndSponsorships />} />
-          <Route path="sponsorship" element={<DonationsAndSponsorships />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          <Route path="live" element={<YaraLiveHub />} />
-          <Route path="live-sessions" element={<YaraLiveHub />} />
-          <Route path="live/:roomId" element={<LiveRoom />} />
-          <Route path="kids" element={<YaraKids />} />
-          <Route path="yara-kids" element={<YaraKids />} />
-          <Route path="infants" element={<YaraKids />} />
-        </Route>
-      </Routes>
+            {/* Impact & Projects & Community */}
+            <Route path="/impact" element={<Impact />} />
+            <Route path="/impact-gallery" element={<ImpactGalleryPage />} />
+            <Route path="/impact-galleries" element={<ImpactGalleryPage />} />
+            <Route path="/gallery" element={<ImpactGalleryPage />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/partners" element={<Partners />} />
+            <Route path="/donate" element={<DonationsAndSponsorships />} />
+            <Route path="/sponsorship" element={<DonationsAndSponsorships />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/posts" element={<Posts />} />
+            <Route path="/news" element={<Posts />} />
+            <Route path="/announcements" element={<Posts />} />
+            <Route path="/chapters" element={<Chapters />} />
+            <Route path="/yara-chapters" element={<Chapters />} />
+            <Route path="/kids" element={<YaraKids />} />
+            <Route path="/yara-kids" element={<YaraKids />} />
+            <Route path="/infants" element={<YaraKids />} />
+            <Route path="/verify" element={<VerifyCertificate />} />
+            <Route path="/verify-certificate" element={<VerifyCertificate />} />
+          </Route>
+
+          {/* ========================================================= */}
+          {/* AUTHENTICATION & ACCESS ENTRY POINTS                      */}
+          {/* ========================================================= */}
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/register" element={<Auth />} />
+          <Route path="/join" element={<Auth />} />
+
+          {/* ========================================================= */}
+          {/* YARA LMS & MEMBER DASHBOARDS (Secured behind PrivateRoute) */}
+          {/* ========================================================= */}
+          <Route
+            element={
+              <PrivateRoute>
+                <Layout />
+              </PrivateRoute>
+            }
+          >
+            {/* Student & Role Dashboard */}
+            <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* Unified Learning Academy & Modules */}
+            <Route path="/learning" element={<YaraLearning />} />
+            <Route path="/learning/*" element={<YaraLearning />} />
+            <Route path="/lms" element={<Navigate to="/learning" replace />} />
+            <Route path="/academy" element={<Navigate to="/learning" replace />} />
+            <Route path="/curriculum" element={<CurriculumRedirect />} />
+            <Route path="/curriculum/*" element={<CurriculumRedirect />} />
+            <Route path="/tracks" element={<CurriculumRedirect />} />
+            <Route path="/curriculum-tracks" element={<CurriculumRedirect />} />
+            <Route path="/robotics-curriculum" element={<CurriculumRedirect />} />
+            <Route path="/courses" element={<CurriculumRedirect />} />
+
+            {/* Innovation & Mentorship */}
+            <Route path="/ideas" element={<Ideas />} />
+            <Route path="/mentorship" element={<Mentorship />} />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/profile" element={<Profile />} />
+
+            {/* Teacher / Patron Hub & Competition Prep Suite */}
+            <Route path="/educator-portal" element={<EducatorPortal />} />
+            <Route path="/educators" element={<EducatorPortal />} />
+            <Route path="/educator" element={<EducatorPortal />} />
+            <Route path="/teacher" element={<EducatorPortal />} />
+            <Route path="/teachers" element={<EducatorPortal />} />
+            <Route path="/educators-portal" element={<EducatorPortal />} />
+
+            {/* Live Interactive Hub */}
+            <Route path="/live" element={<YaraLiveHub />} />
+            <Route path="/live-sessions" element={<YaraLiveHub />} />
+            <Route path="/live/:roomId" element={<LiveRoom />} />
+
+            {/* Admin Console */}
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          </Route>
+
+          {/* Catch-all redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </PortalProvider>
     </Router>
   );
 };
 
 import ErrorBoundary from './components/ErrorBoundary';
+import ConfirmDialogHost from './components/ConfirmDialogHost';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <AppContent />
+        <ConfirmDialogHost />
       </AuthProvider>
     </ErrorBoundary>
   );

@@ -30,6 +30,7 @@ export default function CompetitionEditModal({
     registration_link: competition?.registration_link || '/competitions/yara-2026',
     image_url: competition?.image_url || '',
     status: competition?.status || 'upcoming',
+    format: competition?.format || 'in_person',
     category: competition?.category || 'flagship_robotics',
     is_featured: competition?.is_featured !== undefined ? competition.is_featured : true,
     slug: competition?.slug || (competition?.title ? competition.title.toLowerCase().replace(/\s+/g, '-') : 'yara-2026')

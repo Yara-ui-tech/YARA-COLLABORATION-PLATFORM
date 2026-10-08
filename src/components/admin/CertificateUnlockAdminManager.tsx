@@ -13,6 +13,7 @@ import {
 import { getAllCourses, getAllUserProgrammingCertificates } from '../../services/programmingCoursesService';
 import { supabase } from '../../lib/supabase';
 import { getAllEventRegistrations, updateRegistrationStatus } from '../../services/eventRegistrationService';
+import { EventPaymentStatus, EventApprovalStatus } from '../../types/eventRegistration';
 import IndividualCertificateEditModal from './IndividualCertificateEditModal';
 
 interface StudentCertificateRow {
@@ -42,8 +43,8 @@ interface SubscriptionRow {
   amountUsd: number;
   paymentMethod: string;
   paymentReference: string;
-  paymentStatus: 'pending' | 'submitted' | 'verified' | 'rejected';
-  approvalStatus: 'pending' | 'approved' | 'rejected';
+  paymentStatus: EventPaymentStatus;
+  approvalStatus: EventApprovalStatus;
   createdAt: string;
   rawReg?: any;
 }

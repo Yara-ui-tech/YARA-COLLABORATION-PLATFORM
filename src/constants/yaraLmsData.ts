@@ -199,7 +199,7 @@ A **robot** is an autonomous or semi-autonomous electromechanical machine progra
       title: 'Real-World Robotics Case Study',
       description: 'Select an African challenge (such as crop irrigation, vaccine transport, or mine safety) and write a 1-page concept specification for how a robotic system addresses it.',
       objectives: ['Define the problem context.', 'List the proposed sensor inputs and actuator outputs.', 'Draft a high-level block diagram.'],
-      starterLink: 'https://www.yaria.org/robotics-foundations'
+      starterLink: 'https://yara-collaboration-platform.vercel.app/programs?track=robotics'
     },
     resources: [
       {

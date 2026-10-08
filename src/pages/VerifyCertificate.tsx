@@ -400,7 +400,7 @@ export default function VerifyCertificate() {
 
                     <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
                       <span>Verification ID: <strong className="font-mono text-amber-400">{legacyCertificate.certificate_number}</strong></span>
-                      <span>Verified via yaria.org</span>
+                      <span>Verified via YARA Official Registry</span>
                     </div>
                   </div>
                 </div>

@@ -93,6 +93,76 @@ export const ProjectsTab: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* 1.5 Compulsory 2-Tier Project Pathway Standard (Section 16 & 17) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 text-white shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">
+              <Zap className="w-3.5 h-3.5" /> Compulsory Project Pathway Standard
+            </div>
+            <h2 className="text-base sm:text-lg font-black text-white">
+              Every Level Requires Two Substantial Capstone Projects
+            </h2>
+          </div>
+          <span className="text-xs text-slate-400">
+            Theory alone never earns a robotics certificate.
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-emerald-400">Level 1: Beginner</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">10 Modules</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">1. Research & Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">Real-world problem discovery in African agriculture/water + 5 Whys root cause analysis.</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">2. Assigned Final Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">Autonomous Obstacle-Avoiding Rover with ultrasonic sensor, dual DC motors, and breadboard wiring.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-indigo-400">Level 2: Intermediate</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">12 Modules</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">1. Research & Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">Multi-Sensor System Feasibility, BOM cost optimization, and schematic CAD layout.</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">2. Assigned Final Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">Connected Autonomous System with PID line tracking, ESP32 telemetry, and 21-point report.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-purple-400">Level 3: Advanced</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">15 Modules</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">1. Research & Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">Industrial / Edge AI Innovation Whitepaper with FMEA failure mode analysis.</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                <strong className="text-white block text-[11px] mb-0.5">2. Assigned Final Design Project:</strong>
+                <p className="text-slate-400 text-[10px]">ROS 2 Edge Autonomous System / Vision Robotic Arm with live video defense.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 2. Capstone Submission Status Card */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -135,18 +205,18 @@ export const ProjectsTab: React.FC<Props> = ({
           <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
               <strong className="text-slate-900 block font-bold mb-1">Problem & 5 Whys Root Cause:</strong>
-              <p className="text-slate-600 line-clamp-3">{capstoneSubmission.problemDiscovery || 'Logged in submission.'}</p>
+              <p className="text-slate-600 line-clamp-3">{capstoneSubmission.problemDiscovery || capstoneSubmission.problemStatement || 'Logged in submission.'}</p>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
               <strong className="text-slate-900 block font-bold mb-1">Engineering Solution:</strong>
-              <p className="text-slate-600 line-clamp-3">{capstoneSubmission.solutionSummary}</p>
+              <p className="text-slate-600 line-clamp-3">{capstoneSubmission.solutionSummary || capstoneSubmission.proposedSolution || 'Logged in submission.'}</p>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
               <strong className="text-slate-900 block font-bold mb-1">Instructor Review / Feedback:</strong>
               <p className="text-slate-600 line-clamp-3">{capstoneSubmission.instructorFeedback || 'Awaiting formal faculty review.'}</p>
-              {capstoneSubmission.finalScore && (
+              {(capstoneSubmission.finalScore || capstoneSubmission.totalScorePercentage) && (
                 <div className="mt-2 text-xs font-black text-emerald-600">
-                  Rubric Score: {capstoneSubmission.finalScore}%
+                  Rubric Score: {capstoneSubmission.finalScore || capstoneSubmission.totalScorePercentage}%
                 </div>
               )}
             </div>

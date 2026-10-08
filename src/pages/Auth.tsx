@@ -82,7 +82,7 @@ export default function Auth() {
           // 1. Look up email by Member ID
           const cleanMemberId = memberId.trim();
           if (!cleanMemberId) {
-            throw new Error('Please enter your Member ID (e.g. YARIA-2026-XXXX).');
+            throw new Error('Please enter your Member ID (e.g. YARA-2026-XXXX).');
           }
 
           try {
@@ -138,7 +138,7 @@ export default function Auth() {
         const isAdminEmail = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com';
         const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
         const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
-        const generatedMemberId = `YARIA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const generatedMemberId = `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
@@ -229,7 +229,7 @@ export default function Auth() {
           <div className="relative z-10">
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 overflow-hidden shadow-xl">
               {ASSETS.LOGO ? (
-                <img src={ASSETS.LOGO} alt="YARIA" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={ASSETS.LOGO} alt="YARA" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 <span className="text-3xl font-black tracking-tighter text-indigo-600">Y</span>
               )}
@@ -238,7 +238,7 @@ export default function Auth() {
               Empowering the next generation of <span className="text-indigo-200">African Innovators.</span>
             </h1>
             <p className="text-indigo-100 text-lg font-medium leading-relaxed opacity-90">
-              Join YARIA to collaborate, share ideas, and find mentorship in robotics and tech.
+              Join YARA to collaborate, share ideas, and find mentorship in robotics and tech.
             </p>
           </div>
 
@@ -328,7 +328,7 @@ export default function Auth() {
                           value={memberId}
                           onChange={(e) => setMemberId(e.target.value)}
                           className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium pl-12"
-                          placeholder="YARIA-2024-0001"
+                          placeholder="YARA-2026-0001"
                         />
                       </div>
                     </div>
@@ -613,7 +613,7 @@ export default function Auth() {
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <UserPlus className="w-10 h-10 text-emerald-600" />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-2">Welcome to YARIA!</h3>
+              <h3 className="text-3xl font-bold text-slate-900 mb-2">Welcome to YARA!</h3>
               <p className="text-slate-600 mb-6">
                 You have been registered as <span className="font-bold text-indigo-600 uppercase">{role === 'mentor' || role === 'admin' ? role : tier}</span>.
               </p>

@@ -2,7 +2,8 @@
  * Helper utilities for offline data caching and fallback state management.
  */
 
-const STORAGE_PREFIX = 'yaria_offline_';
+const STORAGE_PREFIX = 'yara_offline_';
+const LEGACY_STORAGE_PREFIX = 'yaria_offline_';
 
 export function saveOfflineData<T>(key: string, data: T): void {
   try {
@@ -14,7 +15,7 @@ export function saveOfflineData<T>(key: string, data: T): void {
 
 export function getOfflineData<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
+    const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`) || localStorage.getItem(`${LEGACY_STORAGE_PREFIX}${key}`);
     if (raw) {
       return JSON.parse(raw) as T;
     }

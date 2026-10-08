@@ -187,7 +187,7 @@ export const ProgressTab: React.FC<Props> = ({
                   {levelSessions.map(session => {
                     const comp = userCompletions[session.id] || {};
                     const isSessionDone = comp.isFullyCompleted;
-                    const { isUnlocked } = checkSessionPrerequisites(userId, session.id);
+                    const { isUnlocked } = checkSessionPrerequisites(userId, session.id, userCompletions);
 
                     return (
                       <div

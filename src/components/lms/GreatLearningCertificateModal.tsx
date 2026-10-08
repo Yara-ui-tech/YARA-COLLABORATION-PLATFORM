@@ -159,7 +159,8 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
 
     const inferredRoboticsLevel: RoboticsLevel = cert.roboticsLevel || 1;
 
-    setEditForm({
+    setEditForm(prev => ({
+      ...prev,
       studentName: cert.studentName || defaultStudentName || '',
       courseTitle: cert.courseTitle || courseTitle || '',
       certificateType: inferredType,
@@ -178,8 +179,21 @@ export const GreatLearningCertificateModal: React.FC<Props> = ({
       coSignerTitle: cert.coSignerTitle || 'Regional President & Evaluation Chair',
       citationText: cert.citationText || '',
       skillsAcquired: (cert.skillsAcquired || []).join(', '),
-      sealLabel: cert.sealLabel || 'Official YARA Seal'
-    });
+      sealLabel: cert.sealLabel || prev.sealLabel || 'Official YARA Seal',
+      sealType: (cert as any).sealType || prev.sealType,
+      sealEnabled: (cert as any).sealEnabled !== undefined ? (cert as any).sealEnabled : prev.sealEnabled,
+      bgPattern: (cert as any).bgPattern || prev.bgPattern,
+      watermarkEnabled: (cert as any).watermarkEnabled !== undefined ? (cert as any).watermarkEnabled : prev.watermarkEnabled,
+      watermarkText: (cert as any).watermarkText || prev.watermarkText,
+      watermarkOpacity: (cert as any).watermarkOpacity !== undefined ? (cert as any).watermarkOpacity : prev.watermarkOpacity,
+      hasPartner: (cert as any).hasPartner !== undefined ? (cert as any).hasPartner : prev.hasPartner,
+      partnerName: (cert as any).partnerName || prev.partnerName,
+      partnerLogoUrl: (cert as any).partnerLogoUrl || prev.partnerLogoUrl,
+      partnerBadgeLabel: (cert as any).partnerBadgeLabel || prev.partnerBadgeLabel,
+      partnerSignerName: (cert as any).partnerSignerName || prev.partnerSignerName,
+      partnerSignerTitle: (cert as any).partnerSignerTitle || prev.partnerSignerTitle,
+      partnerSignatureUrl: (cert as any).partnerSignatureUrl || prev.partnerSignatureUrl
+    }));
   };
 
   if (!isOpen) return null;

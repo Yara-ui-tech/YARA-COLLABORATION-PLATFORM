@@ -124,6 +124,14 @@ export interface DigitalScoreSubmission {
   notes: string;
   is_locked: boolean;
   submitted_at: string;
+  // Optional rubric aliases
+  engineering_design_points?: number;
+  innovation_points?: number;
+  mission_performance_points?: number;
+  safety_compliance_points?: number;
+  teamwork_presentation_points?: number;
+  judge_notes?: string;
+  updated_at?: string;
 }
 
 // Financial Ledger & Budget
@@ -146,6 +154,7 @@ export interface FinancialTransaction {
     | 'safety_first_aid'
     | 'operations';
   title: string;
+  description?: string;
   amount: number;
   currency: 'USD' | 'ZiG';
   status: 'confirmed' | 'projected' | 'pending';

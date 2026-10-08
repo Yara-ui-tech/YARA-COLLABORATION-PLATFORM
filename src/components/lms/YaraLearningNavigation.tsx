@@ -38,16 +38,15 @@ interface TabItem {
 
 export const LEARNING_NAV_TABS: TabItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin', highlight: true },
-  { id: 'courses', label: 'Robotics Courses', icon: BookOpen, badge: 'L0–L8' },
-  { id: 'programming', label: 'Programming', icon: Code2, badge: 'Python · JS · Scratch' },
+  { id: 'courses', label: 'Courses', icon: BookOpen, badge: 'All Tracks' },
   { id: 'my-courses', label: 'My Courses', icon: GraduationCap },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
   { id: 'assessments', label: 'Assessments', icon: CheckSquare },
   { id: 'projects', label: 'Projects', icon: FolderGit2, badge: 'Portfolio' },
   { id: 'certificates', label: 'Certificates', icon: Award },
   { id: 'subscription', label: 'Subscription', icon: CreditCard },
-  { id: 'resources', label: 'Resources', icon: Package }
+  { id: 'resources', label: 'Resources', icon: Package },
+  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin Only', highlight: true }
 ];
 
 interface Props {
@@ -63,7 +62,14 @@ export const YaraLearningNavigation: React.FC<Props> = ({
   progressPercent = 0,
   isAdmin = false
 }) => {
+  // Learners & Approvals is visible to admins ONLY
   const visibleTabs = LEARNING_NAV_TABS.filter(tab => tab.id !== 'admin-center' || isAdmin);
+
+  const handleTabClick = (tabId: LearningTabId) => {
+    React.startTransition(() => {
+      onSelectTab(tabId);
+    });
+  };
 
   return (
     <div className="bg-white border-b border-slate-200 sticky top-0 z-30" style={{ boxShadow: '0 1px 12px rgba(15,23,42,0.06)' }}>
@@ -115,9 +121,10 @@ export const YaraLearningNavigation: React.FC<Props> = ({
             return (
               <button
                 key={tab.id}
-                onClick={() => onSelectTab(tab.id)}
+                type="button"
+                onClick={() => handleTabClick(tab.id)}
                 className={cn(
-                  "flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 shrink-0 group relative",
+                  "flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 shrink-0 group relative cursor-pointer",
                   isActive
                     ? tab.highlight
                       ? "text-white shadow-md"
@@ -128,13 +135,13 @@ export const YaraLearningNavigation: React.FC<Props> = ({
                 )}
                 style={isActive && tab.highlight ? { background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', boxShadow: '0 4px 12px rgba(79,70,229,0.3)' } : undefined}
               >
-                <Icon className={cn("w-3.5 h-3.5 shrink-0 transition-transform group-hover:scale-110", 
+                <Icon className={cn("w-3.5 h-3.5 shrink-0 transition-transform group-hover:scale-110 pointer-events-none", 
                   isActive ? "text-white" : tab.highlight ? "text-indigo-500" : "text-slate-400"
                 )} />
-                <span>{tab.label}</span>
+                <span className="pointer-events-none">{tab.label}</span>
                 {tab.badge && (
                   <span className={cn(
-                    "px-1.5 rounded-md text-[8px] font-black uppercase leading-4",
+                    "px-1.5 rounded-md text-[8px] font-black uppercase leading-4 pointer-events-none",
                     isActive 
                       ? "bg-white/20 text-white" 
                       : tab.highlight 

@@ -681,7 +681,7 @@ export const CURRICULUM: CurriculumSession[] = [
       {
         id: 'p_s09',
         title: "Robot Problem-Solution Canvas",
-        description: "Complete the 1-page YARIA Problem-Solution Canvas outlining Target User, Pain Point, Robotic Solution, Key Features, and Measurable Impact Metric.",
+        description: "Complete the 1-page YARA Problem-Solution Canvas outlining Target User, Pain Point, Robotic Solution, Key Features, and Measurable Impact Metric.",
         objectives: ["Validate technological feasibility.", "Estimate social/economic impact."]
       }
     ],
@@ -928,8 +928,8 @@ export const CURRICULUM: CurriculumSession[] = [
     video_url: "https://www.youtube.com/watch?v=Vq7a9_XzF9w",
     resources: [
       {
-        title: "YARIA Official Judging Rubric & Assessment Criteria",
-        url: "https://yaria.org/rubric",
+        title: "YARA Official Judging Rubric & Assessment Criteria",
+        url: "https://yara.org/rubric",
         type: "doc",
         description: "Scoring dimensions: Engineering Rigor (30%), Innovation (25%), Demonstration (25%), Pitch (20%)"
       }

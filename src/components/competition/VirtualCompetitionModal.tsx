@@ -438,7 +438,7 @@ export default function VirtualCompetitionModal({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-slate-900 text-sm">Challenge Ranked Scoreboard</h4>
-                  <p className="text-xs text-slate-500">Live evaluation results evaluated by YARIA technical judges.</p>
+                  <p className="text-xs text-slate-500">Live evaluation results evaluated by YARA technical judges.</p>
                 </div>
                 <button
                   onClick={fetchLeaderboard}

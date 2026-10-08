@@ -5,7 +5,7 @@ import {
   CheckCircle2, Clock, Calendar, School, 
   FileText, Download, Printer, ExternalLink, ArrowRight, 
   Lock, AlertCircle, Copy, Check, Users, MessageSquare, 
-  Cpu, Brain, Layers, Star, HelpCircle, FileCheck, RefreshCw
+  Cpu, Brain, Layers, Star, HelpCircle, FileCheck, RefreshCw, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../components/AuthContext';
@@ -29,11 +29,13 @@ import {
 } from '../services/eventRegistrationService';
 import EducatorCertificateModal from '../components/events/EducatorCertificateModal';
 import EducatorReceiptModal from '../components/events/EducatorReceiptModal';
+import RoboticsCompetitionPrep from '../components/educator/RoboticsCompetitionPrep';
 
 export default function EducatorPortal() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
+  const [activePortalTab, setActivePortalTab] = useState<'competition_prep' | 'prompts' | 'bootcamp'>('competition_prep');
   const [registration, setRegistration] = useState<EventRegistration | null>(null);
   const [isLoadingReg, setIsLoadingReg] = useState(true);
   const [meetingConfig, setMeetingConfig] = useState<EventMeetingConfig>(() => 
@@ -47,7 +49,7 @@ export default function EducatorPortal() {
   const [receiptData, setReceiptData] = useState<EducatorReceiptData | null>(null);
 
   // Prompt Workbench State
-  const [activeSubject, setActiveSubject] = useState<'stem' | 'humanities' | 'primary' | 'assessment'>('stem');
+  const [activeSubject, setActiveSubject] = useState<'all' | 'stem' | 'humanities' | 'primary' | 'assessment'>('stem');
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
 
   // Load Educator Registration Data
@@ -236,8 +238,54 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
       </div>
 
       {/* =========================================================================
+          WORKBENCH TABS SELECTOR
+         ========================================================================= */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl">
+        <button
+          onClick={() => setActivePortalTab('competition_prep')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+            activePortalTab === 'competition_prep'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Trophy className="w-4 h-4 text-amber-400" />
+          <span>Robotics Competition Preparation</span>
+        </button>
+
+        <button
+          onClick={() => setActivePortalTab('prompts')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+            activePortalTab === 'prompts'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Brain className="w-4 h-4 text-purple-400" />
+          <span>AI Lesson Plan Workbench</span>
+        </button>
+
+        <button
+          onClick={() => setActivePortalTab('bootcamp')}
+          className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+            activePortalTab === 'bootcamp'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4 text-emerald-400" />
+          <span>Bootcamp &amp; Credentials</span>
+        </button>
+      </div>
+
+      {activePortalTab === 'competition_prep' && (
+        <RoboticsCompetitionPrep />
+      )}
+
+      {/* =========================================================================
           MAIN GRID: BOOTCAMP EVENT & CERTIFICATE UNLOCK HIGHLIGHT
          ========================================================================= */}
+      {activePortalTab === 'bootcamp' && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left 2 Columns: AI for Educators 5-Day Event Hub */}
@@ -515,10 +563,12 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
         </div>
 
       </div>
+      )}
 
       {/* =========================================================================
           INTERACTIVE AI TEACHING PROMPT WORKBENCH
          ========================================================================= */}
+      {activePortalTab === 'prompts' && (
       <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-xl shadow-slate-100 border border-slate-100 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <div className="flex items-center gap-3">
@@ -591,6 +641,7 @@ Tone: Encouraging, respectful, actionable for both the parent and student.`
           ))}
         </div>
       </div>
+      )}
 
       {/* =========================================================================
           MODALS

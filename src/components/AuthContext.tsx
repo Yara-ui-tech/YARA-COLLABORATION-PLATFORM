@@ -85,7 +85,7 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
 
   const defaultMemberId =
     authUser.user_metadata?.member_id ||
-    `YARIA-${new Date().getFullYear()}-${authUser.id.substring(0, 4).toUpperCase()}`;
+    `YARA-${new Date().getFullYear()}-${authUser.id.substring(0, 4).toUpperCase()}`;
 
   const displayName =
     authUser.user_metadata?.display_name ||
@@ -497,7 +497,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: role,
         display_name: role === 'admin' ? 'YARA System Admin' : 'YARA Innovator',
         tier: 'T2',
-        member_id: role === 'admin' ? 'YARIA-ADMIN-01' : 'YARIA-2026-DEMO',
+        member_id: role === 'admin' ? 'YARA-ADMIN-01' : 'YARA-2026-DEMO',
         registration_paid: true,
       }
     };

@@ -52,8 +52,8 @@ export interface ExecutiveAuditor {
 
 export const MASTER_ADMIN_EMAILS = [
   'goyaracorp@gmail.com',
-  'admin@yaria.org',
-  'director@yaria.org'
+  'admin@yara.org',
+  'director@yara.org'
 ];
 
 export const INITIAL_EXECUTIVE_AUDITORS: ExecutiveAuditor[] = [
@@ -68,7 +68,7 @@ export const INITIAL_EXECUTIVE_AUDITORS: ExecutiveAuditor[] = [
   },
   {
     id: 'exec_2',
-    email: 'director@yaria.org',
+    email: 'director@yara.org',
     name: 'Dr. C. Chidemo',
     title: 'Regional President & Executive Auditor',
     authorized_by: 'goyaracorp@gmail.com',
@@ -77,8 +77,8 @@ export const INITIAL_EXECUTIVE_AUDITORS: ExecutiveAuditor[] = [
   }
 ];
 
-const LOCAL_STORAGE_LEDGER_KEY = 'yaria_impact_audit_ledger_v2';
-const LOCAL_STORAGE_AUDITORS_KEY = 'yaria_executive_auditors_v2';
+const LOCAL_STORAGE_LEDGER_KEY = 'yara_impact_audit_ledger_v2';
+const LOCAL_STORAGE_AUDITORS_KEY = 'yara_executive_auditors_v2';
 
 /**
  * Checks if a given user email or profile is authorized by the Master Admin

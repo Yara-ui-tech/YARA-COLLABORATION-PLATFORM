@@ -1,6 +1,6 @@
 export type PostCategory = 'announcement' | 'milestone' | 'gallery' | 'event' | 'press' | 'impact';
 
-export type PostMediaType = 'article' | 'picture_news' | 'video_news' | 'press_release' | 'bulletin';
+export type PostMediaType = 'article' | 'picture_news' | 'video_news' | 'press_release' | 'bulletin' | 'video' | 'image' | 'document' | 'standard' | 'gallery';
 
 export interface PostAttachment {
   name: string;
@@ -30,7 +30,7 @@ export interface OrganizationPost {
   tags: string[];
   is_pinned?: boolean;
   is_breaking?: boolean;
-  social_channels: SocialChannelsConfig;
+  social_channels: SocialChannelsConfig | string[];
   broadcast_status: 'draft' | 'published' | 'broadcasted';
   author_id?: string;
   author_name: string;

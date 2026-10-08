@@ -34,7 +34,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, defaultEmail = ''
 
       let targetEmail = input;
 
-      // If it looks like a Member ID (e.g., YARIA-XXXX)
+      // If it looks like a Member ID (e.g., YARA-XXXX)
       if (input.toUpperCase().startsWith('YAR') || !input.includes('@')) {
         const { data: profile, error: profErr } = await supabase
           .from('profiles')
@@ -172,7 +172,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, defaultEmail = ''
                     required
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="e.g. user@example.com or YARIA-2026-1234"
+                    placeholder="e.g. user@example.com or YARA-2026-1234"
                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 px-4 pl-12 text-slate-900 text-sm font-medium focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
                   />
                 </div>

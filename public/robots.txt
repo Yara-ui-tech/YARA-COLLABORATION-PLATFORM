@@ -1,0 +1,26 @@
+# ==============================================================================
+# YOUNG AFRICANS ROBOTICS ASSOCIATION (YARA) - ROBOTS.TXT
+# ==============================================================================
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /programs
+Allow: /competitions
+Allow: /training
+Allow: /schools
+Allow: /events
+Allow: /impact
+Allow: /projects
+Allow: /partners
+Allow: /posts
+Allow: /contact
+Allow: /verify-certificate
+
+# Disallow internal member portals and admin dashboard from public search indexing
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /learning
+Disallow: /educator-portal
+Disallow: /live/*
+
+Sitemap: https://yara-collaboration-platform.vercel.app/sitemap.xml

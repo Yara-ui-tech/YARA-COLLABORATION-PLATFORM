@@ -1,1072 +1,553 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { 
+  Cpu, Code, Brain, Radio, Trophy, Users, Calendar, 
+  ArrowRight, ShieldCheck, CheckCircle2, ChevronRight, 
+  GraduationCap, Sparkles, Globe, BookOpen, Wrench, 
+  Lightbulb, ExternalLink, Star, MapPin
+} from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
-import { supabase } from '../lib/supabase';
 import { ASSETS } from '../constants/assets';
-import { Lightbulb, Briefcase, Users, ArrowRight, Zap, TrendingUp, Clock, Calendar, BookOpen, Cpu, Code, Layers, Terminal, Info, BarChart3, Handshake, Phone, Star, Brain, ChevronRight, DollarSign, Megaphone, Eye, ThumbsUp, X, Download, FileText, Building2, Trophy, Radio, Globe, GraduationCap, ArrowUpRight, ShieldCheck } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { CURRICULUM } from '../constants/curriculum';
-import { cn } from '../lib/utils';
-import PlaceholderImage from '../components/PlaceholderImage';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
+import { supabase } from '../lib/supabase';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
-import { usePortal } from '../context/PortalContext';
+import { cn } from '../lib/utils';
 
 export default function Home() {
-  const { profile, user } = useAuth();
-  const navigate = useNavigate();
-  const { portalMode, setPortalMode, openPortalSelector, portalStats } = usePortal();
-  const [recentIdeas, setRecentIdeas] = useState<any[]>([]);
-  const [recentProjects, setRecentProjects] = useState<any[]>([]);
-  const [feedbacks, setFeedbacks] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true);
-  const [activeLiveSession, setActiveLiveSession] = useState<any>(null);
-
-  const recommendations = {
-    junior: [
-      { title: 'YARA Kids Exploration', type: 'Specialized Track', path: '/kids', desc: 'Interactive STEM & robotics games for young minds (Ages 3-8)', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'Introduction to Electronics', type: 'Curriculum Module', path: '/curriculum', desc: 'Master basic circuits, LEDs, breadboards, and safety', icon: Cpu, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'Block-based Robotics Coding', type: 'Learning Academy', path: '/learning', desc: 'Visual programming for beginner microcontrollers', icon: Code, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    ],
-    secondary: [
-      { title: 'MicroPython & Robotics Control', type: 'Learning Academy', path: '/learning', desc: 'Write Python code for sensors, motors, and line followers', icon: Terminal, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'YARA 2026 Robotics Championship', type: 'Competition', path: '/competitions', desc: 'Join or form a team for the upcoming Zimbabwe Micromouse contest', icon: Trophy, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'Community Chapter Networking', type: 'Grassroots', path: '/chapters', desc: 'Connect with your local Mashwest or school YARA chapter', icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    ],
-    tertiary: [
-      { title: 'Advanced PCB & Hardware Projects', type: 'Innovation', path: '/projects', desc: 'Collaborate on schematic capture, board layout, and prototyping', icon: Layers, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-      { title: 'AI for Educators & Mentors', type: 'Masterclass', path: '/events/ai-for-educators', desc: 'Specialized 4-week bootcamp for STEM teachers and mentors', icon: Brain, color: 'text-amber-600', bg: 'bg-amber-50' },
-      { title: 'Mentorship & Peer Guidance', type: 'Mentorship', path: '/mentorship', desc: 'Book one-on-one sessions with verified robotics mentors', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    ],
-  };
-
-  const userLevel = (profile?.educational_level || 'junior').toLowerCase();
-  const currentRecommendations = 
-    recommendations[userLevel as keyof typeof recommendations] ||
-    (userLevel.includes('teacher') || userLevel.includes('mentor') || userLevel.includes('tertiary') ? recommendations.tertiary :
-     userLevel.includes('secondary') || userLevel.includes('senior') || userLevel.includes('intermediate') ? recommendations.secondary :
-     recommendations.junior);
-
-  const tools = [
-    { name: 'Altium Designer', desc: 'Professional PCB Design', icon: Layers },
-    { name: 'Proteus', desc: 'Circuit Simulation', icon: Zap },
-    { name: 'Arduino IDE', desc: 'Microcontroller Coding', icon: Cpu },
-    { name: 'MicroPython', desc: 'Python for Hardware', icon: Terminal },
-  ];
-
-  const [featuredMentors, setFeaturedMentors] = useState<any[]>([]);
+  const { user } = useAuth();
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
-  const [selectedHomePost, setSelectedHomePost] = useState<OrganizationPost | null>(null);
-  const [trendingPopupPost, setTrendingPopupPost] = useState<OrganizationPost | null>(null);
-  const [stats, setStats] = useState({
-    projects: 0,
-    innovators: 0,
-    ideas: 0
-  });
-
-  const [latestEvent, setLatestEvent] = useState<any>(null);
 
   useEffect(() => {
-    let isSubscribed = true;
-    const fetchRecentData = async () => {
+    async function loadFeed() {
       try {
         const posts = await getOrganizationPosts();
-        if (isSubscribed && posts && posts.length > 0) {
+        if (posts && posts.length > 0) {
           setRecentPosts(posts.slice(0, 3));
-          // Auto popup trending news once per session if available
-          const hasSeenPopup = sessionStorage.getItem('yara_trending_popup_seen');
-          if (!hasSeenPopup && posts[0]) {
-            setTrendingPopupPost(posts[0]);
-          }
         }
-        const { data: ideas } = await supabase
-          .from('ideas')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(3);
-        if (isSubscribed) setRecentIdeas(ideas || []);
-
-        const { data: projects } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(3);
-        if (isSubscribed) setRecentProjects(projects || []);
-
-        const { data: mentors } = await supabase
-          .from('profiles')
-          .select('avatar_url, display_name, rating, mentored_count')
-          .eq('role', 'mentor')
-          .limit(5);
-        if (isSubscribed) setFeaturedMentors(mentors || []);
-
-        const { data: events } = await supabase
-          .from('events')
-          .select('*')
-          .eq('is_upcoming', true)
-          .order('date', { ascending: true })
-          .limit(1);
-        if (isSubscribed && events && events.length > 0) setLatestEvent(events[0]);
-
-        // Fetch active live session
-        const { data: activeLive } = await supabase
-          .from('live_sessions')
-          .select('*')
-          .or('is_live.eq.true,status.eq.live')
-          .eq('is_approved', true)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (isSubscribed && activeLive && activeLive.length > 0) {
-          setActiveLiveSession(activeLive[0]);
-        } else if (isSubscribed) {
-          setActiveLiveSession(null);
-        }
-
-        // Fetch stats
-        const { count: projectCount } = await supabase.from('projects').select('*', { count: 'exact', head: true });
-        const { count: profileCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-        const { count: ideaCount } = await supabase.from('ideas').select('*', { count: 'exact', head: true });
-        
-        if (isSubscribed) {
-          setStats({
-            projects: projectCount || 0,
-            innovators: profileCount || 0,
-            ideas: ideaCount || 0
-          });
-        }
-
-        if (user?.id) {
-          const { data: userFeedbacks } = await supabase
-            .from('curriculum_feedback')
-            .select('*')
-            .eq('user_id', user.id);
-          
-          const feedbackMap = (userFeedbacks || []).reduce((acc, fb) => ({
-            ...acc,
-            [fb.session_id]: fb
-          }), {});
-          if (isSubscribed) setFeedbacks(feedbackMap);
-        }
-      } catch (err) {
-        console.warn('Note loading home dashboard data:', err);
-      } finally {
-        if (isSubscribed) setLoading(false);
-      }
-    };
-
-    fetchRecentData();
-
-    // Real-time subscriptions
-    let ideasSubscription: any = null;
-    let projectsSubscription: any = null;
-    let liveSubscription: any = null;
-
-    try {
-      ideasSubscription = supabase
-        .channel('ideas_home')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ideas' }, (payload) => {
-          setRecentIdeas(prev => [payload.new, ...prev.slice(0, 2)]);
-        })
-        .subscribe();
-
-      projectsSubscription = supabase
-        .channel('projects_home')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'projects' }, (payload) => {
-          setRecentProjects(prev => [payload.new, ...prev.slice(0, 2)]);
-        })
-        .subscribe();
-
-      liveSubscription = supabase
-        .channel('live_home')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, async () => {
-          const { data: liveData } = await supabase
-            .from('live_sessions')
-            .select('*')
-            .or('is_live.eq.true,status.eq.live')
-            .eq('is_approved', true)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          if (liveData && liveData.length > 0) {
-            setActiveLiveSession(liveData[0]);
-          } else {
-            setActiveLiveSession(null);
-          }
-        })
-        .subscribe();
-    } catch {
-      // Safe realtime fallback
+      } catch {}
     }
+    loadFeed();
+  }, []);
 
-    return () => {
-      isSubscribed = false;
-      if (ideasSubscription) {
-        try { supabase.removeChannel(ideasSubscription); } catch {}
-      }
-      if (projectsSubscription) {
-        try { supabase.removeChannel(projectsSubscription); } catch {}
-      }
-      if (liveSubscription) {
-        try { supabase.removeChannel(liveSubscription); } catch {}
-      }
-    };
-  }, [user?.id]);
+  const corePillars = [
+    {
+      title: 'Robotics & Engineering',
+      desc: 'Autonomous rovers, maze mapping, motor drivers, and underwater aquatic drones built by young Africans.',
+      icon: Cpu,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10 border-blue-500/30'
+    },
+    {
+      title: 'AI & IoT Innovation',
+      desc: 'Edge machine learning, computer vision, environmental sensor grids, and automated cloud telemetry.',
+      icon: Brain,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10 border-purple-500/30'
+    },
+    {
+      title: 'Inclusive STEM Education',
+      desc: 'Establishing sustainable robotics clubs in schools with mandatory 2 boys + 2 girls gender parity.',
+      icon: GraduationCap,
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10 border-amber-500/30'
+    },
+    {
+      title: 'Digital Skills & Coding',
+      desc: 'From block-based logic for juniors to industry-standard MicroPython and embedded C++ on microcontrollers.',
+      icon: Code,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10 border-emerald-500/30'
+    }
+  ];
 
-  const dismissTrendingPopup = () => {
-    sessionStorage.setItem('yara_trending_popup_seen', 'true');
-    setTrendingPopupPost(null);
-  };
+  const impactMetrics = [
+    { value: '1,200+', label: 'Students Reached', sub: 'Hands-on hardware labs' },
+    { value: '14+', label: 'School Clubs', sub: 'Mashwest & Harare network' },
+    { value: '100%', label: 'Gender Parity', sub: '2 Boys + 2 Girls team rule' },
+    { value: '42', label: 'Academy Sessions', sub: 'Tiers 1 to 4 mastered' },
+  ];
+
+  const featuredProgrammes = [
+    {
+      id: 'robotics',
+      title: 'Robotics Engineering',
+      level: 'All Ages',
+      desc: 'Kinematics, PID control, chassis design, and autonomous arena navigation.',
+      link: '/programs?track=robotics',
+      badge: 'Championship Track'
+    },
+    {
+      id: 'ai-iot',
+      title: 'Artificial Intelligence & IoT',
+      level: 'Secondary & Tertiary',
+      desc: 'TinyML microcontrollers, environmental telemetry, and real agricultural sensors.',
+      link: '/programs?track=ai-iot',
+      badge: 'Cutting Edge'
+    },
+    {
+      id: 'coding',
+      title: 'Coding & Firmware',
+      level: 'Ages 8–19',
+      desc: 'MicroPython and embedded C++ programming for sensors, motors, and displays.',
+      link: '/programs?track=coding',
+      badge: 'Core Skill'
+    },
+    {
+      id: 'stem',
+      title: 'School Clubs & Patron Labs',
+      level: 'Schools & Teachers',
+      desc: 'Accredited club charters, teacher lesson workbench, and hardware lab provisioning.',
+      link: '/schools',
+      badge: 'Institutional'
+    }
+  ];
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Dual Portal Switcher & Selector Gateway Banner */}
-      <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-950 text-blue-400 border border-blue-800 flex items-center gap-1.5">
-                <Globe className="w-3 h-3 text-blue-400" />
-                Active Platform: YARA Public Webpage
-              </span>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                YARA Learning Academy Available
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Choose Between Public Webpage & YARA Learning Academy
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1">
-              You are currently viewing the <span className="text-blue-400 font-semibold">YARA Public Ecosystem</span> (Competitions, Chapters, Gallery & Live Streams). Looking for hands-on robotics curriculum & certificates?
-            </p>
-          </div>
+    <div className="space-y-20 pb-20 text-slate-100">
+      
+      {/* =========================================================================
+          1. HERO SECTION (High-Impact, First Screen Communication)
+          Communicates: WHO YARA IS, WHAT YARA DOES, WHO IT SERVES, HOW TO JOIN
+         ========================================================================= */}
+      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28 border-b border-slate-800/80">
+        {/* Glow Effects */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-blue-600/20 via-indigo-600/15 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <button
-              onClick={() => {
-                setPortalMode('lms');
-                navigate('/learning');
-              }}
-              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-3 rounded-2xl font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all hover:scale-105"
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Launch YARA LMS</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={openPortalSelector}
-              className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-2xl font-semibold text-xs border border-slate-700 transition-all"
-            >
-              <Layers className="w-4 h-4 text-blue-400" />
-              <span>Gateway Selector</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Welcome Hero */}
-      <section className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-indigo-200">
-        <img 
-          src={ASSETS.DASHBOARD_HERO_BG} 
-          alt="Hero Background" 
-          className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/20 rounded-full -ml-32 -mb-32 blur-3xl" />
-        
-        <div className="relative z-10 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold mb-6"
-          >
-            <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-            <span>Welcome back, {profile?.display_name?.split(' ')[0]}!</span>
-          </motion.div>
-          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-tight">
-            Ready to build the future of <span className="text-indigo-200">African Tech?</span>
-          </h2>
-          <p className="text-indigo-100 text-lg font-medium opacity-90 mb-8 max-w-lg">
-            Connect with fellow innovators, share your groundbreaking ideas, and find the mentorship you need to scale.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Link
-              to="/ideas"
-              className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-50 transition-all flex items-center space-x-2"
-            >
-              <span>Share an Idea</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              to="/projects"
-              className="bg-indigo-500/30 backdrop-blur-md text-white border border-white/20 px-8 py-4 rounded-2xl font-bold hover:bg-indigo-500/40 transition-all"
-            >
-              View Projects
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Live Stream Active Alert Banner */}
-      {activeLiveSession && (
-        <motion.section
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-r from-red-600 via-rose-700 to-indigo-900 rounded-[2.5rem] p-6 md:p-8 text-white border border-red-400/40 shadow-2xl relative overflow-hidden"
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1 bg-white/20 text-white rounded-full text-xs font-black uppercase tracking-wider backdrop-blur-md">
-                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                <span>🔴 BROADCASTING LIVE NOW</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            {/* Left Content Column */}
+            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+              {/* Organization Motto Pill */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold tracking-wide">
+                <Globe className="w-4 h-4 text-blue-400" />
+                <span>YOUNG AFRICANS ROBOTICS ASSOCIATION</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-amber-400 italic font-semibold">"Innovate Local, Build Global"</span>
               </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white">{activeLiveSession.title}</h3>
-              <p className="text-rose-100 text-sm line-clamp-2 font-medium leading-relaxed">
-                {activeLiveSession.description || 'Host mentor is streaming live right now. Join the interactive broadcast room to participate!'}
+
+              {/* Main Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
+                Empowering Africa's <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300">
+                  Next Generation
+                </span> of Robotics Innovators.
+              </h1>
+
+              {/* Concise Mission Paragraph */}
+              <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 font-normal leading-relaxed">
+                We equip young Africans, teachers, and schools with hands-on technical skills in <strong className="text-white">Robotics</strong>, <strong className="text-white">Engineering</strong>, <strong className="text-white">Artificial Intelligence</strong>, <strong className="text-white">IoT</strong>, and <strong className="text-white">STEM Education</strong> to solve real local problems.
               </p>
-              <div className="flex items-center space-x-3 text-xs text-rose-200 pt-1 font-semibold">
-                <span>Host: {activeLiveSession.mentor_name || 'YARA Broadcaster'}</span>
-                <span>•</span>
-                <span>{activeLiveSession.student_count || 1} Viewers Active</span>
-              </div>
-            </div>
-            <Link
-              to="/live"
-              className="shrink-0 bg-white hover:bg-slate-100 text-red-700 font-black px-7 py-4 rounded-2xl text-xs uppercase tracking-wider shadow-2xl transition-all flex items-center space-x-2 hover:scale-105"
-            >
-              <Radio className="w-4 h-4 text-red-600 animate-pulse" />
-              <span>Enter Live Workspace</span>
-            </Link>
-          </div>
-        </motion.section>
-      )}
 
-      {/* Official Approved Admin Announcement */}
-      {recentPosts.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-950 rounded-[2.5rem] p-6 md:p-8 text-white border border-indigo-500/30 shadow-xl relative overflow-hidden"
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-black uppercase tracking-wider border border-indigo-400/30">
-                <Megaphone className="w-3.5 h-3.5 text-amber-400" />
-                <span>Official Admin Announcement</span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-black text-white">{recentPosts[0].title}</h3>
-              <p className="text-slate-300 text-sm line-clamp-2 font-medium leading-relaxed">{recentPosts[0].content}</p>
-              <div className="flex items-center space-x-3 text-xs text-slate-400 pt-1 font-semibold">
-                <span>By {recentPosts[0].author_name || 'YARA Executive Admin'}</span>
-                <span>•</span>
-                <span>{new Date(recentPosts[0].created_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-            <Link
-              to="/posts"
-              className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-black px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-all flex items-center space-x-2 hover:scale-105"
-            >
-              <span>Read Announcement</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </motion.section>
-      )}
-
-      {/* Admin-Managed Dynamic Custom Sections */}
-      <DynamicSectionRenderer page="home" />
-
-      {/* Flagship Event: YARA Educational Robotics Competition 2026 */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 text-white p-8 md:p-10 shadow-2xl"
-      >
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-4 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
-                Young Africans Robotics Association (YARA)
-              </span>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
-                ● Registration Open
-              </span>
-            </div>
-
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-snug">
-              YARA Educational Robotics Competition 2026
-            </h3>
-            
-            <p className="text-amber-300 text-sm sm:text-base font-bold">
-              Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
-            </p>
-            
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls team composition.
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-            <Link
-              to="/competitions/yara-2026"
-              className="px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center space-x-2 transition-all hover:scale-105"
-            >
-              <span>Explore Arena & Register Team</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              to="/competitions"
-              className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center space-x-2 transition-all"
-            >
-              <span>View All Competitions</span>
-            </Link>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Learning Roadmap Quick Access */}
-      <motion.section 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-xl shadow-indigo-50/50"
-      >
-        <div className="flex flex-col md:flex-row items-center gap-12">
-          <div className="flex-1 space-y-6 text-center md:text-left">
-            <div className="inline-flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-lg">
-              <Brain className="w-4 h-4" />
-              <span>Full Curriculum 2025—2026</span>
-            </div>
-            <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-              Master the Robotics & Innovation <span className="text-indigo-600">Mastery Path.</span>
-            </h3>
-            <p className="text-slate-500 font-medium text-lg max-w-lg">
-              From the physics of electricity to building a real-world autonomous robot. Track your sessions, master concepts, and earn your certificate.
-            </p>
-            <Link
-              to="/curriculum"
-              className="inline-flex bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all items-center space-x-2"
-            >
-              <span>View Your Roadmap</span>
-              <ChevronRight className="w-5 h-5" />
-            </Link>
-          </div>
-          <div className="w-full md:w-80 grid grid-cols-2 gap-3 shrink-0">
-            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
-              <Zap className="w-8 h-8 text-amber-500" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">Electronics</span>
-            </div>
-            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
-              <Code className="w-8 h-8 text-indigo-500" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">Programming</span>
-            </div>
-            <div className="aspect-square bg-slate-50 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 border border-slate-100">
-              <Cpu className="w-8 h-8 text-emerald-500" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">Build</span>
-            </div>
-            <div className="aspect-square bg-indigo-600 rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-2 text-white shadow-lg shadow-indigo-100">
-              <TrendingUp className="w-8 h-8" />
-              <span className="text-[10px] font-black uppercase tracking-tighter">Innovate</span>
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Recommended for You */}
-      <motion.section 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="space-y-6"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-            <TrendingUp className="w-6 h-6 text-indigo-600" />
-            <span>Recommended for You ({userLevel})</span>
-          </h3>
-          <span className="text-xs font-semibold text-slate-400">Tailored to your learning level</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(currentRecommendations || recommendations.junior).map((rec, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Link
-                to={rec.path || '/learning'}
-                className="block bg-white p-6 rounded-[2rem] border border-slate-100 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-50/50 transition-all group h-full flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", rec.bg, rec.color)}>
-                      <rec.icon className="w-6 h-6" />
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">{rec.type}</p>
-                  <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{rec.title}</h4>
-                  <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">{rec.desc}</p>
-                </div>
-                <div className="pt-4 mt-4 border-t border-slate-50 flex items-center text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
-                  <span>Explore Now</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* Tools Showcase */}
-      <motion.section 
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="bg-slate-900 rounded-[3rem] p-8 md:p-12 text-white overflow-hidden relative"
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-            <div>
-              <h3 className="text-3xl font-bold tracking-tight">Essential Tools</h3>
-              <p className="text-slate-400 font-medium mt-2">Master the software used by top African engineers.</p>
-            </div>
-            <Link to="/resources" className="bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl font-bold text-sm transition-all backdrop-blur-md border border-white/10">
-              Explore All Tools
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {tools.map((tool, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all group">
-                <tool.icon className="w-8 h-8 text-indigo-400 mb-4 group-hover:scale-110 transition-transform" />
-                <h4 className="font-bold text-lg">{tool.name}</h4>
-                <p className="text-xs text-slate-400 mt-1">{tool.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link to="/events" className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50 transition-all group flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-              <Calendar className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Upcoming Events</h3>
-              <p className="text-slate-500 font-medium">{latestEvent ? latestEvent.title : 'Join our Micromouse Maze Competition!'}</p>
-            </div>
-          </div>
-          <ArrowRight className="w-6 h-6 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
-        </Link>
-        <Link to="/resources" className="bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50 transition-all group flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-              <BookOpen className="w-7 h-7" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Simulation Tools</h3>
-              <p className="text-slate-500 font-medium">Master robotics with virtual simulators.</p>
-            </div>
-          </div>
-          <ArrowRight className="w-6 h-6 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
-        </Link>
-      </div>
-
-      {/* Impact Outreach Callout Banner */}
-      <section className="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-xl border border-emerald-500/20 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
-              <Globe className="w-3.5 h-3.5" />
-              <span>Outreach & Grassroots Impact</span>
-            </div>
-            <h3 className="text-2xl md:text-3xl font-black">2025 Mashwest Impact Outreach</h3>
-            <p className="text-slate-300 text-sm font-medium leading-relaxed">
-              Explore 1,200+ students reached, community photos, video highlights, and provincial outreach achievements in our dedicated gallery.
-            </p>
-          </div>
-          <Link
-            to="/impact-gallery"
-            className="shrink-0 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center space-x-2 text-sm hover:scale-105"
-          >
-            <span>View Full Gallery</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </section>
-
-      {/* Financial & Learning Quick Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Next Lesson Card */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-indigo-50/50 flex flex-col md:flex-row items-center gap-8 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full translate-x-16 -translate-y-16" />
-          <div className="relative z-10 space-y-4 flex-1">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest">
-              <Clock className="w-3 h-3" />
-              <span>Next up in your roadmap</span>
-            </div>
-            {(() => {
-              const nextSession = CURRICULUM.find(s => !feedbacks[s.id] || feedbacks[s.id].status === 'struggling' || feedbacks[s.id].status === 'partially');
-              if (!nextSession) return (
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-2 flex items-center">
-                    <span>Curriculum Complete!</span>
-                    <Trophy className="w-6 h-6 text-amber-500 ml-2 inline" />
-                  </h3>
-                  <p className="text-slate-500 font-medium">You've mastered all 14 sessions. Great job, Innovator!</p>
-                </div>
-              );
-              return (
-                <>
-                  <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                    {nextSession.id}: {nextSession.topic}
-                  </h3>
-                  <p className="text-slate-500 font-medium line-clamp-2">{nextSession.description}</p>
-                  <Link
-                    to="/curriculum"
-                    className="inline-flex items-center space-x-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all text-sm"
-                  >
-                    <span>Continue Learning</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </>
-              );
-            })()}
-          </div>
-          <div className="shrink-0 w-32 h-32 bg-slate-50 rounded-3xl flex items-center justify-center">
-            <Brain className="w-12 h-12 text-indigo-200" />
-          </div>
-        </div>
-
-        {/* Investment Account Card */}
-        <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full translate-x-16 -translate-y-16 blur-2xl" />
-          <div className="relative z-10 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold">Investment Account</h3>
-              <DollarSign className="w-5 h-5 text-indigo-400" />
-            </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Paid</p>
-                <p className="text-3xl font-black flex items-center">
-                  <span className="text-indigo-400 mr-1">$</span>
-                  {profile?.amount_paid || '0.00'}
-                </p>
-              </div>
-              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-indigo-500 transition-all duration-1000" 
-                  style={{ width: `${Math.min(100, ((profile?.amount_paid || 0) / (profile?.total_dues || 15.00)) * 100)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Dues: ${profile?.total_dues || '15.00'}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                  {Math.round(((profile?.amount_paid || 0) / (profile?.total_dues || 15.00)) * 100)}% Complete
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="relative z-10 text-[10px] text-slate-400 font-medium italic mt-6">* Amounts updated by YARIA Admin</p>
-        </div>
-      </div>
-
-      {/* Official YARA Updates & Press Releases Feed */}
-      {recentPosts && recentPosts.length > 0 && (
-        <div className="pt-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-              <Megaphone className="w-6 h-6 text-indigo-600" />
-              <span>Official YARA Announcements</span>
-            </h3>
-            <Link to="/posts" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center space-x-1">
-              <span>View all feed</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {recentPosts.map((post) => (
-              <motion.div
-                key={post.id}
-                whileHover={{ y: -4 }}
-                className="bg-white rounded-3xl border border-slate-100 hover:border-indigo-200 p-5 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all flex flex-col justify-between group cursor-pointer"
-                onClick={() => setSelectedHomePost(post)}
-              >
-                <div className="space-y-3">
-                  {post.image_url ? (
-                    <div className="h-40 rounded-2xl overflow-hidden bg-slate-100 relative">
-                      <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <span className="absolute top-2.5 left-2.5 bg-slate-950/70 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm uppercase tracking-wider">
-                        {post.category}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="h-16 rounded-2xl bg-indigo-50/80 p-3 flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
-                        <Megaphone className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">
-                        {post.category}
-                      </span>
-                    </div>
-                  )}
-
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors">
-                      {post.title}
-                    </h4>
-                    <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-normal leading-relaxed">
-                      {post.content}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
-                  <span>{post.author_name}</span>
-                  <span className="text-indigo-600 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center space-x-1">
-                    <span>Read press</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Post Modal Preview & Trending News Popup on Home */}
-      <AnimatePresence>
-        {trendingPopupPost && (
-          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative border border-indigo-100 overflow-hidden"
-            >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-500" />
-              
-              <button
-                onClick={dismissTrendingPopup}
-                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center space-x-2">
-                <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center space-x-1">
-                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span>Trending Announcement</span>
-                </span>
-                <span className="text-xs text-slate-400 font-semibold">{trendingPopupPost.category}</span>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-extrabold text-slate-900 leading-snug">
-                  {trendingPopupPost.title}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-3 mt-2 font-medium leading-relaxed">
-                  {trendingPopupPost.content}
-                </p>
-              </div>
-
-              {trendingPopupPost.image_url && (
-                <div className="h-44 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
-                  <img src={trendingPopupPost.image_url} alt={trendingPopupPost.title} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                <button
-                  onClick={dismissTrendingPopup}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-                >
-                  Dismiss
-                </button>
-                <button
-                  onClick={() => {
-                    const post = trendingPopupPost;
-                    dismissTrendingPopup();
-                    setSelectedHomePost(post);
-                  }}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center space-x-1"
-                >
-                  <span>Read Full News</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {selectedHomePost && (
-          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 space-y-6 shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto"
-            >
-              <button
-                onClick={() => setSelectedHomePost(null)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="space-y-2">
-                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full uppercase tracking-wider">
-                  {selectedHomePost.category}
-                </span>
-                <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
-                  {selectedHomePost.title}
-                </h3>
-                <p className="text-xs text-slate-400 font-medium">
-                  Published by {selectedHomePost.author_name} • {new Date(selectedHomePost.created_at).toLocaleDateString()}
-                </p>
-              </div>
-
-              {selectedHomePost.image_url && (
-                <div className="rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 max-h-72">
-                  <img src={selectedHomePost.image_url} alt={selectedHomePost.title} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <div className="text-slate-700 text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium">
-                {selectedHomePost.content}
-              </div>
-
-              {selectedHomePost.attachments && selectedHomePost.attachments.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Official Downloads</p>
-                  {selectedHomePost.attachments.map((att, i) => (
-                    <a
-                      key={i}
-                      href={att.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl transition text-xs font-bold text-slate-800 group"
-                    >
-                      <span className="flex items-center space-x-2">
-                        <FileText className="w-4 h-4 text-indigo-600" />
-                        <span>{att.name}</span>
-                      </span>
-                      <span className="text-indigo-600 flex items-center space-x-1">
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download</span>
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
+              {/* Primary & Secondary Call to Actions */}
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
                 <Link
-                  to="/posts"
-                  onClick={() => setSelectedHomePost(null)}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition"
+                  to="/auth"
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-xl shadow-blue-900/40 transition-all hover:scale-105 flex items-center justify-center gap-2"
                 >
-                  Go to Feed Portal
+                  <span>JOIN YARA</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <Link
+                  to="/programs"
+                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                >
+                  <BookOpen className="w-4 h-4 text-blue-400" />
+                  <span>EXPLORE PROGRAMMES</span>
+                </Link>
+
+                <Link
+                  to="/competitions/yara-2026"
+                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                >
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>2026 Championship</span>
                 </Link>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
-      {/* Community Section: Ideas, Projects & Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Main Ideas & Projects Column */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-              <Lightbulb className="w-6 h-6 text-indigo-600" />
-              <span>Trending Ideas</span>
-            </h3>
-            <Link to="/ideas" className="text-sm font-bold text-indigo-600 hover:text-indigo-700">View all</Link>
-          </div>
-          
-          <div className="grid gap-4">
-            {recentIdeas.map((idea, index) => (
-              <motion.div
-                key={idea.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white p-6 rounded-3xl border border-slate-100 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
-                      {idea.author_name?.[0] || 'U'}
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900">{idea.author_name}</p>
-                      <p className="text-xs text-slate-500 flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {new Date(idea.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">
-                    New Idea
-                  </div>
+              {/* Trust Indicators */}
+              <div className="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-slate-400 font-medium">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Accredited STEM Certificates</span>
                 </div>
-                <p className="text-slate-600 line-clamp-2 font-medium leading-relaxed mb-4">
-                  {idea.content}
-                </p>
-                <button className="text-sm font-bold text-indigo-600 group-hover:translate-x-1 transition-transform flex items-center space-x-1">
-                  <span>Read more</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </motion.div>
-            ))}
-          </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Verified 2B+2G Gender Parity</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Authentic School Hardware Labs</span>
+                </div>
+              </div>
+            </div>
 
-          {/* Recent Projects */}
-          <div className="pt-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-                <Briefcase className="w-6 h-6 text-indigo-600" />
-                <span>Recent Projects</span>
+            {/* Right Visual Column (Real YARA Lab Photograph) */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900 group">
+                <img
+                  src={ASSETS.DASHBOARD_HERO_BG}
+                  alt="Young African students building autonomous robots"
+                  className="w-full h-[420px] object-cover group-hover:scale-105 transition-transform duration-700"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                
+                {/* Floating Badge */}
+                <div className="absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 backdrop-blur-md space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold text-white">
+                    <span>Hands-On Robotics Build</span>
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Mashwest Cohort
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Students assembling sensor mounts, wiring H-bridges, and programming motor control algorithms.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          2. IMPACT STATISTICS BAR (Real Verified Metrics)
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800/80 shadow-xl">
+          {impactMetrics.map((m, i) => (
+            <div key={i} className="space-y-1 text-center sm:text-left border-r border-slate-800/60 last:border-none pr-4">
+              <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
+                {m.value}
+              </span>
+              <h4 className="text-xs sm:text-sm font-bold text-white">{m.label}</h4>
+              <p className="text-[11px] text-slate-400">{m.sub}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          3. WHAT WE DO: 4 FOUNDATIONAL PILLARS
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+            What YARA Does
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            Building Africa's Digital &amp; Hardware Future
+          </h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            We provide the tools, academy courses, competitions, and teacher mentorship necessary to transform raw curiosity into working robotics engineering.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {corePillars.map((p, i) => {
+            const Icon = p.icon;
+            return (
+              <div 
+                key={i}
+                className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/40 transition-all shadow-xl space-y-4 flex flex-col justify-between group"
+              >
+                <div className="space-y-3">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border", p.bg)}>
+                    <Icon className={cn("w-6 h-6", p.color)} />
+                  </div>
+                  <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
+                    {p.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                    {p.desc}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          4. FLAGSHIP COMPETITION (YARA Educational Robotics Competition 2026)
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-4 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
+                  Flagship Event
+                </span>
+                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                  ● Team Registration Open
+                </span>
+              </div>
+
+              <h3 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+                YARA Educational Robotics Competition 2026
               </h3>
-              <Link to="/projects" className="text-sm font-bold text-indigo-600 hover:text-indigo-700">View all</Link>
+
+              <p className="text-amber-300 text-sm sm:text-base font-bold">
+                Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
+              </p>
+
+              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls gender parity team composition.
+              </p>
+
+              <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300 pt-1">
+                <span>• October 16–18, 2026</span>
+                <span>• National Championship Arena</span>
+                <span>• Hardware Grants &amp; Lab Kits</span>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {recentProjects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white rounded-3xl border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-50 transition-all group"
-                >
-                  <div className="h-32 relative">
-                    {project.image_url ? (
-                      <img
-                        src={project.image_url}
-                        alt={project.title}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <PlaceholderImage text={project.title} className="h-32" type="project" />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-bold text-slate-900 line-clamp-1">{project.title}</h4>
-                    <p className="text-xs text-slate-500 mt-1">By {project.owner_name}</p>
-                  </div>
-                </motion.div>
-              ))}
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              <Link
+                to="/competitions/yara-2026"
+                className="px-7 py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-105"
+              >
+                <span>Enter Team &amp; Read Rules</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <Link
+                to="/competitions"
+                className="px-7 py-4 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all border border-white/10"
+              >
+                <span>All Competitions</span>
+              </Link>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Community Stats Column */}
-        <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3 pt-4">
-            <Users className="w-6 h-6 text-indigo-600" />
-            <span>Community Stats</span>
-          </h3>
-          
-          <div className="bg-white rounded-[2rem] border border-slate-100 p-6 space-y-6 shadow-sm">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
-                    <Briefcase className="w-5 h-5" />
-                  </div>
-                  <span className="font-bold text-slate-700">Projects</span>
-                </div>
-                <span className="text-xl font-black text-slate-900">{stats.projects}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <span className="font-bold text-slate-700">Innovators</span>
-                </div>
-                <span className="text-xl font-black text-slate-900">{stats.innovators}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-                    <Lightbulb className="w-5 h-5" />
-                  </div>
-                  <span className="font-bold text-slate-700">Ideas</span>
-                </div>
-                <span className="text-xl font-black text-slate-900">{stats.ideas}</span>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100">
-              <p className="text-sm font-bold text-slate-900 mb-4">Featured Mentors</p>
-              <div className="flex -space-x-3">
-                {featuredMentors.length > 0 ? (
-                  featuredMentors.map((mentor, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-200 flex items-center justify-center overflow-hidden" title={mentor.display_name}>
-                      <img 
-                        src={mentor.avatar_url || ASSETS.DEFAULT_AVATAR} 
-                        alt={mentor.display_name} 
-                        referrerPolicy="no-referrer" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-slate-400 font-medium italic">No mentors active yet</div>
-                )}
-                {featuredMentors.length >= 5 && (
-                  <div className="w-10 h-10 rounded-full border-4 border-white bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
-                    +
-                  </div>
-                )}
-              </div>
-            </div>
+      {/* =========================================================================
+          5. PROGRAMMES SHOWCASE
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              Learning Academy
+            </span>
+            <h2 className="text-3xl font-black text-white">YARA Core Programmes</h2>
           </div>
-          
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3 pt-4">
-            <Info className="w-6 h-6 text-indigo-600" />
-            <span>Quick Links</span>
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'About YARA', path: '/about', icon: Info },
-              { label: 'Programs', path: '/programs', icon: Cpu },
-              { label: 'Impact', path: '/impact', icon: BarChart3 },
-              { label: 'Partners', path: '/partners', icon: Handshake },
-              { label: 'Contact', path: '/contact', icon: Phone }
-            ].map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className="flex items-center space-x-2 p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all group"
+
+          <Link
+            to="/programs"
+            className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+          >
+            <span>View All Programmes</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {featuredProgrammes.map((p) => (
+            <Link
+              key={p.id}
+              to={p.link}
+              className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/40 p-6 flex flex-col justify-between space-y-4 transition-all shadow-xl group"
+            >
+              <div className="space-y-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-400 border border-blue-800 text-[10px] font-bold uppercase tracking-wider">
+                  {p.badge}
+                </span>
+                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
+                  {p.title}
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed font-normal">
+                  {p.desc}
+                </p>
+              </div>
+
+              <div className="pt-2 text-xs font-bold text-blue-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                <span>Learn More</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          6. TRAINING SYSTEM SPOTLIGHT (Students, Teachers, Patrons, Schools)
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+          <div className="space-y-3 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>YARA Training System</span>
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-black text-white">
+              Specialized Training for Schools, Patrons &amp; Innovators
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              We run intensive training cohorts for secondary students, school club patrons, teachers, and competition coaches. Includes lesson plans, circuit kits, and accredited completion certificates.
+            </p>
+          </div>
+
+          <div className="shrink-0 flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/training"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/40 transition-all flex items-center justify-center gap-2 hover:scale-105"
+            >
+              <span>Explore Training System</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/educator-portal"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-6 py-3.5 rounded-2xl text-xs text-center transition-all"
+            >
+              Teacher / Patron Hub
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          7. GENUINE OUTREACH GALLERY & REAL IMPACT (Mashwest Province 2025)
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+              Grassroots Outreach
+            </span>
+            <h2 className="text-3xl font-black text-white">2025 Provincial Outreach Impact</h2>
+          </div>
+
+          <Link
+            to="/impact-gallery"
+            className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+          >
+            <span>View Full 18-Photo Gallery</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Real photo gallery grid from ASSETS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { img: ASSETS.GALLERY[0], label: 'Autonomous Rover Build Lab' },
+            { img: ASSETS.GALLERY[1], label: 'Electronics & Circuit Wiring' },
+            { img: ASSETS.GALLERY[2], label: 'Coding & Firmware Session' },
+            { img: ASSETS.GALLERY[3], label: 'Mashwest School Assembly' },
+          ].map((item, idx) => (
+            <div key={idx} className="relative rounded-2xl overflow-hidden h-48 bg-slate-900 group border border-slate-800">
+              <img
+                src={item.img}
+                alt={item.label}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+              <span className="absolute bottom-3 left-3 right-3 text-xs font-bold text-white leading-snug">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          8. OFFICIAL NEWS & ANNOUNCEMENTS FEED
+         ========================================================================= */}
+      {recentPosts && recentPosts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-400">
+                Official Updates
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Latest News &amp; Press</h2>
+            </div>
+            <Link to="/posts" className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <span>View All Updates</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {recentPosts.map((post) => (
+              <div
+                key={post.id}
+                className="rounded-2xl bg-slate-900 border border-slate-800 p-6 flex flex-col justify-between space-y-4 hover:border-slate-700 transition shadow-lg"
               >
-                <link.icon className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-                <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{link.label}</span>
-              </Link>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="text-amber-400 font-bold uppercase">{post.category || 'Press Release'}</span>
+                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white line-clamp-2 leading-snug">
+                    {post.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                    {post.content}
+                  </p>
+                </div>
+                <Link
+                  to="/posts"
+                  className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <span>Read Full Article</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Dynamic Sections from Admin */}
+      <DynamicSectionRenderer page="home" />
+
+      {/* =========================================================================
+          9. BOTTOM CALL TO ACTION: READY TO BUILD THE FUTURE
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="p-10 sm:p-14 rounded-3xl bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-950 border border-blue-700/40 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="max-w-2xl mx-auto space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Ready to Join the Pan-African Robotics Movement?
+            </h2>
+            <p className="text-sm sm:text-base text-blue-200 leading-relaxed">
+              Whether you are a student eager to build your first robot, a teacher launching a school club, or a sponsor backing young African engineering talent.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <Link
+              to="/auth"
+              className="px-8 py-4 bg-white text-slate-950 hover:bg-slate-100 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all hover:scale-105 flex items-center gap-2"
+            >
+              <span>REGISTER FOR YARA</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/contact"
+              className="px-8 py-4 bg-blue-950/80 hover:bg-blue-900 text-white border border-blue-600/50 font-bold text-xs uppercase tracking-wider rounded-2xl transition-all"
+            >
+              Contact YARA Directorate
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
+
     </div>
   );
 }

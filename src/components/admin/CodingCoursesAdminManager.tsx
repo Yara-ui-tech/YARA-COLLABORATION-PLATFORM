@@ -27,7 +27,24 @@ export const CodingCoursesAdminManager: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form state
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    title: string;
+    subtitle: string;
+    description: string;
+    category: CourseCategory;
+    difficulty: CourseDifficulty;
+    estimatedHours: number;
+    instructorName: string;
+    instructorTitle: string;
+    coverImageUrl: string;
+    tags: string;
+    prerequisites: string;
+    learningOutcomes: string;
+    certificationEnabled: boolean;
+    certificationTitle: string;
+    isPublished: boolean;
+    modules: CourseModule[];
+  }>({
     title: '',
     subtitle: '',
     description: '',

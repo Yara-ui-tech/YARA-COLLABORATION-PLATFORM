@@ -77,14 +77,14 @@ export default function FinalExamModal({ isOpen, onClose, onExamPassed, existing
 
         if (passed) {
           // Generate or fetch certificate
-          const certNum = `YARIA-CERT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const certNum = `YARA-CERT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
           const grade = percentage >= 90 ? 'Distinction' : percentage >= 80 ? 'Merit' : 'Pass';
 
           const newCert: Certificate = {
             id: certNum,
             user_id: profile.id,
             certificate_number: certNum,
-            student_name: profile.display_name || 'YARIA Innovator',
+            student_name: profile.display_name || 'YARA Innovator',
             course_title: 'Robotics & Embedded Systems Engineering Mastery',
             score: percentage,
             grade,
@@ -138,7 +138,7 @@ export default function FinalExamModal({ isOpen, onClose, onExamPassed, existing
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">YARIA Final Comprehensive Exam</h3>
+              <h3 className="text-lg font-bold text-white">YARA Final Comprehensive Exam</h3>
               <p className="text-xs text-slate-400">Pass with 70%+ to graduate and earn your verified certificate</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function FinalExamModal({ isOpen, onClose, onExamPassed, existing
                     Congratulations! You Passed!
                   </h3>
                   <p className="text-slate-600 max-w-md mx-auto text-sm">
-                    You scored <strong className="text-emerald-600 font-bold">{examResult.percentage}%</strong> ({examResult.score}/{examResult.total} questions correct). Your official YARIA Certificate has been issued!
+                    You scored <strong className="text-emerald-600 font-bold">{examResult.percentage}%</strong> ({examResult.score}/{examResult.total} questions correct). Your official YARA Certificate has been issued!
                   </p>
 
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl max-w-md mx-auto text-xs text-emerald-800 flex items-center space-x-3 text-left">

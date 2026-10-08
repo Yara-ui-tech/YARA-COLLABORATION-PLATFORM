@@ -8,10 +8,10 @@ import {
 } from '../types/yaraCompetition';
 import { YARA_EVENT_2026_DEFAULT } from '../constants/yaraCompetitionData';
 
-const LOCAL_STORAGE_EVENT_KEY = 'yaria_event_config_2026';
-const LOCAL_STORAGE_TEAMS_KEY = 'yaria_comp_registrations_2026';
-const LOCAL_STORAGE_SCORES_KEY = 'yaria_comp_scores_2026';
-const LOCAL_STORAGE_EMAILS_KEY = 'yaria_comp_emails_2026';
+const LOCAL_STORAGE_EVENT_KEY = 'yara_event_config_2026';
+const LOCAL_STORAGE_TEAMS_KEY = 'yara_comp_registrations_2026';
+const LOCAL_STORAGE_SCORES_KEY = 'yara_comp_scores_2026';
+const LOCAL_STORAGE_EMAILS_KEY = 'yara_comp_emails_2026';
 
 // 1. EVENT CONFIGURATION MANAGEMENT
 export const getEventConfig = async (): Promise<CompetitionEventConfig> => {

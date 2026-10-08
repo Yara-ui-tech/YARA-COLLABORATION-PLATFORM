@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { confirmAction } from '../../lib/confirmAction';
 import { 
   MessageSquare, Star, CheckCircle2, Trash2, Heart, 
   ShieldCheck, Loader2, Filter, Eye
@@ -90,39 +91,56 @@ export default function FeedbacksTestimonialsAdminTab() {
     loadData();
   }, []);
 
-  const toggleApproveTestimonial = async (id: string, currentApproved: boolean) => {
-    try {
-      await supabase
-        .from('testimonials')
-        .update({ is_approved: !currentApproved })
-        .eq('id', id);
-
-      setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_approved: !currentApproved } : t));
-    } catch (e) {
-      console.error('Error toggling approval:', e);
-    }
+  // Optimistic updates: paint the new state first, sync with Supabase in the
+  // background, and roll back on failure. Awaiting the network before updating
+  // state is what made these clicks report multi-second INP.
+  const toggleApproveTestimonial = (id: string, currentApproved: boolean) => {
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_approved: !currentApproved } : t));
+    void (async () => {
+      try {
+        const { error } = await supabase
+          .from('testimonials')
+          .update({ is_approved: !currentApproved })
+          .eq('id', id);
+        if (error) throw error;
+      } catch (e) {
+        console.error('Error toggling approval:', e);
+        setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_approved: currentApproved } : t));
+      }
+    })();
   };
 
-  const toggleFeatureTestimonial = async (id: string, currentFeatured: boolean) => {
-    try {
-      await supabase
-        .from('testimonials')
-        .update({ is_featured: !currentFeatured })
-        .eq('id', id);
-
-      setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_featured: !currentFeatured } : t));
-    } catch (e) {
-      console.error('Error toggling featured:', e);
-    }
+  const toggleFeatureTestimonial = (id: string, currentFeatured: boolean) => {
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_featured: !currentFeatured } : t));
+    void (async () => {
+      try {
+        const { error } = await supabase
+          .from('testimonials')
+          .update({ is_featured: !currentFeatured })
+          .eq('id', id);
+        if (error) throw error;
+      } catch (e) {
+        console.error('Error toggling featured:', e);
+        setTestimonials(prev => prev.map(t => t.id === id ? { ...t, is_featured: currentFeatured } : t));
+      }
+    })();
   };
 
   const handleDeleteTestimonial = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this testimonial?')) return;
+    // Non-blocking in-page dialog instead of native confirm() (which froze the
+    // main thread and was counted entirely against INP).
+    if (!(await confirmAction('Are you sure you want to delete this testimonial?', { confirmLabel: 'Delete' }))) return;
+
+    const removed = testimonials.find(t => t.id === id);
+    setTestimonials(prev => prev.filter(t => t.id !== id));
     try {
-      await supabase.from('testimonials').delete().eq('id', id);
-      setTestimonials(prev => prev.filter(t => t.id !== id));
+      const { error } = await supabase.from('testimonials').delete().eq('id', id);
+      if (error) throw error;
     } catch (e) {
       console.error('Error deleting testimonial:', e);
+      if (removed) {
+        setTestimonials(prev => (prev.some(t => t.id === id) ? prev : [removed, ...prev]));
+      }
     }
   };
 

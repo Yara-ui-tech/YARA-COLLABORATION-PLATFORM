@@ -345,7 +345,7 @@ export const YaraLmsDashboard: React.FC<Props> = ({
                     {sessionsInLevel.map(session => {
                       const comp = userCompletions[session.id];
                       const isComplete = comp?.isFullyCompleted;
-                      const { isUnlocked } = checkSessionPrerequisites(userId, session.id);
+                      const { isUnlocked } = checkSessionPrerequisites(userId, session.id, userCompletions);
 
                       return (
                         <div

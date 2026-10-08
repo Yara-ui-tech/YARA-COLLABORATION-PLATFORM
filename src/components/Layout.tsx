@@ -16,39 +16,45 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../constants/assets';
 import { OfflineBanner } from './OfflineBanner';
 
+import { NotificationBell } from './notifications/NotificationCenter';
+
 interface NavItem {
   path: string;
   icon: any;
   label: string;
   badge?: string;
   adminOnly?: boolean;
+  teacherOnly?: boolean;
 }
 
 const webpageNavItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/impact-gallery', icon: Camera, label: 'Impact Gallery', badge: 'Outreach' },
-  { path: '/live', icon: Radio, label: 'YARA Live', badge: 'Stream' },
-  { path: '/kids', icon: Heart, label: 'YARA Kids', badge: 'Ages 3-8' },
+  { path: '/about', icon: Info, label: 'About YARA' },
+  { path: '/programs', icon: Cpu, label: 'Programmes' },
   { path: '/competitions', icon: Trophy, label: 'Competitions', badge: 'Championship' },
+  { path: '/training', icon: GraduationCap, label: 'Training System' },
   { path: '/events', icon: Calendar, label: 'Events & Bootcamps' },
-  { path: '/chapters', icon: Building2, label: 'YARA Chapters', badge: '12 Hubs' },
-  { path: '/ideas', icon: Lightbulb, label: 'Ideas Hub' },
-  { path: '/posts', icon: Radio, label: 'Organization Feed' },
+  { path: '/impact-gallery', icon: Camera, label: 'Impact Gallery', badge: 'Outreach' },
+  { path: '/schools', icon: Building2, label: 'School Clubs' },
+  { path: '/chapters', icon: Building2, label: 'YARA Chapters' },
   { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
   { path: '/resources', icon: BookOpen, label: 'Resources' },
-  { path: '/about', icon: Info, label: 'About YARA' },
-  { path: '/contact', icon: Phone, label: 'Contact & Inquiries' },
+  { path: '/contact', icon: Phone, label: 'Contact YARA' },
   { path: '/profile', icon: User, label: 'Profile' },
   { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
 ];
 
 const lmsNavItems: NavItem[] = [
-  { path: '/learning', icon: Brain, label: 'YARA Learning Academy', badge: '42 Sessions' },
-  { path: '/curriculum', icon: BookOpen, label: 'Curriculum & Tracks' },
-  { path: '/mentorship', icon: Users, label: 'Industrial Mentorship', badge: 'Faculty' },
-  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials', badge: 'Accredited' },
+  { path: '/dashboard', icon: Home, label: 'LMS Dashboard' },
+  { path: '/learning', icon: Brain, label: 'YARA Learning Academy', badge: 'L0–L8' },
   { path: '/projects', icon: Briefcase, label: 'Hardware Capstones' },
-  { path: '/posts', icon: Radio, label: 'Academic Announcements' },
+  { path: '/competitions', icon: Trophy, label: 'Competitions Hub', badge: '2026' },
+  { path: '/events', icon: Calendar, label: 'Events & Bootcamps' },
+  { path: '/schools', icon: Building2, label: 'School Clubs Network' },
+  { path: '/mentorship', icon: Users, label: 'Industrial Mentorship' },
+  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials' },
+  { path: '/resources', icon: BookOpen, label: 'Simulation & Tools' },
+  { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true },
   { path: '/profile', icon: User, label: 'My Learning Profile' },
   { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
 ];
@@ -70,6 +76,7 @@ export default function Layout() {
   };
 
   const isAdmin = profile?.role === 'admin';
+  const isTeacherOrAdmin = profile?.role === 'teacher' || profile?.role === 'mentor' || profile?.role === 'admin' || isAdmin;
   const currentNavItems = portalMode === 'lms' ? lmsNavItems : webpageNavItems;
 
   const handleSwitchToLms = () => {
@@ -117,13 +124,16 @@ export default function Layout() {
             </div>
           </Link>
 
-          <button
-            onClick={openPortalSelector}
-            title="Open Gateway Switcher"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <button
+              onClick={openPortalSelector}
+              title="Open Gateway Switcher"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Dual-Portal Mode Switcher Segmented Control */}
@@ -169,7 +179,7 @@ export default function Layout() {
         {/* Navigation Items */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {currentNavItems
-            .filter(item => !item.adminOnly || isAdmin)
+            .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
             .map((item) => {
               const isActive = location.pathname === item.path || 
                 (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -225,7 +235,7 @@ export default function Layout() {
                   <ArrowRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
                 </div>
                 <p className="text-xs font-bold text-white leading-tight">Master Robotics & Automation</p>
-                <p className="text-[10px] text-slate-300 mt-1">42 curriculum sessions, simulator lab, and accredited certificates.</p>
+                <p className="text-[10px] text-slate-300 mt-1">42 interactive sessions, simulator lab, and accredited certificates.</p>
               </div>
             ) : (
               <div 
@@ -296,6 +306,7 @@ export default function Layout() {
         </Link>
 
         <div className="flex items-center space-x-1.5">
+          <NotificationBell />
           <button
             onClick={openPortalSelector}
             className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-bold flex items-center gap-1"
@@ -361,7 +372,7 @@ export default function Layout() {
 
             <nav className="p-4 space-y-1">
               {currentNavItems
-                .filter(item => !item.adminOnly || isAdmin)
+                .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
                 .map((item) => {
                   const isActive = location.pathname === item.path || 
                     (item.path !== '/' && location.pathname.startsWith(item.path));

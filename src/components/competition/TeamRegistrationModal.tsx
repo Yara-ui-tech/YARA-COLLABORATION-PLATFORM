@@ -187,14 +187,14 @@ export default function TeamRegistrationModal({
       if (error) {
         console.warn('Database insert note:', error.message);
         // If table not created in remote DB yet, provide fallback persistence in local storage
-        const localTeams = JSON.parse(localStorage.getItem('yaria_competition_teams') || '[]');
+        const localTeams = JSON.parse(localStorage.getItem('yara_competition_teams') || localStorage.getItem('yaria_competition_teams') || '[]');
         const fallbackTeam: CompetitionTeam = {
           id: `team-${Date.now()}`,
           ...newTeamPayload,
           status: 'submitted'
         } as any;
         localTeams.unshift(fallbackTeam);
-        localStorage.setItem('yaria_competition_teams', JSON.stringify(localTeams));
+        localStorage.setItem('yara_competition_teams', JSON.stringify(localTeams));
         if (onSuccess) onSuccess(fallbackTeam);
       } else if (data) {
         if (onSuccess) onSuccess(data as CompetitionTeam);

@@ -40,6 +40,7 @@ export interface VirtualSubmission {
 export interface TeamMember {
   id: string;
   name: string;
+  full_name?: string;
   gender: 'boy' | 'girl';
   is_captain: boolean;
   age?: number | string;

@@ -193,7 +193,7 @@ export default function ImpactAndFinancials() {
                       {tx.type === 'income' ? '↓ Sponsorship Inflow' : '↑ Expense Allocation'}
                     </span>
                   </td>
-                  <td className="py-3 px-3 font-semibold text-slate-900">{tx.description}</td>
+                  <td className="py-3 px-3 font-semibold text-slate-900">{tx.description || tx.title}</td>
                   <td className="py-3 px-3 text-slate-500 capitalize">{tx.category.replace(/_/g, ' ')}</td>
                   <td className={`py-3 px-3 text-right font-mono font-bold text-sm ${
                     tx.type === 'income' ? 'text-emerald-600' : 'text-slate-900'

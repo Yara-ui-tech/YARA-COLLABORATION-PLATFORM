@@ -612,7 +612,11 @@ export async function submitSessionMiniProject(
   });
 }
 
-export function checkSessionPrerequisites(userId: string, sessionId: string): {
+export function checkSessionPrerequisites(
+  userId: string, 
+  sessionId: string,
+  cachedCompletions?: Record<string, any>
+): {
   isUnlocked: boolean;
   missingPrerequisites: string[];
 } {
@@ -621,7 +625,7 @@ export function checkSessionPrerequisites(userId: string, sessionId: string): {
     return { isUnlocked: true, missingPrerequisites: [] };
   }
 
-  const allCompletions = getAllUserCompletions(userId);
+  const allCompletions = cachedCompletions || getAllUserCompletions(userId);
   const missing: string[] = [];
 
   for (const reqId of session.prerequisites) {
@@ -660,7 +664,7 @@ export function calculateUserOverallProgress(userId: string): {
       }
     } else if (!nextSession) {
       // Find the first non-completed session whose prerequisites are satisfied
-      const { isUnlocked } = checkSessionPrerequisites(userId, s.id);
+      const { isUnlocked } = checkSessionPrerequisites(userId, s.id, allCompletions);
       if (isUnlocked) {
         nextSession = { id: s.id, title: s.title };
       }
@@ -941,7 +945,7 @@ export async function issueOrGetCertificate(userId: string, studentName: string,
     score: gradeScore,
     grade,
     issue_date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-    verification_url: `https://www.yaria.org/verify-certificate?id=${certNumber}`,
+    verification_url: `/verify-certificate?id=${certNumber}`,
     metadata: {
       exam_score: gradeScore,
       project_title: capstone?.title || 'Autonomous Robotics Capstone',
@@ -977,7 +981,7 @@ export function getPublicCertificateByNumber(certNumber: string): Certificate | 
       score: 96,
       grade: 'Distinction with Honors',
       issue_date: '15 August 2026',
-      verification_url: `https://www.yaria.org/verify-certificate?id=${certNumber.toUpperCase()}`,
+      verification_url: `/verify-certificate?id=${certNumber.toUpperCase()}`,
       metadata: {
         exam_score: 96,
         project_title: 'Solar-Powered Agricultural Weed Detection & Removal Autonomous Rover',

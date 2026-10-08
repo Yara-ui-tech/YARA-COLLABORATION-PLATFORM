@@ -335,7 +335,7 @@ export default function Curriculum() {
             </h3>
 
             <p className="text-slate-300 text-sm leading-relaxed">
-              Complete the curriculum modules, pass the 12-question comprehensive robotics examination (70%+ passing threshold), and submit your final capstone robot build to earn an accredited, verified YARIA Certificate of Technical Mastery.
+              Complete the curriculum modules, pass the 12-question comprehensive robotics examination (70%+ passing threshold), and submit your final capstone robot build to earn an accredited, verified YARA Certificate of Technical Mastery.
             </p>
 
             {/* Checklist items */}
@@ -557,7 +557,7 @@ export default function Curriculum() {
             <Users className="w-8 h-8 text-indigo-600 mb-3" />
             <h4 className="font-bold text-slate-900 mb-1">Live Mentor Support</h4>
             <p className="text-xs text-slate-600 mb-5 leading-relaxed font-medium">
-              Have technical roadblocks wiring motors or writing non-blocking C++ code? Connect 1-on-1 with an accredited YARIA robotics mentor.
+              Have technical roadblocks wiring motors or writing non-blocking C++ code? Connect 1-on-1 with an accredited YARA robotics mentor.
             </p>
             <a 
               href="/mentorship"

@@ -1,4 +1,4 @@
-export type EventPaymentStatus = 'pending' | 'submitted' | 'verified' | 'rejected';
+export type EventPaymentStatus = 'pending' | 'submitted' | 'verified' | 'rejected' | 'unpaid';
 export type EventApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type EventTimelineStatus = 'upcoming' | 'live' | 'closed';
 
@@ -30,7 +30,7 @@ export interface EducatorReceiptData {
 
 export interface EventAccessResult {
   is_granted: boolean;
-  reason: 'unregistered' | 'unpaid' | 'payment_submitted' | 'payment_verified' | 'approved' | 'rejected';
+  reason: 'unregistered' | 'unpaid' | 'payment_submitted' | 'payment_verified' | 'payment_pending' | 'pending_approval' | 'approved' | 'rejected';
   message: string;
   registration?: EventRegistration | null;
   timeline_status: EventTimelineStatus;

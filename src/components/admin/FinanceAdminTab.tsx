@@ -195,9 +195,9 @@ export default function FinanceAdminTab() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleToggleInvestmentStatus = async (id: string, currentStatus: 'received' | 'pledged') => {
-    const nextStatus = currentStatus === 'received' ? 'pledged' : 'received';
-    const updated = investments.map(inv => inv.id === id ? { ...inv, status: nextStatus } : inv);
+  const handleToggleInvestmentStatus = async (id: string, currentStatus: Investment['status']) => {
+    const nextStatus: Investment['status'] = currentStatus === 'received' ? 'pledged' : 'received';
+    const updated: Investment[] = investments.map(inv => inv.id === id ? { ...inv, status: nextStatus } : inv);
     setInvestments(updated);
     localStorage.setItem('yaria_investments', JSON.stringify(updated));
     try {

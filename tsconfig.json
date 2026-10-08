@@ -23,5 +23,13 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "extends": "expo/tsconfig.base"
+  "include": [
+    "src",
+    "server"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "mobile"
+  ]
 }

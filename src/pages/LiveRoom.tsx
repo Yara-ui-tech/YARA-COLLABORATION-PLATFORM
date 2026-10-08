@@ -47,7 +47,7 @@ export default function LiveRoom() {
     // Initialize Daily Call Frame
     // Note: In a real production app, you would fetch a room URL from your backend
     // For this implementation, we use a placeholder domain that the user can configure
-    const dailyDomain = import.meta.env.VITE_DAILY_DOMAIN || 'yaria';
+    const dailyDomain = import.meta.env.VITE_DAILY_DOMAIN || 'yara';
     const roomUrl = `https://${dailyDomain}.daily.co/${roomId}`;
 
     const callFrame = DailyIframe.createFrame(containerRef.current, {
@@ -64,7 +64,7 @@ export default function LiveRoom() {
 
     callFrame.join({ 
       url: roomUrl,
-      userName: profile?.display_name || 'YARIA User'
+      userName: profile?.display_name || 'YARA User'
     });
 
     // Event Listeners
@@ -126,7 +126,7 @@ export default function LiveRoom() {
         <div className="flex items-center space-x-4">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold">Y</div>
           <div>
-            <h2 className="text-white font-bold">YARIA Live Session</h2>
+            <h2 className="text-white font-bold">YARA Live Session</h2>
             <p className="text-slate-400 text-xs">Room ID: {roomId}</p>
           </div>
         </div>

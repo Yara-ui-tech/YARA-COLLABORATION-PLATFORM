@@ -109,13 +109,13 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
             <div className="flex flex-col items-center space-y-2 mb-6">
               <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-md overflow-hidden mb-2">
                 {ASSETS.LOGO ? (
-                  <img src={ASSETS.LOGO} alt="YARIA" className="w-full h-full object-cover" />
+                  <img src={ASSETS.LOGO} alt="YARA" className="w-full h-full object-contain" />
                 ) : (
                   <span>Y</span>
                 )}
               </div>
               <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-wider uppercase font-serif">
-                Young African Robotics & Innovators Academy
+                Young Africans Robotics Association (YARA)
               </h2>
               <div className="h-0.5 w-32 bg-amber-500 mx-auto"></div>
               <p className="text-xs uppercase tracking-[0.25em] text-slate-500 font-bold">

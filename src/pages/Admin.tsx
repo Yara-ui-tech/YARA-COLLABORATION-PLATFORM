@@ -158,9 +158,9 @@ export default function Admin() {
   const [launchConfig, setLaunchConfig] = useState({
     duration_hours: 72,
     launch_date: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().slice(0, 16),
-    title: 'Official YARIA Global Launch',
+    title: 'Official YARA Global Launch',
     is_enabled: true,
-    banner_text: 'Countdown to the Official YARIA Platform Launch — 72 Hours of Innovation & Robotics'
+    banner_text: 'Countdown to the Official YARA Platform Launch — 72 Hours of Innovation & Robotics'
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -226,9 +226,9 @@ export default function Admin() {
         setLaunchConfig({
           duration_hours: val.duration_hours || 72,
           launch_date: val.launch_date ? new Date(val.launch_date).toISOString().slice(0, 16) : new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().slice(0, 16),
-          title: val.title || 'Official YARIA Global Launch',
+          title: val.title || 'Official YARA Global Launch',
           is_enabled: val.is_enabled !== false,
-          banner_text: val.banner_text || 'Countdown to the Official YARIA Platform Launch — 72 Hours of Innovation & Robotics'
+          banner_text: val.banner_text || 'Countdown to the Official YARA Platform Launch — 72 Hours of Innovation & Robotics'
         });
       }
     } catch (error: any) {
@@ -997,7 +997,7 @@ export default function Admin() {
         </div>
         <h2 className="text-3xl font-bold text-slate-900 mb-4">Access Denied</h2>
         <p className="text-slate-500 max-w-md">
-          This section is reserved for YARIA Administrators only.
+          This section is reserved for YARA Administrators only.
         </p>
       </div>
     );
@@ -1008,7 +1008,7 @@ export default function Admin() {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h2>
-          <p className="text-slate-500 font-medium">Manage YARIA members and assign identification numbers.</p>
+          <p className="text-slate-500 font-medium">Manage YARA members and assign identification numbers.</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -1445,7 +1445,7 @@ export default function Admin() {
                     value={newMemberId}
                     onChange={(e) => setNewMemberId(e.target.value)}
                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-mono"
-                    placeholder="YARIA-2026-XXXX"
+                    placeholder="YARA-2026-XXXX"
                   />
                 </div>
 
@@ -1657,7 +1657,7 @@ export default function Admin() {
                       value={launchConfig.title}
                       onChange={(e) => setLaunchConfig({ ...launchConfig, title: e.target.value })}
                       className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all text-slate-900 font-bold"
-                      placeholder="Official YARIA Global Launch"
+                      placeholder="Official YARA Global Launch"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1739,7 +1739,7 @@ export default function Admin() {
                     placeholder="Enter the message users will see after signup..."
                   />
                   <p className="text-xs text-slate-400 font-medium ml-1">
-                    Tip: This message appears in the "Welcome to YARIA" popup immediately after a new user registers.
+                    Tip: This message appears in the "Welcome to YARA" popup immediately after a new user registers.
                   </p>
                 </div>
 
@@ -2086,7 +2086,7 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
   const generateAutoId = () => {
     const year = new Date().getFullYear();
     const randomDigits = Math.floor(1000 + Math.random() * 9000);
-    const generated = `YARIA-${year}-${randomDigits}`;
+    const generated = `YARA-${year}-${randomDigits}`;
     setNewId(generated);
   };
 
@@ -2201,7 +2201,7 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
                 value={newId}
                 onChange={(e) => setNewId(e.target.value)}
                 className="w-full bg-white border-2 border-slate-200 rounded-xl py-1.5 px-3 focus:outline-none focus:border-indigo-600 transition-all font-mono text-xs font-bold text-slate-900"
-                placeholder="e.g. YARIA-2026-..."
+                placeholder="e.g. YARA-2026-..."
               />
             </div>
             <button

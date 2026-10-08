@@ -520,12 +520,13 @@ export default function YaraCompetitionAdminTab() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredDigitalScores.map(score => {
-                const totalScore = 
-                  (score.engineering_design_points || 0) +
-                  (score.innovation_points || 0) +
-                  (score.mission_performance_points || 0) +
-                  (score.safety_compliance_points || 0) +
-                  (score.teamwork_presentation_points || 0);
+                const designPts = score.engineering_design_points ?? score.engineering_design ?? 0;
+                const innovPts = score.innovation_points ?? score.innovation ?? 0;
+                const perfPts = score.mission_performance_points ?? score.performance ?? 0;
+                const safetyPts = score.safety_compliance_points ?? score.safety ?? 0;
+                const teamPts = score.teamwork_presentation_points ?? score.teamwork ?? 0;
+                const totalScore = score.total_score || (designPts + innovPts + perfPts + safetyPts + teamPts);
+                const judgeNotes = score.judge_notes || score.notes;
 
                 return (
                   <div
@@ -559,23 +560,23 @@ export default function YaraCompetitionAdminTab() {
                       <div className="grid grid-cols-5 gap-1.5 p-3 bg-slate-50 rounded-2xl text-center text-[10px]">
                         <div className="p-1 bg-white rounded-lg border border-slate-200/60">
                           <span className="text-slate-400 block font-bold">Design</span>
-                          <span className="font-mono font-black text-slate-800">{score.engineering_design_points}/20</span>
+                          <span className="font-mono font-black text-slate-800">{designPts}/20</span>
                         </div>
                         <div className="p-1 bg-white rounded-lg border border-slate-200/60">
                           <span className="text-slate-400 block font-bold">Innov</span>
-                          <span className="font-mono font-black text-slate-800">{score.innovation_points}/20</span>
+                          <span className="font-mono font-black text-slate-800">{innovPts}/20</span>
                         </div>
                         <div className="p-1 bg-white rounded-lg border border-slate-200/60">
                           <span className="text-slate-400 block font-bold">Perf</span>
-                          <span className="font-mono font-black text-slate-800">{score.mission_performance_points}/40</span>
+                          <span className="font-mono font-black text-slate-800">{perfPts}/40</span>
                         </div>
                         <div className="p-1 bg-white rounded-lg border border-slate-200/60">
                           <span className="text-slate-400 block font-bold">Safety</span>
-                          <span className="font-mono font-black text-slate-800">{score.safety_compliance_points}/10</span>
+                          <span className="font-mono font-black text-slate-800">{safetyPts}/10</span>
                         </div>
                         <div className="p-1 bg-white rounded-lg border border-slate-200/60">
                           <span className="text-slate-400 block font-bold">Team</span>
-                          <span className="font-mono font-black text-slate-800">{score.teamwork_presentation_points}/10</span>
+                          <span className="font-mono font-black text-slate-800">{teamPts}/10</span>
                         </div>
                       </div>
 
@@ -585,9 +586,9 @@ export default function YaraCompetitionAdminTab() {
                         <span className="text-lg font-black font-mono text-indigo-950">{totalScore} / 100</span>
                       </div>
 
-                      {score.judge_notes && (
+                      {judgeNotes && (
                         <p className="text-xs text-slate-600 font-medium italic bg-slate-50 p-3 rounded-xl border border-slate-100">
-                          "{score.judge_notes}"
+                          "{judgeNotes}"
                         </p>
                       )}
                     </div>

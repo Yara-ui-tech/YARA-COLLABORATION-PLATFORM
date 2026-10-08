@@ -325,7 +325,9 @@ export default function TeamAdminTab() {
                             <div className="flex items-center justify-between font-bold">
                               <span>{m.full_name || `Member #${idx + 1}`}</span>
                               {m.is_captain && (
-                                <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" title="Team Captain" />
+                                <span title="Team Captain">
+                                  <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                                </span>
                               )}
                             </div>
                             <div className="flex items-center justify-between text-[11px] text-slate-400">

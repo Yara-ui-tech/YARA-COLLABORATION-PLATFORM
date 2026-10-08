@@ -21,8 +21,7 @@ import {
   Linkedin,
   FileCheck2,
   FileText,
-  Cpu,
-  Code2
+  Cpu
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
