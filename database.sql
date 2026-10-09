@@ -209,6 +209,21 @@ CREATE TABLE IF NOT EXISTS public.training_programs (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Idempotent Column Existence Guards for training_programs
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS target_audience TEXT DEFAULT 'All';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Robotics';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'Blended';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS duration_weeks INTEGER DEFAULT 4;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS total_hours INTEGER DEFAULT 16;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS fee_usd DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS capacity INTEGER DEFAULT 100;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS venue TEXT DEFAULT 'Harare / Regional Centers + Online Portal';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open_for_registration';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+
 CREATE TABLE IF NOT EXISTS public.training_sessions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   program_id UUID NOT NULL REFERENCES public.training_programs(id) ON DELETE CASCADE,
@@ -387,6 +402,14 @@ ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS mentor_support_topic 
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS mentor_support_channel TEXT DEFAULT 'live_room_or_discord';
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS module_number INTEGER;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS coherent_skill_area TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS theory_overview TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS video_title TEXT;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS video_duration_seconds INTEGER DEFAULT 360;
 
 -- ==============================================================================
 -- 06. LMS CORE — LESSONS & LEARNING RESOURCES
@@ -487,6 +510,17 @@ CREATE TABLE IF NOT EXISTS public.course_projects (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Idempotent Column Existence Guards for course_projects
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS project_type TEXT;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS guidelines TEXT;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS rubric JSONB DEFAULT '[]';
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS deliverables_required TEXT[] DEFAULT '{}';
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS is_mandatory BOOLEAN DEFAULT TRUE;
+
 CREATE TABLE IF NOT EXISTS public.course_project_submissions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   project_id UUID NOT NULL REFERENCES public.course_projects(id) ON DELETE CASCADE,
@@ -568,6 +602,11 @@ ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS completed_assignm
 ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS research_project_passed BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS final_design_project_passed BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS level_exam_passed BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS total_modules INTEGER DEFAULT 0;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS progress_percentage INTEGER DEFAULT 0;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS last_accessed_at TIMESTAMPTZ DEFAULT now();
 
 -- MASTER DYNAMIC COURSE COMPLETION STORED PROCEDURE
 -- Rule: The LMS must dynamically determine the total number of modules.
@@ -801,6 +840,23 @@ CREATE TABLE IF NOT EXISTS public.competitions (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Idempotent Column Existence Guards for competitions
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS year INTEGER DEFAULT 2026;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS theme TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS registration_deadline TIMESTAMPTZ;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS competition_date TIMESTAMPTZ;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS prize_pool_summary TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'registration_open';
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS rulebook_pdf_url TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 CREATE TABLE IF NOT EXISTS public.competition_categories (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   competition_id UUID NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
@@ -810,6 +866,14 @@ CREATE TABLE IF NOT EXISTS public.competition_categories (
   max_score INTEGER DEFAULT 100,
   order_index INTEGER DEFAULT 0
 );
+
+-- Idempotent Column Existence Guards for competition_categories
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS competition_id UUID REFERENCES public.competitions(id) ON DELETE CASCADE;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS weight_percentage INTEGER DEFAULT 33;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS max_score INTEGER DEFAULT 100;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS public.competition_teams (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -1155,6 +1219,15 @@ CREATE TABLE IF NOT EXISTS public.impact_ledger (
   audited_by_title TEXT DEFAULT 'YARA Executive Secretariat'
 );
 
+-- Idempotent Column Existence Guards for impact_ledger
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS metric_key TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS metric_title TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS verified_value BIGINT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS unit TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS verification_source TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS last_audited_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS audited_by_title TEXT DEFAULT 'YARA Executive Secretariat';
+
 -- ==============================================================================
 -- 20. FINANCIAL TRANSACTIONS, GRANTS & AUDITING
 -- ==============================================================================
@@ -1366,6 +1439,69 @@ END $$;
 -- ==============================================================================
 -- 23. OFFICIAL YARA SEED DATA — FULL COMPREHENSIVE CURRICULUM
 -- ==============================================================================
+-- Pre-Seed Column Existence Harmonization for Core Curriculum & Competitions
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS id UUID DEFAULT uuid_generate_v4();
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS track TEXT DEFAULT 'Robotics';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS tier INTEGER DEFAULT 1;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS level TEXT DEFAULT 'Beginner';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS min_theory_modules INTEGER DEFAULT 6;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS total_modules INTEGER DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS short_summary TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS hardware_required TEXT[] DEFAULT '{}';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS estimated_duration_hours INTEGER DEFAULT 20;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS id UUID DEFAULT uuid_generate_v4();
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS year INTEGER DEFAULT 2026;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS theme TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS prize_pool_summary TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'registration_open';
+
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS competition_id UUID REFERENCES public.competitions(id) ON DELETE CASCADE;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS weight_percentage INTEGER DEFAULT 33;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.competition_categories ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS target_audience TEXT DEFAULT 'All';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Robotics';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'Blended';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS duration_weeks INTEGER DEFAULT 4;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS total_hours INTEGER DEFAULT 16;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS fee_usd DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS capacity INTEGER DEFAULT 100;
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS venue TEXT DEFAULT 'Harare / Regional Centers + Online Portal';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open_for_registration';
+ALTER TABLE public.training_programs ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS metric_key TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS metric_title TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS verified_value BIGINT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS unit TEXT;
+ALTER TABLE public.impact_ledger ADD COLUMN IF NOT EXISTS verification_source TEXT;
+
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS province TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS lead_name TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS contact_email TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS members_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS schools_mentored_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 
 -- ------------------------------------------------------------------------------
 -- A. SEED COURSES (BEGINNER, INTERMEDIATE, ADVANCED)
