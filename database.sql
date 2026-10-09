@@ -1440,63 +1440,54 @@ END $$;
 -- CHECK CONSTRAINT HARMONIZATION & BACKWARD COMPATIBILITY
 -- Drops restrictive legacy CHECK constraints and installs inclusive variants
 -- ==============================================================================
-DO $$ BEGIN
-  -- Competitions
-  ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
-  ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
-  ALTER TABLE public.competitions ADD CONSTRAINT competitions_status_check 
-    CHECK (status IN ('draft', 'upcoming', 'active', 'registration_open', 'registration_closed', 'live', 'completed', 'archived'));
-  
-  -- Profiles
-  ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-  ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check 
-    CHECK (role IN ('super_admin', 'admin', 'instructor', 'coach', 'teacher', 'school_admin', 'student', 'innovator', 'partner', 'mentor'));
+-- Competitions
+ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
+ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
 
-  -- Training Programs
-  ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
-  ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
-  ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
-  ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
-  ALTER TABLE public.training_programs ADD CONSTRAINT training_programs_status_check
-    CHECK (status IN ('draft', 'upcoming', 'open_for_registration', 'in_progress', 'completed', 'archived'));
+-- Profiles
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 
-  -- Competition Teams & Members
-  ALTER TABLE public.competition_teams DROP CONSTRAINT IF EXISTS competition_teams_status_check;
-  ALTER TABLE public.competition_team_members DROP CONSTRAINT IF EXISTS competition_team_members_gender_check;
+-- Training Programs
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
 
-  -- Chapters
-  ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_status_check;
-  ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_category_check;
+-- Competition Teams & Members
+ALTER TABLE public.competition_teams DROP CONSTRAINT IF EXISTS competition_teams_status_check;
+ALTER TABLE public.competition_team_members DROP CONSTRAINT IF EXISTS competition_team_members_gender_check;
 
-  -- Course Enrollments
-  ALTER TABLE public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_status_check;
+-- Chapters
+ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_status_check;
+ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_category_check;
 
-  -- Curriculum Submissions
-  ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_submission_type_check;
-  ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_status_check;
+-- Course Enrollments
+ALTER TABLE public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_status_check;
 
-  -- Virtual Competitions & Submissions
-  ALTER TABLE public.virtual_competitions DROP CONSTRAINT IF EXISTS virtual_competitions_category_check;
-  ALTER TABLE public.virtual_competition_submissions DROP CONSTRAINT IF EXISTS virtual_competition_submissions_status_check;
+-- Curriculum Submissions
+ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_submission_type_check;
+ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_status_check;
 
-  -- Sponsors & Donations
-  ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_status_check;
-  ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_tier_check;
-  ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_status_check;
-  ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_support_type_check;
+-- Virtual Competitions & Submissions
+ALTER TABLE public.virtual_competitions DROP CONSTRAINT IF EXISTS virtual_competitions_category_check;
+ALTER TABLE public.virtual_competition_submissions DROP CONSTRAINT IF EXISTS virtual_competition_submissions_status_check;
 
-  -- Organization Posts & Events
-  ALTER TABLE public.organization_posts DROP CONSTRAINT IF EXISTS organization_posts_category_check;
-  ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_category_check;
+-- Sponsors & Donations
+ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_status_check;
+ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_tier_check;
+ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_status_check;
+ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_support_type_check;
 
-  -- Chapter Requests
-  ALTER TABLE public.chapter_registration_requests DROP CONSTRAINT IF EXISTS chapter_registration_requests_status_check;
-  ALTER TABLE public.chapter_join_requests DROP CONSTRAINT IF EXISTS chapter_join_requests_status_check;
+-- Organization Posts & Events
+ALTER TABLE public.organization_posts DROP CONSTRAINT IF EXISTS organization_posts_category_check;
+ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_category_check;
 
-  -- Brainstorming
-  ALTER TABLE public.brainstorming_quizzes DROP CONSTRAINT IF EXISTS brainstorming_quizzes_difficulty_check;
-EXCEPTION WHEN OTHERS THEN NULL;
-END $$;
+-- Chapter Requests
+ALTER TABLE public.chapter_registration_requests DROP CONSTRAINT IF EXISTS chapter_registration_requests_status_check;
+ALTER TABLE public.chapter_join_requests DROP CONSTRAINT IF EXISTS chapter_join_requests_status_check;
+
+-- Brainstorming
+ALTER TABLE public.brainstorming_quizzes DROP CONSTRAINT IF EXISTS brainstorming_quizzes_difficulty_check;
 
 -- ==============================================================================
 -- 23. OFFICIAL YARA SEED DATA — FULL COMPREHENSIVE CURRICULUM
@@ -2473,6 +2464,9 @@ ON CONFLICT DO NOTHING;
 -- ------------------------------------------------------------------------------
 -- H. SEED FLAGSHIP COMPETITION & TRAINING PROGRAMS
 -- ------------------------------------------------------------------------------
+ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
+ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
+
 INSERT INTO public.competitions (
   id, title, slug, year, theme, description, status, venue, prize_pool_summary
 ) VALUES (
@@ -2482,13 +2476,16 @@ INSERT INTO public.competitions (
   2026,
   'Engineering Opportunity: Robotics and Innovation for Underserved Youth',
   'Zimbabwe premier multi-tier robotics championship. Featuring Autonomous Maze Solving, Underwater Drone Simulations, and Community Innovation Pitch Defense. Strict 2 boys + 2 girls gender parity composition required.',
-  'registration_open',
+  'active',
   'National Championship Arena & Hybrid Regional Centers',
   '$5,000 in Hardware Grants, STEM Lab Kits & International Travel Sponsorship'
 ) ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
   theme = EXCLUDED.theme,
-  description = EXCLUDED.description;
+  description = EXCLUDED.description,
+  status = EXCLUDED.status;
+
+ALTER TABLE public.competition_categories DROP CONSTRAINT IF EXISTS competition_categories_weight_check;
 
 INSERT INTO public.competition_categories (competition_id, name, weight_percentage, description, order_index)
 VALUES 
@@ -2496,6 +2493,11 @@ VALUES
   ('c0000000-0000-0000-0000-000000002026', 'Autonomous Maze Solving (Micromouse)', 35, 'High-speed autonomous maze mapping, IR/Ultrasonic line tracking, and PID wall following without teleoperation.', 2),
   ('c0000000-0000-0000-0000-000000002026', 'Innovation Pitch Defense', 30, 'Defense of real community engineering solutions before a panel of industrial engineering judges and investors.', 3)
 ON CONFLICT DO NOTHING;
+
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
+ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
 
 INSERT INTO public.training_programs (
   title, slug, description, target_audience, category, format, duration_weeks, total_hours, fee_usd, capacity, venue, status, is_featured
