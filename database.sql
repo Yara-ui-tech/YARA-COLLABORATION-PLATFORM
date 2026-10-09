@@ -1560,6 +1560,12 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active
 -- ------------------------------------------------------------------------------
 -- A. SEED COURSES (BEGINNER, INTERMEDIATE, ADVANCED)
 -- ------------------------------------------------------------------------------
+-- Drop potential conflicts first
+DELETE FROM public.course_lessons WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
+DELETE FROM public.course_modules WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
+DELETE FROM public.courses WHERE id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
+CREATE UNIQUE INDEX IF NOT EXISTS courses_pkey_idx ON public.courses (id);
+
 INSERT INTO public.courses (
   id, code, title, slug, track, tier, level, min_theory_modules, total_modules,
   short_summary, description, hardware_required, is_published, is_featured, order_index
@@ -1623,6 +1629,8 @@ ON CONFLICT (id) DO UPDATE SET
 -- ------------------------------------------------------------------------------
 -- B. SEED BEGINNER LEVEL MODULES (10 FULL COMPREHENSIVE MODULES)
 -- ------------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS course_modules_course_module_idx ON public.course_modules (course_id, module_number);
+
 -- Every module contains: Theory, Video, Guided Lab, Assignment, Troubleshooting, Mentor Support
 INSERT INTO public.course_modules (
   course_id, module_number, order_index, title, coherent_skill_area,
@@ -2468,6 +2476,11 @@ ON CONFLICT DO NOTHING;
 ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
 ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
 
+-- Drop potential competition conflicts first
+DELETE FROM public.competition_categories WHERE competition_id = 'c0000000-0000-0000-0000-000000002026';
+DELETE FROM public.competitions WHERE id = 'c0000000-0000-0000-0000-000000002026';
+CREATE UNIQUE INDEX IF NOT EXISTS competitions_pkey_idx ON public.competitions (id);
+
 INSERT INTO public.competitions (
   id, title, slug, year, theme, description, status, venue, prize_pool_summary
 ) VALUES (
@@ -2499,6 +2512,14 @@ ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS trainin
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
+
+-- Drop potential training program conflicts first
+DELETE FROM public.training_programs WHERE slug IN (
+  'ai-for-educators-bootcamp',
+  'junior-robotics-engineering-sprint',
+  'school-patron-coach-certification'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS training_programs_slug_idx ON public.training_programs (slug);
 
 INSERT INTO public.training_programs (
   title, slug, description, target_audience, category, format, duration_weeks, total_hours, fee_usd, capacity, venue, status, is_featured
@@ -2542,6 +2563,15 @@ INSERT INTO public.training_programs (
 ON CONFLICT (slug) DO NOTHING;
 
 -- Seed Verified Impact Metrics for Mashwest and Zimbabwe
+-- Drop potential impact ledger conflicts first
+DELETE FROM public.impact_ledger WHERE metric_key IN (
+  'learners_reached_mashwest',
+  'teachers_upskilled',
+  'secondary_schools_equipped',
+  'girls_in_robotics_percentage'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS impact_ledger_metric_key_idx ON public.impact_ledger (metric_key);
+
 INSERT INTO public.impact_ledger (metric_key, metric_title, verified_value, unit, verification_source)
 VALUES
   ('learners_reached_mashwest', 'Learners Trained in Mashonaland West (2025)', 1200, 'Students', 'Mashwest Outreach Verification Report Oct 2025'),
@@ -2552,6 +2582,9 @@ ON CONFLICT (metric_key) DO UPDATE SET
   verified_value = EXCLUDED.verified_value;
 
 -- Seed Mashwest Provincial Chapter
+-- Drop potential chapter conflicts first
+DELETE FROM public.chapters WHERE name = 'Mashonaland West Provincial Chapter';
+
 INSERT INTO public.chapters (
   name, province, city, lead_name, contact_email, members_count, schools_mentored_count, status
 ) VALUES (
@@ -2589,27 +2622,23 @@ ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FAL
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
 
-DO $$
-BEGIN
-  -- Ensure unique constraint on slug exists for ON CONFLICT (slug)
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'courses_slug_key'
-  ) THEN
-    BEGIN
-      ALTER TABLE public.courses ADD CONSTRAINT courses_slug_key UNIQUE (slug);
-    EXCEPTION
-      WHEN OTHERS THEN NULL;
-    END;
-  END IF;
+-- Relax track check constraint safely to allow all central LMS catalog tracks
+ALTER TABLE IF EXISTS public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
 
-  -- Relax track check constraint safely to allow all central LMS catalog tracks
-  ALTER TABLE IF EXISTS public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
-  ALTER TABLE IF EXISTS public.courses ADD CONSTRAINT courses_track_check 
-    CHECK (track IN ('Robotics', 'Coding', 'Technology', 'Artificial Intelligence', 'IoT', 'Engineering', 'STEM', 'Specialized', 'Industrial Automation', 'Digital Literacy', 'Kids'));
-EXCEPTION
-  WHEN OTHERS THEN NULL;
-END $$;
-
+-- Drop potential canonical course conflicts first
+DELETE FROM public.courses WHERE slug IN (
+  'robotics-beginner',
+  'robotics-intermediate',
+  'robotics-advanced',
+  'robotics-mastery',
+  'coding-python',
+  'coding-cpp',
+  'ai-iot-foundations',
+  'industrial-automation',
+  'drone-aerospace',
+  'pcb-cad-design'
+);
+CREATE UNIQUE INDEX IF NOT EXISTS courses_slug_idx ON public.courses (slug);
 
 -- Seed canonical courses into public.courses
 INSERT INTO public.courses (
@@ -4273,6 +4302,9 @@ ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS explanation TE
 ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 10;
 
 -- Initial Executive Auditors
+DELETE FROM public.executive_auditors WHERE email IN ('goyaracorp@gmail.com', 'director@yara.org');
+CREATE UNIQUE INDEX IF NOT EXISTS executive_auditors_email_idx ON public.executive_auditors (email);
+
 INSERT INTO public.executive_auditors (id, email, name, title, authorized_by, is_active)
 VALUES 
   ('exec_1', 'goyaracorp@gmail.com', 'T. Mukombwe', 'Master Administrator & Lead Trustee', 'Board Resolution 2026/01', true),
@@ -4280,6 +4312,9 @@ VALUES
 ON CONFLICT (email) DO NOTHING;
 
 -- Initial System Settings
+DELETE FROM public.system_settings WHERE key IN ('platform_metadata', 'launch_countdown', 'portal_mode_defaults');
+CREATE UNIQUE INDEX IF NOT EXISTS system_settings_key_idx ON public.system_settings (key);
+
 INSERT INTO public.system_settings (key, value, description)
 VALUES 
   ('platform_metadata', '{"name": "YARA Pan-African Platform", "version": "3.1.0", "motto": "Innovate Local, Build Global"}', 'Core system branding and metadata'),
@@ -4288,6 +4323,9 @@ VALUES
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Initial Site Settings for Certificate Designer & Templates
+DELETE FROM public.site_settings WHERE key = 'certificate_template_config';
+CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON public.site_settings (key);
+
 INSERT INTO public.site_settings (key, value)
 VALUES 
   ('certificate_template_config', '{
@@ -4305,6 +4343,8 @@ VALUES
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Seed Default Community Testimonials
+DELETE FROM public.testimonials WHERE author_name IN ('Farai Chitepo', 'Ruvimbo Masawi', 'Eng. Kudakwashe Moyo');
+
 INSERT INTO public.testimonials (author_name, author_role, rating, category, content, is_featured, is_approved)
 VALUES 
   (
@@ -4333,10 +4373,12 @@ VALUES
     'Mentoring youth through YARA’s Live Room and reviewing their hardware schematics has been deeply rewarding. The level of critical thinking in these young African innovators is exceptional.',
     true,
     true
-  )
-ON CONFLICT DO NOTHING;
+  );
 
 -- Seed Default Ecosystem Sponsors
+DELETE FROM public.sponsors WHERE id IN ('sp_stem_advance_2026', 'sp_iot_hardware_labs');
+CREATE UNIQUE INDEX IF NOT EXISTS sponsors_id_idx ON public.sponsors (id);
+
 INSERT INTO public.sponsors (id, organization_name, contact_person, email, tier, contribution_type, committed_amount, received_amount, status, benefits_active, description)
 VALUES 
   (
@@ -4368,6 +4410,11 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Canonical Brainstorming Diagnostic Quizzes
+DELETE FROM public.brainstorming_quizzes WHERE title IN (
+  'Circuit Voltage Division Under Load',
+  'Sensor Noise & Non-Blocking Ultrasonic Ranging'
+);
+
 INSERT INTO public.brainstorming_quizzes (title, category, difficulty, image_url, question, options, correct_index, hint, critical_thinking_principle, explanation, points)
 VALUES 
   (
@@ -4395,5 +4442,4 @@ VALUES
     'Non-Blocking State Machines (millis() vs delay())',
     'Using delay() halts the CPU thread. If a rover is moving at 0.5 m/s, it will blindly travel 50 cm before reading the sensor again, making collision avoidance impossible. Non-blocking state loops using millis() allow continuous real-time reaction.',
     20
-  )
-ON CONFLICT DO NOTHING;
+  );
