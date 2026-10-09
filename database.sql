@@ -825,6 +825,13 @@ CREATE TABLE IF NOT EXISTS public.competition_teams (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS boy1_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS boy2_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS girl1_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS girl2_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS school_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS coach_name TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS coach_email TEXT;
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS category TEXT;
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
@@ -843,13 +850,17 @@ ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS consents JSONB DEF
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS video_demo_url TEXT;
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS admin_notes TEXT;
 ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN boy1_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN boy2_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN girl1_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN girl2_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN school_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN coach_name DROP NOT NULL;
-ALTER TABLE public.competition_teams ALTER COLUMN coach_email DROP NOT NULL;
+
+DO $$
+BEGIN
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN boy1_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN boy2_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN girl1_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN girl2_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN school_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN coach_name DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.competition_teams ALTER COLUMN coach_email DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.competition_scores (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -991,9 +1002,16 @@ CREATE TABLE IF NOT EXISTS public.ideas (
 ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS author_name TEXT;
 ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS content TEXT;
-ALTER TABLE public.ideas ALTER COLUMN title DROP NOT NULL;
-ALTER TABLE public.ideas ALTER COLUMN description DROP NOT NULL;
-ALTER TABLE public.ideas ALTER COLUMN user_id DROP NOT NULL;
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+DO $$
+BEGIN
+  BEGIN ALTER TABLE public.ideas ALTER COLUMN title DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.ideas ALTER COLUMN description DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN ALTER TABLE public.ideas ALTER COLUMN user_id DROP NOT NULL; EXCEPTION WHEN OTHERS THEN NULL; END;
+END $$;
 
 -- ==============================================================================
 -- 17. INDUSTRIAL MENTORSHIP & LIVE BROADCAST WORKSPACES
