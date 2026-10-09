@@ -95,6 +95,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS school_id UUID;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'approved';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS registration_paid BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS commission_due NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified_educator BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS educator_institution TEXT;
 
@@ -124,6 +132,12 @@ CREATE TABLE IF NOT EXISTS public.schools (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS patron_phone TEXT;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS club_status TEXT DEFAULT 'active';
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS established_year INTEGER DEFAULT 2025;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS kits_assigned_count INTEGER DEFAULT 0;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS active_teams_count INTEGER DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS public.school_clubs (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -811,6 +825,32 @@ CREATE TABLE IF NOT EXISTS public.competition_teams (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS city_town TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS participant_type TEXT DEFAULT 'School';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS boys_count INTEGER DEFAULT 2;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS girls_count INTEGER DEFAULT 2;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS total_members INTEGER DEFAULT 4;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS is_gender_eligible BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS underwater_drone_info JSONB DEFAULT '{}';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS autonomous_maze_info JSONB DEFAULT '{}';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS innovation_pitch_info JSONB DEFAULT '{}';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS consents JSONB DEFAULT '{}';
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS video_demo_url TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS admin_notes TEXT;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN boy1_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN boy2_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN girl1_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN girl2_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN school_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN coach_name DROP NOT NULL;
+ALTER TABLE public.competition_teams ALTER COLUMN coach_email DROP NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.competition_scores (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   team_id UUID NOT NULL REFERENCES public.competition_teams(id) ON DELETE CASCADE,
@@ -948,6 +988,13 @@ CREATE TABLE IF NOT EXISTS public.ideas (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE public.ideas ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE public.ideas ALTER COLUMN title DROP NOT NULL;
+ALTER TABLE public.ideas ALTER COLUMN description DROP NOT NULL;
+ALTER TABLE public.ideas ALTER COLUMN user_id DROP NOT NULL;
+
 -- ==============================================================================
 -- 17. INDUSTRIAL MENTORSHIP & LIVE BROADCAST WORKSPACES
 -- ==============================================================================
@@ -995,6 +1042,38 @@ CREATE TABLE IF NOT EXISTS public.chapters (
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'forming', 'inactive')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'university';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS institution_or_community TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS district_or_city TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS established_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'approved';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS registration_request_id UUID;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS is_provincial_lead_university BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS assigned_provincial_university_id UUID;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS assigned_provincial_university_name TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS supervised_chapter_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS total_members_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS active_projects_count INTEGER DEFAULT 0;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS motto TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS website_url TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS public_email TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS public_phone TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS public_social_links JSONB DEFAULT '{}';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS meeting_schedule TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS physical_location TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS focus_areas TEXT[] DEFAULT '{}';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS leaders JSONB DEFAULT '[]';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS members JSONB DEFAULT '[]';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS projects JSONB DEFAULT '[]';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS activities JSONB DEFAULT '[]';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS patron_advisor JSONB DEFAULT '{}';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS confidential_info JSONB DEFAULT '{}';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 -- ==============================================================================
 -- 19. CMS, ANNOUNCEMENTS, IMPACT LEDGER & PARTNERS
@@ -1111,7 +1190,10 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
+    WHERE id = auth.uid() AND (
+      role IN ('admin', 'super_admin') 
+      OR email IN ('goyaracorp@gmail.com', 'admin@yara.org', 'director@yara.org')
+    )
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -2431,3 +2513,1461 @@ ON CONFLICT (slug) DO UPDATE SET
   estimated_duration_hours = EXCLUDED.estimated_duration_hours,
   is_published = EXCLUDED.is_published,
   is_featured = EXCLUDED.is_featured;
+
+-- ==============================================================================
+-- 24. EXTENDED LMS CURRICULUM, LEARNER PROGRESSION & ACCREDITED CERTIFICATES
+-- ==============================================================================
+
+-- Interactive Curriculum Sessions
+CREATE TABLE IF NOT EXISTS public.curriculum_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  session_id TEXT UNIQUE NOT NULL, -- e.g. 'S01', 'S02', 'S42'
+  course_id TEXT,
+  course_level INTEGER DEFAULT 1,
+  topic TEXT NOT NULL,
+  part TEXT DEFAULT 'Electronics',
+  type TEXT DEFAULT 'online' CHECK (type IN ('online', 'physical', 'physical_lab')),
+  outcome TEXT,
+  description TEXT,
+  video_url TEXT,
+  resources JSONB DEFAULT '[]',
+  questions JSONB DEFAULT '[]',
+  assignments JSONB DEFAULT '[]',
+  projects JSONB DEFAULT '[]',
+  details JSONB DEFAULT '{}',
+  order_index INTEGER DEFAULT 0,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Real-Time Session Completion & Progress Engine
+CREATE TABLE IF NOT EXISTS public.curriculum_progress (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  video_progress NUMERIC DEFAULT 0,
+  quiz_status TEXT DEFAULT 'pending' CHECK (quiz_status IN ('pending', 'in_progress', 'passed', 'failed')),
+  quiz_score INTEGER DEFAULT 0,
+  assignment_status TEXT DEFAULT 'pending' CHECK (assignment_status IN ('pending', 'submitted', 'graded', 'approved')),
+  project_status TEXT DEFAULT 'pending' CHECK (project_status IN ('pending', 'submitted', 'graded', 'approved')),
+  is_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, session_id)
+);
+
+-- Practical Laboratory & Assignment Submissions
+CREATE TABLE IF NOT EXISTS public.curriculum_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  submission_type TEXT NOT NULL CHECK (submission_type IN ('assignment', 'project', 'quiz', 'lab')),
+  item_id TEXT NOT NULL,
+  content TEXT,
+  submission_link TEXT,
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'graded', 'approved', 'rejected')),
+  grade NUMERIC(5,2),
+  feedback TEXT,
+  reviewer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, session_id, submission_type, item_id)
+);
+
+-- Curriculum Session Feedback & Struggle Diagnostic
+CREATE TABLE IF NOT EXISTS public.curriculum_feedback (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  status TEXT DEFAULT 'completed' CHECK (status IN ('completed', 'in_progress', 'struggling', 'needs_help')),
+  success_comment TEXT,
+  struggle_comment TEXT,
+  rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, session_id)
+);
+
+-- Knowledge Check Quiz Attempts
+CREATE TABLE IF NOT EXISTS public.quiz_attempts (
+  id TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  score INTEGER NOT NULL DEFAULT 0,
+  total_questions INTEGER NOT NULL DEFAULT 0,
+  percentage NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+  passed BOOLEAN NOT NULL DEFAULT FALSE,
+  answers JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Comprehensive Robotics Final Examination Attempts
+CREATE TABLE IF NOT EXISTS public.final_exam_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL DEFAULT 0,
+  total_questions INTEGER NOT NULL DEFAULT 0,
+  percentage NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+  passed BOOLEAN NOT NULL DEFAULT FALSE,
+  answers JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Capstone Robotics Engineering Project Submissions
+CREATE TABLE IF NOT EXISTS public.final_project_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  problem_statement TEXT,
+  simulation_url TEXT,
+  repo_url TEXT,
+  video_url TEXT,
+  documentation TEXT,
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'approved', 'revision_requested', 'rejected')),
+  grade NUMERIC(5,2),
+  feedback TEXT,
+  reviewer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- YARA & Great Learning Accredited Digital Certificates
+CREATE TABLE IF NOT EXISTS public.yara_accredited_certificates (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  certificate_number TEXT UNIQUE NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  user_email TEXT,
+  student_name TEXT NOT NULL,
+  course_id TEXT,
+  course_title TEXT NOT NULL,
+  course_category TEXT,
+  certificate_type TEXT DEFAULT 'programming',
+  robotics_level INTEGER,
+  grade TEXT DEFAULT 'Distinction',
+  score NUMERIC(5,2) DEFAULT 90.00,
+  issue_date TIMESTAMPTZ DEFAULT now(),
+  verification_url TEXT,
+  payload JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Brainstorming & Critical Thinking Quizzes
+CREATE TABLE IF NOT EXISTS public.brainstorming_quizzes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  difficulty TEXT DEFAULT 'beginner' CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
+  image_url TEXT,
+  question TEXT NOT NULL,
+  options JSONB DEFAULT '[]',
+  correct_index INTEGER DEFAULT 0,
+  hint TEXT,
+  critical_thinking_principle TEXT,
+  explanation TEXT,
+  points INTEGER DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Brainstorming Learner Streaks & Attempts
+CREATE TABLE IF NOT EXISTS public.brainstorming_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_name TEXT,
+  score INTEGER DEFAULT 0,
+  total_questions INTEGER DEFAULT 0,
+  streak INTEGER DEFAULT 0,
+  category_breakdown JSONB DEFAULT '{}',
+  category TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- STEM Educator & Patron Training Registrations
+CREATE TABLE IF NOT EXISTS public.training_registrations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  program_id TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  full_name TEXT,
+  email TEXT,
+  phone TEXT,
+  school_institution TEXT,
+  registration_status TEXT DEFAULT 'confirmed' CHECK (registration_status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('waived', 'pending', 'paid', 'refunded')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Early Childhood STEM & Robotics Content (Ages 3-8)
+CREATE TABLE IF NOT EXISTS public.yara_kids_content (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('video', 'song', 'flashcard', 'challenge')),
+  description TEXT,
+  media_url TEXT,
+  video_url TEXT,
+  audio_url TEXT,
+  thumbnail_url TEXT,
+  age_group TEXT DEFAULT '3-8 Years',
+  category TEXT DEFAULT 'General STEM',
+  lyrics TEXT,
+  duration TEXT,
+  word TEXT,
+  definition TEXT,
+  fun_fact TEXT,
+  difficulty TEXT DEFAULT 'Fun',
+  reward_stars INTEGER DEFAULT 10,
+  question TEXT,
+  options JSONB DEFAULT '[]',
+  correct_option INTEGER DEFAULT 0,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 25. INDUSTRIAL MENTORSHIP, LIVE ROOMS & COLLABORATIVE COMMISSIONS
+-- ==============================================================================
+
+-- Live Video Mentorship Broadcasts
+CREATE TABLE IF NOT EXISTS public.live_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  category TEXT DEFAULT 'Robotics & Hardware',
+  room_id TEXT UNIQUE NOT NULL,
+  video_url TEXT,
+  required_skills TEXT[] DEFAULT '{}',
+  is_live BOOLEAN DEFAULT TRUE,
+  is_approved BOOLEAN DEFAULT FALSE,
+  description TEXT,
+  is_external BOOLEAN DEFAULT FALSE,
+  scheduled_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Student Live Broadcast Mentorship Requests
+CREATE TABLE IF NOT EXISTS public.live_session_mentor_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  session_id UUID REFERENCES public.live_sessions(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  message TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'admitted', 'declined')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- One-on-One Mentorship Bookings & Inquiries
+CREATE TABLE IF NOT EXISTS public.mentorship_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  requester_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  requester_name TEXT,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'completed', 'cancelled')),
+  message TEXT,
+  whatsapp_number TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Threaded Mentorship Chat Messages
+CREATE TABLE IF NOT EXISTS public.mentorship_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  request_id TEXT NOT NULL,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Mentee Ratings & Testimonials for Mentors
+CREATE TABLE IF NOT EXISTS public.mentor_reviews (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  request_id TEXT,
+  rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Commission Logs for Mentors
+CREATE TABLE IF NOT EXISTS public.mentor_session_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  amount_received NUMERIC(10,2) DEFAULT 0.00,
+  description TEXT,
+  admin_approved BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Mentor Payout Ledger
+CREATE TABLE IF NOT EXISTS public.mentor_payouts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  mentor_name TEXT,
+  mentor_email TEXT,
+  amount NUMERIC(10,2) NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  sessions_completed INTEGER DEFAULT 1,
+  payment_method TEXT DEFAULT 'bank_transfer' CHECK (payment_method IN ('bank_transfer', 'mobile_money', 'paypal', 'crypto', 'cash')),
+  payment_reference TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('completed', 'pending', 'processing', 'failed', 'rejected')),
+  payout_date DATE DEFAULT CURRENT_DATE,
+  notes TEXT,
+  approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Official Session Assignments for Mentors
+CREATE TABLE IF NOT EXISTS public.session_assignments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES public.live_sessions(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'pending', 'delivered', 'cancelled')),
+  mentor_marked_delivered_at TIMESTAMPTZ,
+  admin_verified_at TIMESTAMPTZ,
+  payout_amount NUMERIC(10,2) DEFAULT 0.00,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Study Guides, Circuit Diagrams & Engineering Materials
+CREATE TABLE IF NOT EXISTS public.study_materials (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  mentor_name TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  file_url TEXT NOT NULL,
+  file_type TEXT DEFAULT 'pdf',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 26. PAN-AFRICAN CHAPTERS, CHARTERS & REPORTING SYSTEM
+-- ==============================================================================
+
+-- New Chapter Charter Applications
+CREATE TABLE IF NOT EXISTS public.chapter_registration_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  proposed_name TEXT NOT NULL,
+  category TEXT DEFAULT 'university' CHECK (category IN ('university', 'high_school', 'primary_school', 'community_youth', 'polytechnic', 'provincial_hub')),
+  institution_or_community TEXT NOT NULL,
+  province TEXT NOT NULL,
+  district_or_city TEXT NOT NULL,
+  logo_url TEXT,
+  banner_url TEXT,
+  description TEXT,
+  physical_location TEXT,
+  meeting_schedule TEXT,
+  focus_areas TEXT[] DEFAULT '{}',
+  public_email TEXT NOT NULL,
+  public_phone TEXT NOT NULL,
+  total_members_count INTEGER DEFAULT 0,
+  members JSONB DEFAULT '[]',
+  leaders JSONB DEFAULT '[]',
+  available_equipment TEXT,
+  patron_advisor JSONB DEFAULT '{}',
+  assigned_provincial_university_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
+  assigned_provincial_university_name TEXT,
+  submitted_by_name TEXT,
+  submitted_by_email TEXT,
+  submitted_by_phone TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_review_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chapter Membership Join Applications
+CREATE TABLE IF NOT EXISTS public.chapter_join_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE,
+  chapter_name TEXT,
+  chapter_code TEXT,
+  province TEXT,
+  chapter_category TEXT,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  institution TEXT NOT NULL,
+  grade_or_year TEXT,
+  role_applying_for TEXT DEFAULT 'Member',
+  skills TEXT[] DEFAULT '{}',
+  motivation TEXT,
+  student_id TEXT,
+  id_document_url TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_by TEXT,
+  reviewed_at TIMESTAMPTZ,
+  review_notes TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Periodic Chapter Activity & Financial Reports
+CREATE TABLE IF NOT EXISTS public.chapter_reports (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE,
+  chapter_name TEXT NOT NULL,
+  chapter_category TEXT,
+  report_title TEXT NOT NULL,
+  report_category TEXT DEFAULT 'general' CHECK (report_category IN ('general', 'financial', 'project_milestone')),
+  period_type TEXT DEFAULT 'monthly' CHECK (period_type IN ('monthly', 'quarterly', 'annual', 'special_event', 'project_milestone', 'financial')),
+  period_date TEXT NOT NULL,
+  submitted_by_name TEXT NOT NULL,
+  submitted_by_role TEXT NOT NULL,
+  submitted_by_email TEXT NOT NULL,
+  submitted_by_leader_id TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  executive_summary TEXT NOT NULL,
+  activities_undertaken TEXT,
+  attendance_count INTEGER DEFAULT 0,
+  hardware_projects_update TEXT,
+  challenges_and_needs TEXT,
+  report_document_url TEXT,
+  financial_statement_url TEXT,
+  financial_data JSONB DEFAULT '{}',
+  supporting_images TEXT[] DEFAULT '{}',
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'assessed', 'revisions_requested', 'approved')),
+  executive_assessment JSONB DEFAULT '{}',
+  is_locked BOOLEAN DEFAULT FALSE,
+  locked_at TIMESTAMPTZ,
+  locked_by_name TEXT,
+  leadership_verified BOOLEAN DEFAULT FALSE,
+  leadership_approved_by_admin BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 27. COMPETITION ECOSYSTEM, VIRTUAL SPRINT ARENAS & SCORING
+-- ==============================================================================
+
+-- Centralized Competition Events & Editions
+CREATE TABLE IF NOT EXISTS public.competition_events (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  edition_year INTEGER DEFAULT 2026,
+  theme TEXT,
+  tagline TEXT,
+  description TEXT,
+  organizer TEXT DEFAULT 'Young Africans Robotics Association (YARA)',
+  date_display TEXT,
+  venue_display TEXT,
+  registration_deadline_display TEXT,
+  is_registration_open BOOLEAN DEFAULT TRUE,
+  is_leaderboard_published BOOLEAN DEFAULT FALSE,
+  categories JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Dynamic Competition Team Members & Gender Parity Verification
+CREATE TABLE IF NOT EXISTS public.competition_team_members (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE,
+  registration_id UUID,
+  full_name TEXT NOT NULL,
+  age INTEGER,
+  gender TEXT CHECK (gender IN ('boy', 'girl', 'male', 'female')),
+  school_organization TEXT,
+  grade_level TEXT,
+  email TEXT,
+  phone TEXT,
+  role TEXT DEFAULT 'Team Member',
+  is_captain BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Full Competition Team Registrations Dossier
+CREATE TABLE IF NOT EXISTS public.yara_competition_registrations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  registration_id TEXT UNIQUE NOT NULL, -- e.g. YARA-RC26-000123
+  event_id TEXT DEFAULT 'yara_rc_2026',
+  event_name TEXT DEFAULT 'YARA Educational Robotics Competition 2026',
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  participant_type TEXT NOT NULL,
+  participant_type_other TEXT,
+  team_name TEXT NOT NULL,
+  school_organization TEXT NOT NULL,
+  province TEXT NOT NULL,
+  district TEXT,
+  city_town TEXT,
+  team_leader_name TEXT NOT NULL,
+  team_leader_email TEXT NOT NULL,
+  team_leader_phone TEXT NOT NULL,
+  mentor_name TEXT,
+  mentor_email TEXT,
+  mentor_phone TEXT,
+  selected_categories TEXT[] DEFAULT '{}',
+  members JSONB DEFAULT '[]',
+  boys_count INTEGER DEFAULT 2,
+  girls_count INTEGER DEFAULT 2,
+  total_members INTEGER DEFAULT 4,
+  is_gender_eligible BOOLEAN DEFAULT TRUE,
+  underwater_drone_info JSONB DEFAULT '{}',
+  autonomous_maze_info JSONB DEFAULT '{}',
+  innovation_pitch_info JSONB DEFAULT '{}',
+  documents JSONB DEFAULT '[]',
+  video_demo_url TEXT,
+  consents JSONB DEFAULT '{}',
+  status TEXT DEFAULT 'Submitted' CHECK (status IN ('Draft', 'Submitted', 'Under Review', 'Approved', 'Corrections Required', 'Rejected', 'Withdrawn', 'Finalist', 'Winner')),
+  admin_notes TEXT,
+  correction_requests TEXT[] DEFAULT '{}',
+  assigned_judge_ids TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Accredited Competition Judges
+CREATE TABLE IF NOT EXISTS public.judges (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  specialty TEXT,
+  assigned_categories TEXT[] DEFAULT '{}',
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Rubric Category Score Sheets
+CREATE TABLE IF NOT EXISTS public.scores (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  registration_id TEXT,
+  team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE,
+  team_name TEXT,
+  category TEXT NOT NULL,
+  judge_id UUID REFERENCES public.judges(id) ON DELETE SET NULL,
+  judge_name TEXT,
+  score_data JSONB DEFAULT '{}',
+  underwater_scores JSONB DEFAULT '{}',
+  maze_scores JSONB DEFAULT '{}',
+  pitch_scores JSONB DEFAULT '{}',
+  final_category_score NUMERIC(5,2) DEFAULT 0.00,
+  is_locked BOOLEAN DEFAULT FALSE,
+  notes TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Virtual Robotics & Simulation Sprints (Wokwi & CAD)
+CREATE TABLE IF NOT EXISTS public.virtual_competitions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT DEFAULT 'robot_simulation',
+  category_label TEXT DEFAULT 'Robot Simulation Sprint',
+  description TEXT,
+  duration_hours INTEGER DEFAULT 48,
+  starter_url TEXT DEFAULT 'https://wokwi.com/projects/',
+  rules TEXT,
+  criteria TEXT,
+  max_score INTEGER DEFAULT 100,
+  prize TEXT DEFAULT 'Verified Badge + $100 Hardware Voucher',
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Virtual Competition Student Entries
+CREATE TABLE IF NOT EXISTS public.virtual_competition_submissions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  competition_id UUID REFERENCES public.virtual_competitions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  participant_name TEXT,
+  project_title TEXT NOT NULL,
+  simulation_url TEXT,
+  repo_url TEXT,
+  video_demo_url TEXT,
+  documentation TEXT,
+  score INTEGER,
+  feedback TEXT,
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'evaluated', 'winner')),
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 28. COMMUNITY, INNOVATION BOARD & FEEDBACK REPOSITORY
+-- ==============================================================================
+
+-- Comments on Community Ideas
+CREATE TABLE IF NOT EXISTS public.idea_comments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  idea_id UUID NOT NULL REFERENCES public.ideas(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  author_name TEXT,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Reactions / Upvotes on Community Ideas
+CREATE TABLE IF NOT EXISTS public.idea_reactions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  idea_id UUID NOT NULL REFERENCES public.ideas(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  reaction_type TEXT DEFAULT 'like',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(idea_id, user_id, reaction_type)
+);
+
+-- Community Testimonials & Success Stories
+CREATE TABLE IF NOT EXISTS public.testimonials (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  author_name TEXT NOT NULL,
+  author_role TEXT DEFAULT 'STEM Educator',
+  rating INTEGER DEFAULT 5,
+  category TEXT DEFAULT 'general',
+  content TEXT NOT NULL,
+  avatar_url TEXT,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_approved BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Satisfaction Feedback & Bug Reports
+CREATE TABLE IF NOT EXISTS public.feedback (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  user_name TEXT,
+  user_email TEXT,
+  category TEXT DEFAULT 'general',
+  rating INTEGER DEFAULT 5,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Provincial Impact Photo & Video Galleries
+CREATE TABLE IF NOT EXISTS public.impact_galleries (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  province TEXT DEFAULT 'National',
+  year INTEGER DEFAULT 2026,
+  description TEXT,
+  cover_image_url TEXT,
+  video_url TEXT,
+  gallery_urls TEXT[] DEFAULT '{}',
+  achievements TEXT[] DEFAULT '{}',
+  people_reached INTEGER DEFAULT 0,
+  girls_reached INTEGER DEFAULT 0,
+  boys_reached INTEGER DEFAULT 0,
+  schools_impacted INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Public & Masterclass Events Calendar
+CREATE TABLE IF NOT EXISTS public.events (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  description TEXT,
+  category TEXT DEFAULT 'workshop' CHECK (category IN ('workshop', 'masterclass', 'competition', 'bootcamp', 'webinar', 'exhibition')),
+  event_date TIMESTAMPTZ NOT NULL,
+  end_date TIMESTAMPTZ,
+  venue TEXT,
+  is_virtual BOOLEAN DEFAULT TRUE,
+  virtual_meeting_url TEXT,
+  registration_fee_usd NUMERIC(10,2) DEFAULT 0.00,
+  capacity INTEGER,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Event & AI Bootcamp Attendee Registrations
+CREATE TABLE IF NOT EXISTS public.event_registrations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  registration_code TEXT UNIQUE,
+  event_id TEXT NOT NULL,
+  event_title TEXT NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  school_institution TEXT NOT NULL,
+  role_title TEXT DEFAULT 'Educator',
+  province TEXT DEFAULT 'National',
+  registration_fee NUMERIC(10,2) DEFAULT 0.00,
+  currency TEXT DEFAULT 'USD',
+  continuous_support_opt_in BOOLEAN DEFAULT FALSE,
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'submitted', 'verified', 'rejected', 'unpaid')),
+  payment_method TEXT DEFAULT 'ecocash',
+  payment_reference TEXT,
+  payment_notes TEXT,
+  proof_of_payment_url TEXT,
+  paid_at TIMESTAMPTZ,
+  approval_status TEXT DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+  approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_by_name TEXT,
+  approved_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  admin_notes TEXT,
+  certificate_unlocked BOOLEAN DEFAULT FALSE,
+  certificate_unlocked_at TIMESTAMPTZ,
+  certificate_unlocked_by TEXT,
+  certificate_number TEXT,
+  certificate_grade TEXT,
+  certificate_title TEXT,
+  certificate_custom_links JSONB DEFAULT '[]',
+  certificate_custom_fields JSONB DEFAULT '[]',
+  certificate_custom_notes TEXT,
+  certificate_endorsement_text TEXT,
+  has_entered_event BOOLEAN DEFAULT FALSE,
+  last_entered_at TIMESTAMPTZ,
+  entry_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Event Live Broadcast & Virtual Meeting Credentials
+CREATE TABLE IF NOT EXISTS public.event_meetings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  meeting_title TEXT NOT NULL,
+  meeting_url TEXT NOT NULL,
+  meeting_code TEXT,
+  passcode TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Public Contact Form Messages
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  subject TEXT,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'responded', 'archived')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 29. PARTNERSHIPS, SPONSORSHIPS, GOVERNANCE & AUDITING
+-- ==============================================================================
+
+-- Competition & Ecosystem Sponsors
+CREATE TABLE IF NOT EXISTS public.sponsors (
+  id TEXT PRIMARY KEY,
+  organization_name TEXT NOT NULL,
+  contact_person TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  website TEXT,
+  tier TEXT DEFAULT 'silver_sponsor' CHECK (tier IN ('title_sponsor', 'gold_sponsor', 'silver_sponsor', 'tech_sponsor', 'food_sponsor', 'awards_sponsor', 'education_sponsor')),
+  contribution_type TEXT DEFAULT 'cash' CHECK (contribution_type IN ('cash', 'in_kind', 'hybrid')),
+  committed_amount NUMERIC(12,2) DEFAULT 0.00,
+  received_amount NUMERIC(12,2) DEFAULT 0.00,
+  in_kind_description TEXT,
+  target_focus TEXT,
+  logo_url TEXT,
+  description TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'received', 'declined')),
+  benefits_active BOOLEAN DEFAULT FALSE,
+  allocations JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Public & Corporate Donations & Sponsorships
+CREATE TABLE IF NOT EXISTS public.donations_sponsorships (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  donor_name TEXT NOT NULL,
+  organization TEXT,
+  email TEXT,
+  phone TEXT,
+  support_type TEXT DEFAULT 'financial' CHECK (support_type IN ('financial', 'in_kind_hardware', 'venue_pool_facility', 'mentorship_coaching', 'student_meals_transport', 'other')),
+  amount NUMERIC(12,2),
+  currency TEXT DEFAULT 'USD',
+  payment_method TEXT DEFAULT 'ecocash_0788953986',
+  transaction_reference TEXT,
+  in_kind_description TEXT,
+  message TEXT,
+  is_anonymous BOOLEAN DEFAULT FALSE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'received')),
+  pop_on_homepage BOOLEAN DEFAULT FALSE,
+  display_on_wall BOOLEAN DEFAULT TRUE,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Strategic Partnership Proposals
+CREATE TABLE IF NOT EXISTS public.partnership_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  organization_name TEXT NOT NULL,
+  contact_person TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  specialty_area TEXT NOT NULL,
+  partnership_type TEXT NOT NULL,
+  logo_url TEXT,
+  expectations TEXT,
+  website_url TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  display_on_website BOOLEAN DEFAULT TRUE,
+  admin_notes TEXT,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Volunteers & Technical Officials Roster
+CREATE TABLE IF NOT EXISTS public.volunteers (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('judge_technical', 'robotics_mentor', 'event_logistics', 'media_photo_video', 'underwater_drone_safety', 'community_outreach', 'medical_first_aid')),
+  country TEXT DEFAULT 'Zimbabwe',
+  province TEXT DEFAULT 'National',
+  district TEXT,
+  skills_background TEXT,
+  availability TEXT,
+  motivation TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Annual Innovator & Learner Subscriptions
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  user_name TEXT,
+  member_id TEXT,
+  plan_type TEXT DEFAULT 'annual_innovator',
+  amount NUMERIC(10,2) DEFAULT 5.00,
+  currency TEXT DEFAULT 'USD',
+  payment_method TEXT DEFAULT 'ecocash',
+  payment_reference TEXT,
+  proof_url TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending_verification', 'expired', 'rejected')),
+  starts_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '1 year'),
+  verified_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  verified_at TIMESTAMPTZ,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Pre-Approved Member Whitelist
+CREATE TABLE IF NOT EXISTS public.pre_approvals (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  role TEXT DEFAULT 'student' CHECK (role IN ('admin', 'educator', 'student', 'mentor', 'partner', 'volunteer')),
+  member_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Authorized Executive Auditors & Trustees
+CREATE TABLE IF NOT EXISTS public.executive_auditors (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  authorized_by TEXT,
+  authorized_at TIMESTAMPTZ DEFAULT now(),
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Financial Inflows & Capital Investments
+CREATE TABLE IF NOT EXISTS public.investments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  source_name TEXT NOT NULL,
+  amount NUMERIC(12,2) NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  investment_type TEXT DEFAULT 'grant' CHECK (investment_type IN ('grant', 'angel', 'sponsor', 'government', 'donation')),
+  purpose TEXT,
+  date_received DATE DEFAULT CURRENT_DATE,
+  status TEXT DEFAULT 'received' CHECK (status IN ('received', 'pledged', 'allocated')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- System Dynamic Configurations & Feature Flags
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Site Configuration Store (Certificates, Portals, Legal)
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Sessions & Active Device Tracking
+CREATE TABLE IF NOT EXISTS public.user_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  device_id TEXT NOT NULL,
+  last_active TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, device_id)
+);
+
+-- Notification Dispatch Queue
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'system' CHECK (type IN ('system', 'competition', 'course', 'event', 'announcement', 'achievement', 'certificate')),
+  link TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 30. FUTURE-PROOF PLATFORM ASSETS
+-- ==============================================================================
+
+-- Hardware Kits & Microcontroller Inventory Management
+CREATE TABLE IF NOT EXISTS public.hardware_inventories (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  kit_code TEXT UNIQUE NOT NULL, -- e.g. 'YARA-KIT-UNO-042'
+  kit_name TEXT NOT NULL,
+  category TEXT DEFAULT 'Robotics Foundation Kit',
+  assigned_to_school_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
+  assigned_to_chapter_id UUID REFERENCES public.chapters(id) ON DELETE SET NULL,
+  components_manifest JSONB DEFAULT '[]',
+  condition TEXT DEFAULT 'good' CHECK (condition IN ('new', 'good', 'needs_repair', 'retired')),
+  serial_numbers TEXT[] DEFAULT '{}',
+  assigned_at TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- School Club Patrons & STEM Coaches Accreditation
+CREATE TABLE IF NOT EXISTS public.patron_accreditations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  patron_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
+  accreditation_number TEXT UNIQUE NOT NULL,
+  level TEXT DEFAULT 'Certified Robotics Coach' CHECK (level IN ('Club Patron', 'Certified Robotics Coach', 'National Technical Judge', 'Master Instructor')),
+  issued_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '2 years'),
+  is_active BOOLEAN DEFAULT TRUE,
+  verified_by TEXT DEFAULT 'YARA Academic Directorate',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Comprehensive Security & System Audit Logs
+CREATE TABLE IF NOT EXISTS public.system_audit_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  old_data JSONB,
+  new_data JSONB,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Community Newsletter Subscribers
+CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  province TEXT DEFAULT 'National',
+  is_active BOOLEAN DEFAULT TRUE,
+  subscribed_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==============================================================================
+-- 31. PERFORMANCE INDEXES
+-- ==============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_curr_sessions_course ON public.curriculum_sessions(course_id);
+CREATE INDEX IF NOT EXISTS idx_curr_progress_user ON public.curriculum_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_curr_submissions_user ON public.curriculum_submissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user ON public.quiz_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_final_exam_user ON public.final_exam_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_final_proj_user ON public.final_project_submissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_live_sessions_mentor ON public.live_sessions(mentor_id);
+CREATE INDEX IF NOT EXISTS idx_live_sessions_room ON public.live_sessions(room_id);
+CREATE INDEX IF NOT EXISTS idx_mentorship_req_mentor ON public.mentorship_requests(mentor_id);
+CREATE INDEX IF NOT EXISTS idx_mentorship_req_user ON public.mentorship_requests(requester_id);
+CREATE INDEX IF NOT EXISTS idx_chapter_reg_status ON public.chapter_registration_requests(status);
+CREATE INDEX IF NOT EXISTS idx_chapter_join_status ON public.chapter_join_requests(status);
+CREATE INDEX IF NOT EXISTS idx_chapter_reports_chap ON public.chapter_reports(chapter_id);
+CREATE INDEX IF NOT EXISTS idx_comp_teams_event ON public.yara_competition_registrations(event_id);
+CREATE INDEX IF NOT EXISTS idx_comp_members_team ON public.competition_team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_event_reg_code ON public.event_registrations(registration_code);
+CREATE INDEX IF NOT EXISTS idx_event_reg_user ON public.event_registrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifs_user_read ON public.notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_subs_user ON public.subscriptions(user_id);
+
+-- ==============================================================================
+-- 32. ROW LEVEL SECURITY (RLS) POLICIES FOR ALL TABLES
+-- ==============================================================================
+
+ALTER TABLE public.curriculum_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.curriculum_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.curriculum_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.curriculum_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.final_exam_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.final_project_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.yara_accredited_certificates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brainstorming_quizzes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.brainstorming_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.training_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.yara_kids_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_session_mentor_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentorship_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentor_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentor_session_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentor_payouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.session_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_registration_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_join_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapter_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.yara_competition_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.judges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.virtual_competitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.virtual_competition_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.idea_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.idea_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.impact_galleries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_meetings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sponsors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.donations_sponsorships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partnership_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.volunteers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pre_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.executive_auditors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.investments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hardware_inventories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patron_accreditations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
+
+-- Helper macro to safely execute RLS creation without throwing if already existing
+DO $$
+BEGIN
+  -- Curriculum Sessions
+  DROP POLICY IF EXISTS "Public can view curriculum sessions" ON public.curriculum_sessions;
+  CREATE POLICY "Public can view curriculum sessions" ON public.curriculum_sessions FOR SELECT USING (is_published = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Admins manage curriculum sessions" ON public.curriculum_sessions;
+  CREATE POLICY "Admins manage curriculum sessions" ON public.curriculum_sessions FOR ALL USING (public.is_admin());
+
+  -- Curriculum Progress
+  DROP POLICY IF EXISTS "Users manage own curriculum progress" ON public.curriculum_progress;
+  CREATE POLICY "Users manage own curriculum progress" ON public.curriculum_progress FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Curriculum Submissions
+  DROP POLICY IF EXISTS "Users manage own submissions" ON public.curriculum_submissions;
+  CREATE POLICY "Users manage own submissions" ON public.curriculum_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Curriculum Feedback
+  DROP POLICY IF EXISTS "Users manage own feedback" ON public.curriculum_feedback;
+  CREATE POLICY "Users manage own feedback" ON public.curriculum_feedback FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Quiz Attempts
+  DROP POLICY IF EXISTS "Users view own quiz attempts" ON public.quiz_attempts;
+  CREATE POLICY "Users view own quiz attempts" ON public.quiz_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Final Exam Attempts
+  DROP POLICY IF EXISTS "Users view own final exam attempts" ON public.final_exam_attempts;
+  CREATE POLICY "Users view own final exam attempts" ON public.final_exam_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Final Project Submissions
+  DROP POLICY IF EXISTS "Users manage own capstone submissions" ON public.final_project_submissions;
+  CREATE POLICY "Users manage own capstone submissions" ON public.final_project_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Certificates
+  DROP POLICY IF EXISTS "Public can verify accredited certificates" ON public.yara_accredited_certificates;
+  CREATE POLICY "Public can verify accredited certificates" ON public.yara_accredited_certificates FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Admins issue accredited certificates" ON public.yara_accredited_certificates;
+  CREATE POLICY "Admins issue accredited certificates" ON public.yara_accredited_certificates FOR ALL USING (public.is_admin());
+
+  -- Brainstorming Quizzes & Attempts
+  DROP POLICY IF EXISTS "Public can read brainstorming quizzes" ON public.brainstorming_quizzes;
+  CREATE POLICY "Public can read brainstorming quizzes" ON public.brainstorming_quizzes FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Users record brainstorming attempts" ON public.brainstorming_attempts;
+  CREATE POLICY "Users record brainstorming attempts" ON public.brainstorming_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Kids Content
+  DROP POLICY IF EXISTS "Public can read kids content" ON public.yara_kids_content;
+  CREATE POLICY "Public can read kids content" ON public.yara_kids_content FOR SELECT USING (is_published = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Admins manage kids content" ON public.yara_kids_content;
+  CREATE POLICY "Admins manage kids content" ON public.yara_kids_content FOR ALL USING (public.is_admin());
+
+  -- Live Sessions & Rooms
+  DROP POLICY IF EXISTS "Public can view live sessions" ON public.live_sessions;
+  CREATE POLICY "Public can view live sessions" ON public.live_sessions FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Mentors and admins manage live sessions" ON public.live_sessions;
+  CREATE POLICY "Mentors and admins manage live sessions" ON public.live_sessions FOR ALL USING (auth.uid() = mentor_id OR public.is_admin());
+
+  -- Mentorship Requests & Messages
+  DROP POLICY IF EXISTS "Participants view own mentorship requests" ON public.mentorship_requests;
+  CREATE POLICY "Participants view own mentorship requests" ON public.mentorship_requests FOR SELECT USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin());
+  DROP POLICY IF EXISTS "Users create mentorship requests" ON public.mentorship_requests;
+  CREATE POLICY "Users create mentorship requests" ON public.mentorship_requests FOR INSERT WITH CHECK (auth.uid() = requester_id OR public.is_admin());
+  DROP POLICY IF EXISTS "Participants update mentorship requests" ON public.mentorship_requests;
+  CREATE POLICY "Participants update mentorship requests" ON public.mentorship_requests FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin());
+
+  DROP POLICY IF EXISTS "Participants read mentorship messages" ON public.mentorship_messages;
+  CREATE POLICY "Participants read mentorship messages" ON public.mentorship_messages FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Authenticated users send mentorship messages" ON public.mentorship_messages;
+  CREATE POLICY "Authenticated users send mentorship messages" ON public.mentorship_messages FOR INSERT TO authenticated WITH CHECK (true);
+
+  -- Study Materials
+  DROP POLICY IF EXISTS "Public can view study materials" ON public.study_materials;
+  CREATE POLICY "Public can view study materials" ON public.study_materials FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Mentors upload study materials" ON public.study_materials;
+  CREATE POLICY "Mentors upload study materials" ON public.study_materials FOR ALL USING (auth.uid() = mentor_id OR public.is_admin());
+
+  -- Chapter Charters & Requests
+  DROP POLICY IF EXISTS "Public can submit chapter registration" ON public.chapter_registration_requests;
+  CREATE POLICY "Public can submit chapter registration" ON public.chapter_registration_requests FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins review chapter registrations" ON public.chapter_registration_requests;
+  CREATE POLICY "Admins review chapter registrations" ON public.chapter_registration_requests FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Public can submit chapter join request" ON public.chapter_join_requests;
+  CREATE POLICY "Public can submit chapter join request" ON public.chapter_join_requests FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins and leaders manage join requests" ON public.chapter_join_requests;
+  CREATE POLICY "Admins and leaders manage join requests" ON public.chapter_join_requests FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  DROP POLICY IF EXISTS "Public view chapter reports" ON public.chapter_reports;
+  CREATE POLICY "Public view chapter reports" ON public.chapter_reports FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Leadership and admins manage reports" ON public.chapter_reports;
+  CREATE POLICY "Leadership and admins manage reports" ON public.chapter_reports FOR ALL USING (public.is_admin());
+
+  -- Competitions
+  DROP POLICY IF EXISTS "Public can view competition events" ON public.competition_events;
+  CREATE POLICY "Public can view competition events" ON public.competition_events FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Admins manage competition events" ON public.competition_events;
+  CREATE POLICY "Admins manage competition events" ON public.competition_events FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Public can register competition teams" ON public.yara_competition_registrations;
+  CREATE POLICY "Public can register competition teams" ON public.yara_competition_registrations FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Participants and admins manage competition registrations" ON public.yara_competition_registrations;
+  CREATE POLICY "Participants and admins manage competition registrations" ON public.yara_competition_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  DROP POLICY IF EXISTS "Public can view virtual competitions" ON public.virtual_competitions;
+  CREATE POLICY "Public can view virtual competitions" ON public.virtual_competitions FOR SELECT USING (is_active = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Students submit to virtual competitions" ON public.virtual_competition_submissions;
+  CREATE POLICY "Students submit to virtual competitions" ON public.virtual_competition_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Ideas & Reactions
+  DROP POLICY IF EXISTS "Public can view idea comments" ON public.idea_comments;
+  CREATE POLICY "Public can view idea comments" ON public.idea_comments FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Users create idea comments" ON public.idea_comments;
+  CREATE POLICY "Users create idea comments" ON public.idea_comments FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR public.is_admin());
+
+  DROP POLICY IF EXISTS "Public can view idea reactions" ON public.idea_reactions;
+  CREATE POLICY "Public can view idea reactions" ON public.idea_reactions FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Users toggle idea reactions" ON public.idea_reactions;
+  CREATE POLICY "Users toggle idea reactions" ON public.idea_reactions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Testimonials & Feedback
+  DROP POLICY IF EXISTS "Public can view approved testimonials" ON public.testimonials;
+  CREATE POLICY "Public can view approved testimonials" ON public.testimonials FOR SELECT USING (is_approved = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Users submit testimonials" ON public.testimonials;
+  CREATE POLICY "Users submit testimonials" ON public.testimonials FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins manage testimonials" ON public.testimonials;
+  CREATE POLICY "Admins manage testimonials" ON public.testimonials FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Users submit feedback" ON public.feedback;
+  CREATE POLICY "Users submit feedback" ON public.feedback FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins view feedback" ON public.feedback;
+  CREATE POLICY "Admins view feedback" ON public.feedback FOR ALL USING (public.is_admin());
+
+  -- Impact Galleries
+  DROP POLICY IF EXISTS "Public can view impact galleries" ON public.impact_galleries;
+  CREATE POLICY "Public can view impact galleries" ON public.impact_galleries FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Admins manage impact galleries" ON public.impact_galleries;
+  CREATE POLICY "Admins manage impact galleries" ON public.impact_galleries FOR ALL USING (public.is_admin());
+
+  -- Events & Registrations
+  DROP POLICY IF EXISTS "Public can view events" ON public.events;
+  CREATE POLICY "Public can view events" ON public.events FOR SELECT USING (is_published = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Admins manage events" ON public.events;
+  CREATE POLICY "Admins manage events" ON public.events FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Attendees manage own event registrations" ON public.event_registrations;
+  CREATE POLICY "Attendees manage own event registrations" ON public.event_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  -- Contact Messages
+  DROP POLICY IF EXISTS "Public can submit contact messages" ON public.contact_messages;
+  CREATE POLICY "Public can submit contact messages" ON public.contact_messages FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins read contact messages" ON public.contact_messages;
+  CREATE POLICY "Admins read contact messages" ON public.contact_messages FOR ALL USING (public.is_admin());
+
+  -- Sponsors & Donations
+  DROP POLICY IF EXISTS "Public view approved sponsors" ON public.sponsors;
+  CREATE POLICY "Public view approved sponsors" ON public.sponsors FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Public submit sponsor applications" ON public.sponsors;
+  CREATE POLICY "Public submit sponsor applications" ON public.sponsors FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins manage sponsors" ON public.sponsors;
+  CREATE POLICY "Admins manage sponsors" ON public.sponsors FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Public submit donations" ON public.donations_sponsorships;
+  CREATE POLICY "Public submit donations" ON public.donations_sponsorships FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Public view donor wall" ON public.donations_sponsorships;
+  CREATE POLICY "Public view donor wall" ON public.donations_sponsorships FOR SELECT USING (display_on_wall = true OR public.is_admin());
+  DROP POLICY IF EXISTS "Admins manage donations" ON public.donations_sponsorships;
+  CREATE POLICY "Admins manage donations" ON public.donations_sponsorships FOR ALL USING (public.is_admin());
+
+  -- Volunteers
+  DROP POLICY IF EXISTS "Public submit volunteer applications" ON public.volunteers;
+  CREATE POLICY "Public submit volunteer applications" ON public.volunteers FOR INSERT WITH CHECK (true);
+  DROP POLICY IF EXISTS "Admins manage volunteers" ON public.volunteers;
+  CREATE POLICY "Admins manage volunteers" ON public.volunteers FOR ALL USING (public.is_admin());
+
+  -- Subscriptions
+  DROP POLICY IF EXISTS "Users view own subscriptions" ON public.subscriptions;
+  CREATE POLICY "Users view own subscriptions" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+  DROP POLICY IF EXISTS "Users create subscriptions" ON public.subscriptions;
+  CREATE POLICY "Users create subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin());
+  DROP POLICY IF EXISTS "Admins manage subscriptions" ON public.subscriptions;
+  CREATE POLICY "Admins manage subscriptions" ON public.subscriptions FOR ALL USING (public.is_admin());
+
+  -- Settings & Audit
+  DROP POLICY IF EXISTS "Public can read system settings" ON public.system_settings;
+  CREATE POLICY "Public can read system settings" ON public.system_settings FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Admins manage system settings" ON public.system_settings;
+  CREATE POLICY "Admins manage system settings" ON public.system_settings FOR ALL USING (public.is_admin());
+
+  DROP POLICY IF EXISTS "Public can read site settings" ON public.site_settings;
+  CREATE POLICY "Public can read site settings" ON public.site_settings FOR SELECT USING (true);
+  DROP POLICY IF EXISTS "Admins manage site settings" ON public.site_settings;
+  CREATE POLICY "Admins manage site settings" ON public.site_settings FOR ALL USING (public.is_admin());
+
+  -- User Sessions & Notifications
+  DROP POLICY IF EXISTS "Users manage own sessions" ON public.user_sessions;
+  CREATE POLICY "Users manage own sessions" ON public.user_sessions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+
+  DROP POLICY IF EXISTS "Users manage own notifications" ON public.notifications;
+  CREATE POLICY "Users manage own notifications" ON public.notifications FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
+-- ==============================================================================
+-- 33. SUPABASE STORAGE BUCKETS & STORAGE OBJECT POLICIES
+-- ==============================================================================
+
+-- Create public storage buckets if missing
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('avatars', 'avatars', true),
+  ('materials', 'materials', true),
+  ('resources', 'resources', true),
+  ('certificates', 'certificates', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage RLS Policies
+DO $$
+BEGIN
+  DROP POLICY IF EXISTS "Public read storage access" ON storage.objects;
+  CREATE POLICY "Public read storage access" 
+    ON storage.objects FOR SELECT 
+    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+
+  DROP POLICY IF EXISTS "Authenticated users upload storage objects" ON storage.objects;
+  CREATE POLICY "Authenticated users upload storage objects" 
+    ON storage.objects FOR INSERT 
+    TO authenticated 
+    WITH CHECK (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+
+  DROP POLICY IF EXISTS "Owners or admins update storage objects" ON storage.objects;
+  CREATE POLICY "Owners or admins update storage objects" 
+    ON storage.objects FOR UPDATE 
+    TO authenticated 
+    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+
+  DROP POLICY IF EXISTS "Owners or admins delete storage objects" ON storage.objects;
+  CREATE POLICY "Owners or admins delete storage objects" 
+    ON storage.objects FOR DELETE 
+    TO authenticated 
+    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()));
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
+-- ==============================================================================
+-- 34. SUPABASE REALTIME REPLICATION CONFIGURATION
+-- ==============================================================================
+
+DO $$
+BEGIN
+  -- Safely add tables to supabase_realtime publication
+  ALTER PUBLICATION supabase_realtime ADD TABLE 
+    public.live_sessions,
+    public.mentorship_messages,
+    public.ideas,
+    public.idea_comments,
+    public.notifications,
+    public.curriculum_progress,
+    public.scores,
+    public.virtual_competition_submissions;
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END $$;
+
+-- ==============================================================================
+-- 35. CANONICAL SYSTEM & PLATFORM SEED INITIALIZATIONS
+-- ==============================================================================
+
+-- Initial Executive Auditors
+INSERT INTO public.executive_auditors (id, email, name, title, authorized_by, is_active)
+VALUES 
+  ('exec_1', 'goyaracorp@gmail.com', 'T. Mukombwe', 'Master Administrator & Lead Trustee', 'Board Resolution 2026/01', true),
+  ('exec_2', 'director@yara.org', 'Dr. C. Chidemo', 'Regional President & Executive Auditor', 'goyaracorp@gmail.com', true)
+ON CONFLICT (email) DO NOTHING;
+
+-- Initial System Settings
+INSERT INTO public.system_settings (key, value, description)
+VALUES 
+  ('platform_metadata', '{"name": "YARA Pan-African Platform", "version": "3.1.0", "motto": "Innovate Local, Build Global"}', 'Core system branding and metadata'),
+  ('launch_countdown', '{"target_date": "2026-10-31T09:00:00Z", "event_title": "YARA National Robotics & AI Finals 2026", "is_active": true}', 'Countdown banner target on public portal'),
+  ('portal_mode_defaults', '{"default_portal": "webpage", "lms_public": true, "registrations_open": true}', 'Default gateway mode configurations')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Initial Site Settings for Certificate Designer & Templates
+INSERT INTO public.site_settings (key, value)
+VALUES 
+  ('certificate_template_config', '{
+    "organization_name": "Young Africans Robotics Association",
+    "sub_organization_name": "YARA Learning Academy & Technology Council",
+    "certificate_title": "Certificate of Completion & Technical Competence",
+    "certificate_subtitle": "Autonomous Robotics, Embedded Systems & Physical Computing",
+    "citation_text": "For demonstrating exemplary theoretical comprehension, successful hardware breadboarding, autonomous microcontroller firmware implementation, and defended capstone execution.",
+    "founder_name": "Simbarashe Manongwa",
+    "founder_title": "Founder & Technical Director",
+    "regional_president_name": "Dr. C. Chidemo",
+    "regional_president_title": "Regional President & Executive Auditor",
+    "default_grade": "Distinction"
+  }')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Seed Default Community Testimonials
+INSERT INTO public.testimonials (author_name, author_role, rating, category, content, is_featured, is_approved)
+VALUES 
+  (
+    'Farai Chitepo',
+    'High School STEM Coordinator, Mashonaland East',
+    5,
+    'curriculum',
+    'The YARA 42-session robotics syllabus transformed our classroom. Our students built their first obstacle-avoidance rovers within 6 weeks, progressing directly from Ohm’s Law to embedded C++ state machines.',
+    true,
+    true
+  ),
+  (
+    'Ruvimbo Masawi',
+    'Robotics Competitor & Junior Engineer',
+    5,
+    'competitions',
+    'The underwater drone challenge forced us to solve real buoyancy and waterproofing engineering problems. YARA gave us the components, mentorship, and platform to compete with confidence.',
+    true,
+    true
+  ),
+  (
+    'Eng. Kudakwashe Moyo',
+    'Industrial Automation Mentor, Bulawayo',
+    5,
+    'mentorship',
+    'Mentoring youth through YARA’s Live Room and reviewing their hardware schematics has been deeply rewarding. The level of critical thinking in these young African innovators is exceptional.',
+    true,
+    true
+  )
+ON CONFLICT DO NOTHING;
+
+-- Seed Default Ecosystem Sponsors
+INSERT INTO public.sponsors (id, organization_name, contact_person, email, tier, contribution_type, committed_amount, received_amount, status, benefits_active, description)
+VALUES 
+  (
+    'sp_stem_advance_2026',
+    'African STEM Advancement Foundation',
+    'Dr. Tariro Ndlovu',
+    'partnerships@stemafrica.org',
+    'title_sponsor',
+    'cash',
+    5000.00,
+    5000.00,
+    'approved',
+    true,
+    'Foundational grant supporting 42 schools with free Arduino Uno microcontroller kits and ultrasonic sensors across 10 provinces.'
+  ),
+  (
+    'sp_iot_hardware_labs',
+    'Apex Microelectronics & Robotics Lab',
+    'Simba Kanyemba',
+    'labs@apexmicro.co.zw',
+    'tech_sponsor',
+    'in_kind',
+    2500.00,
+    2500.00,
+    'approved',
+    true,
+    'Hardware component sponsorship providing motor drivers, chassis kits, breadboards, and digital multimeters for regional qualifers.'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed Canonical Brainstorming Diagnostic Quizzes
+INSERT INTO public.brainstorming_quizzes (title, category, difficulty, image_url, question, options, correct_index, hint, critical_thinking_principle, explanation, points)
+VALUES 
+  (
+    'Circuit Voltage Division Under Load',
+    'circuit_fault',
+    'beginner',
+    'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80',
+    'When you connect a 5V microcontroller pin directly to a motor pulling 800mA, the microcontroller resets immediately. Why does this occur?',
+    '["The microcontroller is overheating instantly", "The motor draws excessive current causing a brownout voltage drop below 4.2V", "The DC motor has reverse polarity", "The code enters an infinite while loop"]',
+    1,
+    'Consider how internal power rails behave when current demands exceed regulator limits.',
+    'Brownout Detection & Power Rail Isolation',
+    'Motors draw heavy inductive stall currents that cause supply rail voltage dips (brownout), tripping the microcontroller''s internal brownout detector reset. Microcontrollers must use isolated motor drivers (e.g. L298N) and flyback diodes.',
+    15
+  ),
+  (
+    'Sensor Noise & Non-Blocking Ultrasonic Ranging',
+    'robot_navigation',
+    'intermediate',
+    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    'Why is using delay(1000) inside an autonomous rover obstacle detection loop considered a critical engineering flaw?',
+    '["It uses up too much EEPROM flash memory", "It stops the processor from monitoring emergency sensors or adjusting steering during that second", "It causes clock drift in the crystal oscillator", "The ultrasonic wave will travel slower in air"]',
+    1,
+    'Think about what happens to a moving robot while the CPU is frozen.',
+    'Non-Blocking State Machines (millis() vs delay())',
+    'Using delay() halts the CPU thread. If a rover is moving at 0.5 m/s, it will blindly travel 50 cm before reading the sensor again, making collision avoidance impossible. Non-blocking state loops using millis() allow continuous real-time reaction.',
+    20
+  )
+ON CONFLICT DO NOTHING;
