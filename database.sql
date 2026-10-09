@@ -2199,7 +2199,7 @@ INSERT INTO public.course_modules (
     TRUE
   ),
   (
-    '00000000-0000-0000-0000-000000000004',
+    '00000000-0000-0000-0000-000000000003',
     14, 14,
     'Engineering Economics, Rapid Prototyping & DFM (Design for Manufacturing)',
     'Unit Economics, Injection Molding, CNC & Scale Production',
@@ -2218,7 +2218,7 @@ INSERT INTO public.course_modules (
     TRUE
   ),
   (
-    '00000000-0000-0000-0000-000000000005',
+    '00000000-0000-0000-0000-000000000003',
     15, 15,
     'National & Global Robotics Competition Engineering Defense',
     'International Regulations, Engineering Notebook & Technical Defense',
