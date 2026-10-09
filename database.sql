@@ -93,6 +93,19 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Idempotent Column Existence Guards for organization_posts
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS content_markdown TEXT;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'announcement';
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS featured_image_url TEXT;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS school_id UUID;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contact_phone TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
@@ -1161,6 +1174,37 @@ CREATE TABLE IF NOT EXISTS public.financial_records (
 -- ==============================================================================
 -- 21. PERFORMANCE INDEXES & QUERY OPTIMIZATIONS
 -- ==============================================================================
+-- Idempotent Column Harmonization before Performance Indexes
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'student';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS member_id TEXT;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS province TEXT;
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS track TEXT DEFAULT 'Robotics';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS level TEXT DEFAULT 'Beginner';
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.course_modules ADD COLUMN IF NOT EXISTS is_draft BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.course_lessons ADD COLUMN IF NOT EXISTS module_id UUID REFERENCES public.course_modules(id) ON DELETE CASCADE;
+ALTER TABLE public.course_lessons ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_lessons ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1;
+ALTER TABLE public.course_lessons ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.module_progress ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.module_progress ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.course_enrollments ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_projects ADD COLUMN IF NOT EXISTS course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE;
+ALTER TABLE public.course_project_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.competition_teams ADD COLUMN IF NOT EXISTS competition_id UUID REFERENCES public.competitions(id) ON DELETE CASCADE;
+ALTER TABLE public.competition_scores ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE;
+ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS certificate_number TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_member_id ON public.profiles(member_id);
 CREATE INDEX IF NOT EXISTS idx_schools_province ON public.schools(province);
@@ -2559,6 +2603,23 @@ CREATE TABLE IF NOT EXISTS public.curriculum_sessions (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS session_id TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS course_id TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS course_level INTEGER DEFAULT 1;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS topic TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS part TEXT DEFAULT 'Electronics';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'online';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS outcome TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS resources JSONB DEFAULT '[]';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS questions JSONB DEFAULT '[]';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS assignments JSONB DEFAULT '[]';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS projects JSONB DEFAULT '[]';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS details JSONB DEFAULT '{}';
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+
 -- Real-Time Session Completion & Progress Engine
 CREATE TABLE IF NOT EXISTS public.curriculum_progress (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -2743,6 +2804,14 @@ CREATE TABLE IF NOT EXISTS public.yara_kids_content (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS type TEXT;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS media_url TEXT;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS age_group TEXT DEFAULT '7-12';
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 
 -- ==============================================================================
 -- 25. INDUSTRIAL MENTORSHIP, LIVE ROOMS & COLLABORATIVE COMMISSIONS
@@ -3095,6 +3164,19 @@ CREATE TABLE IF NOT EXISTS public.virtual_competitions (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'robot_simulation';
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS category_label TEXT DEFAULT 'Robot Simulation Sprint';
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS duration_hours INTEGER DEFAULT 48;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS starter_url TEXT DEFAULT 'https://wokwi.com/projects/';
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS rules TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS criteria TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS max_score INTEGER DEFAULT 100;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS prize TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
 -- Virtual Competition Student Entries
 CREATE TABLE IF NOT EXISTS public.virtual_competition_submissions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -3203,6 +3285,19 @@ CREATE TABLE IF NOT EXISTS public.events (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'workshop';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_date TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_virtual BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS virtual_meeting_url TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_fee_usd NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS capacity INTEGER;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 
 -- Event & AI Bootcamp Attendee Registrations
 CREATE TABLE IF NOT EXISTS public.event_registrations (
@@ -3319,6 +3414,18 @@ CREATE TABLE IF NOT EXISTS public.donations_sponsorships (
   admin_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS donor_name TEXT;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS organization TEXT;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS support_type TEXT DEFAULT 'financial';
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS amount NUMERIC(12,2);
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS transaction_reference TEXT;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS display_on_wall BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
 -- Strategic Partnership Proposals
 CREATE TABLE IF NOT EXISTS public.partnership_requests (
@@ -3513,6 +3620,30 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
 -- ==============================================================================
 -- 31. PERFORMANCE INDEXES
 -- ==============================================================================
+-- Idempotent Column Harmonization before Section 31 Indexes
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS course_id TEXT;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.curriculum_progress ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.curriculum_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.quiz_attempts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.final_exam_attempts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.final_project_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.live_sessions ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.live_sessions ADD COLUMN IF NOT EXISTS room_id TEXT;
+ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.chapter_registration_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE public.chapter_join_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE public.chapter_join_requests ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.chapter_reports ADD COLUMN IF NOT EXISTS chapter_id UUID REFERENCES public.chapters(id) ON DELETE CASCADE;
+ALTER TABLE public.yara_competition_registrations ADD COLUMN IF NOT EXISTS event_id TEXT DEFAULT 'yara_rc_2026';
+ALTER TABLE public.yara_competition_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.competition_team_members ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES public.competition_teams(id) ON DELETE CASCADE;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS registration_code TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS idx_curr_sessions_course ON public.curriculum_sessions(course_id);
 CREATE INDEX IF NOT EXISTS idx_curr_progress_user ON public.curriculum_progress(user_id);
@@ -3537,6 +3668,36 @@ CREATE INDEX IF NOT EXISTS idx_subs_user ON public.subscriptions(user_id);
 -- ==============================================================================
 -- 32. ROW LEVEL SECURITY (RLS) POLICIES FOR ALL TABLES
 -- ==============================================================================
+-- Idempotent Column Harmonization before Section 32 RLS Policies
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.curriculum_sessions ADD COLUMN IF NOT EXISTS course_id TEXT;
+ALTER TABLE public.curriculum_progress ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.curriculum_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.curriculum_feedback ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.quiz_attempts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.final_exam_attempts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.final_project_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.brainstorming_attempts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.yara_kids_content ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.live_sessions ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS requester_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.chapter_join_requests ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.yara_competition_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.virtual_competitions ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.virtual_competition_submissions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.idea_comments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.idea_reactions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_virtual BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.donations_sponsorships ADD COLUMN IF NOT EXISTS display_on_wall BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.user_sessions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 ALTER TABLE public.curriculum_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.curriculum_progress ENABLE ROW LEVEL SECURITY;
@@ -3863,6 +4024,52 @@ END $$;
 -- ==============================================================================
 -- 35. CANONICAL SYSTEM & PLATFORM SEED INITIALIZATIONS
 -- ==============================================================================
+-- Idempotent Column Harmonization before Seed Inserts
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS id TEXT;
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS authorized_by TEXT;
+ALTER TABLE public.executive_auditors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS key TEXT;
+ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS value JSONB;
+ALTER TABLE public.system_settings ADD COLUMN IF NOT EXISTS description TEXT;
+
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS key TEXT;
+ALTER TABLE public.site_settings ADD COLUMN IF NOT EXISTS value JSONB;
+
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS author_role TEXT DEFAULT 'STEM Educator';
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 5;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS id TEXT;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS organization_name TEXT;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS contact_person TEXT;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS tier TEXT DEFAULT 'silver_sponsor';
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS contribution_type TEXT DEFAULT 'cash';
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS committed_amount NUMERIC(12,2) DEFAULT 0.00;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) DEFAULT 0.00;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS benefits_active BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.sponsors ADD COLUMN IF NOT EXISTS description TEXT;
+
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS difficulty TEXT DEFAULT 'beginner';
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS question TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS options JSONB DEFAULT '[]';
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS correct_index INTEGER DEFAULT 0;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS hint TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS critical_thinking_principle TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS explanation TEXT;
+ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 10;
 
 -- Initial Executive Auditors
 INSERT INTO public.executive_auditors (id, email, name, title, authorized_by, is_active)
