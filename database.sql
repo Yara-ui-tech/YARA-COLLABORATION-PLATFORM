@@ -93,18 +93,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Idempotent Column Existence Guards for organization_posts
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS slug TEXT;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS summary TEXT;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS content_markdown TEXT;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'announcement';
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS featured_image_url TEXT;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE public.organization_posts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS school_id UUID;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contact_phone TEXT;
@@ -1188,6 +1176,19 @@ CREATE TABLE IF NOT EXISTS public.organization_posts (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Idempotent Column Existence Guards for organization_posts
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS author_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS content_markdown TEXT;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'announcement';
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS featured_image_url TEXT;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS views_count INTEGER DEFAULT 0;
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE IF EXISTS public.organization_posts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 CREATE TABLE IF NOT EXISTS public.partners (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -1441,53 +1442,53 @@ END $$;
 -- Drops restrictive legacy CHECK constraints and installs inclusive variants
 -- ==============================================================================
 -- Competitions
-ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
-ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
+ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
+ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
 
 -- Profiles
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 
 -- Training Programs
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
 
 -- Competition Teams & Members
-ALTER TABLE public.competition_teams DROP CONSTRAINT IF EXISTS competition_teams_status_check;
-ALTER TABLE public.competition_team_members DROP CONSTRAINT IF EXISTS competition_team_members_gender_check;
+ALTER TABLE IF EXISTS public.competition_teams DROP CONSTRAINT IF EXISTS competition_teams_status_check;
+ALTER TABLE IF EXISTS public.competition_team_members DROP CONSTRAINT IF EXISTS competition_team_members_gender_check;
 
 -- Chapters
-ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_status_check;
-ALTER TABLE public.chapters DROP CONSTRAINT IF EXISTS chapters_category_check;
+ALTER TABLE IF EXISTS public.chapters DROP CONSTRAINT IF EXISTS chapters_status_check;
+ALTER TABLE IF EXISTS public.chapters DROP CONSTRAINT IF EXISTS chapters_category_check;
 
 -- Course Enrollments
-ALTER TABLE public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_status_check;
+ALTER TABLE IF EXISTS public.course_enrollments DROP CONSTRAINT IF EXISTS course_enrollments_status_check;
 
 -- Curriculum Submissions
-ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_submission_type_check;
-ALTER TABLE public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_status_check;
+ALTER TABLE IF EXISTS public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_submission_type_check;
+ALTER TABLE IF EXISTS public.curriculum_submissions DROP CONSTRAINT IF EXISTS curriculum_submissions_status_check;
 
 -- Virtual Competitions & Submissions
-ALTER TABLE public.virtual_competitions DROP CONSTRAINT IF EXISTS virtual_competitions_category_check;
-ALTER TABLE public.virtual_competition_submissions DROP CONSTRAINT IF EXISTS virtual_competition_submissions_status_check;
+ALTER TABLE IF EXISTS public.virtual_competitions DROP CONSTRAINT IF EXISTS virtual_competitions_category_check;
+ALTER TABLE IF EXISTS public.virtual_competition_submissions DROP CONSTRAINT IF EXISTS virtual_competition_submissions_status_check;
 
 -- Sponsors & Donations
-ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_status_check;
-ALTER TABLE public.sponsors DROP CONSTRAINT IF EXISTS sponsors_tier_check;
-ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_status_check;
-ALTER TABLE public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_support_type_check;
+ALTER TABLE IF EXISTS public.sponsors DROP CONSTRAINT IF EXISTS sponsors_status_check;
+ALTER TABLE IF EXISTS public.sponsors DROP CONSTRAINT IF EXISTS sponsors_tier_check;
+ALTER TABLE IF EXISTS public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_status_check;
+ALTER TABLE IF EXISTS public.donations_sponsorships DROP CONSTRAINT IF EXISTS donations_sponsorships_support_type_check;
 
 -- Organization Posts & Events
-ALTER TABLE public.organization_posts DROP CONSTRAINT IF EXISTS organization_posts_category_check;
-ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_category_check;
+ALTER TABLE IF EXISTS public.organization_posts DROP CONSTRAINT IF EXISTS organization_posts_category_check;
+ALTER TABLE IF EXISTS public.events DROP CONSTRAINT IF EXISTS events_category_check;
 
 -- Chapter Requests
-ALTER TABLE public.chapter_registration_requests DROP CONSTRAINT IF EXISTS chapter_registration_requests_status_check;
-ALTER TABLE public.chapter_join_requests DROP CONSTRAINT IF EXISTS chapter_join_requests_status_check;
+ALTER TABLE IF EXISTS public.chapter_registration_requests DROP CONSTRAINT IF EXISTS chapter_registration_requests_status_check;
+ALTER TABLE IF EXISTS public.chapter_join_requests DROP CONSTRAINT IF EXISTS chapter_join_requests_status_check;
 
 -- Brainstorming
-ALTER TABLE public.brainstorming_quizzes DROP CONSTRAINT IF EXISTS brainstorming_quizzes_difficulty_check;
+ALTER TABLE IF EXISTS public.brainstorming_quizzes DROP CONSTRAINT IF EXISTS brainstorming_quizzes_difficulty_check;
 
 -- ==============================================================================
 -- 23. OFFICIAL YARA SEED DATA — FULL COMPREHENSIVE CURRICULUM
@@ -2464,8 +2465,8 @@ ON CONFLICT DO NOTHING;
 -- ------------------------------------------------------------------------------
 -- H. SEED FLAGSHIP COMPETITION & TRAINING PROGRAMS
 -- ------------------------------------------------------------------------------
-ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
-ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
+ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
+ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
 
 INSERT INTO public.competitions (
   id, title, slug, year, theme, description, status, venue, prize_pool_summary
@@ -2485,7 +2486,7 @@ INSERT INTO public.competitions (
   description = EXCLUDED.description,
   status = EXCLUDED.status;
 
-ALTER TABLE public.competition_categories DROP CONSTRAINT IF EXISTS competition_categories_weight_check;
+ALTER TABLE IF EXISTS public.competition_categories DROP CONSTRAINT IF EXISTS competition_categories_weight_check;
 
 INSERT INTO public.competition_categories (competition_id, name, weight_percentage, description, order_index)
 VALUES 
@@ -2494,10 +2495,10 @@ VALUES
   ('c0000000-0000-0000-0000-000000002026', 'Innovation Pitch Defense', 30, 'Defense of real community engineering solutions before a panel of industrial engineering judges and investors.', 3)
 ON CONFLICT DO NOTHING;
 
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
-ALTER TABLE public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
+ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
 
 INSERT INTO public.training_programs (
   title, slug, description, target_audience, category, format, duration_weeks, total_hours, fee_usd, capacity, venue, status, is_featured
@@ -2602,8 +2603,8 @@ BEGIN
   END IF;
 
   -- Relax track check constraint safely to allow all central LMS catalog tracks
-  ALTER TABLE public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
-  ALTER TABLE public.courses ADD CONSTRAINT courses_track_check 
+  ALTER TABLE IF EXISTS public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
+  ALTER TABLE IF EXISTS public.courses ADD CONSTRAINT courses_track_check 
     CHECK (track IN ('Robotics', 'Coding', 'Technology', 'Artificial Intelligence', 'IoT', 'Engineering', 'STEM', 'Specialized', 'Industrial Automation', 'Digital Literacy', 'Kids'));
 EXCEPTION
   WHEN OTHERS THEN NULL;
