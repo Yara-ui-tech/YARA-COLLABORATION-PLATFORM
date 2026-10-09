@@ -1440,7 +1440,7 @@ END $$;
 -- CHECK CONSTRAINT HARMONIZATION & BACKWARD COMPATIBILITY
 -- Drops restrictive legacy CHECK constraints and installs inclusive variants
 -- ==============================================================================
-DO $ BEGIN
+DO $$ BEGIN
   -- Competitions
   ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
   ALTER TABLE public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
@@ -1496,7 +1496,7 @@ DO $ BEGIN
   -- Brainstorming
   ALTER TABLE public.brainstorming_quizzes DROP CONSTRAINT IF EXISTS brainstorming_quizzes_difficulty_check;
 EXCEPTION WHEN OTHERS THEN NULL;
-END $;
+END $$;
 
 -- ==============================================================================
 -- 23. OFFICIAL YARA SEED DATA — FULL COMPREHENSIVE CURRICULUM
