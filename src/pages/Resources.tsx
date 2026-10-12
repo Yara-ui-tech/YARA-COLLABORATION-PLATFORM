@@ -7,6 +7,7 @@ import { useAuth } from '../components/AuthContext';
 import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
+import { useRuralAccessibility } from '../context/RuralAccessibilityContext';
 
 interface StudyMaterial {
   id: string;
@@ -16,6 +17,9 @@ interface StudyMaterial {
   description: string;
   file_url: string;
   file_type: 'pdf' | 'doc' | 'video' | 'other';
+  category?: string;
+  target_level?: string;
+  file_size_bytes?: number;
   thumbnail_url?: string;
   created_at: string;
 }
@@ -57,7 +61,9 @@ const simulationTools = [
 
 export default function Resources() {
   const { user, profile } = useAuth();
+  const { formatFileSize, isLowDataMode } = useRuralAccessibility();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -214,13 +220,48 @@ export default function Resources() {
       <DynamicSectionRenderer page="resources" />
 
       {/* Mentor Materials Section */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-            <BookOpen className="w-6 h-6 text-indigo-600" />
-            <span>Mentor Study Materials</span>
-          </h3>
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
+              <BookOpen className="w-6 h-6 text-indigo-600" />
+              <span>Educational Resources & Study Materials</span>
+            </h3>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Curated textbooks, practical lab worksheets, circuit schematics, presentations, and code packages.
+            </p>
+          </div>
+
+          {/* Category Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: 'all', label: 'All Files' },
+              { id: 'pdf', label: 'PDF Documents' },
+              { id: 'book', label: 'Books & E-Books' },
+              { id: 'lab', label: 'Practical Labs' },
+              { id: 'video', label: 'Video Guides' }
+            ].map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0",
+                  selectedCategory === cat.id
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {isLowDataMode && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between text-xs text-amber-900 font-medium">
+            <span>⚡ <strong>Rural Low-Data Mode Active:</strong> File sizes are highlighted in green below before downloading to help you save bandwidth.</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -228,53 +269,73 @@ export default function Resources() {
           </div>
         ) : materials.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {materials.map((material, index) => (
+            {materials
+              .filter(m => {
+                if (selectedCategory === 'all') return true;
+                if (selectedCategory === 'pdf') return m.file_type === 'pdf';
+                if (selectedCategory === 'video') return m.file_type === 'video';
+                if (selectedCategory === 'book') return (m as any).category === 'book' || m.title.toLowerCase().includes('book') || m.description?.toLowerCase().includes('book');
+                if (selectedCategory === 'lab') return (m as any).category === 'lab' || m.title.toLowerCase().includes('lab') || m.description?.toLowerCase().includes('lab');
+                return true;
+              })
+              .map((material, index) => (
               <motion.div
                 key={material.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-50 transition-all group"
+                transition={{ delay: index * 0.05 }}
+                className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden hover:shadow-xl hover:shadow-indigo-50 transition-all group flex flex-col justify-between"
               >
-                <div className="h-40 relative">
-                  {material.thumbnail_url ? (
-                    <img
-                      src={material.thumbnail_url}
-                      alt={material.title}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <PlaceholderImage text={material.file_type} type="resource" />
-                  )}
-                  <div className="absolute top-4 right-4">
-                    {material.file_type === 'video' ? (
-                      <div className="bg-red-500 text-white p-2 rounded-xl shadow-lg">
-                        <Video className="w-4 h-4" />
-                      </div>
+                <div>
+                  <div className="h-40 relative">
+                    {material.thumbnail_url ? (
+                      <img
+                        src={material.thumbnail_url}
+                        alt={material.title}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
-                      <div className="bg-indigo-500 text-white p-2 rounded-xl shadow-lg">
-                        <FileText className="w-4 h-4" />
-                      </div>
+                      <PlaceholderImage text={material.file_type} type="resource" />
                     )}
+                    <div className="absolute top-4 right-4">
+                      {material.file_type === 'video' ? (
+                        <div className="bg-red-500 text-white p-2 rounded-xl shadow-lg">
+                          <Video className="w-4 h-4" />
+                        </div>
+                      ) : (
+                        <div className="bg-indigo-500 text-white p-2 rounded-xl shadow-lg">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                          {material.file_type}
+                        </span>
+                        {material.file_size_bytes ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                            💾 {formatFileSize(material.file_size_bytes)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-400">
+                        {new Date(material.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <h4 className="font-bold text-slate-900 mb-2 line-clamp-1">{material.title}</h4>
+                    <p className="text-sm text-slate-500 font-medium mb-6 line-clamp-2 h-10">
+                      {material.description}
+                    </p>
                   </div>
                 </div>
-                
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
-                      {material.file_type}
-                    </span>
-                    <span className="text-[10px] font-medium text-slate-400">
-                      {new Date(material.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <h4 className="font-bold text-slate-900 mb-2 line-clamp-1">{material.title}</h4>
-                  <p className="text-sm text-slate-500 font-medium mb-6 line-clamp-2 h-10">
-                    {material.description}
-                  </p>
-                  
+
+                <div className="p-6 pt-0">
                   <div className="flex items-center justify-between">
                     <a
                       href={material.file_url}
@@ -282,7 +343,7 @@ export default function Resources() {
                       rel="noopener noreferrer"
                       className="flex items-center space-x-2 text-indigo-600 font-bold text-sm hover:translate-x-1 transition-transform"
                     >
-                      <span>{material.file_type === 'video' ? 'Watch Now' : 'Download'}</span>
+                      <span>{material.file_type === 'video' ? 'Watch Now' : 'Download Guide'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </a>
                     

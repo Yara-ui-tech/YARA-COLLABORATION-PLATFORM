@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../AuthContext';
 import { ASSETS } from '../../constants/assets';
 import { NotificationBell } from '../notifications/NotificationCenter';
+import { RuralDataSaverToggle } from '../RuralDataSaverToggle';
 import { cn } from '../../lib/utils';
 
 export default function PublicHeader() {
@@ -63,12 +64,14 @@ export default function PublicHeader() {
               YARA • Innovate Local, Build Global
             </span>
           </div>
-          <div className="flex items-center gap-3 shrink-0 text-[11px] font-semibold text-blue-300">
-            <Link to="/verify-certificate" className="hover:text-white flex items-center gap-1 transition-colors">
+          <div className="flex items-center gap-2.5 shrink-0 text-[11px] font-semibold text-blue-300">
+            <RuralDataSaverToggle variant="badge" />
+            <span className="text-slate-600 hidden sm:inline">|</span>
+            <Link to="/verify-certificate" className="hover:text-white flex items-center gap-1 transition-colors hidden sm:flex">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
               <span>Verify Certificate</span>
             </Link>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-600 hidden sm:inline">|</span>
             <Link to="/competitions/yara-2026" className="text-amber-400 hover:text-amber-300 flex items-center gap-1 font-bold">
               <Trophy className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Championship 2026</span>

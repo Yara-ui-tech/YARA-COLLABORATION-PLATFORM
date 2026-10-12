@@ -14,6 +14,7 @@ import SecretaryReportModal from '../components/chapters/SecretaryReportModal';
 import ChapterRegistrationModal from '../components/chapters/ChapterRegistrationModal';
 import ChapterAutoSuggestCard from '../components/chapters/ChapterAutoSuggestCard';
 import JoinChapterModal from '../components/chapters/JoinChapterModal';
+import ZimbabweChapterHierarchy from '../components/chapters/ZimbabweChapterHierarchy';
 import { cn } from '../lib/utils';
 
 export default function Chapters() {
@@ -36,8 +37,8 @@ export default function Chapters() {
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [joinPreselectedId, setJoinPreselectedId] = useState<string | undefined>(undefined);
 
-  // View mode: grid or provincial
-  const [viewMode, setViewMode] = useState<'grid' | 'provincial'>('grid');
+  // View mode: hierarchy, grid or provincial
+  const [viewMode, setViewMode] = useState<'hierarchy' | 'grid' | 'provincial'>('hierarchy');
 
   // Auto-detected User Chapter
   const [userChapterMatch, setUserChapterMatch] = useState<any>(null);
@@ -266,13 +267,25 @@ export default function Chapters() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs font-bold text-slate-500">View:</span>
+            <button
+              onClick={() => setViewMode('hierarchy')}
+              className={cn(
+                'px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs',
+                viewMode === 'hierarchy'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-emerald-900/20'
+                  : 'text-slate-700 hover:bg-slate-100 border border-slate-200'
+              )}
+            >
+              <span className="text-sm">🇿🇼</span>
+              <span>National Hierarchy (Province → District → Club)</span>
+            </button>
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all',
-                viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                viewMode === 'grid' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
               )}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -282,11 +295,11 @@ export default function Chapters() {
               onClick={() => setViewMode('provincial')}
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all',
-                viewMode === 'provincial' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                viewMode === 'provincial' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
               )}
             >
               <Landmark className="w-3.5 h-3.5" />
-              <span>Provincial View</span>
+              <span>Provincial Lead Hubs</span>
             </button>
           </div>
         </div>
@@ -312,6 +325,20 @@ export default function Chapters() {
           </div>
         ) : (
           <>
+            {/* === ZIMBABWE NATIONAL HIERARCHY VIEW === */}
+            {viewMode === 'hierarchy' && (
+              <ZimbabweChapterHierarchy
+                chapters={chapters}
+                onRequestJoin={(chapterId) => {
+                  setJoinPreselectedId(chapterId);
+                  setJoinModalOpen(true);
+                }}
+                onViewChapterDetails={(chap) => {
+                  setSelectedChapter(chap);
+                }}
+              />
+            )}
+
             {/* === GRID VIEW === */}
             {viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

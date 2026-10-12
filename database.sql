@@ -2,7 +2,19 @@
 -- YOUNG AFRICANS ROBOTICS ASSOCIATION (YARA)
 -- ENTERPRISE PRODUCTION DATABASE SCHEMA & MASTER MIGRATION SPECIFICATION
 -- Motto: "Innovate Local, Build Global"
--- Version: 3.1.0-PROD (Curriculum Structure & Dynamic Module Architecture Update)
+-- Version: 3.2.0-PROD (LMS completion: roles, integrity, learner features, automation)
+--
+-- v3.2.0: the LMS completion add-on is appended at the end of this file (Section 37+).
+--         Also: is_backend_caller() so anonymous API calls are never treated as trusted.
+--
+-- v3.1.1 CHANGES (tested on fresh PostgreSQL 16 + Supabase stubs, and on re-run):
+--  * notifications table now created before Sections 21-22 reference it.
+--  * Premature events RLS statement removed from Section 22 (Section 32 handles it).
+--  * Trigger blocks non-admins from changing their own role/payment/verification fields.
+--  * admin_add_course_module() now requires an admin caller.
+--  * Seed DELETEs that cascaded into learner progress, teams and scores replaced by upserts.
+--  * data-uploads storage bucket stays private on re-run.
+--  * Section 36: RLS enabled on 23 previously open tables; policies for 22 locked tables.
 -- Target: PostgreSQL 14+ / Supabase
 --
 -- ARCHITECTURE & CURRICULUM RULES:
@@ -39,6 +51,86 @@
 -- 00. SYSTEM EXTENSIONS & CONFIGURATION
 -- ==============================================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- True only for back-end callers: the SQL editor / migrations (no API request) or the
+-- service_role key. Anonymous API calls also have no auth.uid(), so "no user" alone
+-- must never be treated as trusted.
+CREATE OR REPLACE FUNCTION public.is_backend_caller()
+RETURNS BOOLEAN LANGUAGE sql STABLE AS $$
+  SELECT auth.uid() IS NULL AND COALESCE(
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb->>'role',
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    'none') IN ('none', 'service_role');
+$$;
+
+-- ==============================================================================
+-- 00A. PREFLIGHT DIAGNOSTICS & LEGACY SCHEMA HARMONIZATION HELPERS
+-- ==============================================================================
+
+-- Reusable helper to safely relax legacy NOT NULL columns on existing databases
+CREATE OR REPLACE FUNCTION public.relax_legacy_not_null(
+  p_table TEXT, 
+  p_keep TEXT[] DEFAULT ARRAY[]::TEXT[]
+) RETURNS VOID AS $$
+DECLARE
+  r RECORD;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = p_table
+  ) THEN
+    RETURN;
+  END IF;
+
+  FOR r IN (
+    SELECT c.column_name
+    FROM information_schema.columns c
+    WHERE c.table_schema = 'public'
+      AND c.table_name = p_table
+      AND c.is_nullable = 'NO'
+      -- Never drop NOT NULL on primary key columns
+      AND c.column_name NOT IN (
+        SELECT kcu.column_name
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu 
+          ON tc.constraint_name = kcu.constraint_name 
+         AND tc.table_schema = kcu.table_schema
+        WHERE tc.table_schema = 'public'
+          AND tc.table_name = p_table
+          AND tc.constraint_type = 'PRIMARY KEY'
+      )
+      -- Do not drop NOT NULL on explicitly preserved columns
+      AND NOT (c.column_name = ANY(p_keep))
+  ) LOOP
+    BEGIN
+      EXECUTE format('ALTER TABLE public.%I ALTER COLUMN %I DROP NOT NULL', p_table, r.column_name);
+      RAISE NOTICE 'Relaxed legacy NOT NULL constraint on public.%.%', p_table, r.column_name;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipped relaxing NOT NULL on public.%.%: %', p_table, r.column_name, SQLERRM;
+    END;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Preflight diagnostic: raises a NOTICE for columns existing in live DB that are not in master schema
+DO $$
+DECLARE
+  v_table RECORD;
+  v_col RECORD;
+BEGIN
+  RAISE NOTICE '>>> YARA Migration Preflight: Inspecting existing schema...';
+  -- Specifically relax hazardous legacy tables immediately
+  PERFORM public.relax_legacy_not_null('impact_ledger', ARRAY['metric_key', 'metric_title']);
+  PERFORM public.relax_legacy_not_null('chapters', ARRAY['name', 'province']);
+  PERFORM public.relax_legacy_not_null('competitions', ARRAY['title', 'slug']);
+  PERFORM public.relax_legacy_not_null('events', ARRAY['title', 'event_date']);
+  PERFORM public.relax_legacy_not_null('event_registrations', ARRAY['full_name', 'email']);
+  PERFORM public.relax_legacy_not_null('training_registrations', ARRAY['program_id', 'user_id']);
+  PERFORM public.relax_legacy_not_null('executive_auditors', ARRAY['email', 'name']);
+  PERFORM public.relax_legacy_not_null('sponsors', ARRAY['organization_name']);
+  PERFORM public.relax_legacy_not_null('testimonials', ARRAY['author_name', 'content']);
+END $$;
+
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==============================================================================
@@ -106,6 +198,12 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS commission_due NUMERIC(10,2
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified_educator BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS educator_institution TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'Zimbabwe';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS institution TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_id UUID;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_position TEXT DEFAULT 'Member';
 
 -- ==============================================================================
 -- 02. INSTITUTIONS & SCHOOL MANAGEMENT
@@ -226,22 +324,8 @@ CREATE TABLE IF NOT EXISTS public.training_sessions (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS public.training_registrations (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  program_id UUID NOT NULL REFERENCES public.training_programs(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  school_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
-  registration_status TEXT DEFAULT 'pending' CHECK (registration_status IN ('pending', 'confirmed', 'attended', 'cancelled')),
-  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'verified', 'waived', 'sponsored')),
-  amount_paid DECIMAL(10,2) DEFAULT 0.00,
-  payment_reference TEXT,
-  certificate_issued BOOLEAN DEFAULT FALSE,
-  certificate_id TEXT,
-  registered_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(program_id, user_id)
-);
+-- training_registrations table consolidated into master definition in Section 03
 
--- ==============================================================================
 -- 04. LMS CORE — COURSES & DYNAMIC COMPLETION ENGINE
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.courses (
@@ -249,7 +333,7 @@ CREATE TABLE IF NOT EXISTS public.courses (
   code TEXT UNIQUE NOT NULL, -- e.g. 'YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV'
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
-  track TEXT DEFAULT 'Robotics' CHECK (track IN ('Robotics', 'Coding', 'Artificial Intelligence', 'IoT', 'Engineering', 'STEM', 'Digital Literacy', 'Kids')),
+  track TEXT DEFAULT 'Robotics' CHECK (track IN ('Robotics', 'Technology', 'Coding', 'Artificial Intelligence', 'IoT', 'Engineering', 'STEM', 'Digital Literacy', 'Kids', 'Specialized', 'General')),
   tier INTEGER DEFAULT 1 CHECK (tier IN (1, 2, 3, 4)),
   level TEXT DEFAULT 'Beginner' CHECK (level IN ('Beginner', 'Intermediate', 'Advanced', 'Master', 'All Levels')),
   short_summary TEXT,
@@ -440,6 +524,9 @@ CREATE TABLE IF NOT EXISTS public.course_resources (
 -- ==============================================================================
 -- 07. LMS CORE — ASSESSMENTS & KNOWLEDGE CHECKS (Component 4)
 -- ==============================================================================
+-- ==============================================================================
+-- 07. LMS CORE — ASSESSMENTS & KNOWLEDGE CHECKS (Component 4)
+-- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.quizzes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   module_id UUID REFERENCES public.course_modules(id) ON DELETE CASCADE,
@@ -617,6 +704,11 @@ DECLARE
   v_pct INTEGER := 0;
   v_is_all_done BOOLEAN := FALSE;
 BEGIN
+  -- Security: Caller must be the target user or an administrator
+  IF NOT public.is_backend_caller() AND auth.uid() IS DISTINCT FROM p_user_id AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Cannot refresh course progress for another user.';
+  END IF;
+
   -- 1. Dynamically count total published modules defined for this course
   SELECT COUNT(*) INTO v_total_modules
   FROM public.course_modules
@@ -706,7 +798,7 @@ BEGIN
     completed_at = CASE WHEN EXCLUDED.status = 'completed' AND public.course_enrollments.completed_at IS NULL THEN now() ELSE public.course_enrollments.completed_at END,
     last_accessed_at = now();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ==============================================================================
 -- 10. ADMIN & INSTRUCTOR CURRICULUM CONTROL
@@ -730,6 +822,11 @@ DECLARE
   v_next_num INTEGER;
   v_new_id UUID;
 BEGIN
+  -- Security: SECURITY DEFINER bypasses RLS, so authorization must be checked here.
+  IF NOT (public.is_backend_caller() OR public.is_admin()) THEN
+    RAISE EXCEPTION 'Access denied: only administrators can add course modules.';
+  END IF;
+
   SELECT COALESCE(MAX(module_number), 0) + 1 INTO v_next_num
   FROM public.course_modules
   WHERE course_id = p_course_id;
@@ -822,7 +919,7 @@ CREATE TABLE IF NOT EXISTS public.competitions (
   registration_deadline TIMESTAMPTZ,
   competition_date TIMESTAMPTZ,
   prize_pool_summary TEXT,
-  status TEXT DEFAULT 'registration_open' CHECK (status IN ('draft', 'registration_open', 'registration_closed', 'live', 'completed')),
+  status TEXT DEFAULT 'registration_open' CHECK (status IN ('draft', 'registration_open', 'registration_closed', 'live', 'completed', 'active')),
   rulebook_pdf_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -982,37 +1079,121 @@ CREATE TABLE IF NOT EXISTS public.certificate_verification_logs (
 );
 
 -- ==============================================================================
--- 14. EVENTS & WORKSHOPS
+-- 14. EVENTS, WORKSHOPS & EVENT REGISTRATIONS
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.events (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT NOT NULL,
-  event_date DATE NOT NULL,
+  slug TEXT UNIQUE,
+  description TEXT,
+  category TEXT DEFAULT 'workshop' CHECK (category IN ('workshop', 'masterclass', 'competition', 'bootcamp', 'webinar', 'exhibition', 'stem', 'other')),
+  event_date TIMESTAMPTZ NOT NULL,
+  end_date TIMESTAMPTZ,
   start_time TIME,
   end_time TIME,
-  venue TEXT NOT NULL,
+  venue TEXT,
   image_url TEXT,
   registration_link TEXT,
+  is_virtual BOOLEAN DEFAULT TRUE,
+  virtual_meeting_url TEXT,
   capacity INTEGER DEFAULT 100,
   registered_count INTEGER DEFAULT 0,
   fee_usd DECIMAL(10,2) DEFAULT 0.00,
+  registration_fee_usd NUMERIC(10,2) DEFAULT 0.00,
   is_upcoming BOOLEAN DEFAULT TRUE,
-  category TEXT DEFAULT 'stem',
+  is_published BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Upgrades for backward compatibility with existing databases
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'workshop';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_date TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS start_time TIME;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_time TIME;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS venue TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_link TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_virtual BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS virtual_meeting_url TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS capacity INTEGER DEFAULT 100;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registered_count INTEGER DEFAULT 0;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS fee_usd DECIMAL(10,2) DEFAULT 0.00;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_fee_usd NUMERIC(10,2) DEFAULT 0.00;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_upcoming BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+
 CREATE TABLE IF NOT EXISTS public.event_registrations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  registration_code TEXT UNIQUE,
+  event_id TEXT NOT NULL,
+  event_title TEXT,
   user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   full_name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
+  school_institution TEXT,
+  role_title TEXT DEFAULT 'Educator',
+  province TEXT DEFAULT 'National',
+  registration_fee NUMERIC(10,2) DEFAULT 0.00,
+  currency TEXT DEFAULT 'USD',
+  continuous_support_opt_in BOOLEAN DEFAULT FALSE,
+  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'submitted', 'verified', 'rejected', 'unpaid', 'confirmed', 'attended', 'cancelled')),
+  payment_method TEXT DEFAULT 'ecocash',
+  payment_reference TEXT,
+  payment_notes TEXT,
+  proof_of_payment_url TEXT,
+  paid_at TIMESTAMPTZ,
+  approval_status TEXT DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
+  approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_by_name TEXT,
+  approved_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  admin_notes TEXT,
+  certificate_unlocked BOOLEAN DEFAULT FALSE,
+  certificate_unlocked_at TIMESTAMPTZ,
+  certificate_unlocked_by TEXT,
+  certificate_number TEXT,
+  certificate_grade TEXT,
+  certificate_title TEXT,
+  certificate_custom_links JSONB DEFAULT '[]',
+  certificate_custom_fields JSONB DEFAULT '[]',
+  certificate_custom_notes TEXT,
+  certificate_endorsement_text TEXT,
+  has_entered_event BOOLEAN DEFAULT FALSE,
+  last_entered_at TIMESTAMPTZ,
+  entry_count INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'confirmed',
   institution TEXT,
-  status TEXT DEFAULT 'confirmed' CHECK (status IN ('pending', 'confirmed', 'attended', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Upgrades for backward compatibility
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS registration_code TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS event_title TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS school_institution TEXT;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS role_title TEXT DEFAULT 'Educator';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pending';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'pending';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS certificate_unlocked BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'confirmed';
+ALTER TABLE public.event_registrations ADD COLUMN IF NOT EXISTS institution TEXT;
+
+CREATE TABLE IF NOT EXISTS public.event_meetings (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  meeting_title TEXT NOT NULL,
+  meeting_url TEXT NOT NULL,
+  meeting_code TEXT,
+  passcode TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -1024,11 +1205,21 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
-  type TEXT DEFAULT 'system' CHECK (type IN ('system', 'competition', 'course', 'assignment', 'event', 'certificate', 'mention')),
+  type TEXT DEFAULT 'system' CHECK (type IN ('system', 'competition', 'course', 'event', 'announcement', 'achievement', 'certificate', 'assignment', 'mention')),
+  link TEXT,
   action_url TEXT,
   is_read BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Upgrades for backward compatibility
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS message TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'system';
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS link TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS action_url TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
 
 -- ==============================================================================
 -- 16. HARDWARE PROJECTS, IDEAS & COMMUNITY COLLABORATION
@@ -1157,6 +1348,53 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS activities JSONB DEFAULT '[
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS patron_advisor JSONB DEFAULT '{}';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS confidential_info JSONB DEFAULT '{}';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- Helper: link a column to public.chapters(id) using whatever type chapters.id
+-- really has. Older YARA databases created chapters.id as TEXT, newer ones as UUID;
+-- a hard-coded UUID foreign key fails on the TEXT variant (error 42804).
+CREATE OR REPLACE FUNCTION public.ensure_chapter_fk(
+  p_table TEXT, p_column TEXT, p_on_delete TEXT DEFAULT 'SET NULL'
+) RETURNS VOID AS $$
+DECLARE
+  v_chapter_type TEXT;
+  v_col_type TEXT;
+  v_fk_name TEXT := p_table || '_' || p_column || '_fkey';
+BEGIN
+  SELECT format_type(a.atttypid, a.atttypmod) INTO v_chapter_type
+  FROM pg_attribute a
+  WHERE a.attrelid = 'public.chapters'::regclass AND a.attname = 'id' AND NOT a.attisdropped;
+
+  SELECT format_type(a.atttypid, a.atttypmod) INTO v_col_type
+  FROM pg_attribute a
+  WHERE a.attrelid = format('public.%I', p_table)::regclass AND a.attname = p_column AND NOT a.attisdropped;
+
+  IF v_col_type IS NULL THEN
+    EXECUTE format('ALTER TABLE public.%I ADD COLUMN %I %s', p_table, p_column, v_chapter_type);
+    v_col_type := v_chapter_type;
+  END IF;
+
+  IF v_col_type <> v_chapter_type THEN
+    RAISE NOTICE 'Skipped FK %.% -> chapters(id): column is %, chapters.id is %. Convert the column manually if needed.',
+      p_table, p_column, v_col_type, v_chapter_type;
+    RETURN;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+    WHERE c.contype = 'f' AND c.conrelid = format('public.%I', p_table)::regclass
+      AND c.confrelid = 'public.chapters'::regclass AND a.attname = p_column
+  ) THEN
+    BEGIN
+      EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES public.chapters(id) ON DELETE %s',
+        p_table, v_fk_name, p_column, p_on_delete);
+    EXCEPTION WHEN OTHERS THEN
+      -- e.g. existing rows point at chapters that no longer exist
+      RAISE NOTICE 'Skipped FK %.% -> chapters(id): %', p_table, p_column, SQLERRM;
+    END;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ==============================================================================
 -- 19. CMS, ANNOUNCEMENTS, IMPACT LEDGER & PARTNERS
@@ -1316,23 +1554,82 @@ ALTER TABLE public.module_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.course_enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.competition_teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization_posts ENABLE ROW LEVEL SECURITY;
 
+-- True only for back-end callers: the SQL editor / migrations (no API request) or the
+-- service_role key. Anonymous API calls also have no auth.uid(), so "no user" alone
+-- must never be treated as trusted.
+CREATE OR REPLACE FUNCTION public.is_backend_caller()
+RETURNS BOOLEAN LANGUAGE sql STABLE AS $$
+  SELECT auth.uid() IS NULL AND COALESCE(
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb->>'role',
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    'none') IN ('none', 'service_role');
+$$;
+
 -- Helper function to check if user is an admin
+-- Hardened is_admin() function based strictly on authenticated role membership
+-- NOTE: Hardcoded administrative emails ('goyaracorp@gmail.com', 'admin@yara.org', 'director@yara.org')
+-- have been migrated to the profiles.role column ('admin' or 'super_admin') for RBAC compliance.
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND (
-      role IN ('admin', 'super_admin') 
-      OR email IN ('goyaracorp@gmail.com', 'admin@yara.org', 'director@yara.org')
-    )
+    WHERE id = auth.uid() 
+      AND role IN ('admin', 'super_admin')
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Privileged profile fields guard.
+-- The "Users update own profile" policy lets a user update their whole row, which
+-- previously allowed a student to set role = 'super_admin' and pass is_admin().
+-- This trigger blocks non-admins from changing role, verification, payment,
+-- subscription and commission fields. SQL editor / service-role calls
+-- (auth.uid() IS NULL) and admins are unaffected.
+CREATE OR REPLACE FUNCTION public.guard_profile_privileged_fields()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_col TEXT;
+  v_old JSONB;
+  v_new JSONB := to_jsonb(NEW);
+  v_protected TEXT[] := ARRAY[
+    'role', 'member_id', 'is_verified', 'is_halted', 'is_blocked',
+    'is_executive_auditor', 'is_verified_educator', 'approval_status',
+    'registration_paid', 'amount_paid', 'total_dues', 'trial_ends_at',
+    'subscription_expires_at', 'rating', 'mentored_count',
+    'total_commission', 'commission_rate', 'commission_due'
+  ];
+BEGIN
+  IF public.is_backend_caller() OR public.is_admin() THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    IF COALESCE(v_new->>'role', 'student') IN ('super_admin', 'admin')
+       OR COALESCE((v_new->>'is_executive_auditor')::BOOLEAN, FALSE) THEN
+      RAISE EXCEPTION 'Access denied: privileged role cannot be self-assigned.';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  v_old := to_jsonb(OLD);
+  FOREACH v_col IN ARRAY v_protected LOOP
+    -- jsonb lookup tolerates legacy databases where a column is missing
+    IF (v_new -> v_col) IS DISTINCT FROM (v_old -> v_col) THEN
+      RAISE EXCEPTION 'Access denied: % can only be changed by an administrator.', v_col;
+    END IF;
+  END LOOP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_guard_profile_privileged_fields ON public.profiles;
+CREATE TRIGGER trg_guard_profile_privileged_fields
+  BEFORE INSERT OR UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.guard_profile_privileged_fields();
 
 -- Profiles: Public read, Self/Admin write
 DO $$ BEGIN
@@ -1560,10 +1857,6 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active
 -- ------------------------------------------------------------------------------
 -- A. SEED COURSES (BEGINNER, INTERMEDIATE, ADVANCED)
 -- ------------------------------------------------------------------------------
--- Drop potential conflicts first
-DELETE FROM public.course_lessons WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
-DELETE FROM public.course_modules WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
-DELETE FROM public.courses WHERE id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
 CREATE UNIQUE INDEX IF NOT EXISTS courses_pkey_idx ON public.courses (id);
 
 INSERT INTO public.courses (
@@ -1646,11 +1939,11 @@ INSERT INTO public.course_modules (
     'Systems Engineering & Robotics Taxonomy',
     'Understand what constitutes a robotic system: sensors (input), processors (logic), actuators (output), and physical structure (chassis).',
     'Robotics is the intersection of mechanical engineering, electrical engineering, and computer science. A robot perceives its environment through sensors, makes decisions using computational logic, and acts on the physical world via actuators.',
-    'https://www.youtube.com/watch?v=0hYg4q6MvdE', 'Anatomy of a Modern Robot: Sensors, Actuators & Compute', 360,
+    NULL, 'Anatomy of a Modern Robot: Sensors, Actuators & Compute', 360,
     'Lab 1: Deconstructing a Real-World Automated Mechanism',
     'Identify and categorize inputs, processing chips, and output actuators in everyday consumer hardware (e.g. microwave turntable, automatic dispenser, or disk drive).',
     ARRAY['Screwdriver set', 'Sample broken consumer device or breadboard starter', 'Notebook'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 1: 1-Page Systems Block Diagram',
     'Select an African problem (e.g. automated borehole water pump or crop security bird-scarer) and draw a formal block diagram showing Power Source, Sensor Inputs, Microcontroller Core, and Actuator Outputs.',
     100,
@@ -1665,7 +1958,7 @@ INSERT INTO public.course_modules (
     'Circuit Fundamentals & Ohm’s Law',
     'Master voltage, current, resistance, Ohm’s Law (V=I*R), power dissipation (P=V*I), short circuits, and bench safety protocol.',
     'Understanding electrical circuits is the prerequisite to all hardware development. Voltage is potential difference, current is charge flow, and resistance opposes flow. Exceeding current ratings destroys components.',
-    'https://www.youtube.com/watch?v=8jB8hEDLk5A', 'Ohm’s Law & Bench Electrical Safety', 420,
+    NULL, 'Ohm’s Law & Bench Electrical Safety', 420,
     'Lab 2: Resistor Color Codes & Multimeter Resistance Validation',
     'Measure 5 different resistors using both the 4-band color code formula and a digital multimeter. Verify manufacturing tolerances within 5%.',
     ARRAY['Digital Multimeter', 'Assorted Resistors (220R, 1k, 10k, 100k)', 'Breadboard'],
@@ -1684,7 +1977,7 @@ INSERT INTO public.course_modules (
     'Solderless Prototyping & Electrical Continuity',
     'Understand internal breadboard rail architecture (power buses vs terminal tie-point strips), jumper wire best practices, and clean circuit layout.',
     'Breadboards allow rapid solderless circuit prototyping. Power rails run vertically along the sides, while terminal strips run horizontally in groups of five pins. Jumper wires must be color-coded (Red for VCC, Black for GND).',
-    'https://www.youtube.com/watch?v=6WReFkfrUIk', 'Mastering the Breadboard Architecture', 340,
+    NULL, 'Mastering the Breadboard Architecture', 340,
     'Lab 3: Building a Dual-Rail Pushbutton Switch Circuit',
     'Wire a manual pushbutton switch circuit that lights an LED when pressed, utilizing a pull-down resistor to prevent floating logic states.',
     ARRAY['Half-size Breadboard', 'Pushbutton switch', 'LED (5mm)', '330R Resistor', '10k Resistor', '9V Battery with 5V breadboard regulator'],
@@ -1703,7 +1996,7 @@ INSERT INTO public.course_modules (
     'Digital Compute & GPIO Hardware Interfacing',
     'Understand the microcontroller brain: ATmega328P / ESP32, CPU clock frequency, Flash vs SRAM vs EEPROM, and General Purpose Input/Output (GPIO) pins.',
     'Unlike microprocessors which require external RAM and storage, microcontrollers integrate CPU, memory, clock, and peripherals onto a single silicon die, making them ideal for embedded real-time robotics.',
-    'https://www.youtube.com/watch?v=nL34zDTPkcs', 'Microcontroller Architecture: Inside the Chip', 410,
+    NULL, 'Microcontroller Architecture: Inside the Chip', 410,
     'Lab 4: Flashing Bare-Metal Blink & Custom Morse Code',
     'Connect an Arduino Uno via USB, install board definitions in the IDE, configure COM port baud rates, and flash firmware that blinks the onboard LED in an SOS Morse code pattern.',
     ARRAY['Arduino Uno / Nano with USB Cable', 'Computer with Arduino IDE installed'],
@@ -1722,11 +2015,11 @@ INSERT INTO public.course_modules (
     'Embedded C++ Logic, Loops, Functions & State',
     'Master embedded programming syntax: setup() vs loop(), pinMode, digitalWrite, digitalRead, data types (bool, uint8_t, int, unsigned long), and non-blocking timing.',
     'C++ is the global industry standard for embedded robotics. Firmwares must run reliably without memory leaks or uncontrolled infinite hangs. Avoid delay() in production firmware.',
-    'https://www.youtube.com/watch?v=fJWR7dBucJY', 'C++ for Robotics: Control Logic & State', 390,
+    NULL, 'C++ for Robotics: Control Logic & State', 390,
     'Lab 5: Digital Input Debouncing with Pushbutton',
     'Interface a physical tactile pushbutton to Digital Pin 2 and write an edge-detection debouncing routine that toggles a relay state cleanly on each press without switch-bounce chatter.',
     ARRAY['Arduino Uno', 'Tactile switch', '10k Pull-up Resistor', '100nF Ceramic Capacitor', 'Jumper wires'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 5: Interactive Reaction Timer Game',
     'Write a C++ game firmware where a random LED illuminates after an unpredictable delay (1-5s). The player must press a button as fast as possible. Output the reaction time in milliseconds over Serial Monitor.',
     100,
@@ -1741,7 +2034,7 @@ INSERT INTO public.course_modules (
     'Transducers, Analog vs Digital & Signal Conditioning',
     'Explore how robots perceive reality: Ultrasonic rangefinders (HC-SR04), Infrared proximity sensors, Light Dependent Resistors (LDRs), and Analog-to-Digital Conversion (ADC).',
     'Sensors convert physical phenomena into electrical signals. The ATmega328P ADC has 10-bit resolution (0 to 1023) corresponding to 0V to 5V (approx 4.88mV per step).',
-    'https://www.youtube.com/watch?v=ZejQOX69K5M', 'How Ultrasonic & IR Sensors Work', 400,
+    NULL, 'How Ultrasonic & IR Sensors Work', 400,
     'Lab 6: Calibrating the HC-SR04 Ultrasonic Sensor in Metric Units',
     'Wire HC-SR04 Trigger and Echo pins. Send a 10-microsecond trigger pulse, read echo duration via pulseIn(), and calculate distance using the speed of sound formula: Distance = (Time * 0.0343) / 2.',
     ARRAY['Arduino Uno', 'HC-SR04 Ultrasonic Sensor', 'Metric Ruler / Measuring Tape', 'Cardboard target'],
@@ -1760,11 +2053,11 @@ INSERT INTO public.course_modules (
     'Electromechanical Actuation & H-Bridge Control',
     'Understand why microcontrollers cannot directly drive motors: inductive back-EMF spikes, high current draw, and H-Bridge drivers (L298N / TB6612FNG).',
     'Microcontroller pins output max 20-40mA, while DC gearmotors draw 200mA to 2A under stall. An H-Bridge uses transistors to reverse motor polarity and Pulse Width Modulation (PWM) to regulate motor speed.',
-    'https://www.youtube.com/watch?v=J6mQz6qj9Q8', 'Motors & H-Bridges: Driving High Current Loads', 420,
+    NULL, 'Motors & H-Bridges: Driving High Current Loads', 420,
     'Lab 7: Speed and Direction Control of Dual DC Motors',
     'Connect an L298N H-Bridge driver to an external battery pack and Arduino PWM pins (Pins 5, 6, 9, 10). Write routines for FORWARD, REVERSE, PIVOT LEFT, PIVOT RIGHT, and SOFT STOP.',
     ARRAY['Arduino Uno', 'L298N Dual Motor Driver', '2x TT Geared DC Motors', '7.4V Li-ion or 4x AA Battery Pack'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 7: Differential Drive Skid-Steer Maneuvers',
     'Implement a smooth acceleration and deceleration curve using PWM duty cycles (0 to 255) to prevent physical wheel slip and mechanical gear stripping during rapid direction reversals.',
     100,
@@ -1779,7 +2072,7 @@ INSERT INTO public.course_modules (
     'Robot Mechanics, Center of Mass & Drive Trains',
     'Learn robot chassis physics: differential drive vs four-wheel drive, caster wheels, ground clearance, center of mass (CoM), gear ratios, and torque calculation.',
     'A robot with excellent code will fail if its mechanical chassis flexes, wheels wobble, or its center of gravity is too high, causing it to tip under acceleration.',
-    'https://www.youtube.com/watch?v=jW0iP632x6w', 'Chassis Physics: Stability, Traction & Center of Mass', 380,
+    NULL, 'Chassis Physics: Stability, Traction & Center of Mass', 380,
     'Lab 8: Assembling the 2-Wheel Differential Rover Base',
     'Assemble acrylic/3D-printed chassis plates, mount DC gearmotors rigidly with M3 bolts, install the front passive caster wheel, and verify perfect horizontal alignment with a bubble level.',
     ARRAY['2WD Rover Chassis Kit', 'M3 Screws, Nuts & Spacers', 'Screwdriver', 'Ruler'],
@@ -1798,11 +2091,11 @@ INSERT INTO public.course_modules (
     'Systematic Fault Isolation & Bench Test Instruments',
     'Become an autonomous troubleshooter: voltage drop checks, continuity testing, tracing intermittent wire breaks, and cold solder joint detection.',
     'Debugging is 60% of robotics engineering. Professional roboticists do not guess; they form hypotheses, measure voltages systematically at test points, and isolate hardware from software.',
-    'https://www.youtube.com/watch?v=p4v3gYl4xYI', 'Professional Bench Debugging for Robots', 360,
+    NULL, 'Professional Bench Debugging for Robots', 360,
     'Lab 9: Simulating & Isolating 3 Injected Hardware Faults',
     'Take a non-functioning mobile robot with 3 hidden faults (loose GND wire, blown fuse/dead battery cell, reversed motor polarity). Follow the 5-Step YARA Fault Isolation Protocol to diagnose and repair each fault.',
     ARRAY['Digital Multimeter', 'Continuity buzzer probe', 'Assembled Rover', 'Jumper wires'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 9: Standard Operating Procedure (SOP) Bench Checklist',
     'Draft a 10-point Pre-Power Inspection Checklist for your robotics club. Detail every test point that must be verified before connecting battery power to avoid burning chips.',
     100,
@@ -1817,11 +2110,11 @@ INSERT INTO public.course_modules (
     'Algorithmic Motion Planning & Obstacle Reflexes',
     'Synthesize all modules: combine sensor perception, motor actuation, and conditional decision loops to build an autonomous obstacle-avoiding mobile robot.',
     'The robot now operates without human teleoperation. It measures forward distance continuously; if an obstacle is closer than 20cm, it halts, backs up, scans left/right, and steers toward clear space.',
-    'https://www.youtube.com/watch?v=3g8K1Y3nO4w', 'Autonomous Obstacle Avoidance Architecture', 420,
+    NULL, 'Autonomous Obstacle Avoidance Architecture', 420,
     'Lab 10: Programming the Autonomous Reflex Loop',
     'Deploy complete obstacle avoidance firmware to your rover. Test it inside an enclosed 2m x 2m testing pen and observe autonomous wall deflection without human intervention.',
     ARRAY['Assembled 2WD Autonomous Rover', 'Battery pack', 'Obstacle pen (cardboard walls)'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 10: Dead-Reckoning Square Navigation Challenge',
     'Program your rover to navigate an exact 1-meter square perimeter (Forward 1m -> 90-degree Right Turn -> Repeat 4 times) using precise motor calibration. Record video and measure positional error at the end.',
     100,
@@ -1838,6 +2131,7 @@ ON CONFLICT (course_id, module_number) DO UPDATE SET
   assignment_title = EXCLUDED.assignment_title;
 
 -- ------------------------------------------------------------------------------
+CREATE UNIQUE INDEX IF NOT EXISTS course_projects_course_type_idx ON public.course_projects (course_id, project_type);
 -- C. SEED BEGINNER LEVEL CAPSTONE PROJECTS (RESEARCH + ASSIGNED FINAL DESIGN)
 -- ------------------------------------------------------------------------------
 INSERT INTO public.course_projects (
@@ -1882,11 +2176,11 @@ INSERT INTO public.course_modules (
     'Real-Time Hardware Interrupts & Timers',
     'Move beyond polling: master hardware interrupts (RISING, FALLING, CHANGE), volatile variables, timer prescalers, and atomic operations.',
     'Polling wastes CPU cycles and misses rapid microsecond sensor transitions. Hardware interrupts preempt the CPU immediately when an event occurs on a dedicated pin.',
-    'https://www.youtube.com/watch?v=QtyLMbW53qQ', 'Hardware Interrupts & ISR Architecture in C++', 420,
+    NULL, 'Hardware Interrupts & ISR Architecture in C++', 420,
     'Lab 1: High-Speed Optical Encoder RPM Counter',
     'Attach an optical slotted disc to a motor shaft and write an ISR that increments tick counters on every FALLING edge without missing counts at 3000 RPM.',
     ARRAY['ESP32 / Arduino Uno', 'Optical Speed Sensor Module', 'Slotted Disc on DC motor'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 1: Non-Blocking Tachometer Firmware',
     'Build a non-blocking digital tachometer that calculates and displays real-time RPM on an OLED screen every 500ms using timer interrupts.',
     100,
@@ -1901,11 +2195,11 @@ INSERT INTO public.course_modules (
     'Proportional-Integral-Derivative Control Algorithms',
     'Master the mathematical cornerstone of control engineering: Error = Setpoint - ProcessValue, P (reaction), I (steady-state elimination), and D (damping oscillation).',
     'Open-loop control cannot handle disturbances. A PID controller continuously computes an error value and applies a correction based on proportional, integral, and derivative terms.',
-    'https://www.youtube.com/watch?v=wkfEZmsQqiA', 'PID Control from Mathematical Theory to C++', 450,
+    NULL, 'PID Control from Mathematical Theory to C++', 450,
     'Lab 2: Tuning PID Constants on a Single-Axis Balancing Arm',
     'Set up a motorized lever arm with an angle sensor. Tune Kp, Ki, and Kd systematically using the Ziegler-Nichols method until the arm holds a 45-degree angle steadily against wind disturbances.',
     ARRAY['ESP32', 'Potentiometer Angle Sensor', 'Motorized arm / Fan setup'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 2: High-Speed Line Tracking PID Rover',
     'Implement a PID line-following algorithm reading a 5-sensor IR array. Benchmark straightaway velocity vs tight turn damping without track derailment.',
     100,
@@ -1920,11 +2214,11 @@ INSERT INTO public.course_modules (
     'Kinematic State Estimation & Position Tracking',
     'Understand quadrature encoders (Channel A and Channel B phase shift), calculating wheel displacement, linear distance, and heading angle changes via odometry equations.',
     'Wheel encoders allow a mobile robot to estimate its position (X, Y, Theta) in 2D space relative to its starting coordinates through dead-reckoning odometry integration.',
-    'https://www.youtube.com/watch?v=q3wGeq7F1vA', 'Quadrature Encoders & Wheel Odometry Kinematics', 390,
+    NULL, 'Quadrature Encoders & Wheel Odometry Kinematics', 390,
     'Lab 3: Calibrating Encoder Pulses Per Revolution (PPR)',
     'Rotate a robot wheel manually 10 full turns. Count total encoder state transitions (4x decoding) and calculate exact millimeters traveled per tick.',
     ARRAY['Motors with Magnetic Quadrature Encoders', 'ESP32', 'Dual H-Bridge Driver'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 3: Odometric Straight-Line Driver',
     'Write a closed-loop controller that forces both left and right wheels to rotate at identical tick rates, ensuring the robot travels 3 meters in a straight line with under 2cm angular deviation.',
     100,
@@ -1939,11 +2233,11 @@ INSERT INTO public.course_modules (
     'State Transition Diagrams & Clean Software Design',
     'Replace spaghetti code with professional Finite State Machines (FSM): States, Events, Transitions, and Actions using C++ enum classes and switch statements.',
     'Real-time autonomous robots must juggle multiple concurrent behaviors (navigation, sensor monitoring, telemetry broadcasting, safety checks) without ever blocking execution.',
-    'https://www.youtube.com/watch?v=E43-CfukEgs', 'Finite State Machines for Autonomous Robotics', 360,
+    NULL, 'Finite State Machines for Autonomous Robotics', 360,
     'Lab 4: Building a 5-State Autonomous Rover FSM',
     'Construct an FSM featuring states: IDLE, FORWARD_SEARCH, WALL_AVOID_LEFT, WALL_AVOID_RIGHT, and EMERGENCY_ESTOP with clean state transition logs printed over serial.',
     ARRAY['ESP32', '2x Distance Sensors', 'Motors + Driver'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 4: State Machine Architecture Blueprint',
     'Submit a formal UML State Transition Diagram and accompanying C++ implementation for a robotic vacuum cleaner that handles low-battery returns and edge-dropoff retreats.',
     100,
@@ -1958,11 +2252,11 @@ INSERT INTO public.course_modules (
     'Hardware Bus Architectures & Bit-Level Protocols',
     'Master hardware bus communication: I2C (SDA/SCL, addressing, pull-ups), SPI (MOSI, MISO, SCK, CS), and asynchronous UART (Tx, Rx, Baud rates, parity).',
     'Robots contain multiple specialized chips. Microcontrollers communicate with IMUs, displays, and coprocessors over synchronous multi-drop digital buses.',
-    'https://www.youtube.com/watch?v=BA70b8wPqgA', 'I2C vs SPI vs UART: When to Use Which', 410,
+    NULL, 'I2C vs SPI vs UART: When to Use Which', 410,
     'Lab 5: Reading an I2C MPU6050 Accelerometer & Driving an SPI OLED Display',
     'Connect an MPU6050 6-axis IMU over I2C (Address 0x68) and an SSD1306 OLED over SPI. Read real-time pitch and roll angles and render an artificial horizon display at 60 FPS.',
     ARRAY['ESP32', 'MPU6050 IMU', '0.96 inch OLED Display', 'Breadboard'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 5: Dual-Microcontroller UART Telemetry Bridge',
     'Establish a bidirectional packet protocol (Header, Length, Payload, Checksum) between two microcontrollers over UART at 115200 baud. Transmit sensor packets with checksum verification.',
     100,
@@ -1977,11 +2271,11 @@ INSERT INTO public.course_modules (
     'Signal Conditioning, Complementary Filters & Noise',
     'Combine noisy sensors to achieve clean state perception: fusing accelerometer gravity vectors with gyroscope angular rates using a Complementary Filter.',
     'Accelerometers are noisy in the short term but stable long term. Gyroscopes are smooth in the short term but drift over time. Sensor fusion merges their complementary strengths.',
-    'https://www.youtube.com/watch?v=0rlvvYgmTvI', 'Sensor Fusion: Complementary & Kalman Filtering', 430,
+    NULL, 'Sensor Fusion: Complementary & Kalman Filtering', 430,
     'Lab 6: Calibrating Gyro Zero-Rate Bias & Implementing a Complementary Filter',
     'Sample 1000 stationary IMU readings on startup to compute zero-rate bias offsets. Implement angle = 0.98 * (angle + gyro * dt) + 0.02 * accel_angle.',
     ARRAY['ESP32', 'MPU6050 IMU', 'Serial Plotter tool'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 6: Pitch & Roll Robot Tilt Safety Cutoff',
     'Write a safety firmware module that continuously calculates fused vehicle tilt angle. If vehicle pitch exceeds 35 degrees (imminent tip-over), cut all motor PWM outputs instantly.',
     100,
@@ -1996,7 +2290,7 @@ INSERT INTO public.course_modules (
     'Lithium Chemistries, C-Ratings, BMS & Buck Converters',
     'Master robot power engineering: Li-ion vs LiFePO4 vs Lead Acid, discharge C-ratings, internal resistance, Battery Management Systems (BMS), and efficient Buck/Boost converters.',
     'Poor power design is the #1 killer of robotics prototypes. Linear regulators waste excess voltage as heat (P=(Vin-Vout)*I), whereas switching buck regulators achieve 90%+ efficiency.',
-    'https://www.youtube.com/watch?v=wXW_m9LzF1A', 'Robot Power Architecture: Batteries & Regulators', 400,
+    NULL, 'Robot Power Architecture: Batteries & Regulators', 400,
     'Lab 7: Characterizing Battery Discharge Curves & Buck Converter Thermal Efficiency',
     'Power an LM2596 switching buck converter with a 12V supply. Step it down to 5.0V under a 1A load. Measure input vs output power to calculate efficiency, and monitor thermal rise with an infrared thermometer.',
     ARRAY['12V Battery / Supply', 'LM2596 Buck Converter', 'Load Resistor', 'Multimeter'],
@@ -2015,11 +2309,11 @@ INSERT INTO public.course_modules (
     'Grid Mapping, Wall-Following & Flood-Fill Heuristics',
     'Explore autonomous navigation in constrained environments: Right-Hand Wall Following rules, detecting dead-ends, and introduction to the Micromouse Flood-Fill algorithm.',
     'A robot inside a maze must maintain wall distances using side-mounted rangefinders while detecting junctions and dead-ends through stateful maze traversal rules.',
-    'https://www.youtube.com/watch?v=0k5G6FmP7z8', 'Micromouse Maze Navigation & Flood-Fill', 440,
+    NULL, 'Micromouse Maze Navigation & Flood-Fill', 440,
     'Lab 8: Left-Wall Follower Robot in a Modular Wooden Maze',
     'Position two ultrasonic sensors on the left and front of the rover. Write a closed-loop PD wall follower that holds an exact 12cm distance from the left wall while executing clean 90-degree right turns at obstacles.',
     ARRAY['ESP32 Autonomous Rover', '2x Ultrasonic Sensors', 'Cardboard/wooden maze walls'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 8: Dead-End Detection & 180-Degree Pivot Maneuver',
     'Enhance your maze rover firmware to detect dead-ends (walls detected on front, left, and right). Execute an autonomous 180-degree pivot within the corridor width without scraping walls.',
     100,
@@ -2034,7 +2328,7 @@ INSERT INTO public.course_modules (
     'Electronic CAD, Trace Routing & Design for Manufacturing',
     'Transition from messy breadboards to custom Printed Circuit Boards (PCBs): KiCad schematic capture, footprint assignment, PCB layout rules, trace widths for motor current, and Gerber generation.',
     'A competition robot cannot have loose jumper wires that unplug during arena vibrations. Custom PCBs provide mechanical rigidity, electrical reliability, and compact form factor.',
-    'https://www.youtube.com/watch?v=vaCVh2SAZY4', 'KiCad PCB Design: From Schematic to Gerber', 450,
+    NULL, 'KiCad PCB Design: From Schematic to Gerber', 450,
     'Lab 9: Designing a Custom Sensor & Motor Carrier Board in KiCad',
     'Capture a clean schematic in KiCad including an ESP32, L298N/TB6612 motor driver headers, I2C sensor headers, reverse-polarity protection diode, and power indicator LED.',
     ARRAY['Computer with KiCad 8.0+ installed', 'KiCad component libraries'],
@@ -2053,11 +2347,11 @@ INSERT INTO public.course_modules (
     'Archimedes’ Principle, Ballast, Waterproofing & Thrusters',
     'Explore marine engineering for the YARA 2026 Underwater Drone category: positive vs neutral vs negative buoyancy, center of buoyancy (CoB) vs center of gravity (CoG), and O-ring sealing.',
     'Water is 800 times denser than air and exerts 1 atmosphere of pressure every 10 meters of depth. An Underwater Remotely Operated Vehicle (ROV) must be slightly positively buoyant and have its CoB placed well above its CoG to prevent inversion.',
-    'https://www.youtube.com/watch?v=CqFvOQ2_o20', 'Underwater ROVs: Buoyancy, Sealing & Stability', 410,
+    NULL, 'Underwater ROVs: Buoyancy, Sealing & Stability', 410,
     'Lab 10: Archimedes Buoyancy & Ballast Calibration Tank Test',
     'Construct a sealed cylindrical PVC/acrylic hull. Measure total weight in air and submerged displaced volume in water. Calculate and add ballast weights until the vessel achieves neutral buoyancy (floats just below water line).',
     ARRAY['Sealed cylinder hull / ROV frame', 'Water tank / Bucket', 'Lead / Stainless steel ballast weights', 'Digital kitchen scale'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 10: 3-Axis Thruster Vectoring Allocation Scheme',
     'Design a thruster allocation scheme with 4 horizontal thrusters (vectored at 45 degrees) and 2 vertical thrusters. Write firmware routines mapping joystick surge, sway, heave, and yaw commands to individual PWM motor signals.',
     100,
@@ -2072,11 +2366,11 @@ INSERT INTO public.course_modules (
     'Radio Frequency Links, Packet Framing & Telemetry Dashboards',
     'Cut the umbilical cord: implement robust wireless 2.4GHz RF communication using NRF24L01+ transceivers, packet serialization, CRC error checking, and real-time telemetry streaming.',
     'Wireless links drop packets and suffer from interference. A production robotics protocol must use structured frames, acknowledge packets (ACK), and implement auto-retransmission with fail-safe timeouts.',
-    'https://www.youtube.com/watch?v=0k5G6FmP7z8', 'NRF24L01 & Wireless Robotics Telemetry', 370,
+    NULL, 'NRF24L01 & Wireless Robotics Telemetry', 370,
     'Lab 11: Establishing a 100-Meter Wireless RF Telemetry Link',
     'Wire two NRF24L01+ modules with 10uF bypass capacitors on 3.3V lines. Establish a continuous 50Hz telemetry stream transmitting rover battery voltage, heading, and wheel speeds to a base station.',
     ARRAY['2x ESP32 / Arduino', '2x NRF24L01+ modules', '10uF Electrolytic Capacitors'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 11: Wireless Fail-Safe Emergency Stop Watchdog',
     'Write a safety watchdog timer in the robot firmware. If no valid RF telemetry packet is received for more than 500 milliseconds (loss of signal), cut all thruster/motor power automatically and illuminate a warning beacon.',
     100,
@@ -2091,7 +2385,7 @@ INSERT INTO public.course_modules (
     'Competition Strategy, Pit Readiness & Engineering Defense',
     'Prepare for the YARA National Robotics Championship: rulebook interpretation, arena lighting variations, battery turnaround protocols, pit area tools, and defending engineering decisions before judges.',
     'Championships are won in the pit area through preparation, rigorous checklists, and team coordination. Teams with strict gender parity and well-documented engineering notebooks score the highest.',
-    'https://www.youtube.com/watch?v=Y8kK8YmP1v4', 'Winning Robotics Competitions: Strategy, Pits & Rules', 430,
+    NULL, 'Winning Robotics Competitions: Strategy, Pits & Rules', 430,
     'Lab 12: Executing a 5-Minute Timed Match Simulation Drill',
     'Perform a mock competition match drill: unbox robot, conduct 60-second pre-match checks, place on starting tile, execute autonomous run, and pack up within the strict competition time limit.',
     ARRAY['Competition Robot', 'Spare Battery', 'Stopwatch', 'Official YARA Inspection Checklist'],
@@ -2156,11 +2450,11 @@ INSERT INTO public.course_modules (
     'Linux System Architecture & Headless Embedded Systems',
     'Transition from microcontrollers to full operating systems: Linux kernel, headless SSH, systemd services, GPIO memory mapping, and IPC.',
     'Complex robotics algorithms (computer vision, SLAM, neural nets) require operating systems with virtual memory, multi-core scheduling, and high-level networking stacks.',
-    'https://www.youtube.com/watch?v=kY3n_vG_4z0', 'Embedded Linux for Robotics: From Boot to Shell', 420,
+    NULL, 'Embedded Linux for Robotics: From Boot to Shell', 420,
     'Lab 1: Headless Linux Setup & Real-Time Serial Bridge to Microcontroller',
     'Configure a Raspberry Pi with Debian/Ubuntu Server. Establish an automated systemd service that boots a Python/C++ daemon reading UART telemetry from an ESP32 at 921600 baud.',
     ARRAY['Raspberry Pi 4 / 5', 'MicroSD Card', 'ESP32 coprocessor', 'USB-to-UART bridge'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 1: Automated Watchdog System Service',
     'Write a production-grade systemd unit file and monitoring script that restarts the robotics process automatically if memory leaks exceed 500MB or CPU hangs occur.',
     100,
@@ -2175,7 +2469,7 @@ INSERT INTO public.course_modules (
     'DDS Middleware, Nodes, Topics, Services & Actions',
     'Master the global robotics industry standard: ROS 2 Humble/Iron, Data Distribution Service (DDS), publisher/subscriber topics, services, actions, and colcon build systems.',
     'ROS 2 is a distributed modular framework. Instead of a single monolithic script, robotic tasks are divided into isolated nodes that communicate over asynchronous typed topics.',
-    'https://www.youtube.com/watch?v=0k5G6FmP7z8', 'ROS 2 Core Architecture: Nodes, Topics & Actions', 450,
+    NULL, 'ROS 2 Core Architecture: Nodes, Topics & Actions', 450,
     'Lab 2: Creating a Custom ROS 2 Package with Publisher and Subscriber Nodes',
     'Create a C++ or Python ROS 2 package. Build a sensor_node that publishes custom telemetry messages at 50Hz and a motor_controller_node that consumes commands and computes motor velocities.',
     ARRAY['Linux / Ubuntu 22.04 environment', 'ROS 2 Humble SDK'],
@@ -2194,7 +2488,7 @@ INSERT INTO public.course_modules (
     'Pixel Pipelines, Color Space Filtering & Contours',
     'Equip robots with vision: camera matrix calibration, undistortion, HSV color space segmentation, morphological opening/closing, and contour bounding boxes.',
     'RGB color space is sensitive to shadows and sunlight. Converting camera frames to HSV (Hue, Saturation, Value) separates color chrominance from brightness, enabling robust visual detection.',
-    'https://www.youtube.com/watch?v=oXlwWbU8l2o', 'OpenCV for Robotics: From Pixels to Spatial Coordinates', 420,
+    NULL, 'OpenCV for Robotics: From Pixels to Spatial Coordinates', 420,
     'Lab 3: Real-Time Ball/Fruit Detection with HSV Masking',
     'Stream camera frames at 30 FPS. Apply Gaussian blur, threshold HSV bounds for a bright orange ball or green crop, extract contours, and compute the (X, Y) pixel centroid in real time.',
     ARRAY['Raspberry Pi + Camera Module', 'OpenCV 4.8+', 'Target colored object'],
@@ -2213,7 +2507,7 @@ INSERT INTO public.course_modules (
     'Neural Networks, Model Quantization & Coral Edge TPU',
     'Deploy machine learning models on constrained edge hardware: MobileNet SSD, YOLOv8-nano, INT8 quantization, and hardware acceleration with Google Coral TPU.',
     'Traditional computer vision fails in chaotic outdoor African environments. Convolutional neural networks recognize objects (weeds, crops, humans, livestock) regardless of lighting or angle variations.',
-    'https://www.youtube.com/watch?v=kY3n_vG_4z0', 'Edge AI for Robots: Quantized Neural Networks', 440,
+    NULL, 'Edge AI for Robots: Quantized Neural Networks', 440,
     'Lab 4: Deploying a Quantized MobileNet Crop Weed Classifier',
     'Load an INT8 quantized TFLite object detection model on Raspberry Pi. Benchmark inference time on CPU vs hardware accelerator, achieving 25+ FPS real-time classification.',
     ARRAY['Raspberry Pi 4 / 5', 'Camera Module', 'TensorFlow Lite runtime'],
@@ -2232,11 +2526,11 @@ INSERT INTO public.course_modules (
     'Forward/Inverse Kinematics, Denavit-Hartenberg & Trajectories',
     'Master robotic arm mathematics: Forward Kinematics (FK via DH parameters), Inverse Kinematics (IK via trigonometric and Jacobian methods), and cubic polynomial trajectory smoothing.',
     'To pick up an object at coordinate (X, Y, Z), a robotic arm cannot guess joint angles. Inverse Kinematics calculates the exact servo angles required for the end-effector to reach the target position.',
-    'https://www.youtube.com/watch?v=VusKAxfJgls', 'Robotic Arms: Forward & Inverse Kinematics Solvers', 460,
+    NULL, 'Robotic Arms: Forward & Inverse Kinematics Solvers', 460,
     'Lab 5: Programming a 3-DOF Planar Arm Inverse Kinematics Solver',
     'Build an analytic IK solver in C++/Python for a 3-link arm. Provide desired Cartesian end-effector coordinates (X, Y, Z) and calculate servo angles theta1, theta2, theta3 in real time.',
     ARRAY['3-DOF / 4-DOF Robotic Arm Kit', 'Servo Drivers', 'Microcontroller / RPi'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 5: Pick-and-Place Trajectory Execution',
     'Program the robotic arm to pick a colored block from Position A, lift along a smooth parabolic arc (preventing object slippage), and place it precisely into Bin B with sub-centimeter repeatability.',
     100,
@@ -2251,7 +2545,7 @@ INSERT INTO public.course_modules (
     '2D/3D LiDAR, Cartographer SLAM & Costmaps',
     'Solve the fundamental robotics challenge: How can a robot navigate an unknown environment when it doesn’t know where it is and doesn’t have a map? Master 2D LiDAR, scan matching, and Cartographer.',
     'SLAM uses probabilistic filtering and graph optimization to build an occupancy grid map while simultaneously estimating the robot’s pose within that emerging map.',
-    'https://www.youtube.com/watch?v=saVZtgPyyJQ', 'LiDAR SLAM: Building 2D Maps with ROS 2', 450,
+    NULL, 'LiDAR SLAM: Building 2D Maps with ROS 2', 450,
     'Lab 6: Mapping an Indoor Arena with a 360-Degree LiDAR',
     'Mount an RPLiDAR A1 on your mobile robot. Run Cartographer or SlamToolbox in ROS 2. Drive the rover through a complex room to generate a high-resolution 2D occupancy grid map.',
     ARRAY['Raspberry Pi', 'RPLiDAR A1 / A2 Scanner', 'Differential Drive Rover Base'],
@@ -2270,7 +2564,7 @@ INSERT INTO public.course_modules (
     'BLDC Motors, Electronic Speed Controllers & Field-Oriented Control',
     'Step up to industrial actuation: Brushless DC (BLDC) motors, 3-phase stator winding commutation, Electronic Speed Controllers (ESCs), Back-EMF sensing, and Field-Oriented Control (FOC).',
     'Brushed motors wear out and lack torque density. High-speed competition rovers, drones, and heavy agricultural rovers use brushless motors commutated by high-frequency MOSFET inverters.',
-    'https://www.youtube.com/watch?v=bCEiOnuODac', 'Brushless DC Motors & Field-Oriented Control (FOC)', 420,
+    NULL, 'Brushless DC Motors & Field-Oriented Control (FOC)', 420,
     'Lab 7: Programming Closed-Loop BLDC FOC Velocity Control',
     'Interface a high-torque gimbal BLDC motor with an AS5600 magnetic angle sensor. Use SimpleFOC library to drive 3-phase MOSFET bridges with smooth, cog-free rotation at 1 RPM up to 1000 RPM.',
     ARRAY['Brushless Motor', 'SimpleFOC Shield / Driver', 'AS5600 Magnetic Encoder', '12V Power Supply'],
@@ -2289,7 +2583,7 @@ INSERT INTO public.course_modules (
     'Real-Time Operating Systems, Semaphores & Preemptive Priority',
     'When Linux is too slow: deploy FreeRTOS on dual-core microcontrollers (ESP32 / STM32). Master tasks, preemptive priority scheduling, mutexes, semaphores, and message queues.',
     'General-purpose OS kernels cannot guarantee microsecond response times. A Real-Time Operating System guarantees that high-priority safety-critical tasks execute deterministically within guaranteed deadlines.',
-    'https://www.youtube.com/watch?v=F321087yYy4', 'FreeRTOS for Robotics: Multithreading & Queues', 410,
+    NULL, 'FreeRTOS for Robotics: Multithreading & Queues', 410,
     'Lab 8: Architecting a Dual-Core Multi-Tasking Robotics Kernel',
     'On an ESP32, pin a high-speed 1kHz motor PID loop to Core 0 with high priority. Run sensor parsing, wireless telemetry, and display rendering on Core 1 using FreeRTOS queues for thread-safe data passing.',
     ARRAY['ESP32 NodeMCU Development Board', 'Dual-core FreeRTOS C++ environment'],
@@ -2308,11 +2602,11 @@ INSERT INTO public.course_modules (
     'Industrial Control, 24V Logic, Modbus TCP & CAN Bus',
     'Bridge youth innovation with industrial automation: Programmable Logic Controllers (PLCs), ladder logic, 24V industrial sensor interfacing, Modbus TCP/RTU, and automotive CAN Bus (ISO 11898).',
     'Factories, mines, and automated commercial farms in Africa run on industrial fieldbus protocols. CAN Bus allows tens of electronic control units to communicate reliably across noisy industrial environments.',
-    'https://www.youtube.com/watch?v=nL34zDTPkcs', 'Industrial Robotics: PLCs, CAN Bus & Modbus', 430,
+    NULL, 'Industrial Robotics: PLCs, CAN Bus & Modbus', 430,
     'Lab 9: Interfacing Microcontrollers to an Automotive CAN Bus Network',
     'Connect two MCP2515 CAN Bus transceivers over a differential twisted-pair cable (CAN_H and CAN_L with 120-ohm termination resistors). Transmit priority automotive sensor frames at 500 kbps.',
     ARRAY['2x ESP32 / Arduino', '2x MCP2515 CAN Bus Modules', 'Twisted-pair cable'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 9: Modbus TCP Industrial Remote Terminal Unit (RTU)',
     'Implement a Modbus TCP server on an ESP32. Expose robot telemetry variables as Modbus Holding Registers and read them using an industrial SCADA dashboard (e.g. Node-RED).',
     100,
@@ -2327,7 +2621,7 @@ INSERT INTO public.course_modules (
     'Distributed Algorithms, Consensus & Flocking Behaviors',
     'Beyond single robots: coordinate decentralized multi-robot swarms using bio-inspired algorithms (Reynolds Flocking: Separation, Alignment, Cohesion) and mesh networking.',
     'In large-scale agricultural mapping or disaster search-and-rescue, a swarm of 10 low-cost collaborative robots outperforms a single expensive robot while providing massive fault tolerance.',
-    'https://www.youtube.com/watch?v=0rlvvYgmTvI', 'Swarm Robotics: Flocking & Decentralized Consensus', 390,
+    NULL, 'Swarm Robotics: Flocking & Decentralized Consensus', 390,
     'Lab 10: Programming Multi-Robot Boids Flocking in Webots Simulation',
     'In Webots open-source simulator, program 5 autonomous rovers that navigate an open environment together while maintaining equal spacing and avoiding obstacles through local consensus without a central server.',
     ARRAY['Computer with Webots / Gazebo simulation installed'],
@@ -2346,7 +2640,7 @@ INSERT INTO public.course_modules (
     'ISO 13849 Safety Integrity, Hardware Interlocks & E-Stops',
     'Safety engineering for heavy autonomous systems: dual-channel hardwired Emergency Stops (E-Stop), independent hardware watchdog timers, fault trees, and fail-safe default states.',
     'When an autonomous robot weighs 30+ kg or carries sharp harvesting blades, software crashes cannot be allowed to cause injury. Safety systems must be hardwired into the power rail, bypassing microcontrollers.',
-    'https://www.youtube.com/watch?v=p4v3gYl4xYI', 'Safety-Critical Engineering: Fail-Safes & Hardwired E-Stops', 400,
+    NULL, 'Safety-Critical Engineering: Fail-Safes & Hardwired E-Stops', 400,
     'Lab 11: Wiring an ISO-Compliant Dual-Channel Safety Relay E-Stop',
     'Wire a physical industrial mushroom E-Stop button with dual normally-closed (NC) contacts into a safety power contactor. Verify that opening either contact cuts actuator power within 15 milliseconds.',
     ARRAY['Industrial E-Stop Pushbutton', '24V Contactor / Heavy-duty Relay', 'Multimeter', 'Power supply'],
@@ -2365,11 +2659,11 @@ INSERT INTO public.course_modules (
     'Bio-Inspired Locomotion, Pneumatics & Compliant Grippers',
     'Learn from biological evolution: quadruped trotting kinematics, serpentine crawling, fish-fin aquatic propulsion, and silicone pneumatic soft grippers for gentle agricultural harvesting.',
     'Rigid metal grippers bruise delicate fruits like tomatoes or avocados. Biomimetic soft robotics uses compliant elastic materials that deform naturally around irregular organic shapes.',
-    'https://www.youtube.com/watch?v=CqFvOQ2_o20', 'Biomimetic Robotics: Soft Grippers & Bio-Locomotion', 380,
+    NULL, 'Biomimetic Robotics: Soft Grippers & Bio-Locomotion', 380,
     'Lab 12: Casting a Silicone Pneumatic Fin-Ray Robotic Gripper',
     'Cast a compliant silicone rubber gripper finger using a 3D-printed mold. Apply air pressure from a small diaphragm pump to achieve 90-degree compliant curling around delicate objects.',
     ARRAY['Silicone casting kit / 3D-printed Fin-Ray finger', 'Miniature 12V Air Pump & Solenoid'],
-    'https://wokwi.com',
+    NULL,
     'Practical Assignment 12: Delicate Fruit Harvesting Benchmark',
     'Test your soft gripper on fragile raw eggs and ripe fruit. Measure grip force, cycle speed, and verify zero surface bruising or cracking across 20 continuous grasping cycles.',
     100,
@@ -2384,7 +2678,7 @@ INSERT INTO public.course_modules (
     'URDF Modeling, Physics Engines & Virtual Prototyping',
     'Develop and validate robots before spending money on hardware: Unified Robot Description Format (URDF), inertial matrices, Gazebo physics simulation, and virtual sensor plugins.',
     'Digital twins accelerate engineering. Developing algorithms in high-fidelity physics simulations allows teams to run thousands of test hours without breaking expensive real-world motors or frames.',
-    'https://www.youtube.com/watch?v=saVZtgPyyJQ', 'Building Digital Twins with Gazebo & URDF', 440,
+    NULL, 'Building Digital Twins with Gazebo & URDF', 440,
     'Lab 13: Authoring a Full Robot URDF Model with Physics Properties',
     'Write a complete XML URDF file defining chassis links, wheel joints, mass properties, collision geometries, and Gazebo differential drive transmission plugins.',
     ARRAY['Computer with ROS 2 and Gazebo Classic / Fortress installed'],
@@ -2403,7 +2697,7 @@ INSERT INTO public.course_modules (
     'Unit Economics, Injection Molding, CNC & Scale Production',
     'Transitioning an African prototype into a commercial product: Design for Manufacturing (DFM), CNC milling vs 3D printing tolerances, sheet metal bending, injection mold draft angles, and unit cost curves.',
     'Building 1 robot in a lab is prototyping; building 1,000 reliable robots for African farmers requires manufacturing engineering, supply chain redundancy, and unit economic discipline.',
-    'https://www.youtube.com/watch?v=vaCVh2SAZY4', 'Design for Manufacturing: Scaling Robotics Hardware', 410,
+    NULL, 'Design for Manufacturing: Scaling Robotics Hardware', 410,
     'Lab 14: DFM Optimization of a 3D-Printed Robotic Arm Bracket',
     'Take a complex machined bracket and redesign it for 3D printing and sheet metal bending: eliminate overhangs, orient print layer lines against shear stresses, and minimize print duration by 40%.',
     ARRAY['CAD Software (Fusion 360 / FreeCAD / Onshape)', '3D Slicer software'],
@@ -2422,7 +2716,7 @@ INSERT INTO public.course_modules (
     'International Regulations, Engineering Notebook & Technical Defense',
     'The pinnacle of competitive robotics: defending complex engineering solutions before international judges, handling live technical grill sessions, and preparing for global robotics olympiads.',
     'Judges look beyond flashy demos. They interrogate the team’s mathematical modeling, trade-off justifications, code architecture, and individual contributions of both male and female team members.',
-    'https://www.youtube.com/watch?v=Y8kK8YmP1v4', 'International Robotics Defense: Pitching to Engineering Judges', 450,
+    NULL, 'International Robotics Defense: Pitching to Engineering Judges', 450,
     'Lab 15: Executing a 10-Minute Technical Defense & Live Code Audit',
     'Present your team’s complete robotic system in a simulated championship judging room: 3-minute executive presentation, 2-minute live hardware demonstration, and 5 minutes defending technical architectural choices.',
     ARRAY['Completed Advanced Robot', 'Official Engineering Notebook', 'Live display screen'],
@@ -2476,9 +2770,7 @@ ON CONFLICT DO NOTHING;
 ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_status_check;
 ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions_format_check;
 
--- Drop potential competition conflicts first
-DELETE FROM public.competition_categories WHERE competition_id = 'c0000000-0000-0000-0000-000000002026';
-DELETE FROM public.competitions WHERE id = 'c0000000-0000-0000-0000-000000002026';
+-- Guarantee unique index on competition id for idempotent upserts
 CREATE UNIQUE INDEX IF NOT EXISTS competitions_pkey_idx ON public.competitions (id);
 
 INSERT INTO public.competitions (
@@ -2501,24 +2793,23 @@ INSERT INTO public.competitions (
 
 ALTER TABLE IF EXISTS public.competition_categories DROP CONSTRAINT IF EXISTS competition_categories_weight_check;
 
+CREATE UNIQUE INDEX IF NOT EXISTS competition_categories_comp_name_idx ON public.competition_categories (competition_id, name);
 INSERT INTO public.competition_categories (competition_id, name, weight_percentage, description, order_index)
 VALUES 
   ('c0000000-0000-0000-0000-000000002026', 'Underwater Drone Missions', 35, 'Buoyancy control, obstacle traversal, and precision payload retrieval simulated in dynamic aquatic conditions.', 1),
   ('c0000000-0000-0000-0000-000000002026', 'Autonomous Maze Solving (Micromouse)', 35, 'High-speed autonomous maze mapping, IR/Ultrasonic line tracking, and PID wall following without teleoperation.', 2),
   ('c0000000-0000-0000-0000-000000002026', 'Innovation Pitch Defense', 30, 'Defense of real community engineering solutions before a panel of industrial engineering judges and investors.', 3)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (competition_id, name) DO UPDATE SET
+  weight_percentage = EXCLUDED.weight_percentage,
+  description = EXCLUDED.description,
+  order_index = EXCLUDED.order_index;
 
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_category_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_target_audience_check;
 
--- Drop potential training program conflicts first
-DELETE FROM public.training_programs WHERE slug IN (
-  'ai-for-educators-bootcamp',
-  'junior-robotics-engineering-sprint',
-  'school-patron-coach-certification'
-);
+-- Guarantee unique index on training program slug for idempotent upserts
 CREATE UNIQUE INDEX IF NOT EXISTS training_programs_slug_idx ON public.training_programs (slug);
 
 INSERT INTO public.training_programs (
@@ -2562,41 +2853,10 @@ INSERT INTO public.training_programs (
   )
 ON CONFLICT (slug) DO NOTHING;
 
--- Seed Verified Impact Metrics for Mashwest and Zimbabwe
--- Drop potential impact ledger conflicts first
-DELETE FROM public.impact_ledger WHERE metric_key IN (
-  'learners_reached_mashwest',
-  'teachers_upskilled',
-  'secondary_schools_equipped',
-  'girls_in_robotics_percentage'
-);
+-- Verified Impact Metrics & Chapters: Ready for real admin CSV uploads via Staging Containers.
+-- (Mock data rows learners_reached_mashwest and Mashonaland West Chapter removed)
 CREATE UNIQUE INDEX IF NOT EXISTS impact_ledger_metric_key_idx ON public.impact_ledger (metric_key);
-
-INSERT INTO public.impact_ledger (metric_key, metric_title, verified_value, unit, verification_source)
-VALUES
-  ('learners_reached_mashwest', 'Learners Trained in Mashonaland West (2025)', 1200, 'Students', 'Mashwest Outreach Verification Report Oct 2025'),
-  ('teachers_upskilled', 'Robotics Patrons & Educators Upskilled', 48, 'Educators', 'Ministry of Primary & Secondary Education MoUs'),
-  ('secondary_schools_equipped', 'Secondary Schools with Active STEM Clubs', 14, 'Schools', 'YARA School Network Directory 2025'),
-  ('girls_in_robotics_percentage', 'Female Participation Rate in Competition Teams', 50, 'Percent', 'YARA 2026 2B+2G Parity Enforcement Rule')
-ON CONFLICT (metric_key) DO UPDATE SET
-  verified_value = EXCLUDED.verified_value;
-
--- Seed Mashwest Provincial Chapter
--- Drop potential chapter conflicts first
-DELETE FROM public.chapters WHERE name = 'Mashonaland West Provincial Chapter';
-
-INSERT INTO public.chapters (
-  name, province, city, lead_name, contact_email, members_count, schools_mentored_count, status
-) VALUES (
-  'Mashonaland West Provincial Chapter',
-  'Mashonaland West',
-  'Chinhoyi',
-  'Simbarashe Manongwa',
-  'goyaracorp@gmail.com',
-  1200,
-  14,
-  'active'
-) ON CONFLICT DO NOTHING;
+CREATE UNIQUE INDEX IF NOT EXISTS chapters_name_idx ON public.chapters (name);
 
 -- Complete Schema Refresh Log
 COMMENT ON SCHEMA public IS 'Young Africans Robotics Association (YARA) - Enterprise Master Architecture v3.1.0';
@@ -2625,19 +2885,7 @@ ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 
 -- Relax track check constraint safely to allow all central LMS catalog tracks
 ALTER TABLE IF EXISTS public.courses DROP CONSTRAINT IF EXISTS courses_track_check;
 
--- Drop potential canonical course conflicts first
-DELETE FROM public.courses WHERE slug IN (
-  'robotics-beginner',
-  'robotics-intermediate',
-  'robotics-advanced',
-  'robotics-mastery',
-  'coding-python',
-  'coding-cpp',
-  'ai-iot-foundations',
-  'industrial-automation',
-  'drone-aerospace',
-  'pcb-cad-design'
-);
+-- Guarantee unique index on courses slug for idempotent upserts
 CREATE UNIQUE INDEX IF NOT EXISTS courses_slug_idx ON public.courses (slug);
 
 -- Seed canonical courses into public.courses
@@ -2645,51 +2893,6 @@ INSERT INTO public.courses (
   code, title, slug, track, tier, level, short_summary, description,
   estimated_duration_hours, is_published, is_draft, is_featured, order_index
 ) VALUES 
-  (
-    'YARA-ROB-BEG',
-    'Robotics Mastery: Beginner (Tier 1)',
-    'robotics-beginner',
-    'Robotics',
-    1,
-    'Beginner',
-    'Foundations of robotics, electronics, breadboarding, and visual block logic.',
-    'Master physical computing fundamentals from Ohm''s Law and breadboard circuit assembly to microcontroller interfacing, motor drivers, and obstacle-avoidance rovers.',
-    30,
-    TRUE,
-    FALSE,
-    TRUE,
-    1
-  ),
-  (
-    'YARA-ROB-INT',
-    'Robotics Mastery: Intermediate (Tier 2 & 3)',
-    'robotics-intermediate',
-    'Robotics',
-    2,
-    'Intermediate',
-    'Embedded C++, PID closed-loop control, sensor telemetry, and maze navigation.',
-    'Advance from basic circuits to autonomous algorithmic navigation. Covers PID speed/steering control, ultrasonic obstacle routing, infrared line sensors, and underwater ROV buoyancy systems.',
-    45,
-    TRUE,
-    FALSE,
-    TRUE,
-    2
-  ),
-  (
-    'YARA-ROB-ADV',
-    'Robotics Mastery: Advanced Capstone (Tier 4)',
-    'robotics-advanced',
-    'Robotics',
-    4,
-    'Advanced',
-    'Autonomous arena rovers, 5 Whys engineering defense, and competition capstones.',
-    'The pinnacle of the YARA Robotics Academy. Complete multi-phase research, 21-point engineering reports, prototype stress tests, and defend your autonomous robot before technical judges.',
-    60,
-    TRUE,
-    FALSE,
-    TRUE,
-    3
-  ),
   (
     'YARA-TECH-PY',
     'Python & MicroPython for Robotics',
@@ -3162,6 +3365,16 @@ CREATE TABLE IF NOT EXISTS public.study_materials (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Robotics';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS target_level TEXT DEFAULT 'All Levels';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS target_age_group TEXT DEFAULT 'All Ages';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS file_size_bytes BIGINT;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS language TEXT DEFAULT 'English';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS is_downloadable BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+
 -- ==============================================================================
 -- 26. PAN-AFRICAN CHAPTERS, CHARTERS & REPORTING SYSTEM
 -- ==============================================================================
@@ -3497,93 +3710,10 @@ CREATE TABLE IF NOT EXISTS public.impact_galleries (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Public & Masterclass Events Calendar
-CREATE TABLE IF NOT EXISTS public.events (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE,
-  description TEXT,
-  category TEXT DEFAULT 'workshop' CHECK (category IN ('workshop', 'masterclass', 'competition', 'bootcamp', 'webinar', 'exhibition')),
-  event_date TIMESTAMPTZ NOT NULL,
-  end_date TIMESTAMPTZ,
-  venue TEXT,
-  is_virtual BOOLEAN DEFAULT TRUE,
-  virtual_meeting_url TEXT,
-  registration_fee_usd NUMERIC(10,2) DEFAULT 0.00,
-  capacity INTEGER,
-  is_published BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS title TEXT;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS slug TEXT;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'workshop';
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_date TIMESTAMPTZ;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS venue TEXT;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_virtual BOOLEAN DEFAULT TRUE;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS virtual_meeting_url TEXT;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS registration_fee_usd NUMERIC(10,2) DEFAULT 0.00;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS capacity INTEGER;
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
-
--- Event & AI Bootcamp Attendee Registrations
-CREATE TABLE IF NOT EXISTS public.event_registrations (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  registration_code TEXT UNIQUE,
-  event_id TEXT NOT NULL,
-  event_title TEXT NOT NULL,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  full_name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  school_institution TEXT NOT NULL,
-  role_title TEXT DEFAULT 'Educator',
-  province TEXT DEFAULT 'National',
-  registration_fee NUMERIC(10,2) DEFAULT 0.00,
-  currency TEXT DEFAULT 'USD',
-  continuous_support_opt_in BOOLEAN DEFAULT FALSE,
-  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'submitted', 'verified', 'rejected', 'unpaid')),
-  payment_method TEXT DEFAULT 'ecocash',
-  payment_reference TEXT,
-  payment_notes TEXT,
-  proof_of_payment_url TEXT,
-  paid_at TIMESTAMPTZ,
-  approval_status TEXT DEFAULT 'pending' CHECK (approval_status IN ('pending', 'approved', 'rejected')),
-  approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  approved_by_name TEXT,
-  approved_at TIMESTAMPTZ,
-  rejection_reason TEXT,
-  admin_notes TEXT,
-  certificate_unlocked BOOLEAN DEFAULT FALSE,
-  certificate_unlocked_at TIMESTAMPTZ,
-  certificate_unlocked_by TEXT,
-  certificate_number TEXT,
-  certificate_grade TEXT,
-  certificate_title TEXT,
-  certificate_custom_links JSONB DEFAULT '[]',
-  certificate_custom_fields JSONB DEFAULT '[]',
-  certificate_custom_notes TEXT,
-  certificate_endorsement_text TEXT,
-  has_entered_event BOOLEAN DEFAULT FALSE,
-  last_entered_at TIMESTAMPTZ,
-  entry_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Event Live Broadcast & Virtual Meeting Credentials
-CREATE TABLE IF NOT EXISTS public.event_meetings (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  event_id TEXT NOT NULL,
-  meeting_title TEXT NOT NULL,
-  meeting_url TEXT NOT NULL,
-  meeting_code TEXT,
-  passcode TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- ==============================================================================
+-- 27. EVENTS, WORKSHOPS & EVENT REGISTRATIONS
+-- (Master definitions, constraints and upgrade alters consolidated in Section 14)
+-- ==============================================================================
 
 -- Public Contact Form Messages
 CREATE TABLE IF NOT EXISTS public.contact_messages (
@@ -3778,16 +3908,7 @@ CREATE TABLE IF NOT EXISTS public.user_sessions (
 );
 
 -- Notification Dispatch Queue
-CREATE TABLE IF NOT EXISTS public.notifications (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  message TEXT NOT NULL,
-  type TEXT DEFAULT 'system' CHECK (type IN ('system', 'competition', 'course', 'event', 'announcement', 'achievement', 'certificate')),
-  link TEXT,
-  is_read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- (Master definition consolidated in Section 15)
 
 -- ==============================================================================
 -- 30. FUTURE-PROOF PLATFORM ASSETS
@@ -3986,208 +4107,95 @@ ALTER TABLE public.patron_accreditations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
--- Helper macro to safely execute RLS creation without throwing if already existing
-DO $$
+CREATE OR REPLACE PROCEDURE public.safely_apply_policy(
+  p_policy_name TEXT,
+  p_table_name TEXT,
+  p_sql TEXT
+) AS $$
 BEGIN
-  -- Curriculum Sessions
-  DROP POLICY IF EXISTS "Public can view curriculum sessions" ON public.curriculum_sessions;
-  CREATE POLICY "Public can view curriculum sessions" ON public.curriculum_sessions FOR SELECT USING (is_published = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Admins manage curriculum sessions" ON public.curriculum_sessions;
-  CREATE POLICY "Admins manage curriculum sessions" ON public.curriculum_sessions FOR ALL USING (public.is_admin());
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = p_table_name
+  ) THEN
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', p_policy_name, p_table_name);
+    EXECUTE p_sql;
+  ELSE
+    RAISE NOTICE 'Table [%] does not exist, skipping policy [%]', p_table_name, p_policy_name;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Policy [%] on [%] skipped/failed: %', p_policy_name, p_table_name, SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
 
-  -- Curriculum Progress
-  DROP POLICY IF EXISTS "Users manage own curriculum progress" ON public.curriculum_progress;
-  CREATE POLICY "Users manage own curriculum progress" ON public.curriculum_progress FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Curriculum Submissions
-  DROP POLICY IF EXISTS "Users manage own submissions" ON public.curriculum_submissions;
-  CREATE POLICY "Users manage own submissions" ON public.curriculum_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Curriculum Feedback
-  DROP POLICY IF EXISTS "Users manage own feedback" ON public.curriculum_feedback;
-  CREATE POLICY "Users manage own feedback" ON public.curriculum_feedback FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Quiz Attempts
-  DROP POLICY IF EXISTS "Users view own quiz attempts" ON public.quiz_attempts;
-  CREATE POLICY "Users view own quiz attempts" ON public.quiz_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Final Exam Attempts
-  DROP POLICY IF EXISTS "Users view own final exam attempts" ON public.final_exam_attempts;
-  CREATE POLICY "Users view own final exam attempts" ON public.final_exam_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Final Project Submissions
-  DROP POLICY IF EXISTS "Users manage own capstone submissions" ON public.final_project_submissions;
-  CREATE POLICY "Users manage own capstone submissions" ON public.final_project_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Certificates
-  DROP POLICY IF EXISTS "Public can verify accredited certificates" ON public.yara_accredited_certificates;
-  CREATE POLICY "Public can verify accredited certificates" ON public.yara_accredited_certificates FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Admins issue accredited certificates" ON public.yara_accredited_certificates;
-  CREATE POLICY "Admins issue accredited certificates" ON public.yara_accredited_certificates FOR ALL USING (public.is_admin());
-
-  -- Brainstorming Quizzes & Attempts
-  DROP POLICY IF EXISTS "Public can read brainstorming quizzes" ON public.brainstorming_quizzes;
-  CREATE POLICY "Public can read brainstorming quizzes" ON public.brainstorming_quizzes FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Users record brainstorming attempts" ON public.brainstorming_attempts;
-  CREATE POLICY "Users record brainstorming attempts" ON public.brainstorming_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Kids Content
-  DROP POLICY IF EXISTS "Public can read kids content" ON public.yara_kids_content;
-  CREATE POLICY "Public can read kids content" ON public.yara_kids_content FOR SELECT USING (is_published = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Admins manage kids content" ON public.yara_kids_content;
-  CREATE POLICY "Admins manage kids content" ON public.yara_kids_content FOR ALL USING (public.is_admin());
-
-  -- Live Sessions & Rooms
-  DROP POLICY IF EXISTS "Public can view live sessions" ON public.live_sessions;
-  CREATE POLICY "Public can view live sessions" ON public.live_sessions FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Mentors and admins manage live sessions" ON public.live_sessions;
-  CREATE POLICY "Mentors and admins manage live sessions" ON public.live_sessions FOR ALL USING (auth.uid() = mentor_id OR public.is_admin());
-
-  -- Mentorship Requests & Messages
-  DROP POLICY IF EXISTS "Participants view own mentorship requests" ON public.mentorship_requests;
-  CREATE POLICY "Participants view own mentorship requests" ON public.mentorship_requests FOR SELECT USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin());
-  DROP POLICY IF EXISTS "Users create mentorship requests" ON public.mentorship_requests;
-  CREATE POLICY "Users create mentorship requests" ON public.mentorship_requests FOR INSERT WITH CHECK (auth.uid() = requester_id OR public.is_admin());
-  DROP POLICY IF EXISTS "Participants update mentorship requests" ON public.mentorship_requests;
-  CREATE POLICY "Participants update mentorship requests" ON public.mentorship_requests FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin());
-
-  DROP POLICY IF EXISTS "Participants read mentorship messages" ON public.mentorship_messages;
-  CREATE POLICY "Participants read mentorship messages" ON public.mentorship_messages FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Authenticated users send mentorship messages" ON public.mentorship_messages;
-  CREATE POLICY "Authenticated users send mentorship messages" ON public.mentorship_messages FOR INSERT TO authenticated WITH CHECK (true);
-
-  -- Study Materials
-  DROP POLICY IF EXISTS "Public can view study materials" ON public.study_materials;
-  CREATE POLICY "Public can view study materials" ON public.study_materials FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Mentors upload study materials" ON public.study_materials;
-  CREATE POLICY "Mentors upload study materials" ON public.study_materials FOR ALL USING (auth.uid() = mentor_id OR public.is_admin());
-
-  -- Chapter Charters & Requests
-  DROP POLICY IF EXISTS "Public can submit chapter registration" ON public.chapter_registration_requests;
-  CREATE POLICY "Public can submit chapter registration" ON public.chapter_registration_requests FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins review chapter registrations" ON public.chapter_registration_requests;
-  CREATE POLICY "Admins review chapter registrations" ON public.chapter_registration_requests FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Public can submit chapter join request" ON public.chapter_join_requests;
-  CREATE POLICY "Public can submit chapter join request" ON public.chapter_join_requests FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins and leaders manage join requests" ON public.chapter_join_requests;
-  CREATE POLICY "Admins and leaders manage join requests" ON public.chapter_join_requests FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  DROP POLICY IF EXISTS "Public view chapter reports" ON public.chapter_reports;
-  CREATE POLICY "Public view chapter reports" ON public.chapter_reports FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Leadership and admins manage reports" ON public.chapter_reports;
-  CREATE POLICY "Leadership and admins manage reports" ON public.chapter_reports FOR ALL USING (public.is_admin());
-
-  -- Competitions
-  DROP POLICY IF EXISTS "Public can view competition events" ON public.competition_events;
-  CREATE POLICY "Public can view competition events" ON public.competition_events FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Admins manage competition events" ON public.competition_events;
-  CREATE POLICY "Admins manage competition events" ON public.competition_events FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Public can register competition teams" ON public.yara_competition_registrations;
-  CREATE POLICY "Public can register competition teams" ON public.yara_competition_registrations FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Participants and admins manage competition registrations" ON public.yara_competition_registrations;
-  CREATE POLICY "Participants and admins manage competition registrations" ON public.yara_competition_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  DROP POLICY IF EXISTS "Public can view virtual competitions" ON public.virtual_competitions;
-  CREATE POLICY "Public can view virtual competitions" ON public.virtual_competitions FOR SELECT USING (is_active = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Students submit to virtual competitions" ON public.virtual_competition_submissions;
-  CREATE POLICY "Students submit to virtual competitions" ON public.virtual_competition_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Ideas & Reactions
-  DROP POLICY IF EXISTS "Public can view idea comments" ON public.idea_comments;
-  CREATE POLICY "Public can view idea comments" ON public.idea_comments FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Users create idea comments" ON public.idea_comments;
-  CREATE POLICY "Users create idea comments" ON public.idea_comments FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR public.is_admin());
-
-  DROP POLICY IF EXISTS "Public can view idea reactions" ON public.idea_reactions;
-  CREATE POLICY "Public can view idea reactions" ON public.idea_reactions FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Users toggle idea reactions" ON public.idea_reactions;
-  CREATE POLICY "Users toggle idea reactions" ON public.idea_reactions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Testimonials & Feedback
-  DROP POLICY IF EXISTS "Public can view approved testimonials" ON public.testimonials;
-  CREATE POLICY "Public can view approved testimonials" ON public.testimonials FOR SELECT USING (is_approved = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Users submit testimonials" ON public.testimonials;
-  CREATE POLICY "Users submit testimonials" ON public.testimonials FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins manage testimonials" ON public.testimonials;
-  CREATE POLICY "Admins manage testimonials" ON public.testimonials FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Users submit feedback" ON public.feedback;
-  CREATE POLICY "Users submit feedback" ON public.feedback FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins view feedback" ON public.feedback;
-  CREATE POLICY "Admins view feedback" ON public.feedback FOR ALL USING (public.is_admin());
-
-  -- Impact Galleries
-  DROP POLICY IF EXISTS "Public can view impact galleries" ON public.impact_galleries;
-  CREATE POLICY "Public can view impact galleries" ON public.impact_galleries FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Admins manage impact galleries" ON public.impact_galleries;
-  CREATE POLICY "Admins manage impact galleries" ON public.impact_galleries FOR ALL USING (public.is_admin());
-
-  -- Events & Registrations
-  DROP POLICY IF EXISTS "Public can view events" ON public.events;
-  CREATE POLICY "Public can view events" ON public.events FOR SELECT USING (is_published = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Admins manage events" ON public.events;
-  CREATE POLICY "Admins manage events" ON public.events FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Attendees manage own event registrations" ON public.event_registrations;
-  CREATE POLICY "Attendees manage own event registrations" ON public.event_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  -- Contact Messages
-  DROP POLICY IF EXISTS "Public can submit contact messages" ON public.contact_messages;
-  CREATE POLICY "Public can submit contact messages" ON public.contact_messages FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins read contact messages" ON public.contact_messages;
-  CREATE POLICY "Admins read contact messages" ON public.contact_messages FOR ALL USING (public.is_admin());
-
-  -- Sponsors & Donations
-  DROP POLICY IF EXISTS "Public view approved sponsors" ON public.sponsors;
-  CREATE POLICY "Public view approved sponsors" ON public.sponsors FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Public submit sponsor applications" ON public.sponsors;
-  CREATE POLICY "Public submit sponsor applications" ON public.sponsors FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins manage sponsors" ON public.sponsors;
-  CREATE POLICY "Admins manage sponsors" ON public.sponsors FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Public submit donations" ON public.donations_sponsorships;
-  CREATE POLICY "Public submit donations" ON public.donations_sponsorships FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Public view donor wall" ON public.donations_sponsorships;
-  CREATE POLICY "Public view donor wall" ON public.donations_sponsorships FOR SELECT USING (display_on_wall = true OR public.is_admin());
-  DROP POLICY IF EXISTS "Admins manage donations" ON public.donations_sponsorships;
-  CREATE POLICY "Admins manage donations" ON public.donations_sponsorships FOR ALL USING (public.is_admin());
-
-  -- Volunteers
-  DROP POLICY IF EXISTS "Public submit volunteer applications" ON public.volunteers;
-  CREATE POLICY "Public submit volunteer applications" ON public.volunteers FOR INSERT WITH CHECK (true);
-  DROP POLICY IF EXISTS "Admins manage volunteers" ON public.volunteers;
-  CREATE POLICY "Admins manage volunteers" ON public.volunteers FOR ALL USING (public.is_admin());
-
-  -- Subscriptions
-  DROP POLICY IF EXISTS "Users view own subscriptions" ON public.subscriptions;
-  CREATE POLICY "Users view own subscriptions" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
-  DROP POLICY IF EXISTS "Users create subscriptions" ON public.subscriptions;
-  CREATE POLICY "Users create subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin());
-  DROP POLICY IF EXISTS "Admins manage subscriptions" ON public.subscriptions;
-  CREATE POLICY "Admins manage subscriptions" ON public.subscriptions FOR ALL USING (public.is_admin());
-
-  -- Settings & Audit
-  DROP POLICY IF EXISTS "Public can read system settings" ON public.system_settings;
-  CREATE POLICY "Public can read system settings" ON public.system_settings FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Admins manage system settings" ON public.system_settings;
-  CREATE POLICY "Admins manage system settings" ON public.system_settings FOR ALL USING (public.is_admin());
-
-  DROP POLICY IF EXISTS "Public can read site settings" ON public.site_settings;
-  CREATE POLICY "Public can read site settings" ON public.site_settings FOR SELECT USING (true);
-  DROP POLICY IF EXISTS "Admins manage site settings" ON public.site_settings;
-  CREATE POLICY "Admins manage site settings" ON public.site_settings FOR ALL USING (public.is_admin());
-
-  -- User Sessions & Notifications
-  DROP POLICY IF EXISTS "Users manage own sessions" ON public.user_sessions;
-  CREATE POLICY "Users manage own sessions" ON public.user_sessions FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-
-  DROP POLICY IF EXISTS "Users manage own notifications" ON public.notifications;
-  CREATE POLICY "Users manage own notifications" ON public.notifications FOR ALL USING (auth.uid() = user_id OR public.is_admin());
-EXCEPTION
-  WHEN OTHERS THEN NULL;
-END $$;
+-- Safely apply all policies individually with per-policy exception handling & NOTICE logging
+CALL public.safely_apply_policy('Public can view curriculum sessions', 'curriculum_sessions', 'CREATE POLICY "Public can view curriculum sessions" ON public.curriculum_sessions FOR SELECT USING (is_published = true OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage curriculum sessions', 'curriculum_sessions', 'CREATE POLICY "Admins manage curriculum sessions" ON public.curriculum_sessions FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Users manage own curriculum progress', 'curriculum_progress', 'CREATE POLICY "Users manage own curriculum progress" ON public.curriculum_progress FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users manage own submissions', 'curriculum_submissions', 'CREATE POLICY "Users manage own submissions" ON public.curriculum_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users manage own feedback', 'curriculum_feedback', 'CREATE POLICY "Users manage own feedback" ON public.curriculum_feedback FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users view own quiz attempts', 'quiz_attempts', 'CREATE POLICY "Users view own quiz attempts" ON public.quiz_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users view own final exam attempts', 'final_exam_attempts', 'CREATE POLICY "Users view own final exam attempts" ON public.final_exam_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users manage own capstone submissions', 'final_project_submissions', 'CREATE POLICY "Users manage own capstone submissions" ON public.final_project_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can verify accredited certificates', 'yara_accredited_certificates', 'CREATE POLICY "Public can verify accredited certificates" ON public.yara_accredited_certificates FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins issue accredited certificates', 'yara_accredited_certificates', 'CREATE POLICY "Admins issue accredited certificates" ON public.yara_accredited_certificates FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can read brainstorming quizzes', 'brainstorming_quizzes', 'CREATE POLICY "Public can read brainstorming quizzes" ON public.brainstorming_quizzes FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users record brainstorming attempts', 'brainstorming_attempts', 'CREATE POLICY "Users record brainstorming attempts" ON public.brainstorming_attempts FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can read kids content', 'yara_kids_content', 'CREATE POLICY "Public can read kids content" ON public.yara_kids_content FOR SELECT USING (is_published = true OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage kids content', 'yara_kids_content', 'CREATE POLICY "Admins manage kids content" ON public.yara_kids_content FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can view live sessions', 'live_sessions', 'CREATE POLICY "Public can view live sessions" ON public.live_sessions FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Mentors and admins manage live sessions', 'live_sessions', 'CREATE POLICY "Mentors and admins manage live sessions" ON public.live_sessions FOR ALL USING (auth.uid() = mentor_id OR public.is_admin())');
+CALL public.safely_apply_policy('Participants view own mentorship requests', 'mentorship_requests', 'CREATE POLICY "Participants view own mentorship requests" ON public.mentorship_requests FOR SELECT USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users create mentorship requests', 'mentorship_requests', 'CREATE POLICY "Users create mentorship requests" ON public.mentorship_requests FOR INSERT WITH CHECK (auth.uid() = requester_id OR public.is_admin())');
+CALL public.safely_apply_policy('Participants update mentorship requests', 'mentorship_requests', 'CREATE POLICY "Participants update mentorship requests" ON public.mentorship_requests FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin())');
+CALL public.safely_apply_policy('Participants read mentorship messages', 'mentorship_messages', 'CREATE POLICY "Participants read mentorship messages" ON public.mentorship_messages FOR SELECT USING (auth.uid() = sender_id OR public.is_admin())');
+CALL public.safely_apply_policy('Authenticated users send mentorship messages', 'mentorship_messages', 'CREATE POLICY "Authenticated users send mentorship messages" ON public.mentorship_messages FOR INSERT TO authenticated WITH CHECK (true)');
+CALL public.safely_apply_policy('Public can view study materials', 'study_materials', 'CREATE POLICY "Public can view study materials" ON public.study_materials FOR SELECT USING (auth.uid() IS NOT NULL OR public.is_admin())');
+CALL public.safely_apply_policy('Mentors upload study materials', 'study_materials', 'CREATE POLICY "Mentors upload study materials" ON public.study_materials FOR ALL USING (auth.uid() = mentor_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can submit chapter registration', 'chapter_registration_requests', 'CREATE POLICY "Public can submit chapter registration" ON public.chapter_registration_requests FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins review chapter registrations', 'chapter_registration_requests', 'CREATE POLICY "Admins review chapter registrations" ON public.chapter_registration_requests FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can submit chapter join request', 'chapter_join_requests', 'CREATE POLICY "Public can submit chapter join request" ON public.chapter_join_requests FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins and leaders manage join requests', 'chapter_join_requests', 'CREATE POLICY "Admins and leaders manage join requests" ON public.chapter_join_requests FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public view chapter reports', 'chapter_reports', 'CREATE POLICY "Public view chapter reports" ON public.chapter_reports FOR SELECT USING (public.is_admin())');
+CALL public.safely_apply_policy('Leadership and admins manage reports', 'chapter_reports', 'CREATE POLICY "Leadership and admins manage reports" ON public.chapter_reports FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can view competition events', 'competition_events', 'CREATE POLICY "Public can view competition events" ON public.competition_events FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage competition events', 'competition_events', 'CREATE POLICY "Admins manage competition events" ON public.competition_events FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can register competition teams', 'yara_competition_registrations', 'CREATE POLICY "Public can register competition teams" ON public.yara_competition_registrations FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Participants and admins manage competition registrations', 'yara_competition_registrations', 'CREATE POLICY "Participants and admins manage competition registrations" ON public.yara_competition_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view virtual competitions', 'virtual_competitions', 'CREATE POLICY "Public can view virtual competitions" ON public.virtual_competitions FOR SELECT USING (is_active = true OR public.is_admin())');
+CALL public.safely_apply_policy('Students submit to virtual competitions', 'virtual_competition_submissions', 'CREATE POLICY "Students submit to virtual competitions" ON public.virtual_competition_submissions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view idea comments', 'idea_comments', 'CREATE POLICY "Public can view idea comments" ON public.idea_comments FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users create idea comments', 'idea_comments', 'CREATE POLICY "Users create idea comments" ON public.idea_comments FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view idea reactions', 'idea_reactions', 'CREATE POLICY "Public can view idea reactions" ON public.idea_reactions FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users toggle idea reactions', 'idea_reactions', 'CREATE POLICY "Users toggle idea reactions" ON public.idea_reactions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view approved testimonials', 'testimonials', 'CREATE POLICY "Public can view approved testimonials" ON public.testimonials FOR SELECT USING (is_approved = true OR public.is_admin())');
+CALL public.safely_apply_policy('Users submit testimonials', 'testimonials', 'CREATE POLICY "Users submit testimonials" ON public.testimonials FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins manage testimonials', 'testimonials', 'CREATE POLICY "Admins manage testimonials" ON public.testimonials FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Users submit feedback', 'feedback', 'CREATE POLICY "Users submit feedback" ON public.feedback FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins view feedback', 'feedback', 'CREATE POLICY "Admins view feedback" ON public.feedback FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can view impact galleries', 'impact_galleries', 'CREATE POLICY "Public can view impact galleries" ON public.impact_galleries FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage impact galleries', 'impact_galleries', 'CREATE POLICY "Admins manage impact galleries" ON public.impact_galleries FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can view events', 'events', 'CREATE POLICY "Public can view events" ON public.events FOR SELECT USING (is_published = true OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage events', 'events', 'CREATE POLICY "Admins manage events" ON public.events FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Attendees manage own event registrations', 'event_registrations', 'CREATE POLICY "Attendees manage own event registrations" ON public.event_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Public can submit contact messages', 'contact_messages', 'CREATE POLICY "Public can submit contact messages" ON public.contact_messages FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins read contact messages', 'contact_messages', 'CREATE POLICY "Admins read contact messages" ON public.contact_messages FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public view approved sponsors', 'sponsors', 'CREATE POLICY "Public view approved sponsors" ON public.sponsors FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Public submit sponsor applications', 'sponsors', 'CREATE POLICY "Public submit sponsor applications" ON public.sponsors FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins manage sponsors', 'sponsors', 'CREATE POLICY "Admins manage sponsors" ON public.sponsors FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public submit donations', 'donations_sponsorships', 'CREATE POLICY "Public submit donations" ON public.donations_sponsorships FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Public view donor wall', 'donations_sponsorships', 'CREATE POLICY "Public view donor wall" ON public.donations_sponsorships FOR SELECT USING (display_on_wall = true OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage donations', 'donations_sponsorships', 'CREATE POLICY "Admins manage donations" ON public.donations_sponsorships FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public submit volunteer applications', 'volunteers', 'CREATE POLICY "Public submit volunteer applications" ON public.volunteers FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Admins manage volunteers', 'volunteers', 'CREATE POLICY "Admins manage volunteers" ON public.volunteers FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Users view own subscriptions', 'subscriptions', 'CREATE POLICY "Users view own subscriptions" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users create subscriptions', 'subscriptions', 'CREATE POLICY "Users create subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage subscriptions', 'subscriptions', 'CREATE POLICY "Admins manage subscriptions" ON public.subscriptions FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can read system settings', 'system_settings', 'CREATE POLICY "Public can read system settings" ON public.system_settings FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage system settings', 'system_settings', 'CREATE POLICY "Admins manage system settings" ON public.system_settings FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Public can read site settings', 'site_settings', 'CREATE POLICY "Public can read site settings" ON public.site_settings FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage site settings', 'site_settings', 'CREATE POLICY "Admins manage site settings" ON public.site_settings FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Users manage own sessions', 'user_sessions', 'CREATE POLICY "Users manage own sessions" ON public.user_sessions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users manage own notifications', 'notifications', 'CREATE POLICY "Users manage own notifications" ON public.notifications FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
 
 -- ==============================================================================
 -- 33. SUPABASE STORAGE BUCKETS & STORAGE OBJECT POLICIES
@@ -4199,37 +4207,62 @@ VALUES
   ('avatars', 'avatars', true),
   ('materials', 'materials', true),
   ('resources', 'resources', true),
-  ('certificates', 'certificates', true)
+  ('certificates', 'certificates', true),
+  ('data-uploads', 'data-uploads', false)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage RLS Policies
-DO $$
-BEGIN
+-- Storage RLS Policies (Hardened with strict owner/admin authorization)
+DO $$ BEGIN
   DROP POLICY IF EXISTS "Public read storage access" ON storage.objects;
   CREATE POLICY "Public read storage access" 
     ON storage.objects FOR SELECT 
     USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy public read: %', SQLERRM; END $$;
 
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "Admins read data-uploads" ON storage.objects;
+  CREATE POLICY "Admins read data-uploads" 
+    ON storage.objects FOR SELECT 
+    USING (bucket_id = 'data-uploads' AND public.is_admin());
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy data-uploads read: %', SQLERRM; END $$;
+
+DO $$ BEGIN
   DROP POLICY IF EXISTS "Authenticated users upload storage objects" ON storage.objects;
   CREATE POLICY "Authenticated users upload storage objects" 
     ON storage.objects FOR INSERT 
     TO authenticated 
     WITH CHECK (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy upload: %', SQLERRM; END $$;
 
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "Admins upload to data-uploads" ON storage.objects;
+  CREATE POLICY "Admins upload to data-uploads" 
+    ON storage.objects FOR INSERT 
+    TO authenticated 
+    WITH CHECK (bucket_id = 'data-uploads' AND public.is_admin());
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy data-uploads upload: %', SQLERRM; END $$;
+
+DO $$ BEGIN
   DROP POLICY IF EXISTS "Owners or admins update storage objects" ON storage.objects;
   CREATE POLICY "Owners or admins update storage objects" 
     ON storage.objects FOR UPDATE 
     TO authenticated 
-    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+    USING (
+      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()))
+      OR (bucket_id = 'data-uploads' AND public.is_admin())
+    );
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy update: %', SQLERRM; END $$;
 
+DO $$ BEGIN
   DROP POLICY IF EXISTS "Owners or admins delete storage objects" ON storage.objects;
   CREATE POLICY "Owners or admins delete storage objects" 
     ON storage.objects FOR DELETE 
     TO authenticated 
-    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()));
-EXCEPTION
-  WHEN OTHERS THEN NULL;
-END $$;
+    USING (
+      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()))
+      OR (bucket_id = 'data-uploads' AND public.is_admin())
+    );
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy delete: %', SQLERRM; END $$;
 
 -- ==============================================================================
 -- 34. SUPABASE REALTIME REPLICATION CONFIGURATION
@@ -4301,20 +4334,17 @@ ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS critical_think
 ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS explanation TEXT;
 ALTER TABLE public.brainstorming_quizzes ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 10;
 
--- Initial Executive Auditors
-DELETE FROM public.executive_auditors WHERE email IN ('goyaracorp@gmail.com', 'director@yara.org');
-CREATE UNIQUE INDEX IF NOT EXISTS executive_auditors_email_idx ON public.executive_auditors (email);
+-- ==============================================================================
+-- 35. CANONICAL SYSTEM & PLATFORM SEED INITIALIZATIONS
+-- ==============================================================================
+-- System and Site configurations (No mock / demo user data)
 
-INSERT INTO public.executive_auditors (id, email, name, title, authorized_by, is_active)
-VALUES 
-  ('exec_1', 'goyaracorp@gmail.com', 'T. Mukombwe', 'Master Administrator & Lead Trustee', 'Board Resolution 2026/01', true),
-  ('exec_2', 'director@yara.org', 'Dr. C. Chidemo', 'Regional President & Executive Auditor', 'goyaracorp@gmail.com', true)
-ON CONFLICT (email) DO NOTHING;
+CREATE UNIQUE INDEX IF NOT EXISTS executive_auditors_email_idx ON public.executive_auditors (email);
+CREATE UNIQUE INDEX IF NOT EXISTS system_settings_key_idx ON public.system_settings (key);
+CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON public.site_settings (key);
+CREATE UNIQUE INDEX IF NOT EXISTS sponsors_id_idx ON public.sponsors (id);
 
 -- Initial System Settings
-DELETE FROM public.system_settings WHERE key IN ('platform_metadata', 'launch_countdown', 'portal_mode_defaults');
-CREATE UNIQUE INDEX IF NOT EXISTS system_settings_key_idx ON public.system_settings (key);
-
 INSERT INTO public.system_settings (key, value, description)
 VALUES 
   ('platform_metadata', '{"name": "YARA Pan-African Platform", "version": "3.1.0", "motto": "Innovate Local, Build Global"}', 'Core system branding and metadata'),
@@ -4323,9 +4353,6 @@ VALUES
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Initial Site Settings for Certificate Designer & Templates
-DELETE FROM public.site_settings WHERE key = 'certificate_template_config';
-CREATE UNIQUE INDEX IF NOT EXISTS site_settings_key_idx ON public.site_settings (key);
-
 INSERT INTO public.site_settings (key, value)
 VALUES 
   ('certificate_template_config', '{
@@ -4342,104 +4369,102 @@ VALUES
   }')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
--- Seed Default Community Testimonials
-DELETE FROM public.testimonials WHERE author_name IN ('Farai Chitepo', 'Ruvimbo Masawi', 'Eng. Kudakwashe Moyo');
+-- Empty container ready state for Testimonials, Sponsors, Quizzes and Executive Auditors.
+-- Real records are uploaded directly via Admin Staging Containers (/templates/*.csv).
 
-INSERT INTO public.testimonials (author_name, author_role, rating, category, content, is_featured, is_approved)
-VALUES 
-  (
-    'Farai Chitepo',
-    'High School STEM Coordinator, Mashonaland East',
-    5,
-    'curriculum',
-    'The YARA 42-session robotics syllabus transformed our classroom. Our students built their first obstacle-avoidance rovers within 6 weeks, progressing directly from Ohm’s Law to embedded C++ state machines.',
-    true,
-    true
-  ),
-  (
-    'Ruvimbo Masawi',
-    'Robotics Competitor & Junior Engineer',
-    5,
-    'competitions',
-    'The underwater drone challenge forced us to solve real buoyancy and waterproofing engineering problems. YARA gave us the components, mentorship, and platform to compete with confidence.',
-    true,
-    true
-  ),
-  (
-    'Eng. Kudakwashe Moyo',
-    'Industrial Automation Mentor, Bulawayo',
-    5,
-    'mentorship',
-    'Mentoring youth through YARA’s Live Room and reviewing their hardware schematics has been deeply rewarding. The level of critical thinking in these young African innovators is exceptional.',
-    true,
-    true
-  );
+-- ==============================================================================
+-- 36. ROW LEVEL SECURITY (RLS) FOR REMAINING PLATFORM TABLES
+-- ==============================================================================
+ALTER TABLE public.school_clubs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_rosters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.training_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quizzes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quiz_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_lesson_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_prep_guides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.robotics_inspection_checklists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certificate_verification_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ideas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mentorship_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.impact_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.financial_records ENABLE ROW LEVEL SECURITY;
 
--- Seed Default Ecosystem Sponsors
-DELETE FROM public.sponsors WHERE id IN ('sp_stem_advance_2026', 'sp_iot_hardware_labs');
-CREATE UNIQUE INDEX IF NOT EXISTS sponsors_id_idx ON public.sponsors (id);
+CALL public.safely_apply_policy('School clubs viewable by all', 'school_clubs', 'CREATE POLICY "School clubs viewable by all" ON public.school_clubs FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage school clubs', 'school_clubs', 'CREATE POLICY "Admins manage school clubs" ON public.school_clubs FOR ALL USING (public.is_admin())');
 
-INSERT INTO public.sponsors (id, organization_name, contact_person, email, tier, contribution_type, committed_amount, received_amount, status, benefits_active, description)
-VALUES 
-  (
-    'sp_stem_advance_2026',
-    'African STEM Advancement Foundation',
-    'Dr. Tariro Ndlovu',
-    'partnerships@stemafrica.org',
-    'title_sponsor',
-    'cash',
-    5000.00,
-    5000.00,
-    'approved',
-    true,
-    'Foundational grant supporting 42 schools with free Arduino Uno microcontroller kits and ultrasonic sensors across 10 provinces.'
-  ),
-  (
-    'sp_iot_hardware_labs',
-    'Apex Microelectronics & Robotics Lab',
-    'Simba Kanyemba',
-    'labs@apexmicro.co.zw',
-    'tech_sponsor',
-    'in_kind',
-    2500.00,
-    2500.00,
-    'approved',
-    true,
-    'Hardware component sponsorship providing motor drivers, chassis kits, breadboards, and digital multimeters for regional qualifers.'
-  )
-ON CONFLICT (id) DO NOTHING;
+CALL public.safely_apply_policy('School rosters viewable by all', 'school_rosters', 'CREATE POLICY "School rosters viewable by all" ON public.school_rosters FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users manage own school roster', 'school_rosters', 'CREATE POLICY "Users manage own school roster" ON public.school_rosters FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
 
--- Seed Canonical Brainstorming Diagnostic Quizzes
-DELETE FROM public.brainstorming_quizzes WHERE title IN (
-  'Circuit Voltage Division Under Load',
-  'Sensor Noise & Non-Blocking Ultrasonic Ranging'
-);
+CALL public.safely_apply_policy('Training sessions viewable by all', 'training_sessions', 'CREATE POLICY "Training sessions viewable by all" ON public.training_sessions FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage training sessions', 'training_sessions', 'CREATE POLICY "Admins manage training sessions" ON public.training_sessions FOR ALL USING (public.is_admin())');
 
-INSERT INTO public.brainstorming_quizzes (title, category, difficulty, image_url, question, options, correct_index, hint, critical_thinking_principle, explanation, points)
-VALUES 
-  (
-    'Circuit Voltage Division Under Load',
-    'circuit_fault',
-    'beginner',
-    'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80',
-    'When you connect a 5V microcontroller pin directly to a motor pulling 800mA, the microcontroller resets immediately. Why does this occur?',
-    '["The microcontroller is overheating instantly", "The motor draws excessive current causing a brownout voltage drop below 4.2V", "The DC motor has reverse polarity", "The code enters an infinite while loop"]',
-    1,
-    'Consider how internal power rails behave when current demands exceed regulator limits.',
-    'Brownout Detection & Power Rail Isolation',
-    'Motors draw heavy inductive stall currents that cause supply rail voltage dips (brownout), tripping the microcontroller''s internal brownout detector reset. Microcontrollers must use isolated motor drivers (e.g. L298N) and flyback diodes.',
-    15
-  ),
-  (
-    'Sensor Noise & Non-Blocking Ultrasonic Ranging',
-    'robot_navigation',
-    'intermediate',
-    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
-    'Why is using delay(1000) inside an autonomous rover obstacle detection loop considered a critical engineering flaw?',
-    '["It uses up too much EEPROM flash memory", "It stops the processor from monitoring emergency sensors or adjusting steering during that second", "It causes clock drift in the crystal oscillator", "The ultrasonic wave will travel slower in air"]',
-    1,
-    'Think about what happens to a moving robot while the CPU is frozen.',
-    'Non-Blocking State Machines (millis() vs delay())',
-    'Using delay() halts the CPU thread. If a rover is moving at 0.5 m/s, it will blindly travel 50 cm before reading the sensor again, making collision avoidance impossible. Non-blocking state loops using millis() allow continuous real-time reaction.',
-    20
-  );
+CALL public.safely_apply_policy('Course resources viewable by all', 'course_resources', 'CREATE POLICY "Course resources viewable by all" ON public.course_resources FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage course resources', 'course_resources', 'CREATE POLICY "Admins manage course resources" ON public.course_resources FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Quizzes viewable by all', 'quizzes', 'CREATE POLICY "Quizzes viewable by all" ON public.quizzes FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage quizzes', 'quizzes', 'CREATE POLICY "Admins manage quizzes" ON public.quizzes FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Quiz questions viewable by all', 'quiz_questions', 'CREATE POLICY "Quiz questions viewable by all" ON public.quiz_questions FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage quiz questions', 'quiz_questions', 'CREATE POLICY "Admins manage quiz questions" ON public.quiz_questions FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Users view own quiz submissions', 'quiz_submissions', 'CREATE POLICY "Users view own quiz submissions" ON public.quiz_submissions FOR SELECT USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Users submit quizzes', 'quiz_submissions', 'CREATE POLICY "Users submit quizzes" ON public.quiz_submissions FOR INSERT WITH CHECK (auth.uid() = user_id)');
+CALL public.safely_apply_policy('Admins manage quiz submissions', 'quiz_submissions', 'CREATE POLICY "Admins manage quiz submissions" ON public.quiz_submissions FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Lesson plans viewable by all', 'teacher_lesson_plans', 'CREATE POLICY "Lesson plans viewable by all" ON public.teacher_lesson_plans FOR SELECT USING (is_verified_by_yara = true OR auth.uid() = author_id OR public.is_admin())');
+CALL public.safely_apply_policy('Authors manage own lesson plans', 'teacher_lesson_plans', 'CREATE POLICY "Authors manage own lesson plans" ON public.teacher_lesson_plans FOR ALL USING (auth.uid() = author_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Competition guides viewable by all', 'competition_prep_guides', 'CREATE POLICY "Competition guides viewable by all" ON public.competition_prep_guides FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage competition guides', 'competition_prep_guides', 'CREATE POLICY "Admins manage competition guides" ON public.competition_prep_guides FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Checklists viewable by inspectors and admins', 'robotics_inspection_checklists', 'CREATE POLICY "Checklists viewable by inspectors and admins" ON public.robotics_inspection_checklists FOR SELECT USING (auth.uid() = inspector_id OR public.is_admin())');
+CALL public.safely_apply_policy('Inspectors manage checklists', 'robotics_inspection_checklists', 'CREATE POLICY "Inspectors manage checklists" ON public.robotics_inspection_checklists FOR ALL USING (auth.uid() = inspector_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Competitions viewable by all', 'competitions', 'CREATE POLICY "Competitions viewable by all" ON public.competitions FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage competitions', 'competitions', 'CREATE POLICY "Admins manage competitions" ON public.competitions FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Competition categories viewable by all', 'competition_categories', 'CREATE POLICY "Competition categories viewable by all" ON public.competition_categories FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage competition categories', 'competition_categories', 'CREATE POLICY "Admins manage competition categories" ON public.competition_categories FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Competition scores viewable by all', 'competition_scores', 'CREATE POLICY "Competition scores viewable by all" ON public.competition_scores FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Judges and admins manage scores', 'competition_scores', 'CREATE POLICY "Judges and admins manage scores" ON public.competition_scores FOR ALL USING (auth.uid() = judge_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Admins view cert verification logs', 'certificate_verification_logs', 'CREATE POLICY "Admins view cert verification logs" ON public.certificate_verification_logs FOR SELECT USING (public.is_admin())');
+CALL public.safely_apply_policy('Public insert cert verification logs', 'certificate_verification_logs', 'CREATE POLICY "Public insert cert verification logs" ON public.certificate_verification_logs FOR INSERT WITH CHECK (true)');
+
+CALL public.safely_apply_policy('Projects viewable by all', 'projects', 'CREATE POLICY "Projects viewable by all" ON public.projects FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users manage own projects', 'projects', 'CREATE POLICY "Users manage own projects" ON public.projects FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Ideas viewable by all', 'ideas', 'CREATE POLICY "Ideas viewable by all" ON public.ideas FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Users manage own ideas', 'ideas', 'CREATE POLICY "Users manage own ideas" ON public.ideas FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Mentorship participants view sessions', 'mentorship_sessions', 'CREATE POLICY "Mentorship participants view sessions" ON public.mentorship_sessions FOR SELECT USING (auth.uid() IN (mentor_id, student_id) OR public.is_admin())');
+CALL public.safely_apply_policy('Mentorship participants manage sessions', 'mentorship_sessions', 'CREATE POLICY "Mentorship participants manage sessions" ON public.mentorship_sessions FOR ALL USING (auth.uid() IN (mentor_id, student_id) OR public.is_admin())');
+
+CALL public.safely_apply_policy('Live rooms viewable by all', 'live_rooms', 'CREATE POLICY "Live rooms viewable by all" ON public.live_rooms FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Hosts manage live rooms', 'live_rooms', 'CREATE POLICY "Hosts manage live rooms" ON public.live_rooms FOR ALL USING (auth.uid() = host_id OR public.is_admin())');
+
+CALL public.safely_apply_policy('Chapters viewable by all', 'chapters', 'CREATE POLICY "Chapters viewable by all" ON public.chapters FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage chapters', 'chapters', 'CREATE POLICY "Admins manage chapters" ON public.chapters FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Partners viewable by all', 'partners', 'CREATE POLICY "Partners viewable by all" ON public.partners FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage partners', 'partners', 'CREATE POLICY "Admins manage partners" ON public.partners FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Site content viewable by all', 'site_content', 'CREATE POLICY "Site content viewable by all" ON public.site_content FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage site content', 'site_content', 'CREATE POLICY "Admins manage site content" ON public.site_content FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Impact ledger viewable by all', 'impact_ledger', 'CREATE POLICY "Impact ledger viewable by all" ON public.impact_ledger FOR SELECT USING (true)');
+CALL public.safely_apply_policy('Admins manage impact ledger', 'impact_ledger', 'CREATE POLICY "Admins manage impact ledger" ON public.impact_ledger FOR ALL USING (public.is_admin())');
+
+CALL public.safely_apply_policy('Users view own financial records', 'financial_records', 'CREATE POLICY "Users view own financial records" ON public.financial_records FOR SELECT USING (auth.uid() = user_id OR public.is_admin())');
+CALL public.safely_apply_policy('Admins manage financial records', 'financial_records', 'CREATE POLICY "Admins manage financial records" ON public.financial_records FOR ALL USING (public.is_admin())');

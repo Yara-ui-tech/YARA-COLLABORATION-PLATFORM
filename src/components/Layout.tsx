@@ -15,6 +15,7 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../constants/assets';
 import { OfflineBanner } from './OfflineBanner';
+import { RuralDataSaverToggle } from './RuralDataSaverToggle';
 
 import { NotificationBell } from './notifications/NotificationCenter';
 
@@ -257,8 +258,9 @@ export default function Layout() {
         </nav>
 
         {/* User Footer */}
-        <div className="p-3 border-t border-slate-100 bg-white">
-          <div className="flex items-center space-x-2.5 px-2 py-1.5 mb-1.5">
+        <div className="p-3 border-t border-slate-100 bg-white space-y-2">
+          <RuralDataSaverToggle variant="switch" />
+          <div className="flex items-center space-x-2.5 px-2 py-1.5">
             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden border border-slate-200 shrink-0">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />

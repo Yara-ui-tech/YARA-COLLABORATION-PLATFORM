@@ -25,10 +25,13 @@ import YaraKidsAdminTab from '../components/admin/YaraKidsAdminTab';
 import FeedbacksTestimonialsAdminTab from '../components/admin/FeedbacksTestimonialsAdminTab';
 import ImpactGalleryAdminTab from '../components/admin/ImpactGalleryAdminTab';
 import CertificateTemplatesAdminManager from '../components/admin/CertificateTemplatesAdminManager';
+import { DataUploadManager } from '../components/admin/DataUploadManager';
 import ImageUploader from '../components/ImageUploader';
 import { deleteEventItem } from '../constants/eventsData';
 import { deleteCompetition as deleteCompetitionService } from '../services/competitionsService';
-import { Sliders, Heart } from 'lucide-react';
+import MemberDirectoryAdminTab from '../components/admin/MemberDirectoryAdminTab';
+import EducationalResourcesAdminTab from '../components/admin/EducationalResourcesAdminTab';
+import { Sliders, Heart, Upload } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -105,7 +108,7 @@ export default function Admin() {
   
   const getHubForTab = (tab: string): AdminHub => {
     if (['event_registrations', 'members', 'admin_management'].includes(tab)) return 'members';
-    if (['learning_academy', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
+    if (['learning_academy', 'resources_media', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
     if (['competitions', 'competition_teams', 'events', 'virtual_comp', 'yara_competition'].includes(tab)) return 'competitions';
     if (['mentorship', 'live', 'reviews', 'mentor_req'].includes(tab)) return 'faculty';
     return 'platform';
@@ -960,6 +963,7 @@ export default function Admin() {
     ],
     lms: [
       { id: 'learning_academy', label: 'Academy Courses & Tiers', icon: BookOpen, badge: 'Tiers 1–4' },
+      { id: 'resources_media', label: 'Educational Resources & Uploads', icon: Upload, badge: 'Uploads' },
       { id: 'cert_templates', label: 'Accredited Certificate Templates', icon: Award },
       { id: 'yara_kids', label: 'YARA Kids STEM (Ages 3–8)', icon: Star },
       { id: 'brainstorming', label: 'Critical Thinking Quizzes', icon: Brain },
@@ -977,6 +981,7 @@ export default function Admin() {
       { id: 'mentor_req', label: 'Auto Mentor Match Requests', icon: UserPlus },
     ],
     platform: [
+      { id: 'data_uploads', label: 'Bulk Data Ingestion (CSV)', icon: Upload, badge: 'Staging' },
       { id: 'finance', label: 'Finance & Payouts', icon: DollarSign },
       { id: 'donations_partners', label: 'Payment Gateways & Donations', icon: CreditCard },
       { id: 'impact_ledger', label: 'M&E Audit Ledger (CSV)', icon: DollarSign, badge: 'Audited' },
@@ -1577,6 +1582,12 @@ export default function Admin() {
           </div>
         )}
 
+        {activeTab === 'data_uploads' && (
+          <div className="p-6 md:p-8">
+            <DataUploadManager />
+          </div>
+        )}
+
         {activeTab === 'impact_gallery' && (
           <div className="p-6 md:p-8">
             <ImpactGalleryAdminTab />
@@ -1759,64 +1770,9 @@ export default function Admin() {
         )}
 
         {activeTab === 'members' && (
-          <>
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50">
-              <div className="relative group max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or member ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border-2 border-slate-200 rounded-2xl py-3 px-6 pl-12 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 text-slate-500 text-xs font-black uppercase tracking-widest">
-                    <th className="px-8 py-4">Member</th>
-                    <th className="px-8 py-4">Role</th>
-                    <th className="px-8 py-4">Stats</th>
-                    <th className="px-8 py-4">Subscription Expiry</th>
-                    <th className="px-8 py-4">ID Number</th>
-                    <th className="px-8 py-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} className="px-8 py-12 text-center">
-                        <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
-                        <p className="mt-4 text-slate-500 font-bold">Loading members...</p>
-                      </td>
-                    </tr>
-                  ) : filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-8 py-12 text-center">
-                        <p className="text-slate-400 font-medium italic">No members found matching your search.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <UserRow 
-                        key={user.id} 
-                        user={user} 
-                        onUpdate={updateMemberId}
-                        onToggleHalt={toggleHalt}
-                        onUpdateSubscription={updateSubscription}
-                        onUpdateRole={updateUserRole}
-                        onRevoke={revokeAccess}
-                        isUpdating={updatingId === user.id}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <div className="p-6 md:p-8">
+            <MemberDirectoryAdminTab />
+          </div>
         )}
 
         {activeTab === 'mentorship' && (
@@ -2055,6 +2011,11 @@ export default function Admin() {
         {activeTab === 'finance' && (
           <div className="p-8">
             <FinanceAdminTab />
+          </div>
+        )}
+        {activeTab === 'resources_media' && (
+          <div className="p-6 md:p-8">
+            <EducationalResourcesAdminTab />
           </div>
         )}
       </section>

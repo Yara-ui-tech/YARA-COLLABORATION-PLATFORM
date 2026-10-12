@@ -1,0 +1,2 @@
+title,category,difficulty,question,options,correct_index,hint,critical_thinking_principle,explanation,points
+"Microcontroller Brownout Diagnostic [EXAMPLE TO DELETE]","circuit_fault","beginner","Why does the microcontroller reset when DC motor starts?","[""Overheating"",""Current spike causing supply rail voltage dip"",""Bad crystal"",""Reverse polarity""]","1","Check power rail limits","Power rail isolation & flyback diodes","Inductive loads pull high stall current.","15"

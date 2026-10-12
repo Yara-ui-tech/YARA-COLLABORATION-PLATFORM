@@ -267,12 +267,16 @@ const AppContent = () => {
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialogHost from './components/ConfirmDialogHost';
 
+import { RuralAccessibilityProvider } from './context/RuralAccessibilityContext';
+
 export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AppContent />
-        <ConfirmDialogHost />
+        <RuralAccessibilityProvider>
+          <AppContent />
+          <ConfirmDialogHost />
+        </RuralAccessibilityProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
