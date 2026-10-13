@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, Search, Mail, Phone, MapPin, Building2, Shield, 
   Check, Copy, ExternalLink, MessageCircle, Edit3, CheckCircle2, 
   XCircle, Filter, ChevronDown, UserCheck, UserX, Clock, 
-  Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus
+  Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus,
+  Layers, Upload, Download, FileSpreadsheet, CheckSquare, Square,
+  MessageSquare, Sparkles, ChevronRight, Share2, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { getChapters } from '../../services/chaptersService';
 import { Chapter } from '../../types/chapters';
+import { yaraV3Service } from '../../services/v3/yaraV3Service';
 
 export interface ExtendedUserProfile {
   id: string;
@@ -74,11 +77,16 @@ export default function MemberDirectoryAdminTab() {
   const [loading, setLoading] = useState(true);
   const [activeSubView, setActiveSubView] = useState<'directory' | 'join_requests'>('directory');
 
-  // Filters
+  // Filters & Display
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChapterFilter, setSelectedChapterFilter] = useState('ALL');
   const [selectedPositionFilter, setSelectedPositionFilter] = useState('ALL');
   const [selectedProvinceFilter, setSelectedProvinceFilter] = useState('ALL');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
+  const [groupBy, setGroupBy] = useState<'flat' | 'chapter' | 'province'>('flat');
+
+  // Multi-Selection
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
   // Edit Member Modal
   const [editingMember, setEditingMember] = useState<ExtendedUserProfile | null>(null);
@@ -87,44 +95,93 @@ export default function MemberDirectoryAdminTab() {
   const [editMemberId, setEditMemberId] = useState('');
   const [isSavingMember, setIsSavingMember] = useState(false);
 
-  // Email Modal
+  // Email Native Modal
   const [emailModalMember, setEmailModalMember] = useState<ExtendedUserProfile | null>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
 
-  // Feedback notifications
+  // Multi-Channel Messaging Composer Modal
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [messageChannel, setMessageChannel] = useState<'email' | 'whatsapp' | 'in_app' | 'sms'>('email');
+  const [messageAudienceType, setMessageAudienceType] = useState<'all' | 'filtered' | 'selected' | 'chapter' | 'province' | 'leaders'>('all');
+  const [targetChapterId, setTargetChapterId] = useState('');
+  const [targetProvince, setTargetProvince] = useState('');
+  const [broadcastSubject, setBroadcastSubject] = useState('Important Update from YARA Executive Secretariat');
+  const [broadcastBody, setBroadcastBody] = useState(
+    'Hello {{name}},\n\nThis is an official announcement from the Young Africans Robotics Association (YARA) Secretariat regarding {{chapter}} in {{province}}.\n\nPosition: {{position}}\n\n[Write your message here]\n\nInnovate Local, Build Global.'
+  );
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [whatsappLinksChecklist, setWhatsappLinksChecklist] = useState<Array<{ id: string; name: string; phone: string; url: string; opened: boolean }> | null>(null);
+
+  // Add Member Manually Modal
+  const [addMemberModalOpen, setAddMemberModalOpen] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({
+    chapter_id: '',
+    full_name: '',
+    email: '',
+    phone: '',
+    whatsapp_number: '',
+    position_key: 'Member',
+    institution: '',
+    gender: 'Prefer not to say',
+    notes: ''
+  });
+  const [isAddingMember, setIsAddingMember] = useState(false);
+
+  // Feedback notifications & WhatsApp notify helper
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [lastDecisionWhatsAppLink, setLastDecisionWhatsAppLink] = useState<{ name: string; url: string } | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Users
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (userError) throw userError;
-      setUsers(userData || []);
+      // 1. Fetch Users from v_admin_member_directory (with fallback)
+      const directoryData = await yaraV3Service.getAdminMemberDirectory();
+      if (directoryData && directoryData.length > 0) {
+        const mappedUsers: ExtendedUserProfile[] = directoryData.map((d: any) => ({
+          id: d.id,
+          display_name: d.name || d.display_name || 'Member',
+          email: d.email,
+          phone: d.phone,
+          whatsapp_number: d.whatsapp || d.whatsapp_number,
+          member_id: d.yara_member_id || d.member_id || null,
+          role: d.role || 'student',
+          avatar_url: d.avatar_url,
+          province: d.province,
+          district: d.district,
+          country: d.country_iso2 || 'ZW',
+          institution: d.institution,
+          chapter_id: d.chapter_id,
+          chapter_name: d.chapter_name,
+          chapter_position: d.position || d.chapter_position || 'Member',
+          registration_paid: d.registration_paid ?? true,
+          is_halted: d.status === 'suspended' || d.is_halted,
+          created_at: d.joined_date || d.created_at || new Date().toISOString()
+        }));
+        setUsers(mappedUsers);
+      } else {
+        const { data: userData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        setUsers(userData || []);
+      }
 
       // 2. Fetch Chapters
       const chapterList = await getChapters(true);
       setChapters(chapterList);
 
       // 3. Fetch Chapter Join Requests
-      const { data: reqData, error: reqError } = await supabase
+      const { data: reqData } = await supabase
         .from('chapter_join_requests')
         .select('*')
         .order('submitted_at', { ascending: false });
 
-      if (!reqError) {
-        setJoinRequests(reqData || []);
-      }
+      if (reqData) setJoinRequests(reqData);
     } catch (err: any) {
       console.error('Error fetching member directory data:', err);
-      setFeedback({ type: 'error', text: err.message || 'Failed to load member records.' });
+      showToast('error', err.message || 'Failed to load member records.');
     } finally {
       setLoading(false);
     }
@@ -145,11 +202,28 @@ export default function MemberDirectoryAdminTab() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const uniqueProvinces = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach(u => { if (u.province) set.add(u.province); });
+    return Array.from(set).sort();
+  }, [users]);
+
+  // Clean phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phoneStr?: string): string => {
+    if (!phoneStr) return '';
+    let cleaned = phoneStr.replace(/[^0-9]/g, '');
+    if (cleaned.startsWith('0') && cleaned.length >= 10) {
+      cleaned = '263' + cleaned.slice(1);
+    }
+    return cleaned;
+  };
+
   // Filtered members list
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       const q = searchTerm.toLowerCase();
       const matchSearch = 
+        !q ||
         u.display_name?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
         u.member_id?.toLowerCase().includes(q) ||
@@ -161,26 +235,110 @@ export default function MemberDirectoryAdminTab() {
       const matchChapter = selectedChapterFilter === 'ALL' || u.chapter_id === selectedChapterFilter || u.chapter_name === selectedChapterFilter;
       const matchPosition = selectedPositionFilter === 'ALL' || (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
+      const matchStatus = 
+        selectedStatusFilter === 'ALL' ? true :
+        selectedStatusFilter === 'suspended' ? u.is_halted :
+        selectedStatusFilter === 'paid' ? u.registration_paid :
+        selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
+        true;
 
-      return matchSearch && matchChapter && matchPosition && matchProvince;
+      return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus;
     });
-  }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter]);
+  }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter, selectedStatusFilter]);
 
   const pendingRequestsCount = useMemo(() => {
     return joinRequests.filter(r => r.status === 'pending').length;
   }, [joinRequests]);
 
-  // Clean phone number for WhatsApp
-  const formatPhoneForWhatsApp = (phoneStr?: string): string => {
-    if (!phoneStr) return '';
-    let cleaned = phoneStr.replace(/[^0-9]/g, '');
-    // Zimbabwe local numbers starting with 07... -> 2637...
-    if (cleaned.startsWith('0') && cleaned.length >= 10) {
-      cleaned = '263' + cleaned.slice(1);
-    }
-    return cleaned;
+  // Multi-select handlers
+  const handleToggleSelect = (id: string) => {
+    setSelectedMemberIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
+  const handleSelectAll = () => {
+    if (selectedMemberIds.size === filteredUsers.length) {
+      setSelectedMemberIds(new Set());
+    } else {
+      setSelectedMemberIds(new Set(filteredUsers.map(u => u.id)));
+    }
+  };
+
+  // Export CSV
+  const handleExportCSV = () => {
+    const listToExport = selectedMemberIds.size > 0 
+      ? users.filter(u => selectedMemberIds.has(u.id))
+      : filteredUsers;
+
+    const headers = ['YARA Member ID', 'Full Name', 'Email', 'Phone', 'WhatsApp', 'Chapter', 'Position', 'Province', 'District', 'Status'];
+    const rows = listToExport.map(u => [
+      `"${u.member_id || ''}"`,
+      `"${u.display_name || ''}"`,
+      `"${u.email || ''}"`,
+      `"${u.phone || ''}"`,
+      `"${u.whatsapp_number || ''}"`,
+      `"${u.chapter_name || 'No chapter'}"`,
+      `"${u.chapter_position || 'Member'}"`,
+      `"${u.province || ''}"`,
+      `"${u.district || ''}"`,
+      `"${u.is_halted ? 'Suspended' : 'Active'}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `YARA_Members_Register_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('success', `Exported ${listToExport.length} members to CSV.`);
+  };
+
+  // CSV Bulk Import
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+      const lines = text.split('\n').filter(l => l.trim().length > 0);
+      if (lines.length <= 1) {
+        showToast('error', 'CSV file is empty or missing headers.');
+        return;
+      }
+
+      let imported = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
+        if (parts.length >= 2) {
+          const [fullName, email, phone, chapter, pos] = parts;
+          try {
+            await yaraV3Service.adminAddChapterMember({
+              chapter_id: chapter || chapters[0]?.id || '',
+              full_name: fullName || 'Innovator',
+              email: email || '',
+              phone: phone || '',
+              position_key: pos || 'Member'
+            });
+            imported++;
+          } catch {}
+        }
+      }
+      showToast('success', `Imported ${imported} members from CSV.`);
+      fetchData();
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Direct WhatsApp & Email actions
   const handleOpenWhatsApp = (member: ExtendedUserProfile) => {
     const rawPhone = member.whatsapp_number || member.contact_phone || member.phone;
     const cleanPhone = formatPhoneForWhatsApp(rawPhone);
@@ -191,7 +349,7 @@ export default function MemberDirectoryAdminTab() {
     }
 
     const prefilledText = encodeURIComponent(
-      `Hello ${member.display_name},\n\nThis is the Young Africans Robotics Association (YARA) Secretariat regarding your membership${member.chapter_name ? ` with the ${member.chapter_name}` : ''}.\n\nMember ID: ${member.member_id || 'Pending'}\nPosition: ${member.chapter_position || 'Member'}\n\nHow can we support your robotics innovation activities today?`
+      `Hello ${member.display_name},\n\nThis is the Young Africans Robotics Association (YARA) Secretariat regarding your membership${member.chapter_name ? ` with ${member.chapter_name}` : ''}.\n\nMember ID: ${member.member_id || 'Pending'}\nPosition: ${member.chapter_position || 'Member'}\n\nHow can we support your robotics innovation activities today?`
     );
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${prefilledText}`;
@@ -233,6 +391,8 @@ export default function MemberDirectoryAdminTab() {
       const selectedChapter = chapters.find(c => c.id === editChapterId);
       const chapterName = selectedChapter ? selectedChapter.name : null;
 
+      await yaraV3Service.setMemberPosition(editingMember.id, editPosition, editChapterId);
+
       const updatePayload: any = {
         chapter_id: editChapterId || null,
         chapter_name: chapterName,
@@ -241,58 +401,48 @@ export default function MemberDirectoryAdminTab() {
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('id', editingMember.id);
+      await supabase.from('profiles').update(updatePayload).eq('id', editingMember.id);
 
-      if (error) throw error;
-
-      // Update state locally
       setUsers(prev => prev.map(u => u.id === editingMember.id ? { ...u, ...updatePayload } : u));
-      showToast('success', `Updated affiliation and position for ${editingMember.display_name}!`);
+      showToast('success', `Updated affiliation & position for ${editingMember.display_name}.`);
       setEditingMember(null);
     } catch (err: any) {
-      console.error('Error updating member:', err);
-      showToast('error', err.message || 'Failed to update member affiliation.');
+      showToast('error', err.message || 'Failed to update member details.');
     } finally {
       setIsSavingMember(false);
     }
   };
 
+  const handleToggleStatus = async (member: ExtendedUserProfile, newStatus: 'active' | 'suspended') => {
+    try {
+      await yaraV3Service.setMemberStatus(member.id, newStatus);
+      setUsers(prev => prev.map(u => u.id === member.id ? { ...u, is_halted: newStatus === 'suspended' } : u));
+      showToast('success', `Member status changed to ${newStatus}.`);
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to change status.');
+    }
+  };
+
   // Approve Chapter Join Request
   const handleApproveJoinRequest = async (req: ChapterJoinRequestItem) => {
-    if (!window.confirm(`Approve ${req.full_name} to join ${req.chapter_name || 'selected chapter'}?`)) return;
-
     try {
-      // 1. Update request status
-      const { error: reqErr } = await supabase
-        .from('chapter_join_requests')
-        .update({
-          status: 'approved',
-          reviewed_by: 'YARA Master Administrator',
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', req.id);
-
-      if (reqErr) throw reqErr;
-
-      // 2. If user_id exists or match by email, update profile
-      const targetUser = users.find(u => (req.user_id && u.id === req.user_id) || u.email.toLowerCase() === req.email.toLowerCase());
-      if (targetUser) {
-        await supabase
-          .from('profiles')
-          .update({
-            chapter_id: req.chapter_id,
-            chapter_name: req.chapter_name,
-            chapter_position: req.role_applying_for || 'Member',
-            province: req.province || targetUser.province
-          })
-          .eq('id', targetUser.id);
-      }
+      const res = await yaraV3Service.reviewChapterJoinRequest({
+        request_id: req.id,
+        decision: 'approved',
+        position_key: req.role_applying_for || 'Member',
+        phone: req.phone,
+        name: req.full_name
+      });
 
       setJoinRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'approved' } : r));
-      showToast('success', `Approved ${req.full_name} for ${req.chapter_name}! Profile updated.`);
+      showToast('success', `Approved ${req.full_name} for ${req.chapter_name || 'chapter'}!`);
+
+      if (res?.notify_whatsapp_link) {
+        setLastDecisionWhatsAppLink({
+          name: req.full_name,
+          url: res.notify_whatsapp_link
+        });
+      }
       fetchData();
     } catch (err: any) {
       console.error('Approval failed:', err);
@@ -306,30 +456,167 @@ export default function MemberDirectoryAdminTab() {
     if (reason === null) return;
 
     try {
-      const { error } = await supabase
-        .from('chapter_join_requests')
-        .update({
-          status: 'rejected',
-          reviewed_by: 'YARA Master Administrator',
-          reviewed_at: new Date().toISOString(),
-          review_notes: reason
-        })
-        .eq('id', req.id);
-
-      if (error) throw error;
+      const res = await yaraV3Service.reviewChapterJoinRequest({
+        request_id: req.id,
+        decision: 'rejected',
+        message: reason,
+        phone: req.phone,
+        name: req.full_name
+      });
 
       setJoinRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'rejected' } : r));
       showToast('success', `Rejected request from ${req.full_name}.`);
+
+      if (res?.notify_whatsapp_link) {
+        setLastDecisionWhatsAppLink({
+          name: req.full_name,
+          url: res.notify_whatsapp_link
+        });
+      }
     } catch (err: any) {
       showToast('error', err.message || 'Failed to reject request.');
     }
   };
 
-  const uniqueProvinces = useMemo(() => {
-    const set = new Set<string>();
-    users.forEach(u => { if (u.province) set.add(u.province); });
-    return Array.from(set).sort();
-  }, [users]);
+  // Add Member Manually Form submit
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemberForm.full_name.trim() || !newMemberForm.email.trim() || !newMemberForm.chapter_id) {
+      showToast('error', 'Please provide at least Name, Email, and Chapter.');
+      return;
+    }
+
+    setIsAddingMember(true);
+    try {
+      await yaraV3Service.adminAddChapterMember({
+        chapter_id: newMemberForm.chapter_id,
+        full_name: newMemberForm.full_name.trim(),
+        email: newMemberForm.email.trim().toLowerCase(),
+        phone: newMemberForm.phone.trim(),
+        position_key: newMemberForm.position_key,
+        whatsapp_number: newMemberForm.whatsapp_number.trim() || newMemberForm.phone.trim(),
+        institution: newMemberForm.institution.trim(),
+        gender: newMemberForm.gender,
+        notes: newMemberForm.notes.trim()
+      });
+
+      showToast('success', `Added ${newMemberForm.full_name} to chapter!`);
+      setAddMemberModalOpen(false);
+      setNewMemberForm({
+        chapter_id: '',
+        full_name: '',
+        email: '',
+        phone: '',
+        whatsapp_number: '',
+        position_key: 'Member',
+        institution: '',
+        gender: 'Prefer not to say',
+        notes: ''
+      });
+      fetchData();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to add member.');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  // Calculate target audience for Broadcast
+  const targetRecipients = useMemo(() => {
+    let recs: ExtendedUserProfile[] = [];
+    if (messageAudienceType === 'all') {
+      recs = users;
+    } else if (messageAudienceType === 'filtered') {
+      recs = filteredUsers;
+    } else if (messageAudienceType === 'selected') {
+      recs = users.filter(u => selectedMemberIds.has(u.id));
+    } else if (messageAudienceType === 'chapter') {
+      recs = users.filter(u => u.chapter_id === targetChapterId || u.chapter_name === targetChapterId);
+    } else if (messageAudienceType === 'province') {
+      recs = users.filter(u => u.province === targetProvince);
+    } else if (messageAudienceType === 'leaders') {
+      recs = users.filter(u => u.chapter_position && u.chapter_position !== 'Member');
+    }
+    return recs;
+  }, [messageAudienceType, users, filteredUsers, selectedMemberIds, targetChapterId, targetProvince]);
+
+  // Handle Multi-Channel Broadcast Send
+  const handleSendBroadcast = async () => {
+    if (messageChannel === 'sms') {
+      showToast('error', 'SMS Gateway is currently in Coming Soon mode. Please use Email, WhatsApp, or In-App.');
+      return;
+    }
+
+    if (!broadcastBody.trim()) {
+      showToast('error', 'Please provide message content.');
+      return;
+    }
+
+    if (targetRecipients.length === 0) {
+      showToast('error', 'No recipients match the selected audience criteria.');
+      return;
+    }
+
+    setIsSendingMessage(true);
+    try {
+      const recipientPayload = targetRecipients.map(u => ({
+        name: u.display_name,
+        email: u.email,
+        phone: u.whatsapp_number || u.phone || '',
+        chapter: u.chapter_name || 'YARA Chapter',
+        position: u.chapter_position || 'Member',
+        province: u.province || 'Zimbabwe'
+      }));
+
+      const res = await yaraV3Service.adminComposeMessage({
+        channel: messageChannel,
+        audience: {
+          type: messageAudienceType,
+          count: targetRecipients.length,
+          chapter_id: targetChapterId || null,
+          province: targetProvince || null
+        },
+        subject: broadcastSubject,
+        body: broadcastBody,
+        recipients: recipientPayload
+      });
+
+      if (messageChannel === 'whatsapp' && res?.whatsapp_links) {
+        setWhatsappLinksChecklist(res.whatsapp_links);
+        showToast('success', `Generated ${res.whatsapp_links.length} personalized WhatsApp messages!`);
+      } else {
+        showToast('success', res?.message || `Dispatched ${messageChannel} to ${targetRecipients.length} members.`);
+        setMessageModalOpen(false);
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to dispatch message.');
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  // Grouped members for grouped display mode
+  const groupedData = useMemo(() => {
+    if (groupBy === 'chapter') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.chapter_name || 'No Chapter (Awaiting Placement)';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    if (groupBy === 'province') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.province || 'National / Other';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    return null;
+  }, [groupBy, filteredUsers]);
 
   return (
     <div className="space-y-6">
@@ -355,15 +642,51 @@ export default function MemberDirectoryAdminTab() {
         )}
       </AnimatePresence>
 
+      {/* WhatsApp Quick Notification Banner after Approval */}
+      {lastDecisionWhatsAppLink && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <Share2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-emerald-950 block">
+                Applicant Processed: {lastDecisionWhatsAppLink.name}
+              </span>
+              <span className="text-[11px] text-emerald-700">
+                You can immediately notify them on WhatsApp with their official decision status.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={lastDecisionWhatsAppLink.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm transition"
+            >
+              <span>Tell them on WhatsApp</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <button
+              onClick={() => setLastDecisionWhatsAppLink(null)}
+              className="text-emerald-700 hover:text-emerald-900 text-xs font-bold px-2 py-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Header & Sub-View Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Users className="w-6 h-6 text-indigo-600" />
-            <span>Central Member Register & Leadership Portal</span>
+            <span>Master Member Directory & Messaging Console</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Every registered YARA member with institution, assigned chapter, and leadership position. Directly contact via Email or WhatsApp.
+            YARA Pan-African membership register: chapters, leadership positions, direct multi-channel communication (Email, WhatsApp, In-App).
           </p>
         </div>
 
@@ -392,7 +715,7 @@ export default function MemberDirectoryAdminTab() {
             )}
           >
             <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Chapter Join Requests</span>
+            <span>Join Requests</span>
             {pendingRequestsCount > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] animate-pulse">
                 {pendingRequestsCount} Pending
@@ -404,7 +727,7 @@ export default function MemberDirectoryAdminTab() {
 
       {activeSubView === 'directory' ? (
         <>
-          {/* Summary Badges */}
+          {/* Summary Badges & Quick Action Buttons */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs">
               <span className="text-[11px] font-bold text-slate-400 block uppercase">Total Registered</span>
@@ -423,14 +746,73 @@ export default function MemberDirectoryAdminTab() {
               </span>
             </div>
             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 block uppercase">Dues Verified</span>
+              <span className="text-[11px] font-bold text-slate-400 block uppercase">Selected Members</span>
               <span className="text-2xl font-black text-emerald-600 mt-1 block">
-                {users.filter(u => u.registration_paid).length}
+                {selectedMemberIds.size}
               </span>
             </div>
           </div>
 
-          {/* Search & Filter Toolbar */}
+          {/* Action Ribbon: Message Members, Add Member, Import/Export */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-900 text-white rounded-2xl shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/20">
+                Action Center
+              </span>
+              <span className="text-xs text-slate-300">
+                {selectedMemberIds.size > 0 ? `${selectedMemberIds.size} selected` : `${filteredUsers.length} in current view`}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Message Members Button */}
+              <button
+                onClick={() => setMessageModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Message Members</span>
+              </button>
+
+              {/* Add Member Manually */}
+              <button
+                onClick={() => setAddMemberModalOpen(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Add Member</span>
+              </button>
+
+              {/* CSV Bulk Import */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
+                title="Bulk register members from CSV"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Import CSV</span>
+              </button>
+
+              {/* Export CSV */}
+              <button
+                onClick={handleExportCSV}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border border-slate-700"
+                title="Export filtered or selected rows to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Search, Filter & Group-by Toolbar */}
           <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               {/* Search */}
@@ -453,9 +835,7 @@ export default function MemberDirectoryAdminTab() {
               >
                 <option value="ALL">All Chapters ({chapters.length})</option>
                 {chapters.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
 
@@ -483,6 +863,31 @@ export default function MemberDirectoryAdminTab() {
                 ))}
               </select>
 
+              {/* Group By Toggle */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+                <button
+                  onClick={() => setGroupBy('flat')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'flat' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Flat table view"
+                >
+                  Flat
+                </button>
+                <button
+                  onClick={() => setGroupBy('chapter')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'chapter' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by chapter"
+                >
+                  By Chapter
+                </button>
+                <button
+                  onClick={() => setGroupBy('province')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'province' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by province"
+                >
+                  By Province
+                </button>
+              </div>
+
               <button
                 onClick={fetchData}
                 className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition"
@@ -499,171 +904,57 @@ export default function MemberDirectoryAdminTab() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                    <th className="px-6 py-4">Member Info</th>
+                    <th className="px-4 py-4 w-10 text-center">
+                      <button onClick={handleSelectAll} className="p-1 hover:text-indigo-600 transition">
+                        {selectedMemberIds.size > 0 && selectedMemberIds.size === filteredUsers.length ? (
+                          <CheckSquare className="w-4 h-4 text-indigo-600" />
+                        ) : (
+                          <Square className="w-4 h-4 text-slate-400" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-4 py-4">Member Info</th>
                     <th className="px-4 py-4">Member ID</th>
                     <th className="px-6 py-4">Assigned Chapter</th>
                     <th className="px-4 py-4">Position / Role</th>
                     <th className="px-4 py-4">Location & Institution</th>
                     <th className="px-4 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Contact & Manage</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-bold">
+                      <td colSpan={8} className="px-6 py-12 text-center text-slate-400 font-bold">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-600" />
                         <span>Loading member register...</span>
                       </td>
                     </tr>
                   ) : filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
+                      <td colSpan={8} className="px-6 py-12 text-center text-slate-400 font-medium">
                         No members match your search criteria.
                       </td>
                     </tr>
+                  ) : groupBy === 'flat' ? (
+                    filteredUsers.map(member => renderMemberRow(member))
                   ) : (
-                    filteredUsers.map(member => {
-                      const phone = member.whatsapp_number || member.contact_phone || member.phone;
-                      const hasPhone = Boolean(phone);
-                      const isLeader = member.chapter_position && member.chapter_position !== 'Member';
-
-                      return (
-                        <tr key={member.id} className="hover:bg-slate-50/60 transition group">
-                          {/* Member Info */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-black text-indigo-700 text-sm shrink-0 overflow-hidden">
-                                {member.avatar_url ? (
-                                  <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  member.display_name?.[0] || 'M'
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
-                                <span className="text-[11px] text-slate-400 block truncate">{member.email}</span>
-                                {phone && (
-                                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
-                                    <Phone className="w-2.5 h-2.5" />
-                                    <span>{phone}</span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Member ID */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {member.member_id ? (
-                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50/80 border border-indigo-200/80 rounded-lg">
-                                <span className="font-mono font-black text-[11px] text-indigo-700">{member.member_id}</span>
-                                <button
-                                  onClick={() => copyToClipboard(member.member_id!, member.id)}
-                                  className="text-indigo-400 hover:text-indigo-700 transition"
-                                  title="Copy ID"
-                                >
-                                  {copiedId === member.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
-                                Unassigned
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Assigned Chapter */}
-                          <td className="px-6 py-4">
-                            {member.chapter_name ? (
-                              <div className="space-y-0.5">
-                                <span className="font-bold text-slate-900 block line-clamp-1">{member.chapter_name}</span>
-                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                                  <Building2 className="w-3 h-3 text-indigo-500" />
-                                  <span>{member.province || 'National'}</span>
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400 italic bg-slate-100 px-2.5 py-1 rounded-lg">
-                                Awaiting Chapter Placement
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Position */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={cn(
-                              "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
-                              isLeader
-                                ? "bg-amber-100 text-amber-900 border border-amber-200"
-                                : "bg-slate-100 text-slate-700"
-                            )}>
-                              {member.chapter_position || 'Member'}
+                    groupedData && Object.entries(groupedData).map(([groupTitle, groupMembers]) => (
+                      <React.Fragment key={groupTitle}>
+                        <tr className="bg-indigo-50/50">
+                          <td colSpan={8} className="px-6 py-2.5 font-black text-indigo-950 text-xs flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>{groupTitle}</span>
                             </span>
-                          </td>
-
-                          {/* Location & Institution */}
-                          <td className="px-4 py-4">
-                            <span className="text-[11px] font-semibold text-slate-700 block truncate">
-                              {member.institution || 'Individual Innovator'}
+                            <span className="text-[11px] text-indigo-600 font-bold bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+                              {groupMembers.length} Members
                             </span>
-                            <span className="text-[10px] text-slate-400 block truncate">
-                              {member.district ? `${member.district}, ` : ''}{member.province || 'Zimbabwe'}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={cn(
-                              "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                              member.registration_paid 
-                                ? "bg-emerald-100 text-emerald-800" 
-                                : "bg-slate-100 text-slate-600"
-                            )}>
-                              {member.registration_paid ? 'Active & Paid' : 'Standard'}
-                            </span>
-                          </td>
-
-                          {/* Actions: Email, WhatsApp, Edit */}
-                          <td className="px-6 py-4 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* Email button */}
-                              <button
-                                onClick={() => handleOpenEmail(member)}
-                                className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition"
-                                title="Compose Email"
-                              >
-                                <Mail className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* WhatsApp button */}
-                              <button
-                                onClick={() => handleOpenWhatsApp(member)}
-                                disabled={!hasPhone}
-                                className={cn(
-                                  "p-2 rounded-xl transition",
-                                  hasPhone 
-                                    ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs" 
-                                    : "bg-slate-100 text-slate-300 cursor-not-allowed"
-                                )}
-                                title={hasPhone ? `WhatsApp: ${phone}` : "No phone provided"}
-                              >
-                                <MessageCircle className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Edit Affiliation / Position */}
-                              <button
-                                onClick={() => handleOpenEditModal(member)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-[11px] flex items-center gap-1 transition"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                <span>Assign</span>
-                              </button>
-                            </div>
                           </td>
                         </tr>
-                      );
-                    })
+                        {groupMembers.map(member => renderMemberRow(member))}
+                      </React.Fragment>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -671,15 +962,14 @@ export default function MemberDirectoryAdminTab() {
           </div>
         </>
       ) : (
-        /* CHAPTER JOIN REQUESTS SUB-VIEW */
+        /* SUB-VIEW 2: CHAPTER JOIN REQUESTS INBOX */
         <div className="space-y-4">
           <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-emerald-600" />
-              <span>Pending Chapter Membership Applications ({pendingRequestsCount})</span>
+            <h3 className="text-base font-black text-slate-900">
+              Incoming Chapter Join Applications ({joinRequests.length})
             </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Approval is mandatory before applicants are granted membership in any university, high school, or community chapter. Approving updates the member’s official profile automatically.
+            <p className="text-xs text-slate-500 mt-0.5">
+              Review and approve membership requests from prospective students, researchers, and community innovators.
             </p>
           </div>
 
@@ -689,19 +979,19 @@ export default function MemberDirectoryAdminTab() {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase tracking-wider">
                     <th className="px-6 py-4">Applicant</th>
-                    <th className="px-6 py-4">Target Chapter</th>
-                    <th className="px-4 py-4">Institution / School</th>
-                    <th className="px-4 py-4">Requested Role</th>
-                    <th className="px-6 py-4">Motivation & Details</th>
+                    <th className="px-4 py-4">Target Chapter</th>
+                    <th className="px-4 py-4">Institution</th>
+                    <th className="px-4 py-4">Desired Role</th>
+                    <th className="px-6 py-4">Motivation</th>
                     <th className="px-4 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Decision</th>
+                    <th className="px-6 py-4 text-right">Review Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {joinRequests.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-medium">
-                        No chapter join requests recorded yet.
+                        No pending join applications found.
                       </td>
                     </tr>
                   ) : (
@@ -710,13 +1000,16 @@ export default function MemberDirectoryAdminTab() {
                         <td className="px-6 py-4">
                           <span className="font-bold text-slate-900 block">{req.full_name}</span>
                           <span className="text-[11px] text-slate-400 block">{req.email}</span>
-                          <span className="text-[10px] text-emerald-600 font-medium block">{req.phone}</span>
+                          <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                            <Phone className="w-2.5 h-2.5" />
+                            <span>{req.phone}</span>
+                          </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="font-bold text-slate-900 block">{req.chapter_name || 'Chapter'}</span>
-                          <span className="text-[10px] text-indigo-500 font-medium">{req.province || 'National'}</span>
+                        <td className="px-4 py-4 font-bold text-slate-800">
+                          {req.chapter_name || 'Chapter #' + req.chapter_id}
+                          {req.province && <span className="block text-[10px] text-slate-400 font-normal">{req.province}</span>}
                         </td>
-                        <td className="px-4 py-4 font-medium text-slate-700">
+                        <td className="px-4 py-4 text-slate-600">
                           {req.institution}
                         </td>
                         <td className="px-4 py-4">
@@ -771,6 +1064,171 @@ export default function MemberDirectoryAdminTab() {
           </div>
         </div>
       )}
+
+      {/* Row Render Helper Function */}
+      {function renderMemberRow(member: ExtendedUserProfile) {
+        const phone = member.whatsapp_number || member.contact_phone || member.phone;
+        const hasPhone = Boolean(phone);
+        const isLeader = member.chapter_position && member.chapter_position !== 'Member';
+        const isSelected = selectedMemberIds.has(member.id);
+
+        return (
+          <tr key={member.id} className={cn("hover:bg-slate-50/60 transition group", isSelected && "bg-indigo-50/30")}>
+            {/* Checkbox */}
+            <td className="px-4 py-4 text-center">
+              <button onClick={() => handleToggleSelect(member.id)} className="p-1 text-slate-400 hover:text-indigo-600 transition">
+                {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-600" /> : <Square className="w-4 h-4" />}
+              </button>
+            </td>
+
+            {/* Member Info */}
+            <td className="px-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-black text-indigo-700 text-sm shrink-0 overflow-hidden">
+                  {member.avatar_url ? (
+                    <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    member.display_name?.[0] || 'M'
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
+                  <span className="text-[11px] text-slate-400 block truncate">{member.email}</span>
+                  {phone && (
+                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                      <Phone className="w-2.5 h-2.5" />
+                      <span>{phone}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </td>
+
+            {/* Member ID */}
+            <td className="px-4 py-4 whitespace-nowrap">
+              {member.member_id ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50/80 border border-indigo-200/80 rounded-lg">
+                  <span className="font-mono font-black text-[11px] text-indigo-700">{member.member_id}</span>
+                  <button
+                    onClick={() => copyToClipboard(member.member_id!, member.id)}
+                    className="text-indigo-400 hover:text-indigo-700 transition"
+                    title="Copy ID"
+                  >
+                    {copiedId === member.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
+                  Unassigned
+                </span>
+              )}
+            </td>
+
+            {/* Assigned Chapter */}
+            <td className="px-6 py-4">
+              {member.chapter_name ? (
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 block line-clamp-1">{member.chapter_name}</span>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-indigo-500" />
+                    <span>{member.province || 'National'}</span>
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400 italic bg-slate-100 px-2.5 py-1 rounded-lg">
+                  Awaiting Chapter Placement
+                </span>
+              )}
+            </td>
+
+            {/* Position */}
+            <td className="px-4 py-4 whitespace-nowrap">
+              <span className={cn(
+                "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
+                isLeader
+                  ? "bg-amber-100 text-amber-900 border border-amber-200"
+                  : "bg-slate-100 text-slate-700"
+              )}>
+                {member.chapter_position || 'Member'}
+              </span>
+            </td>
+
+            {/* Location & Institution */}
+            <td className="px-4 py-4">
+              <span className="text-[11px] font-semibold text-slate-700 block truncate">
+                {member.institution || 'Individual Innovator'}
+              </span>
+              <span className="text-[10px] text-slate-400 block truncate">
+                {member.district ? `${member.district}, ` : ''}{member.province || 'Zimbabwe'}
+              </span>
+            </td>
+
+            {/* Status */}
+            <td className="px-4 py-4 whitespace-nowrap">
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                member.is_halted
+                  ? "bg-red-100 text-red-800"
+                  : "bg-emerald-100 text-emerald-800"
+              )}>
+                {member.is_halted ? 'Suspended' : 'Active'}
+              </span>
+            </td>
+
+            {/* Actions: Email, WhatsApp, Edit, Status */}
+            <td className="px-6 py-4 text-right whitespace-nowrap">
+              <div className="flex items-center justify-end gap-1.5">
+                {/* Email button */}
+                <button
+                  onClick={() => handleOpenEmail(member)}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition"
+                  title="Compose Email"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                </button>
+
+                {/* WhatsApp button */}
+                <button
+                  onClick={() => handleOpenWhatsApp(member)}
+                  disabled={!hasPhone}
+                  className={cn(
+                    "p-2 rounded-xl transition",
+                    hasPhone 
+                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs" 
+                      : "bg-slate-100 text-slate-300 cursor-not-allowed"
+                  )}
+                  title={hasPhone ? `WhatsApp: ${phone}` : "No phone provided"}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Edit Position & Chapter */}
+                <button
+                  onClick={() => handleOpenEditModal(member)}
+                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                  title="Change chapter or leadership position"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Toggle Status (Suspend / Reactivate) */}
+                <button
+                  onClick={() => handleToggleStatus(member, member.is_halted ? 'active' : 'suspended')}
+                  className={cn(
+                    "p-2 rounded-xl transition",
+                    member.is_halted
+                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      : "bg-red-50 text-red-700 hover:bg-red-100"
+                  )}
+                  title={member.is_halted ? "Re-activate Member" : "Suspend Member"}
+                >
+                  {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </td>
+          </tr>
+        );
+      }(users[0]) && null}
 
       {/* Modal: Edit Chapter Affiliation & Leadership Position */}
       {editingMember && (
@@ -855,7 +1313,420 @@ export default function MemberDirectoryAdminTab() {
         </div>
       )}
 
-      {/* Modal: Email Member */}
+      {/* Modal: Multi-Channel Messaging Composer (Email, WhatsApp, In-App, SMS) */}
+      {messageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-indigo-600" />
+                  <span>Multi-Channel Member Messaging Console</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Send targeted communications to members, chapters, provincial networks, or leaders.
+                </p>
+              </div>
+              <button 
+                onClick={() => { setMessageModalOpen(false); setWhatsappLinksChecklist(null); }}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* If WhatsApp checklist is generated, show checklist view */}
+            {whatsappLinksChecklist ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <span className="font-bold text-emerald-950 text-xs block">
+                    WhatsApp Message Queue ({whatsappLinksChecklist.length} Members)
+                  </span>
+                  <span className="text-[11px] text-emerald-700">
+                    Click each member below to launch their pre-filled WhatsApp conversation in a new tab:
+                  </span>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-2xl">
+                  {whatsappLinksChecklist.map((item, idx) => (
+                    <div key={item.id} className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50">
+                      <div>
+                        <span className="font-bold text-slate-900 text-xs block">{item.name}</span>
+                        <span className="text-[10px] text-slate-400">{item.phone}</span>
+                      </div>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          setWhatsappLinksChecklist(prev => prev ? prev.map((p, i) => i === idx ? { ...p, opened: true } : p) : null);
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition",
+                          item.opened
+                            ? "bg-slate-100 text-slate-600 border border-slate-200"
+                            : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                        )}
+                      >
+                        {item.opened ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <MessageCircle className="w-3.5 h-3.5" />}
+                        <span>{item.opened ? 'Opened' : 'Open WhatsApp'}</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-end pt-3">
+                  <button
+                    onClick={() => { setWhatsappLinksChecklist(null); setMessageModalOpen(false); }}
+                    className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 text-xs">
+                {/* 1. Channel Selector */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-2">1. Choose Communication Channel</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMessageChannel('email')}
+                      className={cn(
+                        "p-3 rounded-2xl border text-left transition flex flex-col justify-between",
+                        messageChannel === 'email' ? "border-indigo-600 bg-indigo-50/50 text-indigo-950 font-black ring-2 ring-indigo-500/20" : "border-slate-200 bg-slate-50 text-slate-600"
+                      )}
+                    >
+                      <Mail className="w-4 h-4 mb-2 text-indigo-600" />
+                      <span className="text-xs">Email</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Queued / Edge</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMessageChannel('whatsapp')}
+                      className={cn(
+                        "p-3 rounded-2xl border text-left transition flex flex-col justify-between",
+                        messageChannel === 'whatsapp' ? "border-emerald-600 bg-emerald-50/50 text-emerald-950 font-black ring-2 ring-emerald-500/20" : "border-slate-200 bg-slate-50 text-slate-600"
+                      )}
+                    >
+                      <MessageCircle className="w-4 h-4 mb-2 text-emerald-600" />
+                      <span className="text-xs">WhatsApp</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Pre-filled Chat</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMessageChannel('in_app')}
+                      className={cn(
+                        "p-3 rounded-2xl border text-left transition flex flex-col justify-between",
+                        messageChannel === 'in_app' ? "border-amber-600 bg-amber-50/50 text-amber-950 font-black ring-2 ring-amber-500/20" : "border-slate-200 bg-slate-50 text-slate-600"
+                      )}
+                    >
+                      <Award className="w-4 h-4 mb-2 text-amber-600" />
+                      <span className="text-xs">In-App</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Notifications</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMessageChannel('sms')}
+                      className={cn(
+                        "p-3 rounded-2xl border text-left transition flex flex-col justify-between relative",
+                        messageChannel === 'sms' ? "border-slate-400 bg-slate-100 text-slate-900" : "border-slate-200 bg-slate-50 text-slate-400"
+                      )}
+                    >
+                      <Phone className="w-4 h-4 mb-2 text-slate-400" />
+                      <span className="text-xs">SMS</span>
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full mt-1 inline-block">
+                        Coming Soon
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Target Audience Builder */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-2">
+                    2. Target Audience ({targetRecipients.length} Recipients)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'all', label: `All Registered (${users.length})` },
+                      { id: 'filtered', label: `Current Filter (${filteredUsers.length})` },
+                      { id: 'selected', label: `Selected Rows (${selectedMemberIds.size})` },
+                      { id: 'chapter', label: 'By Specific Chapter' },
+                      { id: 'province', label: 'By Specific Province' },
+                      { id: 'leaders', label: 'Chapter Leaders Only' }
+                    ].map(aud => (
+                      <button
+                        key={aud.id}
+                        type="button"
+                        onClick={() => setMessageAudienceType(aud.id as any)}
+                        className={cn(
+                          "px-3 py-2 rounded-xl text-left border text-xs font-bold transition",
+                          messageAudienceType === aud.id 
+                            ? "bg-slate-900 text-white border-slate-900" 
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        {aud.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {messageAudienceType === 'chapter' && (
+                    <div className="mt-2">
+                      <select
+                        value={targetChapterId}
+                        onChange={(e) => setTargetChapterId(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                      >
+                        <option value="">-- Choose Chapter --</option>
+                        {chapters.map(c => (
+                          <option key={c.id} value={c.id}>{c.name} ({c.province})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {messageAudienceType === 'province' && (
+                    <div className="mt-2">
+                      <select
+                        value={targetProvince}
+                        onChange={(e) => setTargetProvince(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                      >
+                        <option value="">-- Choose Province --</option>
+                        {uniqueProvinces.map(prov => (
+                          <option key={prov} value={prov}>{prov}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Subject (for email / in-app) */}
+                {messageChannel !== 'whatsapp' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Subject</label>
+                    <input
+                      type="text"
+                      value={broadcastSubject}
+                      onChange={(e) => setBroadcastSubject(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                    />
+                  </div>
+                )}
+
+                {/* 4. Body with Placeholders */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-700">Message Body</label>
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                      <span>Placeholders:</span>
+                      {['{{name}}', '{{chapter}}', '{{position}}', '{{province}}'].map(tag => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setBroadcastBody(prev => prev + ' ' + tag)}
+                          className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-mono text-[10px] font-bold"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 font-medium resize-none font-sans"
+                  />
+                </div>
+
+                {/* Action button */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Audience size: {targetRecipients.length} members</span>
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMessageModalOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendBroadcast}
+                      disabled={isSendingMessage}
+                      className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+                    >
+                      {isSendingMessage ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>Dispatch Broadcast</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal: Add Member Manually */}
+      {addMemberModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-black text-slate-900 text-base">Add Member Manually</h3>
+                <p className="text-xs text-slate-500">Create a new student, innovator, or patron membership.</p>
+              </div>
+              <button 
+                onClick={() => setAddMemberModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMemberSubmit} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Target Chapter *</label>
+                <select
+                  value={newMemberForm.chapter_id}
+                  onChange={(e) => setNewMemberForm({ ...newMemberForm, chapter_id: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                  required
+                >
+                  <option value="">-- Select Chapter --</option>
+                  {chapters.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.province})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  value={newMemberForm.full_name}
+                  onChange={(e) => setNewMemberForm({ ...newMemberForm, full_name: e.target.value })}
+                  placeholder="e.g. Farai Moyo"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    value={newMemberForm.email}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, email: e.target.value })}
+                    placeholder="name@domain.com"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={newMemberForm.phone}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, phone: e.target.value })}
+                    placeholder="0771 234 567"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Leadership Position</label>
+                  <select
+                    value={newMemberForm.position_key}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, position_key: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                  >
+                    {LEADERSHIP_POSITIONS.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={newMemberForm.gender}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, gender: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
+                  >
+                    <option value="Prefer not to say">Prefer not to say</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Institution or School</label>
+                <input
+                  type="text"
+                  value={newMemberForm.institution}
+                  onChange={(e) => setNewMemberForm({ ...newMemberForm, institution: e.target.value })}
+                  placeholder="e.g. University of Zimbabwe / High School"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Admin Notes</label>
+                <textarea
+                  rows={2}
+                  value={newMemberForm.notes}
+                  onChange={(e) => setNewMemberForm({ ...newMemberForm, notes: e.target.value })}
+                  placeholder="Optional internal notes..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAddMemberModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAddingMember}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+                >
+                  {isAddingMember && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Add Member</span>
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal: Email Single Member Native */}
       {emailModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <motion.div 

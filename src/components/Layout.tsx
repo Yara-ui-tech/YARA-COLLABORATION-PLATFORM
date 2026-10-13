@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../constants/assets';
 import { OfflineBanner } from './OfflineBanner';
 import { RuralDataSaverToggle } from './RuralDataSaverToggle';
+import MobileBottomNav from './public/MobileBottomNav';
 
 import { NotificationBell } from './notifications/NotificationCenter';
 
@@ -418,7 +419,7 @@ export default function Layout() {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto relative pb-16 md:pb-0">
         <OfflineBanner />
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
@@ -426,6 +427,7 @@ export default function Layout() {
           </div>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

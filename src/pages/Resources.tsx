@@ -8,6 +8,8 @@ import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { useRuralAccessibility } from '../context/RuralAccessibilityContext';
+import Breadcrumbs from '../components/Breadcrumbs';
+import { yaraV3Service } from '../services/v3/yaraV3Service';
 
 interface StudyMaterial {
   id: string;
@@ -187,7 +189,14 @@ export default function Resources() {
   }
 
   return (
-    <div className="space-y-12 pb-12">
+    <div className="space-y-6 md:space-y-8 pb-12">
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Library & Learning Resources' }
+        ]}
+      />
+
       <section className="relative overflow-hidden bg-indigo-600 rounded-[2.5rem] p-8 md:p-12 text-white shadow-xl mb-12">
         <img 
           src={ASSETS.DASHBOARD_HERO_BG} 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
   CheckCircle2, 
@@ -29,13 +29,15 @@ import {
 import { YaraAccreditedCertificateCanvas } from '../components/lms/YaraAccreditedCertificateCanvas';
 import { getPublicCertificate } from '../services/yaraLmsService';
 import { getEducatorCertificateByCodeOrEmail } from '../services/eventRegistrationService';
+import { yaraV3Service } from '../services/v3/yaraV3Service';
 import { EducatorCertificateData } from '../types/eventRegistration';
 import EducatorCertificate from '../components/events/EducatorCertificate';
 import { ASSETS } from '../constants/assets';
 
 export default function VerifyCertificate() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const certIdFromQuery = searchParams.get('id') || '';
+  const { number: certParam } = useParams<{ number?: string }>();
+  const certIdFromQuery = certParam || searchParams.get('id') || searchParams.get('cert') || '';
 
   const [inputCode, setInputCode] = useState(certIdFromQuery);
   const [certificate, setCertificate] = useState<VerifiableGreatLearningCertificate | null>(null);
@@ -65,6 +67,20 @@ export default function VerifyCertificate() {
     setEducatorCertificate(null);
 
     try {
+      // 0. Check Master v3.3 verify_certificate RPC
+      const v3Cert = await yaraV3Service.verifyCertificate(code);
+      if (v3Cert) {
+        setLegacyCertificate({
+          certificate_number: v3Cert.certificate_number || code,
+          student_name: v3Cert.recipient_name || v3Cert.profiles?.display_name || 'YARA Graduate',
+          course_title: v3Cert.course_title || v3Cert.courses?.title || 'YARA Robotics & Emerging Technology',
+          issue_date: v3Cert.issued_at || v3Cert.created_at || new Date().toISOString(),
+          is_valid: true
+        });
+        setLoading(false);
+        return;
+      }
+
       // 1. Check Unified Great Learning certificate lookup
       const foundUnified = await lookupAnyVerifiableCertificate(code);
       if (foundUnified) {

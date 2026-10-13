@@ -16,6 +16,7 @@ import EventSignupsManager from '../components/events/EventSignupsManager';
 import EventEditModal from '../components/events/EventEditModal';
 import { fetchAllEvents, saveEventItem, deleteEventItem, EventItem } from '../constants/eventsData';
 import { useAuth } from '../components/AuthContext';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 interface Event extends EventItem {}
 
@@ -117,7 +118,13 @@ export default function Events() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Events & Competitions' }
+          ]}
+        />
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-800/80 pb-6">
           <div className="space-y-2">

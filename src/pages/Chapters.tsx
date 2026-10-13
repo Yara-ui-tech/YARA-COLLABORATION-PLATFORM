@@ -15,6 +15,7 @@ import ChapterRegistrationModal from '../components/chapters/ChapterRegistration
 import ChapterAutoSuggestCard from '../components/chapters/ChapterAutoSuggestCard';
 import JoinChapterModal from '../components/chapters/JoinChapterModal';
 import ZimbabweChapterHierarchy from '../components/chapters/ZimbabweChapterHierarchy';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { cn } from '../lib/utils';
 
 export default function Chapters() {
@@ -123,8 +124,17 @@ export default function Chapters() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 py-8 md:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 md:space-y-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 md:space-y-8">
         
+        {/* Breadcrumb Navigation Trail */}
+        <Breadcrumbs
+          items={[
+            { label: 'Chapters', href: '/chapters' },
+            { label: '🇿🇼 Zimbabwe' },
+            ...(selectedProvince !== 'ALL' ? [{ label: selectedProvince }] : [])
+          ]}
+        />
+
         {/* Top Hero Banner */}
         <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white p-8 md:p-12 shadow-2xl border border-slate-800">
           <div className="relative z-10 max-w-3xl space-y-4">

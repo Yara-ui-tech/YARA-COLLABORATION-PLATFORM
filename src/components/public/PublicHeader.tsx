@@ -3,12 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Menu, X, ChevronDown, GraduationCap, Trophy, Calendar, 
   Sparkles, Layers, ShieldCheck, ArrowRight, User, BookOpen, 
-  ExternalLink, Users, Phone
+  ExternalLink, Users, Phone, Search
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { ASSETS } from '../../constants/assets';
 import { NotificationBell } from '../notifications/NotificationCenter';
 import { RuralDataSaverToggle } from '../RuralDataSaverToggle';
+import GlobalSearchModal from '../GlobalSearchModal';
 import { cn } from '../../lib/utils';
 
 export default function PublicHeader() {
@@ -16,31 +17,30 @@ export default function PublicHeader() {
   const { user, profile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProgrammesDropdownOpen, setIsProgrammesDropdownOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // Section 2: Top navigation on desktop: Home, Learn, Library, Chapters, Events & Competitions, About
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'About', path: '/about' },
+    { label: 'Learn', path: '/learning' },
+    { label: 'Library', path: '/resources' },
+    { label: 'Chapters', path: '/chapters' },
+    { label: 'Events & Competitions', path: '/events' },
     { 
-      label: 'Programmes', 
-      path: '/programs',
+      label: 'About', 
+      path: '/about',
       hasDropdown: true,
       subItems: [
-        { label: 'All Programmes Overview', path: '/programs' },
-        { label: 'Robotics Engineering', path: '/programs?track=robotics' },
-        { label: 'Artificial Intelligence & IoT', path: '/programs?track=ai-iot' },
-        { label: 'STEM Education & School Clubs', path: '/programs?track=stem' },
-        { label: 'Coding & Firmware Development', path: '/programs?track=coding' },
-        { label: 'Digital Literacy & Innovation', path: '/programs?track=digital-literacy' }
+        { label: 'About YARA', path: '/about' },
+        { label: 'Programmes & Tracks', path: '/programs' },
+        { label: 'Training & Academy', path: '/training' },
+        { label: 'Impact & Galleries', path: '/impact' },
+        { label: 'Hardware Projects', path: '/projects' },
+        { label: 'Partners & Sponsors', path: '/partners' },
+        { label: 'News & Posts', path: '/posts' },
+        { label: 'Contact Us', path: '/contact' }
       ]
     },
-    { label: 'Competitions', path: '/competitions' },
-    { label: 'Training', path: '/training' },
-    { label: 'Events', path: '/events' },
-    { label: 'Impact', path: '/impact' },
-    { label: 'Projects', path: '/projects' },
-    { label: 'Partners', path: '/partners' },
-    { label: 'News', path: '/posts' },
-    { label: 'Contact', path: '/contact' },
   ];
 
   const isActive = (path: string) => {
@@ -168,8 +168,18 @@ export default function PublicHeader() {
             })}
           </nav>
 
-          {/* Actions: Notifications + LMS Entrypoint + Join */}
-          <div className="hidden sm:flex items-center gap-3">
+          {/* Actions: Search + Notifications + LMS Entrypoint + Join */}
+          <div className="hidden sm:flex items-center gap-2.5">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-xs font-medium transition cursor-pointer"
+              title="Search courses, library and chapters (Cmd+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden lg:inline">Search...</span>
+              <kbd className="hidden lg:inline px-1.5 py-0.5 bg-slate-800 border border-slate-700 text-[9px] text-slate-400 rounded">⌘K</kbd>
+            </button>
+
             <NotificationBell />
 
             {user ? (
@@ -211,7 +221,14 @@ export default function PublicHeader() {
           </div>
 
           {/* Mobile Menu Toggle Button */}
-          <div className="flex items-center gap-2 xl:hidden">
+          <div className="flex items-center gap-1.5 xl:hidden">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+              title="Search"
+            >
+              <Search className="w-5 h-5 text-blue-400" />
+            </button>
             <NotificationBell />
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -295,6 +312,8 @@ export default function PublicHeader() {
           </div>
         </div>
       )}
+
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }

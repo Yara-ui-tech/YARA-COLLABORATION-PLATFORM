@@ -196,7 +196,12 @@ const AppContent = () => {
             <Route path="/yara-kids" element={<YaraKids />} />
             <Route path="/infants" element={<YaraKids />} />
             <Route path="/verify" element={<VerifyCertificate />} />
+            <Route path="/verify/:number" element={<VerifyCertificate />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
+            <Route path="/verify-certificate/:number" element={<VerifyCertificate />} />
+            <Route path="/library" element={<Resources />} />
+            <Route path="/learn" element={<Navigate to="/learning" replace />} />
+            <Route path="/me" element={<Navigate to="/profile" replace />} />
           </Route>
 
           {/* ========================================================= */}
