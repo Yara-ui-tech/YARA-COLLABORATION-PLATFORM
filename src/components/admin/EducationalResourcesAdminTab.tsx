@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, Upload, Search, FileText, Video, Image as ImageIcon, 
   Download, Trash2, Edit2, ExternalLink, Plus, RefreshCw, 
-  CheckCircle2, AlertCircle, Eye, Tag, Globe, Sparkles, Copy, Check
+  CheckCircle2, AlertCircle, Eye, Tag, Globe, Sparkles, Copy, Check, Play
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
-import ImageUploader from '../ImageUploader';
+import ItemCoverDisplay from '../resources/ItemCoverDisplay';
+import { CURATED_MATERIALS } from '../../pages/Resources';
 
 export interface EducationalResource {
   id: string;
@@ -83,6 +84,7 @@ export default function EducationalResourcesAdminTab() {
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -95,8 +97,30 @@ export default function EducationalResourcesAdminTab() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setResources(data || []);
+      if (error) console.warn('Study materials fetch notice:', error);
+      
+      const dbItems = (data || []) as EducationalResource[];
+      const dbIds = new Set(dbItems.map(m => m.id));
+      const curatedAsEdu = CURATED_MATERIALS.map(c => ({
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        category: c.category || 'Robotics & Embedded Systems',
+        file_url: c.file_url,
+        file_type: c.file_type as any,
+        file_size_bytes: c.file_size_bytes,
+        target_level: c.target_level || 'All Levels',
+        target_age_group: 'All Ages',
+        language: 'English',
+        is_downloadable: true,
+        is_published: true,
+        thumbnail_url: c.thumbnail_url,
+        tags: [c.file_type, 'Curated'],
+        created_at: c.created_at
+      }));
+
+      const merged = [...dbItems, ...curatedAsEdu.filter(c => !dbIds.has(c.id))];
+      setResources(merged);
     } catch (err: any) {
       console.error('Error fetching educational resources:', err);
       setFeedback({ type: 'error', text: err.message || 'Failed to load resources.' });
@@ -144,46 +168,82 @@ export default function EducationalResourcesAdminTab() {
       tags: []
     });
     setSelectedFile(null);
+    setSelectedCoverFile(null);
     setTagInput('');
     setIsModalOpen(true);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setForm(prev => ({
-        ...prev,
-        file_size_bytes: file.size,
-        file_type: file.name.endsWith('.pdf') ? 'pdf' :
-                   file.name.endsWith('.mp4') || file.name.endsWith('.webm') ? 'video' :
-                   file.name.endsWith('.jpg') || file.name.endsWith('.png') || file.name.endsWith('.webp') ? 'image' :
-                   file.name.endsWith('.pptx') ? 'presentation' :
-                   file.name.endsWith('.zip') || file.name.endsWith('.ino') ? 'code' : 'doc'
-      }));
+      setSelectedCoverFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(prev => ({ ...prev, thumbnail_url: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateCover = async (id: string, currentUrl: string = '') => {
+    const newUrl = window.prompt("Enter new Cover Image URL (Book Cover Page or Video Thumbnail):", currentUrl);
+    if (newUrl === null) return;
+    try {
+      const { error } = await supabase
+        .from('study_materials')
+        .update({ thumbnail_url: newUrl.trim() || null })
+        .eq('id', id);
+      if (error) throw error;
+      setResources(prev => prev.map(r => r.id === id ? { ...r, thumbnail_url: newUrl.trim() || undefined } : r));
+      showToast('success', 'Cover image updated successfully!');
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to update cover image.');
     }
   };
 
   const handleSaveResource = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title?.trim()) {
+    if (!form.title) {
       showToast('error', 'Resource title is mandatory.');
       return;
     }
 
     setIsSaving(true);
     let finalFileUrl = form.file_url || '';
+    let finalCoverUrl = form.thumbnail_url || '';
     let finalSizeBytes = form.file_size_bytes || 0;
 
     try {
-      // 1. If file selected, upload to Supabase Storage bucket 'materials'
+      // 1. Upload Cover Image if selected
+      if (selectedCoverFile) {
+        try {
+          const coverExt = selectedCoverFile.name.split('.').pop();
+          const coverName = `cover_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${coverExt}`;
+          const coverPath = `covers/${coverName}`;
+
+          const { error: coverErr } = await supabase.storage
+            .from('materials')
+            .upload(coverPath, selectedCoverFile, { upsert: true });
+
+          if (!coverErr) {
+            const { data: cUrlData } = supabase.storage
+              .from('materials')
+              .getPublicUrl(coverPath);
+            finalCoverUrl = cUrlData.publicUrl;
+          }
+        } catch (cErr) {
+          console.warn('Cover upload notice, continuing with URL:', cErr);
+        }
+      }
+
+      // 2. If document file selected, upload to Supabase Storage bucket 'materials'
       if (selectedFile) {
         setUploadProgress(10);
         const fileExt = selectedFile.name.split('.').pop();
         const safeName = `yara_res_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
         const filePath = `uploads/${safeName}`;
 
-        const { data: uploadRes, error: uploadErr } = await supabase.storage
+        const { error: uploadErr } = await supabase.storage
           .from('materials')
           .upload(filePath, selectedFile, {
             cacheControl: '3600',
@@ -191,7 +251,6 @@ export default function EducationalResourcesAdminTab() {
           });
 
         if (uploadErr) {
-          // If storage bucket throws, check if user provided URL fallback
           console.warn('Storage upload note:', uploadErr);
           if (!finalFileUrl) throw uploadErr;
         } else {
@@ -210,7 +269,7 @@ export default function EducationalResourcesAdminTab() {
         return;
       }
 
-      // 2. Insert into study_materials table
+      // 3. Insert into study_materials table
       const resourceRecord = {
         title: form.title,
         description: form.description || '',
@@ -223,7 +282,7 @@ export default function EducationalResourcesAdminTab() {
         language: form.language || 'English',
         is_downloadable: form.is_downloadable ?? true,
         is_published: form.is_published ?? true,
-        thumbnail_url: form.thumbnail_url || null,
+        thumbnail_url: finalCoverUrl || null,
         tags: form.tags || []
       };
 
@@ -235,7 +294,7 @@ export default function EducationalResourcesAdminTab() {
 
       if (error) throw error;
 
-      showToast('success', `Resource "${form.title}" published to Educational Library!`);
+      showToast('success', `Resource "${form.title}" published with cover image to Educational Library!`);
       setIsModalOpen(false);
       fetchResources();
     } catch (err: any) {
@@ -310,141 +369,138 @@ export default function EducationalResourcesAdminTab() {
         <div>
           <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-emerald-600" />
-            <span>Educational Resource & Media Library</span>
+            <span>Educational Resource &amp; Media Library</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Upload and manage books, PDF worksheets, schematics, presentations, videos, and code packs. Low-data size tags automatically inform rural learners.
+            Upload and manage books with cover pages, video masterclasses with thumbnails, schematics, and code packs.
           </p>
         </div>
 
         <button
           onClick={handleOpenAdd}
-          className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-600/20 transition-all shrink-0"
+          className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2 shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Upload New Resource</span>
+          <span>Upload Resource With Cover</span>
         </button>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      {/* Filters Toolbar */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              placeholder="Search by title, description, category, or tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search resources by title, topic, or keyword..."
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold focus:outline-hidden"
             />
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
-          >
-            <option value="ALL">All Categories</option>
-            {RESOURCE_CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700"
+            >
+              <option value="ALL">All File Types</option>
+              <option value="pdf">📖 Books &amp; PDF</option>
+              <option value="video">🎬 Videos</option>
+              <option value="image">🖼️ Schematics</option>
+              <option value="doc">📄 Word Docs</option>
+              <option value="code">💻 Code Packs</option>
+            </select>
 
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
-          >
-            <option value="ALL">All File Types</option>
-            <option value="pdf">PDF Documents & Books</option>
-            <option value="video">Videos & Demonstrations</option>
-            <option value="image">Circuit Images & Schematics</option>
-            <option value="presentation">Slide Decks (PPTX)</option>
-            <option value="code">Source Code (ZIP / INO)</option>
-          </select>
-
-          <select
-            value={selectedAge}
-            onChange={(e) => setSelectedAge(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
-          >
-            <option value="ALL">All Target Audiences</option>
-            {AGE_GROUPS.map(ag => (
-              <option key={ag} value={ag}>{ag}</option>
-            ))}
-          </select>
-
-          <button
-            onClick={fetchResources}
-            className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition"
-            title="Refresh"
-          >
-            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-          </button>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 max-w-[200px]"
+            >
+              <option value="ALL">All Categories</option>
+              {RESOURCE_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Resources Grid */}
+      {/* Resource Cards Grid with Full Cover Previews */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full py-16 text-center text-slate-400 font-bold">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-600" />
-            <span>Loading educational resources library...</span>
+          <div className="col-span-full py-16 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+            <span>Loading educational library items...</span>
           </div>
         ) : filteredResources.length === 0 ? (
-          <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200 p-8 space-y-3">
-            <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
-            <h4 className="font-bold text-slate-700">No Resources Found</h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              No learning materials match your active filter. Upload a new PDF book, schematic, or code pack using the button above.
+          <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-dashed border-slate-300 p-8">
+            <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <h4 className="font-bold text-slate-800 text-sm">No resources found</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              No learning materials match your active filter. Upload a new PDF book, schematic, or video using the button above.
             </p>
           </div>
         ) : (
           filteredResources.map(res => {
             const sizeStr = formatFileSize(res.file_size_bytes);
-            const isPdf = res.file_type === 'pdf';
-            const isVideo = res.file_type === 'video';
 
             return (
               <div 
                 key={res.id} 
-                className="bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
+                className="bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-xl transition-all flex flex-col justify-between overflow-hidden group"
               >
-                <div className="p-6 space-y-3">
-                  {/* Category & Low-Data Size Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-100">
-                      {res.category}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-slate-100 text-slate-700" title="Bandwidth impact">
-                      {sizeStr}
-                    </span>
-                  </div>
+                <div>
+                  {/* Dedicated Visual Cover Display (Book Cover Page or Video Thumbnail) */}
+                  <ItemCoverDisplay
+                    type={res.file_type}
+                    title={res.title}
+                    subtitle={res.description}
+                    category={res.category}
+                    imageUrl={res.thumbnail_url}
+                    fileSize={sizeStr}
+                    level={res.target_level || 'All Levels'}
+                    duration={res.file_type === 'video' ? 'HD VIDEO' : undefined}
+                    className="h-48 w-full"
+                    onPlay={() => window.open(res.file_url, '_blank')}
+                  />
 
-                  {/* Title & Description */}
-                  <div>
-                    <h3 className="font-black text-slate-900 text-base group-hover:text-emerald-700 transition line-clamp-2">
-                      {res.title}
-                    </h3>
-                    {res.description && (
-                      <p className="text-xs text-slate-500 line-clamp-2 mt-1">
-                        {res.description}
-                      </p>
-                    )}
-                  </div>
+                  <div className="p-5 space-y-3">
+                    {/* Category & Low-Data Size Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-100">
+                        {res.category}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-slate-100 text-slate-700" title="Bandwidth impact">
+                        {sizeStr}
+                      </span>
+                    </div>
 
-                  {/* Metadata Tags */}
-                  <div className="flex items-center gap-2 flex-wrap text-[10px] font-bold text-slate-500 pt-1">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
-                      {res.target_level || 'All Levels'}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
-                      {res.language || 'English'}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">
-                      {res.target_age_group || 'All Ages'}
-                    </span>
+                    {/* Title & Description */}
+                    <div>
+                      <h3 className="font-black text-slate-900 text-sm group-hover:text-emerald-700 transition line-clamp-1">
+                        {res.title}
+                      </h3>
+                      {res.description && (
+                        <p className="text-xs text-slate-500 line-clamp-2 mt-1">
+                          {res.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Metadata Tags */}
+                    <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-bold text-slate-500 pt-1">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
+                        {res.target_level || 'All Levels'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
+                        {res.language || 'English'}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">
+                        {res.target_age_group || 'All Ages'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -453,7 +509,7 @@ export default function EducationalResourcesAdminTab() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => copyLink(res.file_url, res.id)}
-                      className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition"
+                      className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition cursor-pointer"
                       title="Copy Public URL"
                     >
                       {copiedId === res.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -462,17 +518,25 @@ export default function EducationalResourcesAdminTab() {
                       href={res.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-xl text-emerald-600 hover:bg-emerald-100/60 transition flex items-center gap-1"
+                      className="p-2 rounded-xl text-emerald-600 hover:bg-emerald-100/60 transition flex items-center gap-1 cursor-pointer"
                       title="Open or Download Resource"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span className="text-[11px]">Download</span>
+                      {res.file_type === 'video' ? <Play className="w-3.5 h-3.5 fill-current" /> : <Download className="w-3.5 h-3.5" />}
+                      <span className="text-[11px]">{res.file_type === 'video' ? 'Watch' : 'Download'}</span>
                     </a>
+                    <button
+                      onClick={() => handleUpdateCover(res.id, res.thumbnail_url)}
+                      className="p-2 rounded-xl text-indigo-600 hover:bg-indigo-50 transition cursor-pointer flex items-center gap-1 text-[11px]"
+                      title="Update or change cover image"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Cover</span>
+                    </button>
                   </div>
 
                   <button
                     onClick={() => handleDeleteResource(res.id, res.title)}
-                    className="p-2 rounded-xl text-red-500 hover:bg-red-50 transition"
+                    className="p-2 rounded-xl text-red-500 hover:bg-red-50 transition cursor-pointer"
                     title="Remove Resource"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -484,28 +548,44 @@ export default function EducationalResourcesAdminTab() {
         )}
       </div>
 
-      {/* Upload Modal */}
+      {/* Upload Modal with Live Cover Preview */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-xl bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-black text-slate-900 text-base">Upload Educational Learning Material</h3>
-                <p className="text-xs text-slate-500">Provide document file, target curriculum category, and age group.</p>
+                <p className="text-xs text-slate-500">Provide document file, cover image, and curriculum category.</p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleSaveResource} className="space-y-4 text-xs">
+              {/* Live Cover Preview Box in Modal */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Live Cover Preview ({form.file_type === 'video' ? 'Video Cover' : 'Book Cover Page'})
+                </label>
+                <ItemCoverDisplay
+                  type={form.file_type || 'pdf'}
+                  title={form.title || 'Resource Title Preview'}
+                  subtitle={form.description || 'Description preview...'}
+                  category={form.category}
+                  imageUrl={form.thumbnail_url}
+                  level={form.target_level}
+                  className="h-40 w-full rounded-xl"
+                />
+              </div>
+
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Resource Title *</label>
                 <input
@@ -580,13 +660,41 @@ export default function EducationalResourcesAdminTab() {
                     onChange={(e) => setForm({ ...form, file_type: e.target.value as any })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold"
                   >
-                    <option value="pdf">PDF Document / E-Book</option>
-                    <option value="video">Video Demonstration</option>
-                    <option value="image">Circuit Image / Schematic</option>
-                    <option value="presentation">Slide Deck Presentation</option>
-                    <option value="code">Source Code Archive (ZIP)</option>
-                    <option value="doc">Word / Text Document</option>
+                    <option value="pdf">📖 PDF Document / E-Book</option>
+                    <option value="video">🎬 Video Demonstration</option>
+                    <option value="image">⚡ Circuit Image / Schematic</option>
+                    <option value="presentation">📊 Slide Deck Presentation</option>
+                    <option value="code">💻 Source Code Archive (ZIP)</option>
+                    <option value="doc">📄 Word / Text Document</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Cover Image / Thumbnail Upload */}
+              <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-2">
+                <label className="block font-bold text-indigo-950">
+                  🖼️ Cover Image / Thumbnail (Book Cover Page or Video Banner)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="w-full px-3 py-2 rounded-xl border border-dashed border-indigo-300 bg-white flex items-center justify-center cursor-pointer hover:bg-indigo-50 transition group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverFileChange}
+                      className="hidden"
+                    />
+                    <ImageIcon className="w-3.5 h-3.5 text-indigo-500 mr-1.5" />
+                    <span className="text-[11px] font-bold text-indigo-700 truncate max-w-[130px]">
+                      {selectedCoverFile ? selectedCoverFile.name : 'Upload Cover Image'}
+                    </span>
+                  </label>
+                  <input
+                    type="url"
+                    value={form.thumbnail_url || ''}
+                    onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
+                    placeholder="Or Cover Image URL"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 text-xs"
+                  />
                 </div>
               </div>
 
@@ -597,7 +705,7 @@ export default function EducationalResourcesAdminTab() {
                 </label>
                 <input
                   type="file"
-                  onChange={handleFileChange}
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                   className="w-full text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
                 />
                 {selectedFile && (
@@ -621,7 +729,7 @@ export default function EducationalResourcesAdminTab() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Description & Learning Outcomes</label>
+                <label className="block font-bold text-slate-700 mb-1">Description &amp; Learning Outcomes</label>
                 <textarea
                   rows={3}
                   value={form.description}
@@ -635,17 +743,17 @@ export default function EducationalResourcesAdminTab() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+                  className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
                 >
                   {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Save & Publish to Library</span>
+                  <span>Save &amp; Publish with Cover</span>
                 </button>
               </div>
             </form>

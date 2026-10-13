@@ -4725,3 +4725,63 @@ INSERT INTO public.national_executive_council (
   ('National Executive Secretariat', 'inforyaraorg@gmail.com', 'National Treasurer / Director of Finance', 'Finance, Treasury & Resource Mobilization')
 ON CONFLICT DO NOTHING;
 
+-- ============================================================================
+-- SECTION 38: LEARNING RESOURCES, BOOKS & VIDEOS COVER IMAGE SYSTEM
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.study_materials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mentor_id TEXT,
+  mentor_name TEXT DEFAULT 'YARA Mentor',
+  title TEXT NOT NULL,
+  description TEXT,
+  file_url TEXT NOT NULL,
+  file_type TEXT DEFAULT 'pdf',
+  category TEXT DEFAULT 'book',
+  target_level TEXT DEFAULT 'All Levels',
+  target_age_group TEXT DEFAULT 'All Ages',
+  language TEXT DEFAULT 'English',
+  file_size_bytes BIGINT DEFAULT 0,
+  thumbnail_url TEXT,
+  cover_image_url TEXT,
+  tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+  is_downloadable BOOLEAN DEFAULT TRUE,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ensure thumbnail_url and cover_image_url columns exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='study_materials' AND column_name='thumbnail_url') THEN
+    ALTER TABLE public.study_materials ADD COLUMN thumbnail_url TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='study_materials' AND column_name='cover_image_url') THEN
+    ALTER TABLE public.study_materials ADD COLUMN cover_image_url TEXT;
+  END IF;
+END $$;
+
+-- Enable Row Level Security
+ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to all study materials
+DROP POLICY IF EXISTS "Public can view study materials" ON public.study_materials;
+CREATE POLICY "Public can view study materials" ON public.study_materials
+  FOR SELECT USING (true);
+
+-- Allow authenticated mentors/admins to insert study materials
+DROP POLICY IF EXISTS "Authenticated users can insert study materials" ON public.study_materials;
+CREATE POLICY "Authenticated users can insert study materials" ON public.study_materials
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Allow authenticated users to update their materials or admins
+DROP POLICY IF EXISTS "Mentors and admins can update study materials" ON public.study_materials;
+CREATE POLICY "Mentors and admins can update study materials" ON public.study_materials
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+-- Allow authenticated users to delete their materials or admins
+DROP POLICY IF EXISTS "Mentors and admins can delete study materials" ON public.study_materials;
+CREATE POLICY "Mentors and admins can delete study materials" ON public.study_materials
+  FOR DELETE USING (auth.role() = 'authenticated');
+
+

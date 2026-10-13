@@ -21,6 +21,7 @@ import { CurriculumSession } from '../../constants/curriculum';
 import { SessionQuestion, SessionAssignment, SessionProject } from '../../types/curriculum';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../AuthContext';
+import ItemCoverDisplay from '../resources/ItemCoverDisplay';
 
 interface SessionModalProps {
   session: CurriculumSession | null;
@@ -408,10 +409,15 @@ export default function SessionModal({ session, isOpen, onClose, onSessionUpdate
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-200">
-                  <Video className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-slate-700">No video attached yet</p>
-                  <p className="text-xs text-slate-400">The instructor will upload live session recordings here.</p>
+                <div className="rounded-2xl overflow-hidden border border-slate-200">
+                  <ItemCoverDisplay
+                    type="video"
+                    title={session.topic}
+                    subtitle="Official video masterclass & lab demonstration. Tap to launch or follow the syllabus below."
+                    duration="Micro-Lesson"
+                    level={`Level ${session.level}`}
+                    className="h-56 w-full"
+                  />
                 </div>
               )}
 
@@ -430,20 +436,31 @@ export default function SessionModal({ session, isOpen, onClose, onSessionUpdate
                         href={res.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-4 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all flex items-center justify-between group"
+                        className="p-3 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all flex items-center justify-between gap-3 group"
                       >
-                        <div className="space-y-1 pr-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-bold text-[10px] rounded uppercase">
-                              {res.type}
-                            </span>
-                            <h5 className="font-bold text-sm text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {res.title}
-                            </h5>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-14 h-14 shrink-0 rounded-xl overflow-hidden shadow-xs border border-slate-200">
+                            <ItemCoverDisplay
+                              type={res.type}
+                              title={res.title}
+                              subtitle={res.description}
+                              showBadge={false}
+                              className="w-full h-full"
+                            />
                           </div>
-                          {res.description && (
-                            <p className="text-xs text-slate-500">{res.description}</p>
-                          )}
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center space-x-1.5">
+                              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-bold text-[9px] rounded uppercase">
+                                {res.type}
+                              </span>
+                              <h5 className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                                {res.title}
+                              </h5>
+                            </div>
+                            {res.description && (
+                              <p className="text-[11px] text-slate-500 line-clamp-1">{res.description}</p>
+                            )}
+                          </div>
                         </div>
                         <div className="w-8 h-8 rounded-xl bg-white group-hover:bg-indigo-600 group-hover:text-white text-slate-400 flex items-center justify-center shrink-0 border border-slate-200 transition-all">
                           <ExternalLink className="w-4 h-4" />

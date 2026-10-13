@@ -15,6 +15,7 @@ export interface CustomDocument {
   type: string; 
   category: string; 
   fileUrl: string; 
+  imageUrl?: string;
 }
 
 const KITS_KEY = 'yara_custom_hardware_kits';

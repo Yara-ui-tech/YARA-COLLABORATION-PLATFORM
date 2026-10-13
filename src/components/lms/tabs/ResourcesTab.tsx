@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { YARA_HARDWARE_KITS } from '../../../constants/yaraLmsCatalog';
 import { useAuth } from '../../AuthContext';
+import ItemCoverDisplay from '../../resources/ItemCoverDisplay';
 import { 
   CustomHardwareKit, 
   CustomDocument, 
@@ -56,17 +57,66 @@ export const ResourcesTab: React.FC = () => {
   // Form states - Doc
   const [docTitle, setDocTitle] = useState('');
   const [docDesc, setDocDesc] = useState('');
-  const [docType, setDocType] = useState('PDF Guide');
+  const [docType, setDocType] = useState('PDF Guide • 2.0 MB');
   const [docCategory, setDocCategory] = useState('');
   const [docFile, setDocFile] = useState('');
+  const [docCoverImage, setDocCoverImage] = useState('');
 
   const staticDocs = [
-    { id: 'static_1', title: 'ESP32 & Arduino Pinout & Power Rail Cheat Sheet', desc: 'High-resolution PDF detailing GPIO pins, ADC channels, PWM timers, and I2C/SPI buses.', type: 'PDF Guide • 2.4 MB', category: 'Hardware', fileUrl: '' },
-    { id: 'static_2', title: "Resistor Color Codes, Ohm's Law & Breadboard Handbook", desc: 'Visual chart for 4-band/5-band resistors, breadboard internal tie-points, and multimeter modes.', type: 'PDF Guide • 1.8 MB', category: 'Electronics', fileUrl: '' },
-    { id: 'static_3', title: 'L298N & Dual H-Bridge Motor Driver Wiring Blueprint', desc: 'Schematic illustrating 2WD motor drive, enable jumpers, and common ground tie-ins.', type: 'Schematic • 1.2 MB', category: 'Robotics', fileUrl: '' },
-    { id: 'static_4', title: '5 Whys Problem Discovery & Root Cause Worksheet', desc: 'Structured canvas template for field interviews, root-cause drilling, and How-Might-We framing.', type: 'Canvas Worksheet • 850 KB', category: 'Design Thinking', fileUrl: '' },
-    { id: 'static_5', title: '21-Point Technical Capstone Engineering Specification Template', desc: 'Comprehensive document template covering functional specs, BOM, schematics, and test logs.', type: 'Docx Template • 1.1 MB', category: 'Innovation', fileUrl: '' },
-    { id: 'static_6', title: '90-Second Innovation Pitch Deck & Demo Video Blueprint', desc: 'Time-stamped pitch script structure: Hook, Problem, Solution, Demo, Impact, and Vision.', type: 'Slide Deck • 3.5 MB', category: 'Pitch', fileUrl: '' }
+    { 
+      id: 'static_1', 
+      title: 'ESP32 & Arduino Pinout & Power Rail Cheat Sheet', 
+      desc: 'High-resolution PDF detailing GPIO pins, ADC channels, PWM timers, and I2C/SPI buses.', 
+      type: 'PDF Guide • 2.4 MB', 
+      category: 'Hardware', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800'
+    },
+    { 
+      id: 'static_2', 
+      title: "Resistor Color Codes, Ohm's Law & Breadboard Handbook", 
+      desc: 'Visual chart for 4-band/5-band resistors, breadboard internal tie-points, and multimeter modes.', 
+      type: 'PDF Guide • 1.8 MB', 
+      category: 'Electronics', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&q=80&w=800'
+    },
+    { 
+      id: 'static_3', 
+      title: 'L298N & Dual H-Bridge Motor Driver Wiring Blueprint', 
+      desc: 'Schematic illustrating 2WD motor drive, enable jumpers, and common ground tie-ins.', 
+      type: 'Schematic • 1.2 MB', 
+      category: 'Robotics', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=800'
+    },
+    { 
+      id: 'static_4', 
+      title: '5 Whys Problem Discovery & Root Cause Worksheet', 
+      desc: 'Structured canvas template for field interviews, root-cause drilling, and How-Might-We framing.', 
+      type: 'Canvas Worksheet • 850 KB', 
+      category: 'Design Thinking', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800'
+    },
+    { 
+      id: 'static_5', 
+      title: '21-Point Technical Capstone Engineering Specification Template', 
+      desc: 'Comprehensive document template covering functional specs, BOM, schematics, and test logs.', 
+      type: 'Docx Template • 1.1 MB', 
+      category: 'Innovation', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=800'
+    },
+    { 
+      id: 'static_6', 
+      title: '90-Second Innovation Pitch Deck & Demo Video Blueprint', 
+      desc: 'Time-stamped pitch script structure: Hook, Problem, Solution, Demo, Impact, and Vision.', 
+      type: 'Slide Deck • 3.5 MB', 
+      category: 'Pitch', 
+      fileUrl: '',
+      imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800'
+    }
   ];
 
   useEffect(() => {
@@ -121,7 +171,8 @@ export const ResourcesTab: React.FC = () => {
       desc: docDesc,
       type: docType,
       category: docCategory,
-      fileUrl: docFile
+      fileUrl: docFile,
+      imageUrl: docCoverImage
     });
     refreshData();
     setShowAddDocModal(false);
@@ -133,7 +184,7 @@ export const ResourcesTab: React.FC = () => {
   };
 
   const resetDocForm = () => {
-    setDocTitle(''); setDocDesc(''); setDocType('PDF Guide'); setDocCategory(''); setDocFile('');
+    setDocTitle(''); setDocDesc(''); setDocType('PDF Guide • 2.0 MB'); setDocCategory(''); setDocFile(''); setDocCoverImage('');
   };
 
   const handleDownload = (doc: any) => {
@@ -319,29 +370,45 @@ export const ResourcesTab: React.FC = () => {
             return (
               <div
                 key={doc.id}
-                className="p-4 rounded-2xl border border-slate-200 hover:border-slate-300 bg-slate-50/50 flex items-start justify-between gap-4 transition relative group"
+                className="p-4 rounded-3xl border border-slate-200 hover:border-indigo-300 bg-white flex flex-col sm:flex-row items-start justify-between gap-4 transition shadow-xs hover:shadow-lg relative group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-white border border-slate-200 text-slate-700 shrink-0">
-                    <FileText className="w-5 h-5 text-indigo-600" />
+                <div className="flex items-start gap-3.5 flex-1 w-full">
+                  <div className="w-24 sm:w-28 shrink-0 rounded-2xl overflow-hidden shadow-xs border border-slate-100">
+                    <ItemCoverDisplay
+                      type={doc.category === 'Robotics' || doc.category === 'Hardware' ? 'schematic' : 'book'}
+                      title={doc.title}
+                      subtitle={doc.desc}
+                      category={doc.category}
+                      imageUrl={(doc as any).imageUrl}
+                      fileSize={doc.type}
+                      showBadge={false}
+                      className="h-28 w-full"
+                    />
                   </div>
-                  <div>
-                    <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 text-[9px] font-black uppercase tracking-wider">
+                  <div className="flex-1 min-w-0">
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-black uppercase tracking-wider border border-indigo-100">
                       {doc.category}
                     </span>
-                    <h3 className="text-xs font-bold text-slate-900 mt-1.5">{doc.title}</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{doc.desc}</p>
-                    <div className="text-[10px] text-slate-400 font-medium mt-1.5">{doc.type}</div>
+                    <h3 className="text-xs font-black text-slate-900 mt-1.5 group-hover:text-indigo-600 transition-colors leading-snug line-clamp-2">
+                      {doc.title}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed font-medium">
+                      {doc.desc}
+                    </p>
+                    <div className="text-[10px] text-slate-400 font-mono font-bold mt-2">
+                      {doc.type}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex sm:flex-col gap-2 shrink-0 self-end sm:self-center">
                   <button
                     onClick={() => handleDownload(doc)}
-                    className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition"
+                    className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition cursor-pointer flex items-center gap-1"
                     title="Download Resource"
                   >
                     <Download className="w-4 h-4" />
+                    <span className="sm:hidden text-xs font-bold">Download</span>
                   </button>
                   {effectiveAdminMode && isCustom && (
                     <button
@@ -349,7 +416,7 @@ export const ResourcesTab: React.FC = () => {
                         deleteCustomDocument(doc.id);
                         refreshData();
                       }}
-                      className="p-2.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition"
+                      className="p-2.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition cursor-pointer"
                       title="Delete Resource"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -461,6 +528,44 @@ export const ResourcesTab: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Document Type / Size</label>
                 <input type="text" value={docType} onChange={e => setDocType(e.target.value)} className="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. PDF • 1.5 MB" />
+              </div>
+
+              {/* Cover Image Input with Live Preview */}
+              <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-2">
+                <label className="block text-xs font-bold text-indigo-950">
+                  🖼️ Cover Image / Poster (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={docCoverImage}
+                    onChange={e => setDocCoverImage(e.target.value)}
+                    placeholder="Cover Image URL or upload below"
+                    className="flex-1 p-2 text-xs bg-white border border-slate-200 rounded-xl outline-none"
+                  />
+                  <label className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0">
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageUpload(e, setDocCoverImage)}
+                    />
+                  </label>
+                </div>
+                {docTitle && (
+                  <div className="mt-2">
+                    <ItemCoverDisplay
+                      type={docCategory === 'Robotics' || docCategory === 'Hardware' ? 'schematic' : 'book'}
+                      title={docTitle}
+                      subtitle={docDesc}
+                      category={docCategory || 'Catalogue'}
+                      imageUrl={docCoverImage}
+                      showBadge={false}
+                      className="h-24 w-full rounded-xl"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
