@@ -4468,3 +4468,260 @@ CALL public.safely_apply_policy('Admins manage impact ledger', 'impact_ledger', 
 
 CALL public.safely_apply_policy('Users view own financial records', 'financial_records', 'CREATE POLICY "Users view own financial records" ON public.financial_records FOR SELECT USING (auth.uid() = user_id OR public.is_admin())');
 CALL public.safely_apply_policy('Admins manage financial records', 'financial_records', 'CREATE POLICY "Admins manage financial records" ON public.financial_records FOR ALL USING (public.is_admin())');
+
+-- ==============================================================================
+-- 37. NATIONAL EXECUTIVE GOVERNANCE, FEEDBACK/REVIEWS & UNIVERSAL PAYMENTS
+-- ==============================================================================
+
+-- 37.1 National Executive Governance Columns in Profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_national_executive BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS national_executive_role TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS national_executive_appointed_at TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_position TEXT DEFAULT 'Member';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_name TEXT;
+
+-- 37.2 National Executive Council Register
+CREATE TABLE IF NOT EXISTS public.national_executive_council (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  role_title TEXT NOT NULL,
+  portfolio TEXT NOT NULL DEFAULT 'Apex National Governance',
+  is_active BOOLEAN DEFAULT TRUE,
+  appointed_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_nat_exec_user ON public.national_executive_council(user_id);
+CREATE INDEX IF NOT EXISTS idx_nat_exec_role ON public.national_executive_council(role_title);
+
+ALTER TABLE public.national_executive_council ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'National Executive Council viewable by all', 
+  'national_executive_council', 
+  'CREATE POLICY "National Executive Council viewable by all" ON public.national_executive_council FOR SELECT USING (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage National Executive Council', 
+  'national_executive_council', 
+  'CREATE POLICY "Admins manage National Executive Council" ON public.national_executive_council FOR ALL USING (public.is_admin())'
+);
+
+-- 37.3 Stored Procedure to Assign National Executive Role Atomically
+CREATE OR REPLACE FUNCTION public.assign_national_executive_role(
+  target_user_id UUID,
+  role_title TEXT,
+  grant_admin BOOLEAN DEFAULT FALSE,
+  base_chapter_name TEXT DEFAULT 'National Executive Secretariat'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_profile RECORD;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied. Only YARA administrators can assign National Executive roles.';
+  END IF;
+
+  UPDATE public.profiles
+  SET 
+    chapter_position = role_title,
+    national_executive_role = role_title,
+    is_national_executive = TRUE,
+    national_executive_appointed_at = now(),
+    chapter_name = COALESCE(chapter_name, base_chapter_name),
+    role = CASE WHEN grant_admin THEN 'admin' ELSE role END,
+    updated_at = now()
+  WHERE id = target_user_id
+  RETURNING * INTO v_profile;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Member profile not found with ID %', target_user_id;
+  END IF;
+
+  -- Upsert into national_executive_council register
+  INSERT INTO public.national_executive_council (
+    user_id,
+    full_name,
+    email,
+    phone,
+    role_title,
+    portfolio,
+    appointed_at
+  ) VALUES (
+    v_profile.id,
+    v_profile.display_name,
+    v_profile.email,
+    COALESCE(v_profile.whatsapp_number, v_profile.contact_phone, v_profile.phone),
+    role_title,
+    'Apex National Governance',
+    now()
+  );
+
+  RETURN jsonb_build_object(
+    'success', TRUE,
+    'user_id', v_profile.id,
+    'role_title', role_title,
+    'display_name', v_profile.display_name
+  );
+END;
+$$;
+
+-- 37.4 Feedback & Bug Reports Schema Alignment
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS message TEXT;
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 5;
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS user_email TEXT;
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
+ALTER TABLE public.feedback ALTER COLUMN message DROP NOT NULL;
+
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Public view feedback', 
+  'feedback', 
+  'CREATE POLICY "Public view feedback" ON public.feedback FOR SELECT USING (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Anyone submit feedback', 
+  'feedback', 
+  'CREATE POLICY "Anyone submit feedback" ON public.feedback FOR INSERT WITH CHECK (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage feedback', 
+  'feedback', 
+  'CREATE POLICY "Admins manage feedback" ON public.feedback FOR ALL USING (public.is_admin())'
+);
+
+-- 37.5 Mentor Reviews & Educator Ratings Schema Alignment
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS mentor_name TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS learner_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS learner_name TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS review_text TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General Mentorship';
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.mentor_reviews ALTER COLUMN student_id DROP NOT NULL;
+ALTER TABLE public.mentor_reviews ALTER COLUMN mentor_id DROP NOT NULL;
+
+ALTER TABLE public.mentor_reviews ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Public view approved mentor reviews', 
+  'mentor_reviews', 
+  'CREATE POLICY "Public view approved mentor reviews" ON public.mentor_reviews FOR SELECT USING (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Anyone submit mentor review', 
+  'mentor_reviews', 
+  'CREATE POLICY "Anyone submit mentor review" ON public.mentor_reviews FOR INSERT WITH CHECK (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Mentors view own reviews', 
+  'mentor_reviews', 
+  'CREATE POLICY "Mentors view own reviews" ON public.mentor_reviews FOR SELECT USING (auth.uid() = mentor_id OR public.is_admin())'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage mentor reviews', 
+  'mentor_reviews', 
+  'CREATE POLICY "Admins manage mentor reviews" ON public.mentor_reviews FOR ALL USING (public.is_admin())'
+);
+
+-- 37.6 Testimonials Schema Alignment
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS author_role TEXT DEFAULT 'Robotics Innovator';
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 5;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general';
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.testimonials ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.testimonials ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Public view approved testimonials', 
+  'testimonials', 
+  'CREATE POLICY "Public view approved testimonials" ON public.testimonials FOR SELECT USING (is_approved = true OR public.is_admin())'
+);
+
+CALL public.safely_apply_policy(
+  'Anyone submit testimonials', 
+  'testimonials', 
+  'CREATE POLICY "Anyone submit testimonials" ON public.testimonials FOR INSERT WITH CHECK (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage testimonials', 
+  'testimonials', 
+  'CREATE POLICY "Admins manage testimonials" ON public.testimonials FOR ALL USING (public.is_admin())'
+);
+
+-- 37.7 Universal Payment Transactions & Receipts Ledger
+CREATE TABLE IF NOT EXISTS public.payment_transactions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  payer_name TEXT NOT NULL,
+  payer_email TEXT NOT NULL,
+  payer_phone TEXT,
+  amount NUMERIC(10,2) NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  purpose TEXT NOT NULL, -- 'subscription', 'kit', 'event', 'donation'
+  payment_method TEXT NOT NULL, -- 'ecocash', 'innbucks', 'card', 'zipit', 'bank'
+  reference_number TEXT UNIQUE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
+  notes TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pay_tx_user ON public.payment_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_pay_tx_ref ON public.payment_transactions(reference_number);
+CREATE INDEX IF NOT EXISTS idx_pay_tx_purpose ON public.payment_transactions(purpose);
+
+ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Users view own payments', 
+  'payment_transactions', 
+  'CREATE POLICY "Users view own payments" ON public.payment_transactions FOR SELECT USING (auth.uid() = user_id OR public.is_admin())'
+);
+
+CALL public.safely_apply_policy(
+  'Anyone create payments', 
+  'payment_transactions', 
+  'CREATE POLICY "Anyone create payments" ON public.payment_transactions FOR INSERT WITH CHECK (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage payments', 
+  'payment_transactions', 
+  'CREATE POLICY "Admins manage payments" ON public.payment_transactions FOR ALL USING (public.is_admin())'
+);
+
+-- Prime initial National Executive governing portfolios
+INSERT INTO public.national_executive_council (
+  full_name,
+  email,
+  role_title,
+  portfolio
+) VALUES 
+  ('National Executive Secretariat', 'inforyaraorg@gmail.com', 'National Executive Director / President', 'Supreme Executive Directorate'),
+  ('National Executive Secretariat', 'inforyaraorg@gmail.com', 'National Secretary General', 'Executive Secretariat & Operations'),
+  ('National Executive Secretariat', 'inforyaraorg@gmail.com', 'National Technical & Robotics Director', 'Robotics Hardware & AI Curriculum'),
+  ('National Executive Secretariat', 'inforyaraorg@gmail.com', 'National Treasurer / Director of Finance', 'Finance, Treasury & Resource Mobilization')
+ON CONFLICT DO NOTHING;
+
