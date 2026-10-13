@@ -333,6 +333,222 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
+          LMS SHOWCASE: LEARNING MANAGEMENT SYSTEM (Directly Inside the Web Page)
+         ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
+              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+              <span>YARA Learning Platform (LMS) • Rural-First</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Curriculum Pathways &amp; Micro-Modules
+            </h2>
+            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Step-by-step journeys from your very first breadboard circuit to autonomous maze mapping, ROS robotics, and accredited certification. Everything works on slow connections with Data Saver mode.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/learn"
+              className="px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-blue-900/40 flex items-center gap-2 transition hover:scale-105 shrink-0"
+            >
+              <span>Enter Full LMS Portal</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* 4 Progressive Learning Tiers (Horizontal Journey) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Tier 1: Absolute Beginner */}
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-sky-500/40 transition-all shadow-xl flex flex-col justify-between space-y-4 group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-black uppercase tracking-wider">
+                  Stage 1 • Start Here
+                </span>
+                <span className="text-[10px] font-mono font-bold text-slate-400">S00 – S07</span>
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-sky-400 transition-colors">
+                Tier 1: Curious Beginner
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Foundations of robotics, Ohm’s law, breadboarding, safety rules, visual block coding, and practical lab P01.
+              </p>
+              <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800/80 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Lessons:</span>
+                  <span className="font-bold text-white">8 Micro-Modules</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Data Size:</span>
+                  <span className="font-bold text-emerald-400">~3.2 MB (Low Data)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Kit Needed:</span>
+                  <span className="font-bold text-amber-400">No hardware required</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/learn?tab=courses&tier=1"
+              className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-sky-400 group-hover:text-sky-300 transition"
+            >
+              <span>Explore Stage 1</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Tier 2: Intermediate */}
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all shadow-xl flex flex-col justify-between space-y-4 group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-800 text-[10px] font-black uppercase tracking-wider">
+                  Stage 2 • Level Up
+                </span>
+                <span className="text-[10px] font-mono font-bold text-slate-400">S08 – S19</span>
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors">
+                Tier 2: Intermediate Maker
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Embedded C++, Arduino &amp; ESP32 architecture, ultrasonic sensors, H-bridge DC motors &amp; chassis geometry.
+              </p>
+              <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800/80 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Lessons:</span>
+                  <span className="font-bold text-white">12 Sessions</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Labs:</span>
+                  <span className="font-bold text-white">Breadboard &amp; Simulation</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Quizzes:</span>
+                  <span className="font-bold text-emerald-400">Timed Knowledge Checks</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/learn?tab=courses&tier=2"
+              className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-indigo-400 group-hover:text-indigo-300 transition"
+            >
+              <span>Explore Stage 2</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Tier 3: Advanced */}
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-purple-500/40 transition-all shadow-xl flex flex-col justify-between space-y-4 group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-950 text-purple-400 border border-purple-800 text-[10px] font-black uppercase tracking-wider">
+                  Stage 3 • Advanced
+                </span>
+                <span className="text-[10px] font-mono font-bold text-slate-400">S20 – S27</span>
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-purple-400 transition-colors">
+                Tier 3: Autonomous Systems
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Autonomous maze rovers, PID line tracking, IoT cloud telemetry, environmental sensing &amp; Edge AI TinyML.
+              </p>
+              <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800/80 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Lessons:</span>
+                  <span className="font-bold text-white">8 High-Order Modules</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Focus:</span>
+                  <span className="font-bold text-purple-300">Closed-Loop PID Control</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Offline Pack:</span>
+                  <span className="font-bold text-emerald-400">Available to Download</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/learn?tab=courses&tier=3"
+              className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-purple-400 group-hover:text-purple-300 transition"
+            >
+              <span>Explore Stage 3</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Tier 4: Masterclass */}
+          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 transition-all shadow-xl flex flex-col justify-between space-y-4 group">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-black uppercase tracking-wider">
+                  Stage 4 • Masterclass
+                </span>
+                <span className="text-[10px] font-mono font-bold text-slate-400">S28 – S36</span>
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">
+                Tier 4: Capstone &amp; Deployment
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Applied research, 5 Whys engineering defense, 21-point technical writeup, accredited certificates &amp; championship entry.
+              </p>
+              <div className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800/80 text-[11px] text-slate-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Project:</span>
+                  <span className="font-bold text-white">Full Physical Prototype</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Outcome:</span>
+                  <span className="font-bold text-amber-300">Verified Certificate</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Exam:</span>
+                  <span className="font-bold text-emerald-400">Level Master Exam</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to="/learn?tab=courses&tier=4"
+              className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-amber-400 group-hover:text-amber-300 transition"
+            >
+              <span>Explore Stage 4</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+
+        {/* 8-Component Module Architecture Callout Banner */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-800/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="space-y-2 max-w-2xl">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 bg-cyan-400/10 px-2.5 py-0.5 rounded-full border border-cyan-400/20">
+              Complete Learning Guarantee
+            </span>
+            <h4 className="text-xl sm:text-2xl font-black text-white">
+              Every Module Contains All 8 Educational Components
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              1. Theory Lessons • 2. Low-Data Video • 3. Circuit Schematics &amp; PDFs • 4. Knowledge Check Quiz • 5. Guided Practical Lab • 6. Hands-On Assignment • 7. Bench Debugging • 8. "Need Help?" Mentor Support.
+            </p>
+          </div>
+
+          <Link
+            to="/learn?tab=courses"
+            className="px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-cyan-400/20 flex items-center gap-2 transition hover:scale-105 shrink-0"
+          >
+            <span>Launch Interactive Lessons</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* =========================================================================
           5. PROGRAMMES SHOWCASE
          ========================================================================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">

@@ -28,7 +28,8 @@ import {
 import { COMPLETE_YARA_SESSIONS, getSessionById } from '../constants/yaraLmsCatalog';
 import { checkAndVerifyUserSubscription } from '../services/partnershipDonationService';
 import { usePortal } from '../context/PortalContext';
-import { Globe, ArrowRight, Layers, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Globe, ArrowRight, Layers, GraduationCap, ShieldCheck, Sparkles, Info } from 'lucide-react';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function YaraLearning() {
   const { user, profile } = useAuth();
@@ -220,50 +221,64 @@ export default function YaraLearning() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Portal Mode Switcher Header Banner */}
-      <div className="bg-slate-950 border-b border-slate-800 text-white px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Active Portal: YARA Learning Academy</span>
+      {/* Integrated LMS Web Page Header */}
+      <div className="bg-slate-950 text-white px-4 sm:px-6 py-4 border-b border-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <Breadcrumbs
+              items={[
+                { label: 'Home', href: '/' },
+                { label: 'Learning Platform (LMS)', href: '/learn' },
+                ...(activeTab !== 'dashboard' ? [{ label: activeTab.replace('-', ' ').toUpperCase() }] : [])
+              ]}
+            />
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
+                YARA LMS • Online Robotics Academy
+              </span>
+              <span className="text-xs text-slate-400">
+                42 Micro-Modules • Hands-On Labs • Rural Data-Saver Mode
+              </span>
+            </div>
           </div>
-          <span className="hidden md:inline text-xs text-slate-400">
-            Professional Academic Platform • 42 Robotics & Embedded Systems Sessions
-          </span>
-        </div>
 
-        <div className="flex items-center space-x-2">
-          {isAdmin && (
-            <Link
-              to="/admin?tab=learning_academy"
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all"
-              title="Open Learners & Approvals in Admin Portal"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-              <span>Learners &amp; Approvals</span>
-            </Link>
-          )}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {!user ? (
+              <Link
+                to="/auth"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-md transition flex items-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Sign In to Track Progress</span>
+              </Link>
+            ) : (
+              <span className="text-xs text-slate-300 font-medium bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
+                Logged in as <strong className="text-white">{studentName}</strong>
+              </span>
+            )}
 
-          <button
-            onClick={() => {
-              setPortalMode('webpage');
-              navigate('/');
-            }}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/40 text-xs font-semibold transition-all"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Switch to YARA Webpage</span>
-          </button>
-
-          <button
-            onClick={openPortalSelector}
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs transition-colors"
-            title="Open Gateway Selector"
-          >
-            <Layers className="w-4 h-4 text-emerald-400" />
-          </button>
+            {isAdmin && (
+              <Link
+                to="/admin?tab=learning_academy"
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/40 text-xs font-bold transition-all"
+                title="Open Learners & Approvals in Admin Portal"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                <span>Admin LMS Studio</span>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
+
+      {!user && (
+        <div className="bg-blue-950/80 border-b border-blue-800/40 text-blue-200 px-4 py-2 text-xs text-center flex items-center justify-center gap-2">
+          <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+          <span>
+            <strong>Guest Mode:</strong> You can explore all courses, pathways, and theory for free. <Link to="/auth" className="underline font-bold text-white hover:text-cyan-300">Sign in or register</Link> to save your learning streak, take graded quizzes, and claim certificates.
+          </span>
+        </div>
+      )}
 
       {/* 1. Sticky Navigation Tab Bar */}
       <YaraLearningNavigation

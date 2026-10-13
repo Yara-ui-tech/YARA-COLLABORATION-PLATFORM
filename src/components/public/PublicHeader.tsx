@@ -22,8 +22,8 @@ export default function PublicHeader() {
   // Section 2: Top navigation on desktop: Home, Learn, Library, Chapters, Events & Competitions, About
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Learn', path: '/learning' },
-    { label: 'Library', path: '/resources' },
+    { label: 'Learn', path: '/learn' },
+    { label: 'Library', path: '/library' },
     { label: 'Chapters', path: '/chapters' },
     { label: 'Events & Competitions', path: '/events' },
     { 

@@ -10,7 +10,7 @@ export default function MobileBottomNav() {
 
   const navItems = [
     { label: 'Home', path: '/', icon: Home, exact: true },
-    { label: 'Learn', path: '/learning', icon: BookOpen, matchPrefix: ['/learn', '/curriculum', '/courses'] },
+    { label: 'Learn', path: '/learn', icon: BookOpen, matchPrefix: ['/learning', '/curriculum', '/courses'] },
     { label: 'Chapters', path: '/chapters', icon: Globe, matchPrefix: ['/chapters'] },
     { label: 'Events', path: '/events', icon: Calendar, matchPrefix: ['/events', '/competitions'] },
     { 
