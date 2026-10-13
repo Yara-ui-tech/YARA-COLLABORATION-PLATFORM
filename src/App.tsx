@@ -43,7 +43,6 @@ import EducatorPortal from './pages/EducatorPortal';
 import YaraLiveHub from './pages/YaraLiveHub';
 import YaraKids from './pages/YaraKids';
 import { PortalProvider } from './context/PortalContext';
-import { PortalGatewaySelector } from './components/portal/PortalGatewaySelector';
 
 import PublicLayout from './components/public/PublicLayout';
 import Training from './pages/Training';
@@ -132,7 +131,6 @@ const AppContent = () => {
   return (
     <Router>
       <PortalProvider>
-        <PortalGatewaySelector />
         <Routes>
           {/* ========================================================= */}
           {/* PUBLIC YARA WEBSITE (Freely accessible without login)      */}
@@ -200,6 +198,8 @@ const AppContent = () => {
             <Route path="/lms" element={<YaraLearning />} />
             <Route path="/academy" element={<YaraLearning />} />
             <Route path="/courses" element={<YaraLearning />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/reviews" element={<Feedback />} />
             <Route path="/me" element={<Navigate to="/profile" replace />} />
           </Route>
 

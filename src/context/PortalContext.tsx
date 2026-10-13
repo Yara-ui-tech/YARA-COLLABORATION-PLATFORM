@@ -162,7 +162,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const openPortalSelector = () => setIsSelectorOpen(true);
+  const openPortalSelector = () => {};
   const closePortalSelector = () => setIsSelectorOpen(false);
 
   return (

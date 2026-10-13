@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Trophy, GraduationCap, ShieldCheck, Mail, Phone, MapPin, 
-  ArrowRight, Heart, Globe, Cpu, Award, BookOpen
+  ArrowRight, Heart, Globe, Cpu, Award, BookOpen, MessageSquare
 } from 'lucide-react';
 import { ASSETS } from '../../constants/assets';
 
@@ -167,6 +167,12 @@ export default function PublicFooter() {
                 </Link>
               </li>
               <li>
+                <Link to="/feedback" className="text-pink-400 hover:text-pink-300 font-bold flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Submit Feedback &amp; Reviews</span>
+                </Link>
+              </li>
+              <li>
                 <Link to="/contact" className="hover:text-white transition-colors">
                   Contact YARA Directorate
                 </Link>
@@ -182,6 +188,8 @@ export default function PublicFooter() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-slate-400 font-semibold">Innovate Local, Build Global</span>
+            <span>•</span>
+            <Link to="/feedback" className="text-pink-400 hover:underline font-semibold">Feedback &amp; Reviews</Link>
             <span>•</span>
             <Link to="/verify-certificate" className="hover:text-slate-300">Registry</Link>
             <span>•</span>

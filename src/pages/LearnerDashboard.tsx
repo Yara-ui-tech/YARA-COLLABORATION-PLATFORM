@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Play, BookOpen, CheckCircle2, Clock, Trophy, Award, 
   ArrowRight, Brain, Cpu, Code, DollarSign, Bell, Star, 
-  Sparkles, ShieldCheck, FileText, Check, AlertCircle, Users, CreditCard
+  Sparkles, ShieldCheck, FileText, Check, AlertCircle, Users, CreditCard, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -232,7 +232,7 @@ export default function LearnerDashboard() {
       {/* =========================================================================
           3. LEARNING PILLARS & QUICK ACCESS
          ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Link 
           to="/learning?tab=courses" 
           className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition group"
@@ -275,6 +275,17 @@ export default function LearnerDashboard() {
           </div>
           <h4 className="font-bold text-slate-900 text-sm">YARA 2026 Arena</h4>
           <p className="text-xs text-slate-500 mt-0.5">National team qualifiers</p>
+        </Link>
+
+        <Link 
+          to="/feedback" 
+          className="p-5 bg-white rounded-2xl border border-pink-200 hover:border-pink-500 hover:shadow-md transition group bg-gradient-to-b from-white to-pink-50/30"
+        >
+          <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-pink-600 mb-3 group-hover:scale-110 transition-transform">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <h4 className="font-bold text-slate-900 text-sm">Submit Feedback</h4>
+          <p className="text-xs text-slate-500 mt-0.5">Rate mentors &amp; platform</p>
         </Link>
       </div>
 

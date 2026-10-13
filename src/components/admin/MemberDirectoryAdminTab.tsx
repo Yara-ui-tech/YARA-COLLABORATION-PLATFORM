@@ -64,19 +64,50 @@ export interface ChapterJoinRequestItem {
   submitted_at: string;
 }
 
-const LEADERSHIP_POSITIONS = [
+export const NATIONAL_EXECUTIVE_ROLES = [
+  'National Executive Director / President',
+  'Deputy National Executive Director / Vice President',
+  'National Secretary General',
+  'Deputy National Secretary General',
+  'National Treasurer / Director of Finance',
+  'National Technical & Robotics Director',
+  'National AI & IoT Innovation Director',
+  'National Director of Education & Curriculum',
+  'National PR & Communications Director',
+  'National Logistics & Events Director',
+  'National Partnerships & Resource Mobilization Director',
+  'National Provincial & Chapters Coordinator',
+  'National Youth & Gender Inclusion Officer',
+  'Senior Patron & Executive Advisor',
+  'National Executive Council Member'
+];
+
+export const CHAPTER_LEADERSHIP_ROLES = [
   'Member',
-  'President / Chairperson',
-  'Vice President',
-  'Secretary General',
-  'Vice Secretary',
-  'Treasurer / Finance Lead',
+  'Chapter Lead / President',
+  'Chapter Vice Lead',
+  'Chapter Secretary',
+  'Chapter Treasurer / Finance Lead',
   'Technical Lead / Robotics Marshal',
   'Faculty Patron / Advisor',
   'Communications & PR Officer',
   'Provincial Coordinator',
   'District Coordinator'
 ];
+
+export const LEADERSHIP_POSITIONS = [
+  ...NATIONAL_EXECUTIVE_ROLES,
+  ...CHAPTER_LEADERSHIP_ROLES
+];
+
+export const isNationalExecutive = (member?: ExtendedUserProfile | null | { chapter_position?: string }): boolean => {
+  if (!member || !member.chapter_position) return false;
+  const pos = member.chapter_position.toLowerCase();
+  return NATIONAL_EXECUTIVE_ROLES.some(r => r.toLowerCase() === pos) ||
+         pos.startsWith('national') ||
+         pos.includes('executive director') ||
+         pos.includes('secretary general');
+};
 
 export default function MemberDirectoryAdminTab() {
   const [users, setUsers] = useState<ExtendedUserProfile[]>([]);
@@ -97,10 +128,13 @@ export default function MemberDirectoryAdminTab() {
   // Multi-Selection
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
-  // Edit Member Modal
+  // Edit Member Modal & National Executive Assignment
   const [editingMember, setEditingMember] = useState<ExtendedUserProfile | null>(null);
+  const [editLeadershipTier, setEditLeadershipTier] = useState<'national_exec' | 'chapter_lead' | 'member'>('member');
   const [editChapterId, setEditChapterId] = useState('');
   const [editPosition, setEditPosition] = useState('Member');
+  const [editCustomNationalRole, setEditCustomNationalRole] = useState('');
+  const [editGrantAdminAccess, setEditGrantAdminAccess] = useState(false);
   const [editMemberId, setEditMemberId] = useState('');
   const [isSavingMember, setIsSavingMember] = useState(false);
 
@@ -259,6 +293,10 @@ export default function MemberDirectoryAdminTab() {
     return joinRequests.filter(r => r.status === 'pending').length;
   }, [joinRequests]);
 
+  const nationalExecutiveMembers = useMemo(() => {
+    return users.filter(u => isNationalExecutive(u));
+  }, [users]);
+
   // Filtered members list
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -274,7 +312,10 @@ export default function MemberDirectoryAdminTab() {
         u.whatsapp_number?.toLowerCase().includes(q);
 
       const matchChapter = selectedChapterFilter === 'ALL' || u.chapter_id === selectedChapterFilter || u.chapter_name === selectedChapterFilter;
-      const matchPosition = selectedPositionFilter === 'ALL' || (u.chapter_position || 'Member') === selectedPositionFilter;
+      const matchPosition = 
+        selectedPositionFilter === 'ALL' ? true :
+        selectedPositionFilter === 'NATIONAL_EXECUTIVE' ? isNationalExecutive(u) :
+        (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
       
       const isTrialExp = !u.registration_paid && u.trial_ends_at && new Date(u.trial_ends_at) < new Date();
@@ -285,6 +326,7 @@ export default function MemberDirectoryAdminTab() {
         selectedStatusFilter === 'suspended' ? u.is_halted :
         selectedStatusFilter === 'paid' ? isPaid :
         selectedStatusFilter === 'trial_expired' ? isTrialExp :
+        selectedStatusFilter === 'national_exec' ? isNationalExecutive(u) :
         selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
         true;
 
@@ -616,12 +658,24 @@ export default function MemberDirectoryAdminTab() {
     }
   };
 
-  // Open Edit Modal
-  const handleOpenEditModal = (member: ExtendedUserProfile) => {
+  // Open Edit Modal with National Executive options
+  const handleOpenEditModal = (member: ExtendedUserProfile, forceNationalExec = false) => {
     if (!member) return;
     setEditingMember(member);
+    const isNat = forceNationalExec || isNationalExecutive(member);
+    setEditLeadershipTier(isNat ? 'national_exec' : (member.chapter_position && member.chapter_position !== 'Member' ? 'chapter_lead' : 'member'));
     setEditChapterId(member.chapter_id || '');
-    setEditPosition(member.chapter_position || 'Member');
+    
+    const currentPos = member.chapter_position || 'Member';
+    setEditPosition(isNat && currentPos === 'Member' ? NATIONAL_EXECUTIVE_ROLES[0] : currentPos);
+    
+    if (isNat && !NATIONAL_EXECUTIVE_ROLES.includes(currentPos)) {
+      setEditCustomNationalRole(currentPos);
+    } else {
+      setEditCustomNationalRole('');
+    }
+    
+    setEditGrantAdminAccess(member.role === 'admin');
     setEditMemberId(member.member_id || '');
   };
 
@@ -630,23 +684,37 @@ export default function MemberDirectoryAdminTab() {
     setIsSavingMember(true);
 
     try {
-      const selectedChapter = chapters.find(c => c.id === editChapterId);
-      const chapterName = selectedChapter ? selectedChapter.name : null;
+      let finalPosition = editPosition;
+      if (editLeadershipTier === 'national_exec') {
+        if (editPosition === 'Custom Title' && editCustomNationalRole.trim()) {
+          finalPosition = editCustomNationalRole.trim();
+        } else if (!finalPosition || finalPosition === 'Member') {
+          finalPosition = NATIONAL_EXECUTIVE_ROLES[0];
+        }
+      } else if (editLeadershipTier === 'member') {
+        finalPosition = 'Member';
+      }
 
-      await yaraV3Service.setMemberPosition(editingMember.id, editPosition, editChapterId);
+      const selectedChapter = chapters.find(c => c.id === editChapterId);
+      const chapterName = selectedChapter 
+        ? selectedChapter.name 
+        : (editLeadershipTier === 'national_exec' ? 'National Executive Secretariat' : null);
+
+      await yaraV3Service.setMemberPosition(editingMember.id, finalPosition, editChapterId);
 
       const updatePayload: any = {
         chapter_id: editChapterId || null,
         chapter_name: chapterName,
-        chapter_position: editPosition,
+        chapter_position: finalPosition,
         member_id: editMemberId.trim() || null,
+        role: editGrantAdminAccess ? 'admin' : editingMember.role,
         updated_at: new Date().toISOString()
       };
 
       await supabase.from('profiles').update(updatePayload).eq('id', editingMember.id);
 
       setUsers(prev => prev.map(u => u.id === editingMember.id ? { ...u, ...updatePayload } : u));
-      showToast('success', `Updated affiliation & position for ${editingMember.display_name}.`);
+      showToast('success', `Assigned ${finalPosition} to ${editingMember.display_name}.`);
       setEditingMember(null);
     } catch (err: any) {
       showToast('error', err.message || 'Failed to update member details.');
@@ -942,14 +1010,22 @@ export default function MemberDirectoryAdminTab() {
 
         {/* Position */}
         <td className="px-4 py-4 whitespace-nowrap">
-          <span className={cn(
-            "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
-            isLeader
-              ? "bg-amber-100 text-amber-900 border border-amber-200"
-              : "bg-slate-100 text-slate-700"
-          )}>
-            {member.chapter_position || 'Member'}
-          </span>
+          {isNationalExecutive(member) ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border border-amber-300 text-amber-950 shadow-xs font-black text-[11px]">
+              <span>👑</span>
+              <span className="truncate max-w-[180px]">{member.chapter_position}</span>
+              <span className="text-[8px] bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">National Exec</span>
+            </div>
+          ) : (
+            <span className={cn(
+              "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
+              isLeader
+                ? "bg-amber-100 text-amber-900 border border-amber-200"
+                : "bg-slate-100 text-slate-700"
+            )}>
+              {member.chapter_position || 'Member'}
+            </span>
+          )}
         </td>
 
         {/* Location & Institution */}
@@ -1022,9 +1098,23 @@ export default function MemberDirectoryAdminTab() {
               <MessageCircle className="w-3.5 h-3.5" />
             </button>
 
+            {/* Quick Assign / Edit National Executive Role */}
+            <button
+              onClick={() => handleOpenEditModal(member, true)}
+              className={cn(
+                "p-2 rounded-xl transition text-xs font-black shadow-xs",
+                isNationalExecutive(member)
+                  ? "bg-amber-100 text-amber-950 border border-amber-300 hover:bg-amber-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-amber-50 hover:text-amber-900"
+              )}
+              title="Assign or Update National Executive Council Role"
+            >
+              👑
+            </button>
+
             {/* Edit Position & Chapter */}
             <button
-              onClick={() => handleOpenEditModal(member)}
+              onClick={() => handleOpenEditModal(member, false)}
               className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
               title="Change chapter or leadership position"
             >
@@ -1206,6 +1296,23 @@ export default function MemberDirectoryAdminTab() {
           >
             <Users className="w-3.5 h-3.5 text-indigo-600" />
             <span>All Members ({users.length})</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveSubView('directory');
+              setSelectedPositionFilter(selectedPositionFilter === 'NATIONAL_EXECUTIVE' ? 'ALL' : 'NATIONAL_EXECUTIVE');
+            }}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
+              selectedPositionFilter === 'NATIONAL_EXECUTIVE' 
+                ? "bg-amber-100 text-amber-950 border border-amber-300 shadow-xs font-black" 
+                : "text-slate-600 hover:text-slate-900"
+            )}
+            title="Filter by National Executive Council Members"
+          >
+            <span>👑</span>
+            <span>National Executive ({nationalExecutiveMembers.length})</span>
           </button>
 
           <button
@@ -1838,31 +1945,163 @@ export default function MemberDirectoryAdminTab() {
                 />
               </div>
 
+              {/* Leadership Governance Scope Switcher */}
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Assign to Registered Chapter</label>
+                <label className="block font-bold text-slate-700 mb-1.5">Leadership Governance Tier</label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditLeadershipTier('national_exec');
+                      if (!NATIONAL_EXECUTIVE_ROLES.includes(editPosition)) {
+                        setEditPosition(NATIONAL_EXECUTIVE_ROLES[0]);
+                      }
+                    }}
+                    className={cn(
+                      "py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer",
+                      editLeadershipTier === 'national_exec'
+                        ? "bg-amber-400 text-slate-950 shadow-xs font-black"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <span>👑</span>
+                    <span className="truncate">National Exec</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditLeadershipTier('chapter_lead');
+                      if (editPosition === 'Member' || NATIONAL_EXECUTIVE_ROLES.includes(editPosition)) {
+                        setEditPosition('Chapter Lead / President');
+                      }
+                    }}
+                    className={cn(
+                      "py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer",
+                      editLeadershipTier === 'chapter_lead'
+                        ? "bg-white text-indigo-700 shadow-xs font-black"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <span>🏫</span>
+                    <span className="truncate">Chapter Lead</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditLeadershipTier('member');
+                      setEditPosition('Member');
+                    }}
+                    className={cn(
+                      "py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer",
+                      editLeadershipTier === 'member'
+                        ? "bg-white text-slate-800 shadow-xs font-black"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    <span>👤</span>
+                    <span className="truncate">Member</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Section if National Executive Tier */}
+              {editLeadershipTier === 'national_exec' && (
+                <div className="p-3.5 bg-gradient-to-br from-amber-50 to-amber-100/70 border border-amber-300 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">👑</span>
+                    <div>
+                      <span className="font-black text-amber-950 text-xs block">National Executive Council of YARA</span>
+                      <span className="text-[10px] text-amber-800">Assign supreme executive directorship and continental governing council roles.</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-black text-amber-950 mb-1">National Executive Role</label>
+                    <select
+                      value={NATIONAL_EXECUTIVE_ROLES.includes(editPosition) ? editPosition : 'Custom Title'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'Custom Title') {
+                          setEditPosition('Custom Title');
+                        } else {
+                          setEditPosition(val);
+                        }
+                      }}
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-amber-500"
+                    >
+                      {NATIONAL_EXECUTIVE_ROLES.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                      <option value="Custom Title">Other / Custom Executive Directorship</option>
+                    </select>
+                  </div>
+
+                  {(editPosition === 'Custom Title' || !NATIONAL_EXECUTIVE_ROLES.includes(editPosition)) && (
+                    <div>
+                      <label className="block font-bold text-amber-950 mb-1">Enter Custom Executive Title *</label>
+                      <input
+                        type="text"
+                        value={editCustomNationalRole}
+                        onChange={(e) => setEditCustomNationalRole(e.target.value)}
+                        placeholder="e.g. National Director of Academic Partnerships"
+                        className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                      />
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 cursor-pointer pt-1 bg-white/60 p-2.5 rounded-xl border border-amber-200">
+                    <input
+                      type="checkbox"
+                      checked={editGrantAdminAccess}
+                      onChange={(e) => setEditGrantAdminAccess(e.target.checked)}
+                      className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-[11px] font-bold text-amber-950">
+                      Grant Administrator Console Access (role: admin)
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* Section if Chapter Leadership Tier */}
+              {editLeadershipTier === 'chapter_lead' && (
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Assigned Chapter Leadership Position</label>
+                  <select
+                    value={editPosition}
+                    onChange={(e) => setEditPosition(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold"
+                  >
+                    {CHAPTER_LEADERSHIP_ROLES.filter(r => r !== 'Member').map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Chapter Selection */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  {editLeadershipTier === 'national_exec' 
+                    ? 'Affiliated Provincial Chapter / Base (Optional)' 
+                    : 'Assign to Registered Chapter *'}
+                </label>
                 <select
                   value={editChapterId}
                   onChange={(e) => setEditChapterId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold"
                 >
-                  <option value="">-- No Chapter (Independent / Awaiting Placement) --</option>
+                  <option value="">
+                    {editLeadershipTier === 'national_exec' 
+                      ? '-- National Executive Secretariat (Zimbabwe & Continental Base) --' 
+                      : '-- No Chapter (Independent / Awaiting Placement) --'}
+                  </option>
                   {chapters.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.province})
                     </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Assigned Leadership Position</label>
-                <select
-                  value={editPosition}
-                  onChange={(e) => setEditPosition(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold"
-                >
-                  {LEADERSHIP_POSITIONS.map(p => (
-                    <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
               </div>
@@ -2252,9 +2491,16 @@ export default function MemberDirectoryAdminTab() {
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, position_key: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold"
                   >
-                    {LEADERSHIP_POSITIONS.map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
+                    <optgroup label="👑 National Executive Council">
+                      {NATIONAL_EXECUTIVE_ROLES.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="🏫 Chapter Leadership &amp; Members">
+                      {CHAPTER_LEADERSHIP_ROLES.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
                 <div>

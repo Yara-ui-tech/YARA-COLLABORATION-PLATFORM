@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Menu, X, ChevronDown, GraduationCap, Trophy, Calendar, 
   Sparkles, Layers, ShieldCheck, ArrowRight, User, BookOpen, 
-  ExternalLink, Users, Phone, Search, CreditCard
+  ExternalLink, Users, Phone, Search, CreditCard, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { ASSETS } from '../../constants/assets';
@@ -24,10 +24,11 @@ export default function PublicHeader() {
   // Section 2: Top navigation on desktop: Home, Learn, Library, Chapters, Events & Competitions, About
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Learn', path: '/learn' },
+    { label: 'Robotics Academy (LMS)', path: '/learn' },
     { label: 'Library', path: '/library' },
     { label: 'Chapters', path: '/chapters' },
     { label: 'Events & Competitions', path: '/events' },
+    { label: 'Feedback & Reviews', path: '/feedback' },
     { 
       label: 'About', 
       path: '/about',
@@ -35,7 +36,8 @@ export default function PublicHeader() {
       subItems: [
         { label: 'About YARA', path: '/about' },
         { label: 'Programmes & Tracks', path: '/programs' },
-        { label: 'Training & Academy', path: '/training' },
+        { label: 'Training System', path: '/training' },
+        { label: 'Feedback & Testimonials', path: '/feedback' },
         { label: 'Impact & Galleries', path: '/impact' },
         { label: 'Hardware Projects', path: '/projects' },
         { label: 'Partners & Sponsors', path: '/partners' },
@@ -193,6 +195,16 @@ export default function PublicHeader() {
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden md:inline">Pay Online</span>
             </button>
+
+            {/* Direct Feedback Button */}
+            <Link
+              to="/feedback"
+              className="px-3 py-2 rounded-xl text-xs font-bold text-pink-300 hover:text-white bg-pink-950/70 hover:bg-pink-900 border border-pink-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Submit Platform Feedback or Review"
+            >
+              <MessageSquare className="w-3.5 h-3.5 text-pink-400" />
+              <span className="hidden lg:inline">Feedback</span>
+            </Link>
 
             {user ? (
               <div className="flex items-center gap-2">
