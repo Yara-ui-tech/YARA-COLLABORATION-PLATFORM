@@ -17,6 +17,7 @@ import { OfflineBanner } from './OfflineBanner';
 import { RuralDataSaverToggle } from './RuralDataSaverToggle';
 import MobileBottomNav from './public/MobileBottomNav';
 import { NotificationBell } from './notifications/NotificationCenter';
+import SponsorPopups from './public/SponsorPopups';
 
 interface NavItem {
   path: string;
@@ -292,6 +293,8 @@ export default function Layout() {
         </main>
       </div>
       <MobileBottomNav />
+      <SponsorPopups />
     </div>
   );
 }
+

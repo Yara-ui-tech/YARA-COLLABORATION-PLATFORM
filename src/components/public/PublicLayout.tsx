@@ -4,6 +4,7 @@ import PublicHeader from './PublicHeader';
 import PublicFooter from './PublicFooter';
 import MobileBottomNav from './MobileBottomNav';
 import { OfflineBanner } from '../OfflineBanner';
+import SponsorPopups from './SponsorPopups';
 
 export default function PublicLayout() {
   return (
@@ -15,6 +16,8 @@ export default function PublicLayout() {
       </main>
       <PublicFooter />
       <MobileBottomNav />
+      <SponsorPopups />
     </div>
   );
 }
+

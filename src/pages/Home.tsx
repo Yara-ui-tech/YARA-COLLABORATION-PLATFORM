@@ -5,7 +5,7 @@ import {
   Cpu, Code, Brain, Radio, Trophy, Users, Calendar, 
   ArrowRight, ShieldCheck, CheckCircle2, ChevronRight, 
   GraduationCap, Sparkles, Globe, BookOpen, Wrench, 
-  Lightbulb, ExternalLink, Star, MapPin
+  Lightbulb, ExternalLink, Star, MapPin, Trash2, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
 import { ASSETS } from '../constants/assets';
@@ -16,7 +16,11 @@ import { getOrganizationPosts } from '../services/organizationPostsService';
 import { cn } from '../lib/utils';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
+  const [isFlagshipDismissed, setIsFlagshipDismissed] = useState(() => {
+    return localStorage.getItem('yara_hide_home_flagship') === 'true';
+  });
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
 
   useEffect(() => {
@@ -30,6 +34,7 @@ export default function Home() {
     }
     loadFeed();
   }, []);
+
 
   const corePillars = [
     {
@@ -256,7 +261,7 @@ export default function Home() {
             return (
               <div 
                 key={i}
-                className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/40 transition-all shadow-xl space-y-4 flex flex-col justify-between group"
+                className="p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-blue-500/10 space-y-4 flex flex-col justify-between group"
               >
                 <div className="space-y-3">
                   <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center border", p.bg)}>
@@ -278,59 +283,102 @@ export default function Home() {
       {/* =========================================================================
           4. FLAGSHIP COMPETITION (YARA Educational Robotics Competition 2026)
          ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      {!isFlagshipDismissed ? (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
-                  Flagship Event
-                </span>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
-                  ● Team Registration Open
-                </span>
+            {/* Admin Delete Action Button */}
+            {isAdmin && (
+              <div className="absolute top-4 right-4 z-20">
+                <button
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete / remove this Flagship Event banner from the site?")) {
+                      localStorage.setItem('yara_hide_home_flagship', 'true');
+                      setIsFlagshipDismissed(true);
+                    }
+                  }}
+                  className="px-3.5 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 border border-red-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md backdrop-blur-md"
+                  title="Remove Flagship Event from Home"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-300" />
+                  <span>Delete Flagship Event</span>
+                </button>
+              </div>
+            )}
+
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
+                    Flagship Event
+                  </span>
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                    ● Team Registration Open
+                  </span>
+                </div>
+
+                <h3 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+                  YARA Educational Robotics Competition 2026
+                </h3>
+
+                <p className="text-amber-300 text-sm sm:text-base font-bold">
+                  Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
+                </p>
+
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                  Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls gender parity team composition.
+                </p>
+
+                <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300 pt-1">
+                  <span>• October 16–18, 2026</span>
+                  <span>• National Championship Arena</span>
+                  <span>• Hardware Grants &amp; Lab Kits</span>
+                </div>
               </div>
 
-              <h3 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
-                YARA Educational Robotics Competition 2026
-              </h3>
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+                <Link
+                  to="/competitions/yara-2026"
+                  className="px-7 py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
+                >
+                  <span>Enter Team &amp; Read Rules</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
 
-              <p className="text-amber-300 text-sm sm:text-base font-bold">
-                Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
-              </p>
-
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls gender parity team composition.
-              </p>
-
-              <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300 pt-1">
-                <span>• October 16–18, 2026</span>
-                <span>• National Championship Arena</span>
-                <span>• Hardware Grants &amp; Lab Kits</span>
+                <Link
+                  to="/competitions"
+                  className="px-7 py-4 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all border border-white/10"
+                >
+                  <span>All Competitions</span>
+                </Link>
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-              <Link
-                to="/competitions/yara-2026"
-                className="px-7 py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition-all hover:scale-105"
-              >
-                <span>Enter Team &amp; Read Rules</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-
-              <Link
-                to="/competitions"
-                className="px-7 py-4 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all border border-white/10"
-              >
-                <span>All Competitions</span>
-              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        isAdmin && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="p-3.5 bg-slate-900/90 border border-dashed border-slate-800 rounded-2xl flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-400" />
+                Flagship Event banner currently deleted/hidden from site homepage.
+              </span>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('yara_hide_home_flagship');
+                  setIsFlagshipDismissed(false);
+                }}
+                className="text-cyan-400 font-bold hover:underline flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restore Flagship Banner</span>
+              </button>
+            </div>
+          </div>
+        )
+      )}
+
 
       {/* =========================================================================
           LMS SHOWCASE: LEARNING MANAGEMENT SYSTEM (Directly Inside the Web Page)

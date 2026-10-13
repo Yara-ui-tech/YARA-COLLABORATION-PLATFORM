@@ -27,13 +27,21 @@ import {
   Brain,
   Compass,
   ShieldCheck,
-  Check
+  Check,
+  Phone,
+  Link as LinkIcon,
+  MessageCircle,
+  AlertTriangle,
+  Sparkles,
+  Copy,
+  ExternalLink as ExtLinkIcon
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ASSETS } from '../constants/assets';
 import PlaceholderImage from '../components/PlaceholderImage';
+
 
 export interface MentorReviewItem {
   id: string;
@@ -223,7 +231,20 @@ export default function Mentorship() {
   const [bookingTimeSlot, setBookingTimeSlot] = useState('14:00 - 15:30 CAT');
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  const [searchParams] = useSearchParams();
+  const [meetingLinks, setMeetingLinks] = useState<Record<string, string>>({});
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['mentors', 'requests', 'live', 'materials'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
+
   const runSmartMentorMatcher = (queryText: string) => {
+
     const q = queryText.trim().toLowerCase();
     if (!q) {
       setMatchedMentor(null);
@@ -292,18 +313,16 @@ export default function Mentorship() {
 
   const fetchMessagesForRequest = async (requestId: string) => {
     try {
-      const nowIso = new Date().toISOString();
       const { data, error } = await supabase
         .from('mentorship_messages')
         .select('*')
         .eq('request_id', requestId)
-        .gt('expires_at', nowIso)
         .order('created_at', { ascending: true });
-      if (!error) {
-        setMessagesMap(prev => ({ ...prev, [requestId]: data || [] }));
+      if (!error && data) {
+        setMessagesMap(prev => ({ ...prev, [requestId]: data }));
       }
     } catch (err) {
-      console.error('Error fetching messages:', err);
+      console.warn('Error fetching messages:', err);
     }
   };
 
@@ -332,25 +351,48 @@ export default function Mentorship() {
 
     const fetchRequests = async () => {
       if (!user) return;
-      const column = profile?.role === 'mentor' ? 'mentor_id' : 'requester_id';
-      const { data, error } = await supabase
-        .from('mentorship_requests')
-        .select('*')
-        .eq(column, user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) console.error('Error fetching requests:', error);
-      else setRequests(data || []);
+      try {
+        let dbRequests: any[] = [];
+        const isUserAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
+        const isUserMentor = profile?.role === 'mentor';
+
+        let query = supabase.from('mentorship_requests').select('*');
+        if (!isUserAdmin) {
+          if (isUserMentor) {
+            query = query.or(`mentor_id.eq.${user.id},mentor_id.eq.mentor_simba,mentor_id.eq.mentor_nyasha,mentor_id.eq.mentor_kelvin,mentor_id.eq.mentor_tadiwa`);
+          } else {
+            query = query.eq('requester_id', user.id);
+          }
+        }
+        const { data, error } = await query.order('created_at', { ascending: false });
+        if (!error && data) {
+          dbRequests = data;
+        }
+
+        // Merge with local persistent requests
+        let localRequests: any[] = [];
+        try {
+          const raw = localStorage.getItem('yara_local_mentorship_requests');
+          if (raw) localRequests = JSON.parse(raw);
+        } catch {}
+
+        const dbIds = new Set(dbRequests.map(r => r.id));
+        const merged = [
+          ...dbRequests,
+          ...localRequests.filter(lr => !dbIds.has(lr.id) && (isUserAdmin || isUserMentor || lr.requester_id === user.id))
+        ];
+
+        setRequests(merged);
+        merged.forEach((r: any) => fetchMessagesForRequest(r.id));
+      } catch (err) {
+        console.warn('Error fetching requests:', err);
+      }
     };
 
-    // after fetching requests we should also fetch ephemeral messages for each
     const fetchRequestsAndMessages = async () => {
       await fetchRequests();
-      if (!user) return;
-      const column = profile?.role === 'mentor' ? 'mentor_id' : 'requester_id';
-      const { data } = await supabase.from('mentorship_requests').select('*').eq(column, user.id);
-      data?.forEach((r: any) => fetchMessagesForRequest(r.id));
     };
+
 
     const fetchLiveSessions = async () => {
       let query = supabase
@@ -470,35 +512,51 @@ export default function Mentorship() {
         throw new Error('Please provide your WhatsApp number for mentorship contact.');
       }
 
-      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
       const targetMentor = mentors.find(m => m.id === mentorId);
       const mentorDisplayName = targetMentor?.display_name || 'Industrial Mentor';
       const formattedMessage = `[Session: ${bookingSessionType} | Date: ${bookingDate} | Slot: ${bookingTimeSlot}] ${requestMessage}`;
+      const newReqId = 'req_' + Date.now();
 
-      if (isUUID(mentorId)) {
-        const { error } = await supabase.from('mentorship_requests').insert({
-          requester_id: user.id,
-          requester_name: profile?.display_name || user.email?.split('@')[0] || 'Student',
-          mentor_id: mentorId,
-          status: 'pending',
-          message: formattedMessage,
-          whatsapp_number: whatsapp.trim()
-        });
-        if (error) console.warn('Supabase request insert warning:', error);
-      }
-
-      // Add to local state so user sees it immediately in active requests
       const newLocalRequest = {
-        id: 'req_' + Date.now(),
+        id: newReqId,
         requester_id: user.id,
-        requester_name: profile?.display_name || 'Student',
+        requester_name: profile?.display_name || user.email?.split('@')[0] || 'Student',
         mentor_id: mentorId,
         mentor_name: mentorDisplayName,
         status: 'pending',
         message: formattedMessage,
         whatsapp_number: whatsapp.trim(),
+        session_type: bookingSessionType,
+        session_date: bookingDate,
+        session_time_slot: bookingTimeSlot,
         created_at: new Date().toISOString()
       };
+
+      try {
+        await supabase.from('mentorship_requests').insert({
+          id: newReqId,
+          requester_id: user.id,
+          requester_name: newLocalRequest.requester_name,
+          mentor_id: mentorId,
+          mentor_name: mentorDisplayName,
+          status: 'pending',
+          message: formattedMessage,
+          whatsapp_number: whatsapp.trim(),
+          session_type: bookingSessionType,
+          session_date: bookingDate,
+          session_time_slot: bookingTimeSlot
+        });
+      } catch (err) {
+        console.warn('Supabase request insert fallback:', err);
+      }
+
+      // Persist to local storage
+      try {
+        const raw = localStorage.getItem('yara_local_mentorship_requests');
+        const existing = raw ? JSON.parse(raw) : [];
+        localStorage.setItem('yara_local_mentorship_requests', JSON.stringify([newLocalRequest, ...existing]));
+      } catch {}
+
       setRequests(prev => [newLocalRequest, ...prev]);
 
       setBookingSuccess(true);
@@ -507,7 +565,9 @@ export default function Mentorship() {
         setBookingSuccess(false);
         setRequestMessage('');
         setWhatsapp('');
-      }, 1800);
+        // Automatically switch to requests tab so user sees their active request
+        setActiveTab('requests');
+      }, 1500);
     } catch (error: any) {
       console.error('Error requesting mentorship:', error);
       alert(error.message || 'Error booking mentorship.');
@@ -518,15 +578,109 @@ export default function Mentorship() {
 
   const handleUpdateStatus = async (requestId: string, status: 'accepted' | 'declined' | 'completed') => {
     try {
-      const { error } = await supabase
+      await supabase
         .from('mentorship_requests')
         .update({ status })
         .eq('id', requestId);
-      if (error) throw error;
+
+      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status } : r));
+
+      try {
+        const raw = localStorage.getItem('yara_local_mentorship_requests');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updated = list.map((r: any) => r.id === requestId ? { ...r, status } : r);
+          localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
+        }
+      } catch {}
+
+      // Add system message to the request conversation
+      await supabase.from('mentorship_messages').insert({
+        request_id: requestId,
+        sender_id: user?.id,
+        sender_name: profile?.display_name || 'System',
+        sender_role: 'system',
+        message: `Mentorship session request marked as ${status.toUpperCase()}.`
+      });
+
+      fetchMessagesForRequest(requestId);
     } catch (error) {
       console.error('Error updating status:', error);
     }
   };
+
+  const handleSaveMeetingLink = async (requestId: string, link: string) => {
+    if (!link.trim()) return;
+    try {
+      const cleanLink = link.trim();
+      await supabase.from('mentorship_requests').update({ meeting_link: cleanLink }).eq('id', requestId);
+      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, meeting_link: cleanLink } : r));
+
+      try {
+        const raw = localStorage.getItem('yara_local_mentorship_requests');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updated = list.map((r: any) => r.id === requestId ? { ...r, meeting_link: cleanLink } : r);
+          localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
+        }
+      } catch {}
+
+      await supabase.from('mentorship_messages').insert({
+        request_id: requestId,
+        sender_id: user?.id,
+        sender_name: profile?.display_name || 'Mentor',
+        sender_role: 'mentor',
+        message: `Virtual Meeting Link: ${cleanLink}`
+      });
+
+      fetchMessagesForRequest(requestId);
+      alert('Virtual Meeting Link updated and shared with mentee.');
+    } catch (err) {
+      console.warn('Error saving meeting link:', err);
+    }
+  };
+
+  const handleSendReply = async (requestId: string, messageText: string) => {
+    if (!messageText.trim() || !user) return;
+    try {
+      const isMentor = profile?.role === 'mentor';
+      const newMsg = {
+        id: 'msg_' + Date.now(),
+        request_id: requestId,
+        sender_id: user.id,
+        sender_name: profile?.display_name || (isMentor ? 'Industrial Mentor' : 'Mentee'),
+        sender_role: isMentor ? 'mentor' : 'mentee',
+        message: messageText.trim(),
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await supabase.from('mentorship_messages').insert({
+          request_id: requestId,
+          sender_id: user.id,
+          sender_name: newMsg.sender_name,
+          sender_role: newMsg.sender_role,
+          message: messageText.trim()
+        });
+      } catch {}
+
+      if (isMentor) {
+        try {
+          await supabase.from('mentorship_requests').update({ mentor_response: messageText.trim() }).eq('id', requestId);
+        } catch {}
+      }
+
+      setMessagesMap(prev => ({
+        ...prev,
+        [requestId]: [...(prev[requestId] || []), newMsg]
+      }));
+
+      setReplyInputs(prev => ({ ...prev, [requestId]: '' }));
+    } catch (err: any) {
+      console.error('Error sending message:', err);
+    }
+  };
+
 
   const handleUploadMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -692,8 +846,50 @@ Possible causes:
         </div>
       </header>
 
+      {/* Prominent Mentorship Requests Station Banner */}
+      <section className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="space-y-2 max-w-2xl relative z-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 text-[10px] font-black uppercase tracking-wider">
+              Mentorship Command Station
+            </span>
+            {requests.length > 0 && (
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold">
+                {requests.filter(r => r.status === 'pending').length} Pending • {requests.filter(r => r.status === 'accepted').length} Accepted
+              </span>
+            )}
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-white">
+            {profile?.role === 'mentor' 
+              ? 'Mentor Response & Session Console' 
+              : 'My Mentorship Requests & Active Sessions'}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+            {profile?.role === 'mentor' 
+              ? 'Review incoming mentee submissions, accept or decline sessions, send meeting links (Google Meet, Zoom, WhatsApp), and respond with engineering guidance.'
+              : 'Track mentor response statuses, access meeting room links, message your assigned mentor directly, and rate completed sessions.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 shrink-0 relative z-10">
+          <button
+            onClick={() => setActiveTab('requests')}
+            className={cn(
+              "px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg",
+              activeTab === 'requests'
+                ? "bg-cyan-400 text-slate-950 shadow-cyan-400/20"
+                : "bg-white/10 hover:bg-white/20 text-white border border-white/20"
+            )}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Open Requests Console ({requests.length})</span>
+          </button>
+        </div>
+      </section>
+
       {/* Tabs */}
-      <div className="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
         <button
           onClick={() => setActiveTab('mentors')}
           className={cn(
@@ -703,21 +899,25 @@ Possible causes:
         >
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4" />
-            <span>Mentors</span>
+            <span>Industrial Mentors</span>
           </div>
         </button>
         <button
           onClick={() => setActiveTab('requests')}
           className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
+            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center space-x-2",
             activeTab === 'requests' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
           )}
         >
-          <div className="flex items-center space-x-2">
-            <MessageSquare className="w-4 h-4" />
-            <span>Requests</span>
-          </div>
+          <MessageSquare className="w-4 h-4" />
+          <span>Active Requests &amp; Responses</span>
+          {requests.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-700 ml-1">
+              {requests.length}
+            </span>
+          )}
         </button>
+
         <button
           onClick={() => setActiveTab('live')}
           className={cn(
@@ -1069,122 +1269,379 @@ Possible causes:
 
       {activeTab === 'requests' && (
         <section className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-            <MessageSquare className="w-6 h-6 text-indigo-600" />
-            <span>Active Requests</span>
-          </h3>
-          <div className="grid gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-3">
+                <MessageSquare className="w-6 h-6 text-indigo-600" />
+                <span>Mentorship Sessions &amp; Requests Console</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                {profile?.role === 'mentor' 
+                  ? 'Review mentees seeking guidance, provide virtual meeting rooms, and send structured replies.' 
+                  : 'Track your requested mentorship sessions, access virtual meeting rooms, and chat directly with your mentors.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
+                {requests.length} Total Sessions
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-6">
             {requests.length === 0 ? (
-              <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center">
-                <p className="text-slate-400 font-medium italic">No active mentorship requests.</p>
+              <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center space-y-4 shadow-sm">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                  <MessageSquare className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-slate-900">No Active Mentorship Requests Yet</h4>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    {profile?.role === 'mentor'
+                      ? 'When students submit mentorship inquiries for robotics, PCB design, or AI, they will appear here for your review.'
+                      : 'Explore verified industrial mentors and book your first 1-on-1 code or hardware review session!'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('mentors')}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all"
+                >
+                  Browse Industrial Mentors
+                </button>
               </div>
             ) : (
-              requests.map((request) => (
-                <motion.div
-                  key={request.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xl">
-                      {profile?.role === 'mentor' ? request.requester_name?.[0] : 'M'}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">
-                        {profile?.role === 'mentor' ? request.requester_name : 'Mentorship Request'}
-                      </h4>
-                      <p className="text-sm text-slate-500 font-medium line-clamp-1">{request.message}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-bold flex items-center space-x-2",
-                      request.status === 'pending' ? "bg-amber-50 text-amber-600" :
-                      request.status === 'accepted' ? "bg-emerald-50 text-emerald-600" : 
-                      request.status === 'completed' ? "bg-indigo-50 text-indigo-600" : "bg-red-50 text-red-600"
-                    )}>
-                      {request.status === 'pending' && <Clock className="w-4 h-4" />}
-                      {request.status === 'accepted' && <CheckCircle2 className="w-4 h-4" />}
-                      {request.status === 'completed' && <Award className="w-4 h-4" />}
-                      {request.status === 'declined' && <XCircle className="w-4 h-4" />}
-                      <span className="capitalize">{request.status}</span>
-                    </div>
-                    
-                    {profile?.role === 'mentor' && request.status === 'pending' && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleUpdateStatus(request.id, 'accepted')}
-                          className="p-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-100"
-                        >
-                          <CheckCircle2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(request.id, 'declined')}
-                          className="p-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
-                        >
-                          <XCircle className="w-5 h-5" />
-                        </button>
+              requests.map((request) => {
+                const isMentorOfSession = profile?.role === 'mentor' || profile?.id === request.mentor_id;
+                const isRequester = user?.id === request.requester_id;
+                const isAdmin = profile?.role === 'admin';
+                const canRespond = isMentorOfSession || isRequester || isAdmin;
+                const messages = messagesMap[request.id] || [];
+
+                return (
+                  <motion.div
+                    key={request.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-3xl border border-slate-200/90 shadow-lg overflow-hidden flex flex-col"
+                  >
+                    {/* Header Bar */}
+                    <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center space-x-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-cyan-300 font-black text-lg">
+                          {request.requester_name?.[0] || 'S'}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-bold text-base text-white">
+                              {request.requester_name || 'Student Innovator'}
+                            </h4>
+                            <span className="text-xs text-slate-400">•</span>
+                            <span className="text-xs text-amber-300 font-semibold">
+                              Target Mentor: {request.mentor_name || 'Industrial Specialist'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 mt-1">
+                            {request.session_type && (
+                              <span className="text-cyan-300 font-semibold">
+                                📌 {request.session_type}
+                              </span>
+                            )}
+                            {request.session_date && (
+                              <span className="text-slate-300 font-medium">
+                                📅 {request.session_date} {request.session_time_slot ? `(${request.session_time_slot})` : ''}
+                              </span>
+                            )}
+                            <span className="text-slate-400 text-[11px]">
+                              Submitted {new Date(request.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
 
-                    {profile?.role === 'mentor' && request.status === 'accepted' && (
-                      <button
-                        onClick={() => handleUpdateStatus(request.id, 'completed')}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
-                      >
-                        Complete Session
-                      </button>
-                    )}
+                      {/* Status Pill & Action Buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className={cn(
+                          "px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 border shadow-xs",
+                          request.status === 'pending' ? "bg-amber-500/20 text-amber-300 border-amber-500/40" :
+                          request.status === 'accepted' ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : 
+                          request.status === 'completed' ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" : "bg-red-500/20 text-red-300 border-red-500/40"
+                        )}>
+                          {request.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
+                          {request.status === 'accepted' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {request.status === 'completed' && <Award className="w-3.5 h-3.5" />}
+                          {request.status === 'declined' && <XCircle className="w-3.5 h-3.5" />}
+                          <span>{request.status}</span>
+                        </div>
 
-                    {/* Messages panel (ephemeral) */}
-                    <div className="w-full mt-4 md:mt-0 md:w-96">
-                      <div className="bg-slate-50 p-3 rounded-lg max-h-40 overflow-auto">
-                        {(messagesMap[request.id] || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">No messages yet.</div>
-                        ) : (
-                          (messagesMap[request.id] || []).map(m => (
-                            <div key={m.id} className="text-sm mb-2">
-                              <div className="text-[11px] text-slate-500">{m.sender_id === profile?.id ? 'You' : (m.sender_id ? 'Other' : 'System')} • {new Date(m.created_at).toLocaleString()}</div>
-                              <div className="text-slate-800">{m.message}</div>
-                            </div>
-                          ))
+                        {/* WhatsApp Mentee Button */}
+                        {request.whatsapp_number && (
+                          <a
+                            href={`https://wa.me/${request.whatsapp_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${request.requester_name || ''}, this is your YARA Robotics Mentor reaching out regarding your mentorship request.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                            title="Chat with Mentee on WhatsApp"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">WhatsApp</span>
+                          </a>
                         )}
                       </div>
-                      {(profile?.role === 'mentor' || profile?.id === request.requester_id) && (
-                        <div className="flex items-center mt-2">
-                          <input placeholder="Write a reply (visible 24h)" className="flex-1 p-2 border rounded-l-lg" id={`msg-${request.id}`} />
-                          <button onClick={async () => {
-                            const el = document.getElementById(`msg-${request.id}`) as HTMLInputElement | null;
-                            if (!el || !el.value.trim()) return;
-                            try {
-                              await supabase.from('mentorship_messages').insert({
-                                request_id: request.id,
-                                sender_id: profile?.id || null,
-                                message: el.value.trim()
-                              });
-                              el.value = '';
-                              fetchMessagesForRequest(request.id);
-                            } catch (err) {
-                              console.error('Error sending message:', err);
-                            }
-                          }} className="px-3 py-2 bg-indigo-600 text-white rounded-r-lg">Send</button>
-                        </div>
-                      )}
                     </div>
 
-                    {profile?.role !== 'mentor' && (request.status === 'completed' || request.status === 'accepted') && (
-                      <button
-                        onClick={() => setIsReviewing(request)}
-                        className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors flex items-center space-x-2"
-                      >
-                        <Star className="w-4 h-4 fill-white" />
-                        <span>Leave Review</span>
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))
+                    {/* Main Content Grid: 2 Columns */}
+                    <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Left Column: Request Details & Mentor Controls */}
+                      <div className="lg:col-span-5 space-y-4">
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            Student Inquiry / Engineering Need
+                          </span>
+                          <div className="mt-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 leading-relaxed font-medium">
+                            {request.message}
+                          </div>
+                        </div>
+
+                        {/* Virtual Meeting Link Section */}
+                        <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                              <Video className="w-3.5 h-3.5 text-indigo-600" />
+                              Virtual Meeting Room Link
+                            </span>
+                            {request.meeting_link && (
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(request.meeting_link);
+                                  setCopiedId(request.id);
+                                  setTimeout(() => setCopiedId(null), 2000);
+                                }}
+                                className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                              >
+                                {copiedId === request.id ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-600" />
+                                    <span className="text-emerald-600">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          {request.meeting_link ? (
+                            <div className="space-y-2">
+                              <a
+                                href={request.meeting_link.startsWith('http') ? request.meeting_link : `https://${request.meeting_link}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs flex items-center justify-center space-x-2 shadow-md transition-all"
+                              >
+                                <Video className="w-4 h-4" />
+                                <span>Join Virtual Meeting Room</span>
+                                <ExtLinkIcon className="w-3 h-3" />
+                              </a>
+                              <p className="text-[10px] text-slate-500 font-mono truncate">
+                                {request.meeting_link}
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-500 italic">
+                              No meeting link provided yet. Mentor will set Google Meet / Zoom link upon acceptance.
+                            </p>
+                          )}
+
+                          {/* Mentor Meeting Link Input */}
+                          {(isMentorOfSession || isAdmin) && (
+                            <div className="pt-2 border-t border-indigo-200/60 space-y-1.5">
+                              <span className="text-[10px] font-bold text-indigo-900">
+                                Set or Update Meeting Link:
+                              </span>
+                              <div className="flex gap-1.5">
+                                <input
+                                  type="url"
+                                  placeholder="https://meet.google.com/xyz or Zoom link"
+                                  value={meetingLinks[request.id] !== undefined ? meetingLinks[request.id] : (request.meeting_link || '')}
+                                  onChange={(e) => setMeetingLinks(prev => ({ ...prev, [request.id]: e.target.value }))}
+                                  className="flex-1 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-600"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const val = meetingLinks[request.id] !== undefined ? meetingLinks[request.id] : request.meeting_link;
+                                    handleSaveMeetingLink(request.id, val || '');
+                                  }}
+                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+                                >
+                                  Save Link
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Mentor Decision Controls */}
+                        {(isMentorOfSession || isAdmin) && (
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                              Mentor Session Actions
+                            </span>
+                            
+                            <div className="flex flex-wrap gap-2">
+                              {request.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateStatus(request.id, 'accepted')}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    <span>Accept Session</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateStatus(request.id, 'declined')}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    <span>Decline</span>
+                                  </button>
+                                </>
+                              )}
+
+                              {request.status === 'accepted' && (
+                                <button
+                                  onClick={() => handleUpdateStatus(request.id, 'completed')}
+                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all"
+                                >
+                                  <Award className="w-3.5 h-3.5" />
+                                  <span>Mark Session as Completed</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Mentee Review Option */}
+                        {isRequester && (request.status === 'completed' || request.status === 'accepted') && (
+                          <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <h5 className="text-xs font-bold text-amber-900">How was your session?</h5>
+                              <p className="text-[11px] text-amber-700">Submit your feedback and mentor rating.</p>
+                            </div>
+                            <button
+                              onClick={() => setIsReviewing(request)}
+                              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center space-x-1.5"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-white" />
+                              <span>Leave Review</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right Column: Two-Way Message / Discussion Console */}
+                      <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl bg-slate-50 border border-slate-200/80 p-4 min-h-[320px]">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                              <MessageCircle className="w-4 h-4 text-indigo-600" />
+                              <span>Direct Mentor-Mentee Discussion</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {messages.length} messages
+                            </span>
+                          </div>
+
+                          {/* Message List */}
+                          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                            {messages.length === 0 ? (
+                              <div className="text-center py-8 text-xs text-slate-400">
+                                No direct messages yet. Write a note or meeting instructions below.
+                              </div>
+                            ) : (
+                              messages.map((m: any) => {
+                                const isSelf = m.sender_id === user?.id;
+                                const isSystem = m.sender_role === 'system';
+
+                                if (isSystem) {
+                                  return (
+                                    <div key={m.id} className="text-center py-1">
+                                      <span className="px-3 py-1 rounded-full bg-slate-200/70 text-slate-600 text-[10px] font-bold">
+                                        ⚡ {m.message}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div
+                                    key={m.id}
+                                    className={cn(
+                                      "flex flex-col text-xs space-y-0.5",
+                                      isSelf ? "items-end" : "items-start"
+                                    )}
+                                  >
+                                    <div className="text-[10px] text-slate-400 flex items-center gap-1.5 px-1">
+                                      <span className="font-bold text-slate-600">
+                                        {isSelf ? 'You' : (m.sender_name || (m.sender_role === 'mentor' ? 'Mentor' : 'Mentee'))}
+                                      </span>
+                                      <span>•</span>
+                                      <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <div
+                                      className={cn(
+                                        "p-3 rounded-2xl max-w-md leading-relaxed",
+                                        isSelf 
+                                          ? "bg-indigo-600 text-white rounded-tr-none shadow-sm"
+                                          : "bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-xs"
+                                      )}
+                                    >
+                                      {m.message}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Input Box */}
+                        {canRespond && (
+                          <div className="pt-3 border-t border-slate-200 mt-3">
+                            <form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const text = replyInputs[request.id] || '';
+                                handleSendReply(request.id, text);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                type="text"
+                                placeholder={isMentorOfSession ? "Write advice, meeting instructions or guidance..." : "Reply to your mentor..."}
+                                value={replyInputs[request.id] || ''}
+                                onChange={(e) => setReplyInputs(prev => ({ ...prev, [request.id]: e.target.value }))}
+                                className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-xs"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!replyInputs[request.id]?.trim()}
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors shrink-0"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                                <span>Send</span>
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
             )}
           </div>
         </section>

@@ -376,27 +376,6 @@ export default function Events() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Competitions Hub Banner (Directs to Competitions) */}
-                    <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-indigo-950 border border-amber-500/30 rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                          <Trophy className="w-4 h-4" />
-                          <span>Continental Flagship Championship</span>
-                        </div>
-                        <h4 className="text-xl sm:text-2xl font-black text-white">YARA Educational Robotics Competition 2026</h4>
-                        <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
-                          Looking for official competition guidelines, team registration (2 Boys + 2 Girls), Underwater Drone missions, and dynamic arena scoreboards? The YARA 2026 Championship is housed under the <strong>Competitions Hub</strong>.
-                        </p>
-                      </div>
-                      <Link
-                        to="/competitions/yara-2026"
-                        className="shrink-0 px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 flex items-center space-x-2 transition-all hover:scale-105"
-                      >
-                        <span>Explore Competitions Hub</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </div>
-
                     {/* Events Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                       {events.map((event, index) => (

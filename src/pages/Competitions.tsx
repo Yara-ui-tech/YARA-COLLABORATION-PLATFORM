@@ -3,12 +3,12 @@ import {
   Trophy, Calendar, MapPin, Users, ArrowRight, Clock, 
   Loader2, Zap, Search, Filter, ShieldCheck, CheckCircle2, 
   ExternalLink, Layers, Award, Waves, Compass, Lightbulb, 
-  HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle, Lock
+  HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle, Lock, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Competition } from '../types/competition';
-import { getCompetitions } from '../services/competitionsService';
+import { getCompetitions, deleteCompetition } from '../services/competitionsService';
 import { cn } from '../lib/utils';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
 import { useAuth } from '../components/AuthContext';
@@ -24,6 +24,7 @@ const CATEGORY_CHIPS = [
 
 export default function Competitions() {
   const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
   const isTrialExpired = Boolean(
     profile &&
     !profile.registration_paid &&
@@ -33,6 +34,7 @@ export default function Competitions() {
   );
 
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -94,7 +96,18 @@ export default function Competitions() {
     setIsRegisterModalOpen(true);
   };
 
+  const handleDeleteCompetition = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to remove competition "${title}" from the site? This will permanently delete it.`)) {
+      setLoading(true);
+      await deleteCompetition(id);
+      const updated = await getCompetitions();
+      setCompetitions(updated);
+      setLoading(false);
+    }
+  };
+
   return (
+
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
       {/* Top Header */}
       <div className="bg-slate-900 text-white relative overflow-hidden border-b border-slate-800">
@@ -274,8 +287,20 @@ export default function Competitions() {
                   >
                     View Complete Rubric & Rules
                   </button>
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteCompetition(featuredCompetition.id, featuredCompetition.title)}
+                      className="px-4 py-3.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 border border-red-500/40 rounded-2xl font-bold text-xs flex items-center space-x-1.5 transition-all shadow-md"
+                      title="Delete Flagship Event from site"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-300" />
+                      <span>Delete Flagship Event</span>
+                    </button>
+                  )}
                 </div>
               </div>
+
 
               {/* Right Side Visual & Portal Quick Access Grid */}
               <div className="lg:col-span-5 space-y-4">
@@ -528,7 +553,18 @@ export default function Competitions() {
                     >
                       View Details & Rules
                     </button>
+
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteCompetition(comp.id, comp.title)}
+                        className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        <span>Delete Competition</span>
+                      </button>
+                    )}
                   </div>
+
                 </motion.div>
               );
             })}

@@ -4784,4 +4784,108 @@ DROP POLICY IF EXISTS "Mentors and admins can delete study materials" ON public.
 CREATE POLICY "Mentors and admins can delete study materials" ON public.study_materials
   FOR DELETE USING (auth.role() = 'authenticated');
 
+-- ============================================================================
+-- SECTION 39: MENTORSHIP REQUESTS, DIRECT RESPONSES & VIRTUAL MEETING ROOMS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.mentorship_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mentor_id TEXT NOT NULL,
+  mentor_name TEXT,
+  requester_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  requester_name TEXT,
+  email TEXT,
+  phone TEXT,
+  whatsapp_number TEXT,
+  message TEXT NOT NULL,
+  preferred_time TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'completed', 'declined', 'cancelled')),
+  meeting_link TEXT,
+  mentor_response TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ensure all needed columns exist if table was partially created
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='meeting_link') THEN
+    ALTER TABLE public.mentorship_requests ADD COLUMN meeting_link TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='mentor_response') THEN
+    ALTER TABLE public.mentorship_requests ADD COLUMN mentor_response TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='whatsapp_number') THEN
+    ALTER TABLE public.mentorship_requests ADD COLUMN whatsapp_number TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='mentor_name') THEN
+    ALTER TABLE public.mentorship_requests ADD COLUMN mentor_name TEXT;
+  END IF;
+END $$;
+
+-- Indices for rapid lookup
+CREATE INDEX IF NOT EXISTS idx_mentorship_requests_mentor ON public.mentorship_requests(mentor_id);
+CREATE INDEX IF NOT EXISTS idx_mentorship_requests_requester ON public.mentorship_requests(requester_id);
+CREATE INDEX IF NOT EXISTS idx_mentorship_requests_status ON public.mentorship_requests(status);
+CREATE INDEX IF NOT EXISTS idx_mentorship_requests_created ON public.mentorship_requests(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.mentorship_requests ENABLE ROW LEVEL SECURITY;
+
+-- Policies for mentorship_requests
+DROP POLICY IF EXISTS "Public and authenticated can insert mentorship requests" ON public.mentorship_requests;
+CREATE POLICY "Public and authenticated can insert mentorship requests" ON public.mentorship_requests
+  FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Participants and admins can read mentorship requests" ON public.mentorship_requests;
+CREATE POLICY "Participants and admins can read mentorship requests" ON public.mentorship_requests
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Participants and admins can update mentorship requests" ON public.mentorship_requests;
+CREATE POLICY "Participants and admins can update mentorship requests" ON public.mentorship_requests
+  FOR UPDATE USING (true);
+
+-- ----------------------------------------------------------------------------
+-- Two-Way Mentorship Messages (Direct Mentor & Mentee Thread)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.mentorship_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES public.mentorship_requests(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  sender_name TEXT,
+  sender_role TEXT DEFAULT 'mentor' CHECK (sender_role IN ('student', 'mentee', 'mentor', 'admin', 'system')),
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mentorship_messages_request ON public.mentorship_messages(request_id);
+CREATE INDEX IF NOT EXISTS idx_mentorship_messages_created ON public.mentorship_messages(created_at ASC);
+
+ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can read mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Anyone can read mentorship messages" ON public.mentorship_messages
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can insert mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Anyone can insert mentorship messages" ON public.mentorship_messages
+  FOR INSERT WITH CHECK (true);
+
+-- Add to Supabase Realtime publication if available
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.mentorship_requests;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.mentorship_messages;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
+
+
 
