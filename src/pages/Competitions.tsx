@@ -3,7 +3,7 @@ import {
   Trophy, Calendar, MapPin, Users, ArrowRight, Clock, 
   Loader2, Zap, Search, Filter, ShieldCheck, CheckCircle2, 
   ExternalLink, Layers, Award, Waves, Compass, Lightbulb, 
-  HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle
+  HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle, Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { Competition } from '../types/competition';
 import { getCompetitions } from '../services/competitionsService';
 import { cn } from '../lib/utils';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
+import { useAuth } from '../components/AuthContext';
 
 const CATEGORY_CHIPS = [
   { id: 'ALL', label: 'All Tournaments' },
@@ -22,6 +23,15 @@ const CATEGORY_CHIPS = [
 ];
 
 export default function Competitions() {
+  const { profile } = useAuth();
+  const isTrialExpired = Boolean(
+    profile &&
+    !profile.registration_paid &&
+    profile.trial_ends_at &&
+    new Date(profile.trial_ends_at) < new Date() &&
+    profile.role !== 'admin'
+  );
+
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +45,10 @@ export default function Competitions() {
   // Quick Register Modal State
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [registeringComp, setRegisteringComp] = useState<{ id: string; title: string; category?: string } | null>(null);
+
+  // Trial Lock Modal State
+  const [trialLockModalOpen, setTrialLockModalOpen] = useState(false);
+  const [lockedCompName, setLockedCompName] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -67,6 +81,11 @@ export default function Competitions() {
   };
 
   const openRegister = (comp: Competition) => {
+    if (isTrialExpired) {
+      setLockedCompName(comp.title);
+      setTrialLockModalOpen(true);
+      return;
+    }
     setRegisteringComp({
       id: comp.id,
       title: comp.title,
@@ -664,6 +683,59 @@ export default function Competitions() {
             setIsRegisterModalOpen(false);
           }}
         />
+      )}
+
+      {/* Trial Expired Team Registration Lock Modal */}
+      {trialLockModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-5 shadow-2xl relative">
+            <button 
+              onClick={() => setTrialLockModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition"
+            >
+              ✕
+            </button>
+
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div>
+              <span className="px-3 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-full text-[11px] font-black uppercase tracking-wider">
+                Active Membership Required
+              </span>
+              <h3 className="text-xl font-bold text-slate-900 mt-2">
+                Tournament Registration Locked
+              </h3>
+              {lockedCompName && (
+                <p className="text-xs text-indigo-600 font-semibold mt-1">"{lockedCompName}"</p>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed text-left bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              Your 14-day free trial has expired. You are free to browse all tournament guidelines, mission challenge rules, public scoring rubrics, and updates! However, official team registration (2 Boys + 2 Girls) and arena qualifiers require an active YARA membership ($15 USD once-off).
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <Link
+                to="/learner-dashboard"
+                onClick={() => setTrialLockModalOpen(false)}
+                className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-indigo-100 transition"
+              >
+                <span>Activate Membership ($15 USD)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="https://wa.me/263772000000?text=Hello%20YARA%20Admin,%20my%20free%20trial%20has%20expired%20and%20I%20would%20like%20to%20activate%20my%20membership%20subscription%20to%20register%20my%20robotics%20team."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200 transition"
+              >
+                <span>Contact Admin on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

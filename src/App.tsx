@@ -84,14 +84,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     );
   }
 
-  if (isTrialExpired && profile?.role !== 'admin' && profile?.role !== 'mentor') {
-    return <SubscriptionLockoutView type="trial_expired" />;
-  }
-
-  if (isSubscriptionExpired && profile?.role !== 'admin' && profile?.role !== 'mentor') {
-    return <SubscriptionLockoutView type="subscription_expired" />;
-  }
-
+  // Note: When trial or subscription expires, the user retains access to the webpage, updates,
+  // and community, while individual courses and premium events will be locked inside their respective views.
   return <>{children}</>;
 };
 

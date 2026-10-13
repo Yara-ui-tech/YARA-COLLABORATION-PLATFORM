@@ -5,7 +5,8 @@ import {
   XCircle, Filter, ChevronDown, UserCheck, UserX, Clock, 
   Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus,
   Layers, Upload, Download, FileSpreadsheet, CheckSquare, Square,
-  MessageSquare, Sparkles, ChevronRight, Share2, Info
+  MessageSquare, Sparkles, ChevronRight, Share2, Info, CreditCard,
+  ShieldCheck, AlertTriangle, Key
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
@@ -13,6 +14,11 @@ import { cn } from '../../lib/utils';
 import { getChapters } from '../../services/chaptersService';
 import { Chapter } from '../../types/chapters';
 import { yaraV3Service } from '../../services/v3/yaraV3Service';
+import { 
+  getAllSubscriptions, 
+  approveUserSubscription 
+} from '../../services/partnershipDonationService';
+import { UserSubscription } from '../../types/partnershipsAndDonations';
 
 export interface ExtendedUserProfile {
   id: string;
@@ -33,6 +39,8 @@ export interface ExtendedUserProfile {
   chapter_position?: string;
   registration_paid: boolean;
   subscription_expires_at?: string;
+  trial_ends_at?: string;
+  subscription_status?: string;
   is_halted: boolean;
   created_at: string;
   rating?: number;
@@ -74,8 +82,9 @@ export default function MemberDirectoryAdminTab() {
   const [users, setUsers] = useState<ExtendedUserProfile[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [joinRequests, setJoinRequests] = useState<ChapterJoinRequestItem[]>([]);
+  const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubView, setActiveSubView] = useState<'directory' | 'join_requests'>('directory');
+  const [activeSubView, setActiveSubView] = useState<'directory' | 'pending_subs' | 'expired_trials' | 'join_requests'>('directory');
 
   // Filters & Display
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,7 +167,10 @@ export default function MemberDirectoryAdminTab() {
           chapter_id: d.chapter_id,
           chapter_name: d.chapter_name,
           chapter_position: d.position || d.chapter_position || 'Member',
-          registration_paid: d.registration_paid ?? true,
+          registration_paid: Boolean(d.registration_paid),
+          subscription_expires_at: d.subscription_expires_at,
+          trial_ends_at: d.trial_ends_at,
+          subscription_status: d.subscription_status,
           is_halted: d.status === 'suspended' || d.is_halted,
           created_at: d.joined_date || d.created_at || new Date().toISOString()
         }));
@@ -179,6 +191,10 @@ export default function MemberDirectoryAdminTab() {
         .order('submitted_at', { ascending: false });
 
       if (reqData) setJoinRequests(reqData);
+
+      // 4. Fetch Subscriptions & Proofs
+      const subs = await getAllSubscriptions();
+      setSubscriptions(subs || []);
     } catch (err: any) {
       console.error('Error fetching member directory data:', err);
       showToast('error', err.message || 'Failed to load member records.');
@@ -218,6 +234,26 @@ export default function MemberDirectoryAdminTab() {
     return cleaned;
   };
 
+  // Compute expired free trial users
+  const expiredTrialUsers = useMemo(() => {
+    return users.filter(u => {
+      if (u.role === 'admin' || u.role === 'mentor' || u.role === 'teacher') return false;
+      if (u.registration_paid) return false;
+      if (u.subscription_expires_at && new Date(u.subscription_expires_at) > new Date()) return false;
+      if (u.trial_ends_at && new Date(u.trial_ends_at) < new Date()) return true;
+      return false;
+    });
+  }, [users]);
+
+  // Compute pending subscription approval requests
+  const pendingSubscriptions = useMemo(() => {
+    return subscriptions.filter(s => s.status === 'pending_verification' || s.status === 'pending');
+  }, [subscriptions]);
+
+  const pendingRequestsCount = useMemo(() => {
+    return joinRequests.filter(r => r.status === 'pending').length;
+  }, [joinRequests]);
+
   // Filtered members list
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
@@ -235,20 +271,21 @@ export default function MemberDirectoryAdminTab() {
       const matchChapter = selectedChapterFilter === 'ALL' || u.chapter_id === selectedChapterFilter || u.chapter_name === selectedChapterFilter;
       const matchPosition = selectedPositionFilter === 'ALL' || (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
+      
+      const isTrialExp = !u.registration_paid && u.trial_ends_at && new Date(u.trial_ends_at) < new Date();
+      const isPaid = u.registration_paid || (u.subscription_expires_at && new Date(u.subscription_expires_at) > new Date());
+
       const matchStatus = 
         selectedStatusFilter === 'ALL' ? true :
         selectedStatusFilter === 'suspended' ? u.is_halted :
-        selectedStatusFilter === 'paid' ? u.registration_paid :
+        selectedStatusFilter === 'paid' ? isPaid :
+        selectedStatusFilter === 'trial_expired' ? isTrialExp :
         selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
         true;
 
       return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus;
     });
   }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter, selectedStatusFilter]);
-
-  const pendingRequestsCount = useMemo(() => {
-    return joinRequests.filter(r => r.status === 'pending').length;
-  }, [joinRequests]);
 
   // Multi-select handlers
   const handleToggleSelect = (id: string) => {
@@ -274,7 +311,7 @@ export default function MemberDirectoryAdminTab() {
       ? users.filter(u => selectedMemberIds.has(u.id))
       : filteredUsers;
 
-    const headers = ['YARA Member ID', 'Full Name', 'Email', 'Phone', 'WhatsApp', 'Chapter', 'Position', 'Province', 'District', 'Status'];
+    const headers = ['YARA Member ID', 'Full Name', 'Email', 'Phone', 'WhatsApp', 'Chapter', 'Position', 'Province', 'District', 'Status', 'Trial End Date'];
     const rows = listToExport.map(u => [
       `"${u.member_id || ''}"`,
       `"${u.display_name || ''}"`,
@@ -285,7 +322,8 @@ export default function MemberDirectoryAdminTab() {
       `"${u.chapter_position || 'Member'}"`,
       `"${u.province || ''}"`,
       `"${u.district || ''}"`,
-      `"${u.is_halted ? 'Suspended' : 'Active'}"`
+      `"${u.is_halted ? 'Suspended' : u.registration_paid ? 'Active (Paid)' : 'Trial'}"`,
+      `"${u.trial_ends_at ? new Date(u.trial_ends_at).toLocaleDateString() : 'N/A'}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -340,6 +378,7 @@ export default function MemberDirectoryAdminTab() {
 
   // Direct WhatsApp & Email actions
   const handleOpenWhatsApp = (member: ExtendedUserProfile) => {
+    if (!member) return;
     const rawPhone = member.whatsapp_number || member.contact_phone || member.phone;
     const cleanPhone = formatPhoneForWhatsApp(rawPhone);
 
@@ -357,6 +396,7 @@ export default function MemberDirectoryAdminTab() {
   };
 
   const handleOpenEmail = (member: ExtendedUserProfile) => {
+    if (!member) return;
     setEmailModalMember(member);
     setEmailSubject(`YARA Notice: Official Update for ${member.display_name}`);
     setEmailBody(
@@ -375,8 +415,37 @@ export default function MemberDirectoryAdminTab() {
     }, 2000);
   };
 
+  // 1-Click Approve Subscription Handler
+  const handleApproveSubscription = async (userId: string, userEmail: string, subId?: string) => {
+    try {
+      const oneYearAhead = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      
+      // 1. Update profiles table
+      const { error: profErr } = await supabase.from('profiles').update({
+        registration_paid: true,
+        subscription_expires_at: oneYearAhead,
+        updated_at: new Date().toISOString()
+      }).eq('id', userId);
+
+      if (profErr) {
+        console.warn('Profile update note:', profErr.message);
+      }
+
+      // 2. Call approveUserSubscription service
+      if (subId) {
+        await approveUserSubscription(subId, userId, 365);
+      }
+
+      showToast('success', `Subscription APPROVED for ${userEmail}! Full LMS courses unlocked.`);
+      fetchData();
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to approve subscription.');
+    }
+  };
+
   // Open Edit Modal
   const handleOpenEditModal = (member: ExtendedUserProfile) => {
+    if (!member) return;
     setEditingMember(member);
     setEditChapterId(member.chapter_id || '');
     setEditPosition(member.chapter_position || 'Member');
@@ -414,6 +483,7 @@ export default function MemberDirectoryAdminTab() {
   };
 
   const handleToggleStatus = async (member: ExtendedUserProfile, newStatus: 'active' | 'suspended') => {
+    if (!member) return;
     try {
       await yaraV3Service.setMemberStatus(member.id, newStatus);
       setUsers(prev => prev.map(u => u.id === member.id ? { ...u, is_halted: newStatus === 'suspended' } : u));
@@ -618,6 +688,195 @@ export default function MemberDirectoryAdminTab() {
     return null;
   }, [groupBy, filteredUsers]);
 
+  // Safe Member Row Renderer (Defined at component level)
+  const renderMemberRow = (member: ExtendedUserProfile) => {
+    if (!member) return null;
+    const phone = member.whatsapp_number || member.contact_phone || member.phone || '';
+    const hasPhone = Boolean(phone);
+    const isLeader = member.chapter_position && member.chapter_position !== 'Member';
+    const isSelected = selectedMemberIds.has(member.id);
+    const isTrialExpired = !member.registration_paid && member.trial_ends_at && new Date(member.trial_ends_at) < new Date();
+    const isPaidActive = member.registration_paid || (member.subscription_expires_at && new Date(member.subscription_expires_at) > new Date());
+
+    return (
+      <tr key={member.id} className={cn("hover:bg-slate-50/60 transition group", isSelected && "bg-indigo-50/30")}>
+        {/* Checkbox */}
+        <td className="px-4 py-4 text-center">
+          <button onClick={() => handleToggleSelect(member.id)} className="p-1 text-slate-400 hover:text-indigo-600 transition">
+            {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-600" /> : <Square className="w-4 h-4" />}
+          </button>
+        </td>
+
+        {/* Member Info */}
+        <td className="px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-black text-indigo-700 text-sm shrink-0 overflow-hidden">
+              {member.avatar_url ? (
+                <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                member.display_name?.[0] || 'M'
+              )}
+            </div>
+            <div className="min-w-0">
+              <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
+              <span className="text-[11px] text-slate-400 block truncate">{member.email}</span>
+              {phone && (
+                <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                  <Phone className="w-2.5 h-2.5" />
+                  <span>{phone}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </td>
+
+        {/* Member ID */}
+        <td className="px-4 py-4 whitespace-nowrap">
+          {member.member_id ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50/80 border border-indigo-200/80 rounded-lg">
+              <span className="font-mono font-black text-[11px] text-indigo-700">{member.member_id}</span>
+              <button
+                onClick={() => copyToClipboard(member.member_id!, member.id)}
+                className="text-indigo-400 hover:text-indigo-700 transition"
+                title="Copy ID"
+              >
+                {copiedId === member.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+              </button>
+            </div>
+          ) : (
+            <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
+              Unassigned
+            </span>
+          )}
+        </td>
+
+        {/* Assigned Chapter */}
+        <td className="px-6 py-4">
+          {member.chapter_name ? (
+            <div className="space-y-0.5">
+              <span className="font-bold text-slate-900 block line-clamp-1">{member.chapter_name}</span>
+              <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-indigo-500" />
+                <span>{member.province || 'National'}</span>
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] font-bold text-slate-400 italic bg-slate-100 px-2.5 py-1 rounded-lg">
+              Awaiting Chapter Placement
+            </span>
+          )}
+        </td>
+
+        {/* Position */}
+        <td className="px-4 py-4 whitespace-nowrap">
+          <span className={cn(
+            "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
+            isLeader
+              ? "bg-amber-100 text-amber-900 border border-amber-200"
+              : "bg-slate-100 text-slate-700"
+          )}>
+            {member.chapter_position || 'Member'}
+          </span>
+        </td>
+
+        {/* Location & Institution */}
+        <td className="px-4 py-4">
+          <span className="text-[11px] font-semibold text-slate-700 block truncate">
+            {member.institution || 'Individual Innovator'}
+          </span>
+          <span className="text-[10px] text-slate-400 block truncate">
+            {member.district ? `${member.district}, ` : ''}{member.province || 'Zimbabwe'}
+          </span>
+        </td>
+
+        {/* Status: Active / Trial Expired / Suspended */}
+        <td className="px-4 py-4 whitespace-nowrap">
+          {member.is_halted ? (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800">
+              Suspended
+            </span>
+          ) : isPaidActive ? (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+              Active (Paid)
+            </span>
+          ) : isTrialExpired ? (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+              Trial Expired (Locked)
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-800">
+              Free Trial
+            </span>
+          )}
+        </td>
+
+        {/* Actions: Email, WhatsApp, Approve Sub, Edit, Status */}
+        <td className="px-6 py-4 text-right whitespace-nowrap">
+          <div className="flex items-center justify-end gap-1.5">
+            {/* Quick 1-Click Approve Subscription Button if not paid */}
+            {!isPaidActive && (
+              <button
+                onClick={() => handleApproveSubscription(member.id, member.email)}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition"
+                title="Activate / Approve Annual Subscription for Member"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Approve Access</span>
+              </button>
+            )}
+
+            {/* Email button */}
+            <button
+              onClick={() => handleOpenEmail(member)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition"
+              title="Compose Email"
+            >
+              <Mail className="w-3.5 h-3.5" />
+            </button>
+
+            {/* WhatsApp button */}
+            <button
+              onClick={() => handleOpenWhatsApp(member)}
+              disabled={!hasPhone}
+              className={cn(
+                "p-2 rounded-xl transition",
+                hasPhone 
+                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs" 
+                  : "bg-slate-100 text-slate-300 cursor-not-allowed"
+              )}
+              title={hasPhone ? `WhatsApp: ${phone}` : "No phone provided"}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Edit Position & Chapter */}
+            <button
+              onClick={() => handleOpenEditModal(member)}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+              title="Change chapter or leadership position"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Toggle Status (Suspend / Reactivate) */}
+            <button
+              onClick={() => handleToggleStatus(member, member.is_halted ? 'active' : 'suspended')}
+              className={cn(
+                "p-2 rounded-xl transition",
+                member.is_halted
+                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-red-50 text-red-700 hover:bg-red-100"
+              )}
+              title={member.is_halted ? "Re-activate Member" : "Suspend Member"}
+            >
+              {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Feedback */}
@@ -641,6 +900,56 @@ export default function MemberDirectoryAdminTab() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ADMIN NOTIFICATION 1: Pending Subscription Approvals */}
+      {pendingSubscriptions.length > 0 && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-emerald-950 block">
+                🔔 Subscription Requests: {pendingSubscriptions.length} Member(s) Waiting for Approval
+              </span>
+              <span className="text-[11px] text-emerald-700">
+                Payment proofs submitted. Approve their subscriptions to unlock all LMS modules and competition passes.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveSubView('pending_subs')}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-xs transition shrink-0"
+          >
+            Review &amp; Approve ({pendingSubscriptions.length})
+          </button>
+        </div>
+      )}
+
+      {/* ADMIN NOTIFICATION 2: Free Trial Expired Members */}
+      {expiredTrialUsers.length > 0 && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-amber-950 block">
+                ⏳ Trial Expired: {expiredTrialUsers.length} Member(s) with Ended Free Trial
+              </span>
+              <span className="text-[11px] text-amber-800">
+                Their courses and exclusive events are currently locked, while website and community updates remain accessible.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveSubView('expired_trials')}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-xs transition shrink-0"
+          >
+            View Expired ({expiredTrialUsers.length})
+          </button>
+        </div>
+      )}
 
       {/* WhatsApp Quick Notification Banner after Approval */}
       {lastDecisionWhatsAppLink && (
@@ -683,15 +992,15 @@ export default function MemberDirectoryAdminTab() {
         <div>
           <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Users className="w-6 h-6 text-indigo-600" />
-            <span>Master Member Directory & Messaging Console</span>
+            <span>Master Member Directory &amp; Messaging Console</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            YARA Pan-African membership register: chapters, leadership positions, direct multi-channel communication (Email, WhatsApp, In-App).
+            YARA membership register, Member ID records, trial expiry alerts, subscription approvals, and multi-channel messaging.
           </p>
         </div>
 
         {/* View Switcher Chips */}
-        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl shrink-0">
+        <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl shrink-0 flex-wrap">
           <button
             onClick={() => setActiveSubView('directory')}
             className={cn(
@@ -706,6 +1015,42 @@ export default function MemberDirectoryAdminTab() {
           </button>
 
           <button
+            onClick={() => setActiveSubView('pending_subs')}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
+              activeSubView === 'pending_subs' 
+                ? "bg-white text-slate-900 shadow-xs" 
+                : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Subscription Approvals</span>
+            {pendingSubscriptions.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[10px] animate-pulse">
+                {pendingSubscriptions.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveSubView('expired_trials')}
+            className={cn(
+              "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
+              activeSubView === 'expired_trials' 
+                ? "bg-white text-slate-900 shadow-xs" 
+                : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Trial Expired</span>
+            {expiredTrialUsers.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px]">
+                {expiredTrialUsers.length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveSubView('join_requests')}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
@@ -714,18 +1059,19 @@ export default function MemberDirectoryAdminTab() {
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
-            <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
+            <UserPlus className="w-3.5 h-3.5 text-indigo-600" />
             <span>Join Requests</span>
             {pendingRequestsCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-black text-[10px] animate-pulse">
-                {pendingRequestsCount} Pending
+              <span className="px-2 py-0.5 rounded-full bg-indigo-500 text-white font-black text-[10px] animate-pulse">
+                {pendingRequestsCount}
               </span>
             )}
           </button>
         </div>
       </div>
 
-      {activeSubView === 'directory' ? (
+      {/* VIEW 1: MASTER DIRECTORY */}
+      {activeSubView === 'directory' && (
         <>
           {/* Summary Badges & Quick Action Buttons */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -734,20 +1080,20 @@ export default function MemberDirectoryAdminTab() {
               <span className="text-2xl font-black text-slate-900 mt-1 block">{users.length}</span>
             </div>
             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 block uppercase">In Active Chapters</span>
-              <span className="text-2xl font-black text-indigo-600 mt-1 block">
-                {users.filter(u => u.chapter_id || u.chapter_name).length}
+              <span className="text-[11px] font-bold text-slate-400 block uppercase">Active &amp; Paid LMS</span>
+              <span className="text-2xl font-black text-emerald-600 mt-1 block">
+                {users.filter(u => u.registration_paid || (u.subscription_expires_at && new Date(u.subscription_expires_at) > new Date())).length}
               </span>
             </div>
             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs">
-              <span className="text-[11px] font-bold text-slate-400 block uppercase">Leadership Officers</span>
+              <span className="text-[11px] font-bold text-slate-400 block uppercase">Trial Expired</span>
               <span className="text-2xl font-black text-amber-500 mt-1 block">
-                {users.filter(u => u.chapter_position && u.chapter_position !== 'Member').length}
+                {expiredTrialUsers.length}
               </span>
             </div>
             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs">
               <span className="text-[11px] font-bold text-slate-400 block uppercase">Selected Members</span>
-              <span className="text-2xl font-black text-emerald-600 mt-1 block">
+              <span className="text-2xl font-black text-indigo-600 mt-1 block">
                 {selectedMemberIds.size}
               </span>
             </div>
@@ -863,6 +1209,19 @@ export default function MemberDirectoryAdminTab() {
                 ))}
               </select>
 
+              {/* Status Filter */}
+              <select
+                value={selectedStatusFilter}
+                onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="paid">Active (Paid)</option>
+                <option value="trial_expired">Trial Expired</option>
+                <option value="suspended">Suspended</option>
+                <option value="leaders">Leaders Only</option>
+              </select>
+
               {/* Group By Toggle */}
               <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
                 <button
@@ -917,8 +1276,8 @@ export default function MemberDirectoryAdminTab() {
                     <th className="px-4 py-4">Member ID</th>
                     <th className="px-6 py-4">Assigned Chapter</th>
                     <th className="px-4 py-4">Position / Role</th>
-                    <th className="px-4 py-4">Location & Institution</th>
-                    <th className="px-4 py-4">Status</th>
+                    <th className="px-4 py-4">Location &amp; Institution</th>
+                    <th className="px-4 py-4">Subscription Status</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -961,8 +1320,168 @@ export default function MemberDirectoryAdminTab() {
             </div>
           </div>
         </>
-      ) : (
-        /* SUB-VIEW 2: CHAPTER JOIN REQUESTS INBOX */
+      )}
+
+      {/* VIEW 2: PENDING SUBSCRIPTION APPROVALS */}
+      {activeSubView === 'pending_subs' && (
+        <div className="space-y-4">
+          <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                Pending Member Subscription Approvals ({pendingSubscriptions.length})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Members who submitted proof of payment or requested access activation. 1-click execution updates their profile and unlocks all LMS courses.
+              </p>
+            </div>
+            <button
+              onClick={fetchData}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <th className="px-6 py-4">User Email / Name</th>
+                    <th className="px-4 py-4">Plan Type</th>
+                    <th className="px-4 py-4">Amount / Method</th>
+                    <th className="px-4 py-4">Payment Reference</th>
+                    <th className="px-4 py-4">Submitted At</th>
+                    <th className="px-6 py-4 text-right">Approval Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {pendingSubscriptions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
+                        No pending subscription verification requests at this moment.
+                      </td>
+                    </tr>
+                  ) : (
+                    pendingSubscriptions.map(sub => (
+                      <tr key={sub.id} className="hover:bg-slate-50/60 transition">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-900 block">{sub.user_name || sub.user_email}</span>
+                          <span className="text-[11px] text-slate-400">{sub.user_email}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-[11px]">
+                            {sub.plan_type || 'Annual Membership'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 font-bold text-slate-800">
+                          {sub.amount ? `$${sub.amount}` : '$15'} ({sub.payment_method || 'EcoCash / Cash'})
+                        </td>
+                        <td className="px-4 py-4 font-mono font-bold text-indigo-700">
+                          {sub.payment_reference || 'Ref Pending'}
+                        </td>
+                        <td className="px-4 py-4 text-slate-400 text-[11px]">
+                          {new Date(sub.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleApproveSubscription(sub.user_id, sub.user_email, sub.id)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-xs transition inline-flex items-center gap-1.5"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Approve &amp; Unlock LMS</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: TRIAL EXPIRED MEMBERS */}
+      {activeSubView === 'expired_trials' && (
+        <div className="space-y-4">
+          <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-black text-slate-900">
+                Members with Expired Free Trial ({expiredTrialUsers.length})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                These users can still view public website updates, read announcements, and browse the platform, but LMS courses and premium events are locked. You can renew their access below.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                    <th className="px-6 py-4">Member</th>
+                    <th className="px-4 py-4">Member ID</th>
+                    <th className="px-4 py-4">Chapter</th>
+                    <th className="px-4 py-4">Trial Ended Date</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {expiredTrialUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
+                        No members currently have an expired trial.
+                      </td>
+                    </tr>
+                  ) : (
+                    expiredTrialUsers.map(member => (
+                      <tr key={member.id} className="hover:bg-slate-50/60 transition">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-900 block">{member.display_name}</span>
+                          <span className="text-[11px] text-slate-400">{member.email}</span>
+                          {member.phone && <span className="text-[10px] text-emerald-600 block">{member.phone}</span>}
+                        </td>
+                        <td className="px-4 py-4 font-mono font-bold text-slate-700">
+                          {member.member_id || 'Pending'}
+                        </td>
+                        <td className="px-4 py-4 text-slate-700 font-medium">
+                          {member.chapter_name || 'No Chapter'}
+                        </td>
+                        <td className="px-4 py-4 text-amber-600 font-bold">
+                          {member.trial_ends_at ? new Date(member.trial_ends_at).toLocaleDateString() : 'Expired'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleApproveSubscription(member.id, member.email)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                            >
+                              Activate Subscription
+                            </button>
+                            <button
+                              onClick={() => handleOpenWhatsApp(member)}
+                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl"
+                              title="Remind on WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 4: CHAPTER JOIN REQUESTS INBOX */}
+      {activeSubView === 'join_requests' && (
         <div className="space-y-4">
           <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-xs">
             <h3 className="text-base font-black text-slate-900">
@@ -1065,171 +1584,6 @@ export default function MemberDirectoryAdminTab() {
         </div>
       )}
 
-      {/* Row Render Helper Function */}
-      {function renderMemberRow(member: ExtendedUserProfile) {
-        const phone = member.whatsapp_number || member.contact_phone || member.phone;
-        const hasPhone = Boolean(phone);
-        const isLeader = member.chapter_position && member.chapter_position !== 'Member';
-        const isSelected = selectedMemberIds.has(member.id);
-
-        return (
-          <tr key={member.id} className={cn("hover:bg-slate-50/60 transition group", isSelected && "bg-indigo-50/30")}>
-            {/* Checkbox */}
-            <td className="px-4 py-4 text-center">
-              <button onClick={() => handleToggleSelect(member.id)} className="p-1 text-slate-400 hover:text-indigo-600 transition">
-                {isSelected ? <CheckSquare className="w-4 h-4 text-indigo-600" /> : <Square className="w-4 h-4" />}
-              </button>
-            </td>
-
-            {/* Member Info */}
-            <td className="px-4 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-black text-indigo-700 text-sm shrink-0 overflow-hidden">
-                  {member.avatar_url ? (
-                    <img src={member.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    member.display_name?.[0] || 'M'
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
-                  <span className="text-[11px] text-slate-400 block truncate">{member.email}</span>
-                  {phone && (
-                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
-                      <Phone className="w-2.5 h-2.5" />
-                      <span>{phone}</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-            </td>
-
-            {/* Member ID */}
-            <td className="px-4 py-4 whitespace-nowrap">
-              {member.member_id ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50/80 border border-indigo-200/80 rounded-lg">
-                  <span className="font-mono font-black text-[11px] text-indigo-700">{member.member_id}</span>
-                  <button
-                    onClick={() => copyToClipboard(member.member_id!, member.id)}
-                    className="text-indigo-400 hover:text-indigo-700 transition"
-                    title="Copy ID"
-                  >
-                    {copiedId === member.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                  </button>
-                </div>
-              ) : (
-                <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
-                  Unassigned
-                </span>
-              )}
-            </td>
-
-            {/* Assigned Chapter */}
-            <td className="px-6 py-4">
-              {member.chapter_name ? (
-                <div className="space-y-0.5">
-                  <span className="font-bold text-slate-900 block line-clamp-1">{member.chapter_name}</span>
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                    <Building2 className="w-3 h-3 text-indigo-500" />
-                    <span>{member.province || 'National'}</span>
-                  </span>
-                </div>
-              ) : (
-                <span className="text-[10px] font-bold text-slate-400 italic bg-slate-100 px-2.5 py-1 rounded-lg">
-                  Awaiting Chapter Placement
-                </span>
-              )}
-            </td>
-
-            {/* Position */}
-            <td className="px-4 py-4 whitespace-nowrap">
-              <span className={cn(
-                "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
-                isLeader
-                  ? "bg-amber-100 text-amber-900 border border-amber-200"
-                  : "bg-slate-100 text-slate-700"
-              )}>
-                {member.chapter_position || 'Member'}
-              </span>
-            </td>
-
-            {/* Location & Institution */}
-            <td className="px-4 py-4">
-              <span className="text-[11px] font-semibold text-slate-700 block truncate">
-                {member.institution || 'Individual Innovator'}
-              </span>
-              <span className="text-[10px] text-slate-400 block truncate">
-                {member.district ? `${member.district}, ` : ''}{member.province || 'Zimbabwe'}
-              </span>
-            </td>
-
-            {/* Status */}
-            <td className="px-4 py-4 whitespace-nowrap">
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                member.is_halted
-                  ? "bg-red-100 text-red-800"
-                  : "bg-emerald-100 text-emerald-800"
-              )}>
-                {member.is_halted ? 'Suspended' : 'Active'}
-              </span>
-            </td>
-
-            {/* Actions: Email, WhatsApp, Edit, Status */}
-            <td className="px-6 py-4 text-right whitespace-nowrap">
-              <div className="flex items-center justify-end gap-1.5">
-                {/* Email button */}
-                <button
-                  onClick={() => handleOpenEmail(member)}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition"
-                  title="Compose Email"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                </button>
-
-                {/* WhatsApp button */}
-                <button
-                  onClick={() => handleOpenWhatsApp(member)}
-                  disabled={!hasPhone}
-                  className={cn(
-                    "p-2 rounded-xl transition",
-                    hasPhone 
-                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs" 
-                      : "bg-slate-100 text-slate-300 cursor-not-allowed"
-                  )}
-                  title={hasPhone ? `WhatsApp: ${phone}` : "No phone provided"}
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Edit Position & Chapter */}
-                <button
-                  onClick={() => handleOpenEditModal(member)}
-                  className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
-                  title="Change chapter or leadership position"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Toggle Status (Suspend / Reactivate) */}
-                <button
-                  onClick={() => handleToggleStatus(member, member.is_halted ? 'active' : 'suspended')}
-                  className={cn(
-                    "p-2 rounded-xl transition",
-                    member.is_halted
-                      ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      : "bg-red-50 text-red-700 hover:bg-red-100"
-                  )}
-                  title={member.is_halted ? "Re-activate Member" : "Suspend Member"}
-                >
-                  {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </td>
-          </tr>
-        );
-      }(users[0]) && null}
-
       {/* Modal: Edit Chapter Affiliation & Leadership Position */}
       {editingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -1240,7 +1594,7 @@ export default function MemberDirectoryAdminTab() {
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="font-black text-slate-900 text-base">Assign Chapter & Leadership Position</h3>
+                <h3 className="font-black text-slate-900 text-base">Assign Chapter &amp; Leadership Position</h3>
                 <p className="text-xs text-slate-500">Updating member: <strong>{editingMember.display_name}</strong></p>
               </div>
               <button 

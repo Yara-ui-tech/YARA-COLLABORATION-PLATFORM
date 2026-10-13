@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Award, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School, Plus, Edit3, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Trophy, ArrowRight, Clock, Zap, Loader2, Award, Cpu, Code, Brain, ShieldCheck, Video, DollarSign, School, Plus, Edit3, Trash2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import PlaceholderImage from '../components/PlaceholderImage';
@@ -35,11 +35,23 @@ export default function Events() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
 
+  const isTrialExpired = Boolean(
+    profile &&
+    !profile.registration_paid &&
+    profile.trial_ends_at &&
+    new Date(profile.trial_ends_at) < new Date() &&
+    profile.role !== 'admin'
+  );
+
   const [events, setEvents] = useState<Event[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
   const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');
+
+  // Trial Lock Modal State
+  const [trialLockModalOpen, setTrialLockModalOpen] = useState(false);
+  const [lockedEventName, setLockedEventName] = useState('');
 
   // Modal for Event Editing / Adding
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
@@ -112,6 +124,11 @@ export default function Events() {
   };
 
   const handleOpenVirtualChallenge = (vComp: VirtualCompetition) => {
+    if (isTrialExpired) {
+      setLockedEventName(vComp.title);
+      setTrialLockModalOpen(true);
+      return;
+    }
     setSelectedVirtualComp(vComp);
     setIsVirtualModalOpen(true);
   };
@@ -439,13 +456,26 @@ export default function Events() {
 
                           <div className="p-6 pt-0 border-t border-slate-800/60 mt-4 flex items-center justify-between gap-3">
                             {event.registration_link ? (
-                              <a 
-                                href={event.registration_link}
-                                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-cyan-500/20 transition-all flex items-center space-x-1.5"
-                              >
-                                <span>Register</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </a>
+                              isTrialExpired && (event.category === 'Virtual Bootcamp' || event.category === 'Physical Tournament') ? (
+                                <button
+                                  onClick={() => {
+                                    setLockedEventName(event.title);
+                                    setTrialLockModalOpen(true);
+                                  }}
+                                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center space-x-1.5"
+                                >
+                                  <Lock className="w-3.5 h-3.5" />
+                                  <span>Locked (Trial Expired)</span>
+                                </button>
+                              ) : (
+                                <a 
+                                  href={event.registration_link}
+                                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-cyan-500/20 transition-all flex items-center space-x-1.5"
+                                >
+                                  <span>Register</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </a>
+                              )
                             ) : (
                               <span className="text-xs font-bold text-slate-400">Open Admission</span>
                             )}
@@ -523,6 +553,59 @@ export default function Events() {
             fetchData();
           }}
         />
+      )}
+
+      {/* Trial Expired Event Lock Modal */}
+      {trialLockModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 text-center space-y-5 shadow-2xl relative">
+            <button 
+              onClick={() => setTrialLockModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800 transition"
+            >
+              ✕
+            </button>
+
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+              <Lock className="w-8 h-8" />
+            </div>
+
+            <div>
+              <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-[11px] font-bold uppercase tracking-wider">
+                Active Membership Required
+              </span>
+              <h3 className="text-xl font-bold text-white mt-2">
+                Event Registration Locked
+              </h3>
+              {lockedEventName && (
+                <p className="text-xs text-cyan-400 font-medium mt-1">"{lockedEventName}"</p>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed text-left bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
+              Your 14-day free trial has expired. You are welcome to continue browsing all public webpages, reading articles, exploring chapters, and checking updates freely! However, registration for intensive bootcamps, physical tournaments, and virtual simulation challenges is reserved for active YARA members ($15 USD once-off).
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <Link
+                to="/learner-dashboard"
+                onClick={() => setTrialLockModalOpen(false)}
+                className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition"
+              >
+                <span>Activate Membership ($15 USD)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href="https://wa.me/263772000000?text=Hello%20YARA%20Admin,%20my%20free%20trial%20has%20expired%20and%20I%20would%20like%20to%20activate%20my%20membership%20subscription%20to%20join%20events."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-700 transition"
+              >
+                <span>Contact Admin on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
