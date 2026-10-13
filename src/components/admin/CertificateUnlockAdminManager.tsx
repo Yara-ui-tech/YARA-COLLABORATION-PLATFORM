@@ -10,10 +10,11 @@ import {
   batchUnlockCertificatesByAdmin,
   getAllUserCompletions
 } from '../../services/yaraLmsService';
-import { getAllCourses, getAllUserProgrammingCertificates } from '../../services/programmingCoursesService';
+import { getAllUserProgrammingCertificates } from '../../services/programmingCoursesService';
 import { supabase } from '../../lib/supabase';
 import { getAllEventRegistrations, updateRegistrationStatus } from '../../services/eventRegistrationService';
 import { EventPaymentStatus, EventApprovalStatus } from '../../types/eventRegistration';
+import { getAllUnifiedCertificates } from '../../services/greatLearningCertService';
 import IndividualCertificateEditModal from './IndividualCertificateEditModal';
 
 interface StudentCertificateRow {
@@ -88,46 +89,117 @@ export const CertificateUnlockAdminManager: React.FC = () => {
   const loadCertificatesData = async () => {
     setLoadingCerts(true);
     try {
-      // Fetch Supabase Event & LMS Registrations
+      // 1. Fetch Supabase Event & LMS Registrations
       const eventRegs = await getAllEventRegistrations();
 
-      // Fetch Supabase Profiles
+      // 2. Fetch Real Supabase Profiles
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, email, school_organization, province')
         .order('created_at', { ascending: false });
 
-      const studentList = profiles && profiles.length > 0 ? profiles : [
-        { id: 'demo_learner_01', display_name: 'Tatenda Mutasa', email: 'tatenda@yara.org' },
-        { id: 'demo_learner_02', display_name: 'Rutendo Moyo', email: 'rutendo@yara.org' }
-      ];
-
+      const studentList = profiles || [];
       const allRows: StudentCertificateRow[] = [];
-      const courses = getAllCourses();
 
-      // Convert Event Registrations (AI Bootcamp, etc.)
+      // 3. Convert Real Event Registrations (AI Bootcamp, RAG, etc.)
       eventRegs.forEach(reg => {
         const code = (reg.registration_code || reg.id).toUpperCase();
         const certNum = reg.certificate_number || `YARA-AI-EDU-2026-${code.replace('YARA-AI-', '')}`;
+        const courseTitle = reg.certificate_title || reg.event_title || 'AI for Educators – Online Bootcamp 2026';
+        const isRag = courseTitle.toLowerCase().includes('rag');
         allRows.push({
           id: reg.id,
-          userId: reg.id,
+          userId: reg.user_id || reg.id,
           studentName: reg.full_name,
           userEmail: reg.email,
-          courseId: 'ai-for-educators-2026',
-          courseTitle: 'AI for Educators – Online Bootcamp 2026',
-          category: 'AI & Digital Pedagogy',
-          completedAt: reg.certificate_unlocked_at ? new Date(reg.certificate_unlocked_at).toLocaleDateString() : '2026-09-04',
+          courseId: reg.event_id || 'ai-for-educators-2026',
+          courseTitle: courseTitle,
+          category: isRag ? 'AI & Machine Learning' : 'AI & Digital Pedagogy',
+          completedAt: reg.issue_date || (reg.certificate_unlocked_at ? new Date(reg.certificate_unlocked_at).toLocaleDateString() : 'October 04, 2026'),
           certificateNumber: certNum,
           isUnlocked: Boolean(reg.certificate_unlocked && reg.approval_status === 'approved'),
           institution: reg.school_institution,
           province: reg.province,
-          grade: reg.certificate_grade || 'Certified Educator - AI & Digital Pedagogy (Honors)',
+          grade: reg.certificate_grade || (isRag ? 'Distinction with Honors' : 'Certified Educator - AI & Digital Pedagogy'),
           rawReg: reg
         });
       });
 
-      // Convert LMS Learners & Programming Courses
+      // 4. Fetch Real Cloud-Accredited Certificates from Supabase (e.g. Introduction to RAG)
+      try {
+        const { data: accreditedCerts, error: certErr } = await supabase
+          .from('yara_accredited_certificates')
+          .select('*');
+
+        if (!certErr && accreditedCerts && accreditedCerts.length > 0) {
+          accreditedCerts.forEach((ac: any) => {
+            const certNum = (ac.certificate_number || '').toUpperCase();
+            const existingIdx = allRows.findIndex(
+              r => r.certificateNumber.toUpperCase() === certNum
+            );
+
+            if (existingIdx >= 0) {
+              if (ac.course_title) allRows[existingIdx].courseTitle = ac.course_title;
+              if (ac.course_category) allRows[existingIdx].category = ac.course_category;
+              if (ac.issue_date) allRows[existingIdx].completedAt = ac.issue_date;
+              if (ac.grade) allRows[existingIdx].grade = ac.grade;
+              allRows[existingIdx].isUnlocked = true;
+            } else {
+              allRows.push({
+                id: ac.id || ac.certificate_number,
+                userId: ac.user_id || ac.certificate_number,
+                studentName: ac.student_name,
+                userEmail: ac.user_email,
+                courseId: ac.course_id || 'intro-to-rag',
+                courseTitle: ac.course_title || 'Introduction to RAG',
+                category: ac.course_category || 'AI & Machine Learning',
+                completedAt: ac.issue_date || 'October 04, 2026',
+                certificateNumber: ac.certificate_number,
+                isUnlocked: true,
+                grade: ac.grade || 'Distinction with Honors'
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Accredited certs query note:', e);
+      }
+
+      // 5. Check Unified Local/Persisted Certificates
+      try {
+        const unified = getAllUnifiedCertificates();
+        unified.forEach(u => {
+          const certNum = (u.certificateNumber || '').toUpperCase();
+          const existingIdx = allRows.findIndex(
+            r => r.certificateNumber.toUpperCase() === certNum
+          );
+          if (existingIdx >= 0) {
+            if (u.courseTitle && !allRows[existingIdx].courseTitle.includes(u.courseTitle)) {
+              allRows[existingIdx].courseTitle = u.courseTitle;
+            }
+            if (u.issueDate) allRows[existingIdx].completedAt = u.issueDate;
+            if (u.grade) allRows[existingIdx].grade = u.grade;
+          } else {
+            allRows.push({
+              id: u.id || u.certificateNumber,
+              userId: u.userId || u.certificateNumber,
+              studentName: u.studentName,
+              userEmail: u.userEmail,
+              courseId: u.courseId || 'intro-to-rag',
+              courseTitle: u.courseTitle,
+              category: u.courseCategory || 'AI & Machine Learning',
+              completedAt: u.issueDate || 'October 04, 2026',
+              certificateNumber: u.certificateNumber,
+              isUnlocked: true,
+              grade: u.grade || 'Distinction with Honors'
+            });
+          }
+        });
+      } catch {
+        // Fallback
+      }
+
+      // 6. Convert LMS Learners & Programming Courses for real students
       for (const st of studentList) {
         const comps = getAllUserCompletions(st.id);
         const hasRoboticsCompleted = Object.values(comps).some((c: any) => c?.isFullyCompleted);
@@ -168,26 +240,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
         }
       }
 
-      // Fallback sample courses if list is sparse
-      if (allRows.length < 3) {
-        courses.slice(0, 3).forEach((c, idx) => {
-          const demoUserId = `demo_user_${idx}`;
-          const unlocked = isCertificateUnlockedByAdmin(demoUserId, c.id);
-          allRows.push({
-            userId: demoUserId,
-            studentName: idx === 0 ? 'Dr. Farai Muringani' : idx === 1 ? 'Chipo Mazhindu' : 'Tinashe Chikosi',
-            userEmail: `learner_${idx}@yara.org`,
-            courseId: c.id,
-            courseTitle: c.title,
-            category: c.category,
-            completedAt: new Date().toLocaleDateString(),
-            certificateNumber: `YARA-CERT-2026-00${idx + 1}`,
-            isUnlocked: unlocked,
-            grade: 'Mastery Pass (92%)'
-          });
-        });
-      }
-
+      // NO FAKE DEMO STUDENTS ARE INJECTED. ONLY AUTHENTIC CREDENTIALS ARE SHOWN.
       setCertRows(allRows);
     } catch (e) {
       console.error('Error loading certificate rows:', e);
@@ -220,24 +273,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
         rawReg: reg
       }));
 
-      // Add sample LMS Subscriptions if needed
-      if (subs.length < 2) {
-        subs.push({
-          id: 'sub_lms_demo_01',
-          userEmail: 'manongwasimbarashe394@gmail.com',
-          fullName: 'Simbarashe Manongwa',
-          schoolInstitution: 'Harare Institute of Technology',
-          province: 'Harare',
-          subscriptionType: 'YARA LMS Full Academy Annual Pass',
-          amountUsd: 15.00,
-          paymentMethod: 'ecocash_usd',
-          paymentReference: 'MP20260919.1420.A92',
-          paymentStatus: 'verified',
-          approvalStatus: 'approved',
-          createdAt: new Date().toLocaleDateString()
-        });
-      }
-
+      // Only real subscriber records are shown
       setSubRows(subs);
     } catch (e) {
       console.error('Error loading subscription rows:', e);
