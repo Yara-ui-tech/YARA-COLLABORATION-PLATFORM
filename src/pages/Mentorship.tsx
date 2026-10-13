@@ -1173,7 +1173,7 @@ Possible causes:
                       )}
                     </div>
 
-                    {profile?.role !== 'mentor' && request.status === 'completed' && (
+                    {profile?.role !== 'mentor' && (request.status === 'completed' || request.status === 'accepted') && (
                       <button
                         onClick={() => setIsReviewing(request)}
                         className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors flex items-center space-x-2"

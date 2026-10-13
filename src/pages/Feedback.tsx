@@ -67,6 +67,21 @@ export default function Feedback() {
     };
 
     fetchData();
+
+    // Real-time synchronization
+    const channel = supabase
+      .channel('realtime-feedbacks-and-testimonials')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
+        fetchData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,11 +107,10 @@ export default function Feedback() {
           category,
           content,
           rating,
-          is_approved: true,
-          is_featured: true
+          is_approved: false, // Requires admin approval to show publicly on the page
+          is_featured: false
         });
         if (error) throw error;
-        setTestimonials(prev => [{ id: Date.now(), author_name: profile?.display_name || 'YARA Innovator', author_role: profile?.role === 'teacher' ? 'STEM Educator' : 'Robotics Innovator', content, rating }, ...prev]);
       }
 
       setSubmitted(true);

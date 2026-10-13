@@ -3,13 +3,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Menu, X, ChevronDown, GraduationCap, Trophy, Calendar, 
   Sparkles, Layers, ShieldCheck, ArrowRight, User, BookOpen, 
-  ExternalLink, Users, Phone, Search
+  ExternalLink, Users, Phone, Search, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { ASSETS } from '../../constants/assets';
 import { NotificationBell } from '../notifications/NotificationCenter';
 import { RuralDataSaverToggle } from '../RuralDataSaverToggle';
 import GlobalSearchModal from '../GlobalSearchModal';
+import UniversalPaymentGatewayModal from '../payment/UniversalPaymentGatewayModal';
 import { cn } from '../../lib/utils';
 
 export default function PublicHeader() {
@@ -18,6 +19,7 @@ export default function PublicHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProgrammesDropdownOpen, setIsProgrammesDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   // Section 2: Top navigation on desktop: Home, Learn, Library, Chapters, Events & Competitions, About
   const navLinks = [
@@ -182,6 +184,16 @@ export default function PublicHeader() {
 
             <NotificationBell />
 
+            {/* Pay Online Quick Button */}
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:text-white bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Pay Online for Kits, Events, Subscriptions & Dues"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">Pay Online</span>
+            </button>
+
             {user ? (
               <div className="flex items-center gap-2">
                 <Link
@@ -314,6 +326,11 @@ export default function PublicHeader() {
       )}
 
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      <UniversalPaymentGatewayModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+      />
     </header>
   );
 }

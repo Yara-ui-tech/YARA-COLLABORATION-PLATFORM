@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Play, BookOpen, CheckCircle2, Clock, Trophy, Award, 
   ArrowRight, Brain, Cpu, Code, DollarSign, Bell, Star, 
-  Sparkles, ShieldCheck, FileText, Check, AlertCircle, Users
+  Sparkles, ShieldCheck, FileText, Check, AlertCircle, Users, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import { CURRICULUM } from '../constants/curriculum';
 import { ASSETS } from '../constants/assets';
+import UniversalPaymentGatewayModal from '../components/payment/UniversalPaymentGatewayModal';
 
 export default function LearnerDashboard() {
   const { profile, user } = useAuth();
@@ -17,6 +18,7 @@ export default function LearnerDashboard() {
   const [feedbacks, setFeedbacks] = useState<Record<string, any>>({});
   const [completedCount, setCompletedCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(true);
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadUserProgress() {
@@ -307,9 +309,20 @@ export default function LearnerDashboard() {
             </div>
           </div>
 
-          <p className="text-xs text-slate-400 leading-relaxed font-normal">
-            Platform membership covers your access to the virtual simulator, accredited exam grading, capstone review, and live mentor rooms.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <p className="text-xs text-slate-400 leading-relaxed font-normal">
+              Platform membership covers your access to the virtual simulator, accredited exam grading, capstone review, and live mentor rooms.
+            </p>
+            {!profile?.registration_paid && (
+              <button
+                onClick={() => setIsPayModalOpen(true)}
+                className="shrink-0 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Pay $15 Dues Online</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Live Mentor Support */}
@@ -333,6 +346,13 @@ export default function LearnerDashboard() {
         </div>
       </div>
 
+      <UniversalPaymentGatewayModal
+        isOpen={isPayModalOpen}
+        onClose={() => setIsPayModalOpen(false)}
+        defaultPurpose="subscription"
+        defaultAmount={15}
+        itemTitle="YARA Annual Platform Membership"
+      />
     </div>
   );
 }

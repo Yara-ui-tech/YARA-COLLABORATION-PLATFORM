@@ -89,6 +89,21 @@ export default function FeedbacksTestimonialsAdminTab() {
 
   useEffect(() => {
     loadData();
+
+    // Real-time synchronization for feedbacks & testimonials
+    const channel = supabase
+      .channel('admin-realtime-feedbacks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Optimistic updates: paint the new state first, sync with Supabase in the

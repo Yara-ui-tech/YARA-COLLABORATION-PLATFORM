@@ -197,7 +197,18 @@ export default function Admin() {
     if (!isAdmin) return;
     if (activeTab === 'members') fetchUsers();
     if (activeTab === 'mentorship') fetchMentorshipRequests();
-    if (activeTab === 'reviews') fetchMentorReviews();
+    if (activeTab === 'reviews') {
+      fetchMentorReviews();
+      const ch = supabase
+        .channel('admin-mentor-reviews-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mentor_reviews' }, () => {
+          fetchMentorReviews();
+        })
+        .subscribe();
+      return () => {
+        supabase.removeChannel(ch);
+      };
+    }
     if (activeTab === 'live') fetchPendingLiveSessions();
     if (activeTab === 'mentor_req') fetchAutoMentorRequests();
     if (activeTab === 'events') fetchEvents();

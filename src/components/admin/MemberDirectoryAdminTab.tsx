@@ -6,7 +6,7 @@ import {
   Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus,
   Layers, Upload, Download, FileSpreadsheet, CheckSquare, Square,
   MessageSquare, Sparkles, ChevronRight, Share2, Info, CreditCard,
-  ShieldCheck, AlertTriangle, Key
+  ShieldCheck, AlertTriangle, Key, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
@@ -109,6 +109,11 @@ export default function MemberDirectoryAdminTab() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
+
+  // Upgrade / Change Plan Modal
+  const [planModalMember, setPlanModalMember] = useState<ExtendedUserProfile | null>(null);
+  const [selectedPlanType, setSelectedPlanType] = useState<'pro_annual' | 'lifetime' | 'institutional' | 'free_trial'>('pro_annual');
+  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
   // Multi-Channel Messaging Composer Modal
   const [messageModalOpen, setMessageModalOpen] = useState(false);
@@ -404,15 +409,183 @@ export default function MemberDirectoryAdminTab() {
     );
   };
 
+  const openInGmail = (recipients: string[], subject: string, body: string) => {
+    if (recipients.length === 0) {
+      showToast('error', 'No recipient emails specified.');
+      return;
+    }
+    const validEmails = Array.from(new Set(recipients.map(e => (e || '').trim()).filter(e => e && e.includes('@'))));
+    if (validEmails.length === 0) {
+      showToast('error', 'None of the selected members have a valid email address.');
+      return;
+    }
+
+    const to = validEmails.length === 1 ? validEmails[0] : '';
+    const bcc = validEmails.length > 1 ? validEmails.join(',') : '';
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&bcc=${encodeURIComponent(bcc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const handleSendEmailNative = () => {
     if (!emailModalMember?.email) return;
     const mailto = `mailto:${encodeURIComponent(emailModalMember.email)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
     window.location.href = mailto;
-    setEmailStatus('Email client opened successfully!');
+    setEmailStatus('Default email client opened!');
     setTimeout(() => {
       setEmailStatus(null);
       setEmailModalMember(null);
     }, 2000);
+  };
+
+  const handleSendEmailGmail = () => {
+    if (!emailModalMember?.email) return;
+    openInGmail([emailModalMember.email], emailSubject, emailBody);
+    setEmailStatus('Gmail web composer opened in new tab!');
+    setTimeout(() => {
+      setEmailStatus(null);
+      setEmailModalMember(null);
+    }, 2000);
+  };
+
+  // Delete Single User Account
+  const handleDeleteMember = async (member: ExtendedUserProfile) => {
+    if (!member) return;
+    const confirmed = window.confirm(
+      `CRITICAL ACTION:\nAre you sure you want to permanently delete the account for "${member.display_name}" (${member.email})?\n\nThis will remove their member profile, chapter assignment, and progress. This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', member.id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.id !== member.id));
+      setSelectedMemberIds(prev => {
+        const next = new Set(prev);
+        next.delete(member.id);
+        return next;
+      });
+      showToast('success', `Account for "${member.display_name}" was permanently deleted.`);
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete user account.');
+    }
+  };
+
+  // Bulk Delete Selected Users
+  const handleBulkDeleteSelected = async () => {
+    if (selectedMemberIds.size === 0) return;
+    const count = selectedMemberIds.size;
+    const confirmed = window.confirm(
+      `CRITICAL BULK ACTION:\nAre you sure you want to permanently delete ${count} selected user accounts?\n\nThis will delete their profiles from the database and cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const idsToDelete = Array.from(selectedMemberIds);
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => !selectedMemberIds.has(u.id)));
+      setSelectedMemberIds(new Set());
+      showToast('success', `Permanently deleted ${count} member accounts.`);
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to delete selected accounts.');
+    }
+  };
+
+  // Change Plan Handler
+  const handleSavePlanChange = async () => {
+    if (!planModalMember) return;
+    setIsUpdatingPlan(true);
+    try {
+      let isPaid = true;
+      let expiresAt: string | null = null;
+      let trialEndsAt: string | null = null;
+      let planTitle = 'Annual Pro Membership';
+
+      const now = new Date();
+      if (selectedPlanType === 'pro_annual') {
+        isPaid = true;
+        expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        planTitle = 'Annual Pro Membership ($15 USD / 1 Year)';
+      } else if (selectedPlanType === 'lifetime') {
+        isPaid = true;
+        expiresAt = new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString();
+        planTitle = 'Lifetime Innovator Access';
+      } else if (selectedPlanType === 'institutional') {
+        isPaid = true;
+        expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        planTitle = 'Institutional / School Partner Pass';
+      } else if (selectedPlanType === 'free_trial') {
+        isPaid = false;
+        trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+        expiresAt = null;
+        planTitle = 'Free Trial (14 Days Extended)';
+      }
+
+      // Update profiles
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .update({
+          registration_paid: isPaid,
+          subscription_expires_at: expiresAt,
+          trial_ends_at: trialEndsAt,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', planModalMember.id);
+
+      if (profErr) throw profErr;
+
+      // Upsert into subscriptions
+      try {
+        await supabase.from('subscriptions').insert({
+          id: 'sub_admin_' + planModalMember.id.slice(0, 6) + '_' + Date.now().toString(36),
+          user_id: planModalMember.id,
+          user_email: planModalMember.email,
+          user_name: planModalMember.display_name,
+          plan_type: selectedPlanType,
+          amount: isPaid ? 15 : 0,
+          currency: 'USD',
+          payment_method: 'admin_manual_grant',
+          payment_reference: 'ADMIN-' + Date.now().toString(36).toUpperCase(),
+          status: isPaid ? 'active' : 'trial',
+          starts_at: new Date().toISOString(),
+          expires_at: expiresAt || new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          admin_notes: `Plan changed to ${planTitle} by Admin.`
+        });
+      } catch {
+        // sync note
+      }
+
+      // Update state locally
+      setUsers(prev => prev.map(u => {
+        if (u.id === planModalMember.id) {
+          return {
+            ...u,
+            registration_paid: isPaid,
+            subscription_expires_at: expiresAt || undefined,
+            trial_ends_at: trialEndsAt || undefined
+          };
+        }
+        return u;
+      }));
+
+      showToast('success', `Updated plan for ${planModalMember.display_name} to ${planTitle}.`);
+      setPlanModalMember(null);
+    } catch (err: any) {
+      showToast('error', err.message || 'Failed to update member plan.');
+    } finally {
+      setIsUpdatingPlan(false);
+    }
   };
 
   // 1-Click Approve Subscription Handler
@@ -858,6 +1031,18 @@ export default function MemberDirectoryAdminTab() {
               <Edit3 className="w-3.5 h-3.5" />
             </button>
 
+            {/* Change Plan / Upgrade from Trial */}
+            <button
+              onClick={() => {
+                setPlanModalMember(member);
+                setSelectedPlanType(member.registration_paid ? 'pro_annual' : 'pro_annual');
+              }}
+              className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 transition"
+              title="Upgrade or Change Member Plan"
+            >
+              <Award className="w-3.5 h-3.5" />
+            </button>
+
             {/* Toggle Status (Suspend / Reactivate) */}
             <button
               onClick={() => handleToggleStatus(member, member.is_halted ? 'active' : 'suspended')}
@@ -865,11 +1050,20 @@ export default function MemberDirectoryAdminTab() {
                 "p-2 rounded-xl transition",
                 member.is_halted
                   ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                  : "bg-red-50 text-red-700 hover:bg-red-100"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               )}
               title={member.is_halted ? "Re-activate Member" : "Suspend Member"}
             >
               {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Delete Member Account */}
+            <button
+              onClick={() => handleDeleteMember(member)}
+              className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition"
+              title="Permanently Delete Member Account"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </td>
@@ -1111,6 +1305,33 @@ export default function MemberDirectoryAdminTab() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Email Selected in Gmail */}
+              {selectedMemberIds.size > 0 && (
+                <button
+                  onClick={() => {
+                    const emails = users.filter(u => selectedMemberIds.has(u.id)).map(u => u.email).filter(Boolean);
+                    openInGmail(emails, 'Official Update from YARA Secretariat', 'Dear YARA Members,\n\n[Write your message here]\n\nBest regards,\nYARA Executive Secretariat\nInnovate Local, Build Global');
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                  title="Open Gmail web composer in new tab with all selected member emails"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Email in Gmail ({selectedMemberIds.size})</span>
+                </button>
+              )}
+
+              {/* Bulk Delete Selected */}
+              {selectedMemberIds.size > 0 && (
+                <button
+                  onClick={handleBulkDeleteSelected}
+                  className="px-3.5 py-2 bg-red-600/30 hover:bg-red-600 text-white border border-red-500/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+                  title="Permanently delete all selected member accounts"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Selected ({selectedMemberIds.size})</span>
+                </button>
+              )}
+
               {/* Message Members Button */}
               <button
                 onClick={() => setMessageModalOpen(true)}
@@ -1919,6 +2140,20 @@ export default function MemberDirectoryAdminTab() {
                     >
                       Cancel
                     </button>
+                    {messageChannel === 'email' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const emails = targetRecipients.map(r => r.email).filter(Boolean);
+                          openInGmail(emails, broadcastSubject, broadcastBody);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
+                        title="Open Gmail in a new tab with all recipient emails in BCC"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Send via Gmail ({targetRecipients.length})</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleSendBroadcast}
@@ -2129,23 +2364,106 @@ export default function MemberDirectoryAdminTab() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <span className="text-[11px] text-slate-400">Launches configured mail client or native composer</span>
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
+              <span className="text-[11px] text-slate-400">Choose your preferred email service</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setEmailModalMember(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSendEmailNative}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition flex items-center gap-2"
+                  className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition flex items-center gap-1.5"
+                  title="Open in system default mail app"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Mail App</span>
+                </button>
+                <button
+                  onClick={handleSendEmailGmail}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
+                  title="Open directly in Gmail web composer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Send Message</span>
+                  <span>Send via Gmail</span>
                 </button>
               </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal: Change / Upgrade Member Plan */}
+      {planModalMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-5"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-black text-slate-900 text-base">Change / Upgrade Member Plan</h3>
+                <p className="text-xs text-slate-500">Member: {planModalMember.display_name} ({planModalMember.email})</p>
+              </div>
+              <button
+                onClick={() => setPlanModalMember(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <label className="block font-bold text-slate-700">Select Target Plan:</label>
+              {[
+                { id: 'pro_annual', label: 'Annual Pro Member ($15 USD / 1 Year)', desc: 'Unlocks all 42+ LMS levels, robotics simulator, and certification.' },
+                { id: 'lifetime', label: 'Lifetime Innovator Access (10 Years)', desc: 'Permanent unrestricted access for chapter executives & core contributors.' },
+                { id: 'institutional', label: 'Institutional / School Partner Pass', desc: 'Covered under school or donor sponsorship.' },
+                { id: 'free_trial', label: 'Reset to Free Trial (14 Days)', desc: 'Grants standard 14-day trial period.' }
+              ].map(plan => (
+                <label
+                  key={plan.id}
+                  onClick={() => setSelectedPlanType(plan.id as any)}
+                  className={cn(
+                    "block p-3.5 rounded-2xl border cursor-pointer transition",
+                    selectedPlanType === plan.id
+                      ? "border-indigo-600 bg-indigo-50/50"
+                      : "border-slate-200 hover:border-slate-300"
+                  )}
+                >
+                  <div className="flex items-center justify-between font-bold text-slate-900">
+                    <span>{plan.label}</span>
+                    <input
+                      type="radio"
+                      name="plan_type"
+                      checked={selectedPlanType === plan.id}
+                      onChange={() => setSelectedPlanType(plan.id as any)}
+                      className="text-indigo-600"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">{plan.desc}</p>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setPlanModalMember(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePlanChange}
+                disabled={isUpdatingPlan}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5"
+              >
+                {isUpdatingPlan ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                <span>Apply Plan Upgrade</span>
+              </button>
             </div>
           </motion.div>
         </div>
