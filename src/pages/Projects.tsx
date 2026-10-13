@@ -33,15 +33,21 @@ export default function Projects() {
 
     fetchProjects();
 
-    const projectsSubscription = supabase
-      .channel('projects_showcase')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
-        fetchProjects();
-      })
-      .subscribe();
+    let projectsSubscription: any = null;
+    try {
+      const topic = `projects_showcase_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      projectsSubscription = supabase
+        .channel(topic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+          fetchProjects();
+        })
+        .subscribe();
+    } catch {}
 
     return () => {
-      supabase.removeChannel(projectsSubscription);
+      if (projectsSubscription) {
+        try { supabase.removeChannel(projectsSubscription); } catch {}
+      }
     };
   }, []);
 

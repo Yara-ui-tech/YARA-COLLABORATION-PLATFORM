@@ -199,14 +199,20 @@ export default function Admin() {
     if (activeTab === 'mentorship') fetchMentorshipRequests();
     if (activeTab === 'reviews') {
       fetchMentorReviews();
-      const ch = supabase
-        .channel('admin-mentor-reviews-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'mentor_reviews' }, () => {
-          fetchMentorReviews();
-        })
-        .subscribe();
+      let ch: any = null;
+      try {
+        const topic = `admin_reviews_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        ch = supabase
+          .channel(topic)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'mentor_reviews' }, () => {
+            fetchMentorReviews();
+          })
+          .subscribe();
+      } catch {}
       return () => {
-        supabase.removeChannel(ch);
+        if (ch) {
+          try { supabase.removeChannel(ch); } catch {}
+        }
       };
     }
     if (activeTab === 'live') fetchPendingLiveSessions();

@@ -28,15 +28,21 @@ export default function Ideas() {
 
     fetchIdeas();
 
-    const ideasSubscription = supabase
-      .channel('ideas_board')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => {
-        fetchIdeas();
-      })
-      .subscribe();
+    let ideasSubscription: any = null;
+    try {
+      const topic = `ideas_board_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      ideasSubscription = supabase
+        .channel(topic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => {
+          fetchIdeas();
+        })
+        .subscribe();
+    } catch {}
 
     return () => {
-      supabase.removeChannel(ideasSubscription);
+      if (ideasSubscription) {
+        try { supabase.removeChannel(ideasSubscription); } catch {}
+      }
     };
   }, []);
 

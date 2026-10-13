@@ -105,19 +105,24 @@ export default function Feedback() {
 
     fetchData();
 
-    // Real-time synchronization
-    const channel = supabase
-      .channel('realtime-community-feedback-center')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
-        fetchData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
-        fetchData();
-      })
-      .subscribe();
+    let channel: any = null;
+    try {
+      const topic = `feedback_center_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      channel = supabase
+        .channel(topic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
+          fetchData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+          fetchData();
+        })
+        .subscribe();
+    } catch {}
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch {}
+      }
     };
   }, []);
 

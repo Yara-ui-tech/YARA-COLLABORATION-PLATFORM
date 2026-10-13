@@ -426,27 +426,36 @@ export default function Mentorship() {
     fetchLiveSessions();
     fetchStudyMaterials();
 
-    const requestsSubscription = supabase
-      .channel('mentorship_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, (payload) => {
-        fetchRequests();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_messages' }, (payload: any) => {
-        // when a message is inserted/updated/deleted, re-fetch messages for the request
-        try {
-          const reqId = payload?.new?.request_id || payload?.old?.request_id;
-          if (reqId) fetchMessagesForRequest(reqId);
-        } catch (err: any) { 
-          console.warn('Realtime message update notice:', err?.message || err); 
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
-        fetchLiveSessions();
-      })
-      .subscribe();
+    let requestsSubscription: any = null;
+    try {
+      const uniqueTopic = `mentorship_changes_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      requestsSubscription = supabase
+        .channel(uniqueTopic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, () => {
+          fetchRequests();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_messages' }, (payload: any) => {
+          try {
+            const reqId = payload?.new?.request_id || payload?.old?.request_id;
+            if (reqId) fetchMessagesForRequest(reqId);
+          } catch (err: any) { 
+            console.warn('Realtime message update notice:', err?.message || err); 
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
+          fetchLiveSessions();
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn('Mentorship realtime subscription notice:', e);
+    }
 
     return () => {
-      supabase.removeChannel(requestsSubscription);
+      if (requestsSubscription) {
+        try {
+          supabase.removeChannel(requestsSubscription);
+        } catch {}
+      }
     };
   }, [user, profile?.role]);
 

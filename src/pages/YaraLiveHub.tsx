@@ -102,16 +102,21 @@ export default function YaraLiveHub() {
   useEffect(() => {
     fetchSessions();
 
-    // Subscribe to realtime live_sessions changes for all users
-    const liveChannel = supabase
-      .channel('live_sessions_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
-        fetchSessions();
-      })
-      .subscribe();
+    let liveChannel: any = null;
+    try {
+      const topic = `live_sessions_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      liveChannel = supabase
+        .channel(topic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
+          fetchSessions();
+        })
+        .subscribe();
+    } catch {}
 
     return () => {
-      supabase.removeChannel(liveChannel);
+      if (liveChannel) {
+        try { supabase.removeChannel(liveChannel); } catch {}
+      }
     };
   }, []);
 

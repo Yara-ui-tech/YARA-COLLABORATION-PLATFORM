@@ -90,19 +90,24 @@ export default function FeedbacksTestimonialsAdminTab() {
   useEffect(() => {
     loadData();
 
-    // Real-time synchronization for feedbacks & testimonials
-    const channel = supabase
-      .channel('admin-realtime-feedbacks')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
-        loadData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
-        loadData();
-      })
-      .subscribe();
+    let channel: any = null;
+    try {
+      const topic = `admin_feedbacks_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      channel = supabase
+        .channel(topic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
+          loadData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+          loadData();
+        })
+        .subscribe();
+    } catch {}
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try { supabase.removeChannel(channel); } catch {}
+      }
     };
   }, []);
 

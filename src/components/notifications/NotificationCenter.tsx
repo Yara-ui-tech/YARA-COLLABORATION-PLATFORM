@@ -199,24 +199,34 @@ export function NotificationBell() {
 
     if (!isAdmin) return;
 
-    // Realtime listener for incoming user events
-    const channel = supabase
-      .channel('admin_live_notifications')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, () => {
-        fetchAllNotifications();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_reviews' }, () => {
-        fetchAllNotifications();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_registrations' }, () => {
-        fetchAllNotifications();
-      })
-      .subscribe();
+    let channel: any = null;
+    try {
+      // Use unique channel topic to prevent "cannot add postgres_changes callbacks after subscribe" collision error
+      const uniqueTopic = `admin_live_notifs_${user?.id || 'admin'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      channel = supabase
+        .channel(uniqueTopic)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mentorship_requests' }, () => {
+          fetchAllNotifications();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_reviews' }, () => {
+          fetchAllNotifications();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'event_registrations' }, () => {
+          fetchAllNotifications();
+        })
+        .subscribe();
+    } catch (err) {
+      console.warn('Realtime admin notifications subscription notice:', err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
-  }, [user, isAdmin]);
+  }, [user?.id, isAdmin]);
 
   const displayedNotifications = activeFilter === 'user_activity' 
     ? notifications.filter(n => n.is_user_activity) 
