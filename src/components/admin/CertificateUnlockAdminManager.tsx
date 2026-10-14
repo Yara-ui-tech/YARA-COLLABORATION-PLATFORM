@@ -115,7 +115,7 @@ export const CertificateUnlockAdminManager: React.FC = () => {
           courseId: reg.event_id || 'ai-for-educators-2026',
           courseTitle: courseTitle,
           category: isRag ? 'AI & Machine Learning' : 'AI & Digital Pedagogy',
-          completedAt: reg.issue_date || (reg.certificate_unlocked_at ? new Date(reg.certificate_unlocked_at).toLocaleDateString() : 'October 04, 2026'),
+          completedAt: (reg as any).issue_date || (reg.certificate_unlocked_at ? new Date(reg.certificate_unlocked_at).toLocaleDateString() : 'October 04, 2026'),
           certificateNumber: certNum,
           isUnlocked: Boolean(reg.certificate_unlocked && reg.approval_status === 'approved'),
           institution: reg.school_institution,

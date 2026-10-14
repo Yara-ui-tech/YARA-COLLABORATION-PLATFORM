@@ -26,25 +26,31 @@ interface NavItem {
   badge?: string;
   adminOnly?: boolean;
   teacherOnly?: boolean;
+  section?: string;
 }
 
-// Unified navigation: ONE web platform where the LMS Academy is an integrated section
+// Unified navigation: categorized for friendly, clear ease of use
 const unifiedNavItems: NavItem[] = [
-  { path: '/dashboard', icon: BarChart3, label: 'My Dashboard' },
-  { path: '/learning', icon: Brain, label: 'Robotics Academy (LMS)', badge: 'L0–L8' },
-  { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
-  { path: '/competitions', icon: Trophy, label: 'Competitions & Arena', badge: '2026' },
-  { path: '/events', icon: Calendar, label: 'Events & Bootcamps' },
-  { path: '/chapters', icon: Building2, label: 'Provincial Chapters' },
-  { path: '/schools', icon: Building2, label: 'School Clubs' },
-  { path: '/library', icon: BookOpen, label: 'Resource Library' },
-  { path: '/mentorship', icon: Users, label: 'Mentor Hub' },
-  { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews', badge: 'Submit' },
-  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials' },
-  { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true },
-  { path: '/profile', icon: User, label: 'My Profile' },
-  { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
-  { path: '/', icon: Globe, label: 'Public Website' },
+  // Learning & Growth
+  { path: '/dashboard', icon: BarChart3, label: 'My Dashboard', section: 'Learning & Growth' },
+  { path: '/learning', icon: Brain, label: 'Robotics Academy (LMS)', badge: 'L0–L8', section: 'Learning & Growth' },
+  { path: '/projects', icon: Briefcase, label: 'Hardware Projects', section: 'Learning & Growth' },
+  { path: '/mentorship', icon: Users, label: 'Mentor Hub', section: 'Learning & Growth' },
+
+  // Events & Community
+  { path: '/competitions', icon: Trophy, label: 'Competitions & Arena', badge: '2026', section: 'Events & Community' },
+  { path: '/events', icon: Calendar, label: 'Events & Bootcamps', section: 'Events & Community' },
+  { path: '/chapters', icon: Building2, label: 'Provincial Chapters', section: 'Events & Community' },
+  { path: '/schools', icon: Building2, label: 'School Clubs', section: 'Events & Community' },
+
+  // Tools & Support
+  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials', section: 'Credentials & Support' },
+  { path: '/library', icon: BookOpen, label: 'Resource Library', section: 'Credentials & Support' },
+  { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews', badge: 'Submit', section: 'Credentials & Support' },
+  { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true, section: 'Credentials & Support' },
+  { path: '/profile', icon: User, label: 'My Profile', section: 'Credentials & Support' },
+  { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true, section: 'Credentials & Support' },
+  { path: '/', icon: Globe, label: 'Public Website', section: 'Credentials & Support' },
 ];
 
 export default function Layout() {
@@ -117,49 +123,76 @@ export default function Layout() {
           </Link>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items with Friendly Section Categorization */}
         <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto">
-          {unifiedNavItems
-            .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
-            .map((item) => {
-              const isActive = location.pathname === item.path || 
-                (item.path !== '/' && location.pathname.startsWith(item.path));
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-xs font-semibold",
-                    isActive
-                      ? "bg-blue-50 text-blue-700 font-bold border border-blue-100 shadow-xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                  )}
-                >
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <item.icon className={cn(
-                      "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                      isActive ? "text-blue-600" : "text-slate-400"
-                    )} />
-                    <span className="truncate">{item.label}</span>
-                  </div>
+          {(() => {
+            let lastSection = '';
+            return unifiedNavItems
+              .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
+              .map((item) => {
+                const isActive = location.pathname === item.path || 
+                  (item.path !== '/' && location.pathname.startsWith(item.path));
+                const showSectionHeader = item.section && item.section !== lastSection;
+                if (item.section) lastSection = item.section;
 
-                  {item.badge && (
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0",
-                      item.badge === 'Submit'
-                        ? "bg-pink-100 text-pink-700 border border-pink-200"
-                        : "bg-emerald-100 text-emerald-800"
-                    )}>
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+                return (
+                  <React.Fragment key={item.path}>
+                    {showSectionHeader && (
+                      <div className="pt-3 pb-1 px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+                        {item.section}
+                      </div>
+                    )}
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-xs font-semibold",
+                        isActive
+                          ? "bg-blue-50 text-blue-700 font-bold border border-blue-100 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                      )}
+                    >
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <item.icon className={cn(
+                          "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                          isActive ? "text-blue-600" : "text-slate-400"
+                        )} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0",
+                          item.badge === 'Submit'
+                            ? "bg-pink-100 text-pink-700 border border-pink-200"
+                            : "bg-emerald-100 text-emerald-800"
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </React.Fragment>
+                );
+              });
+          })()}
         </nav>
 
-        {/* User Footer */}
+        {/* User Footer with Direct WhatsApp Help Button */}
         <div className="p-3 border-t border-slate-100 bg-white space-y-2">
+          {/* Direct Friendly WhatsApp Support */}
+          <a
+            href="https://wa.me/263717468236?text=Hello%20Patron%2C%20I%20need%20assistance%20on%20YARA."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition shadow-xs"
+            title="Chat directly with YARA Patron & Tech Support"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Patron Help Line</span>
+            </span>
+            <span className="font-mono text-[10px] text-emerald-700">0717468236</span>
+          </a>
+
           <RuralDataSaverToggle variant="switch" />
           <div className="flex items-center space-x-2.5 px-2 py-1.5">
             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden border border-slate-200 shrink-0">
@@ -171,12 +204,12 @@ export default function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-900 truncate">{profile?.display_name || 'Innovator'}</p>
-              <p className="text-[10px] text-slate-500 truncate capitalize">{profile?.chapter_position || profile?.role || 'Member'}</p>
+              <p className="text-[10px] text-slate-500 truncate capitalize">{(profile as any)?.chapter_position || profile?.role || 'Member'}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 px-3 py-1.5 w-full rounded-lg text-xs text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
+            className="flex items-center space-x-2 px-3 py-1.5 w-full rounded-lg text-xs text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors duration-200 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="font-medium">Logout</span>

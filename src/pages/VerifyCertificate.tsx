@@ -192,7 +192,7 @@ export default function VerifyCertificate() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Enter Credential ID (e.g. GLA-YARA-2026-008492 or YARA-CERT-2026-...)"
+                placeholder="Enter Credential ID (e.g. GLA-YARA-2026-008492, EDU-2026-AI-HARARE...)"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
@@ -206,6 +206,29 @@ export default function VerifyCertificate() {
               {loading ? 'Verifying Credential…' : 'Verify Credential'}
             </button>
           </form>
+
+          {/* Friendly Helper Demo Chips */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500 print:hidden">
+            <span className="font-semibold text-slate-600">💡 Quick Test Credential IDs:</span>
+            {[
+              'GLA-YARA-2026-008492',
+              'YARA-L1-ROB-001',
+              'EDU-2026-AI-HARARE'
+            ].map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => {
+                  setInputCode(code);
+                  setSearchParams({ id: code });
+                  handleVerify(code);
+                }}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 rounded-lg text-[11px] font-mono font-bold transition cursor-pointer"
+              >
+                {code}
+              </button>
+            ))}
+          </div>
 
           {/* Verification Results */}
           {searched && (
@@ -395,29 +418,28 @@ export default function VerifyCertificate() {
                     </span>
                   </div>
 
-                  <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-2 border-amber-400/40 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl text-center space-y-4">
-                    <div className="text-[10px] uppercase tracking-[0.25em] font-black text-amber-400">
-                      Young Africans Robotics Association
-                    </div>
-                    <h3 className="text-2xl font-serif font-black text-white">{legacyCertificate.student_name}</h3>
-                    <p className="text-xs text-slate-300 max-w-lg mx-auto leading-relaxed">
-                      Successfully satisfied all academic, practical hardware labs, and Capstone requirements for:
-                    </p>
-                    <div className="text-sm font-bold text-amber-300">{legacyCertificate.course_title}</div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                        Grade: {legacyCertificate.grade} ({legacyCertificate.score}%)
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono">
-                        Date: {legacyCertificate.issue_date}
-                      </span>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Verification ID: <strong className="font-mono text-amber-400">{legacyCertificate.certificate_number}</strong></span>
-                      <span>Verified via YARA Official Registry</span>
-                    </div>
+                  <div className="flex justify-center overflow-x-auto p-1 bg-white rounded-3xl border border-slate-200 shadow-xl">
+                    <YaraAccreditedCertificateCanvas
+                      innerRef={certCardRef}
+                      data={{
+                        certificateNumber: legacyCertificate.certificate_number,
+                        studentName: legacyCertificate.student_name,
+                        courseTitle: legacyCertificate.course_title,
+                        certificateType: legacyCertificate.course_title?.toLowerCase().includes('educator') ? 'educator' : legacyCertificate.course_title?.toLowerCase().includes('robotics') ? 'robotics' : 'programming',
+                        roboticsLevel: 1,
+                        issueDate: legacyCertificate.issue_date,
+                        verificationUrl: typeof window !== 'undefined' ? window.location.href : `https://yara.org/verify-certificate?id=${legacyCertificate.certificate_number}`,
+                        directorName: 'Mr. S.O. Manongwa',
+                        directorTitle: 'Founder & Lead Instructor',
+                        organizationName: 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+                        grade: legacyCertificate.grade || 'Distinction with Honors',
+                        score: legacyCertificate.score || 95,
+                        coSignerName: 'Ms. A.M. Chiambiro',
+                        coSignerTitle: 'Regional President, YARA Zimbabwe',
+                        sealEnabled: true,
+                        watermarkEnabled: true
+                      }}
+                    />
                   </div>
                 </div>
               ) : (

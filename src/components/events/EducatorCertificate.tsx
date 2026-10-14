@@ -9,6 +9,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { EducatorCertificateData } from '../../types/eventRegistration';
 import { ASSETS } from '../../constants/assets';
+import { useQrCode } from '../../utils/qrCodeHelper';
 
 interface EducatorCertificateProps {
   data: EducatorCertificateData;
@@ -73,6 +74,8 @@ export default function EducatorCertificate({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const isLocked = data.status === 'locked' && !isAdmin;
+  const qrVerificationUrl = data.verification_url || `https://yara.org/verify-certificate?id=${data.certificate_number}`;
+  const qrCodeDataUrl = useQrCode(qrVerificationUrl, { width: 180, darkColor: '#0f172a' });
 
   // Helper to render high-resolution canvas with embedded assets
   const renderCertificateCanvas = async (element: HTMLElement) => {
@@ -560,23 +563,42 @@ export default function EducatorCertificate({
               </div>
             </div>
 
-            {/* 2. Official Certified Gold & Blue Foil Seal */}
-            <div className="flex flex-col items-center justify-center shrink-0">
-              <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center">
-                <img 
-                  src={data.seal_url || ASSETS.EDUCATOR_SEAL} 
-                  alt="Certified AI for Educators Seal" 
-                  className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
+            {/* 2. Official Certified Gold & Blue Foil Seal + Cryptographic Verification QR Code */}
+            <div className="flex items-center justify-center gap-3 sm:gap-6 shrink-0">
+              {/* Foil Seal */}
+              <div className="flex flex-col items-center">
+                <div className="relative w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center">
+                  <img 
+                    src={data.seal_url || ASSETS.EDUCATOR_SEAL} 
+                    alt="Certified AI for Educators Seal" 
+                    className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="mt-1 text-center">
+                  <span className="text-[7px] sm:text-[9px] font-mono text-slate-500 font-semibold block">
+                    Issued: {data.issue_date}
+                  </span>
+                </div>
               </div>
-              <div className="mt-1 text-center">
-                <span className="text-[7px] sm:text-[9px] font-mono text-slate-500 font-semibold block">
-                  Issued: {data.issue_date}
-                </span>
-                <span className="text-[8px] sm:text-[9px] font-mono text-amber-800 font-bold block">
-                  {data.certificate_number}
-                </span>
+
+              {/* Verified QR Code Medallion */}
+              <div className="flex flex-col items-center">
+                <div className="p-1 sm:p-1.5 bg-white border-2 border-amber-600/60 rounded-xl shadow-md">
+                  <img 
+                    src={qrCodeDataUrl} 
+                    alt="Scan to Verify Official Credential" 
+                    className="w-14 h-14 sm:w-20 sm:h-20 object-contain rounded-md"
+                  />
+                </div>
+                <div className="mt-1 text-center">
+                  <span className="text-[7px] sm:text-[9px] font-mono text-amber-900 font-bold block uppercase tracking-wider">
+                    Scan to Verify
+                  </span>
+                  <span className="text-[7px] sm:text-[9px] font-mono text-slate-600 font-bold block">
+                    {data.certificate_number}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -612,13 +634,13 @@ export default function EducatorCertificate({
           </div>
 
           {/* Footnote / Accreditation Note Strip */}
-          {(data.accreditation_notes || data.footnote_text) && (
-            <div className="text-center pt-1 border-t border-amber-900/10">
-              <p className="text-[7px] sm:text-[8px] text-slate-500 font-medium tracking-wide">
-                {data.accreditation_notes || data.footnote_text}
-              </p>
-            </div>
-          )}
+          <div className="text-center pt-1 border-t border-amber-900/10 flex flex-col sm:flex-row items-center justify-between gap-1 text-[7px] sm:text-[8px] text-slate-500 font-medium px-2">
+            <span>Official Credential • YARA Academy of Advanced Robotics &amp; AI</span>
+            <span className="font-mono text-amber-800">
+              Verify online: {qrVerificationUrl}
+            </span>
+            <span>Credential ID: <strong className="text-slate-800 font-mono">{data.certificate_number}</strong></span>
+          </div>
 
         </div>
 

@@ -286,7 +286,7 @@ export default function MemberDirectoryAdminTab() {
 
   // Compute pending subscription approval requests
   const pendingSubscriptions = useMemo(() => {
-    return subscriptions.filter(s => s.status === 'pending_verification' || s.status === 'pending');
+    return subscriptions.filter(s => (s.status as string) === 'pending_verification' || (s.status as string) === 'pending');
   }, [subscriptions]);
 
   const pendingRequestsCount = useMemo(() => {

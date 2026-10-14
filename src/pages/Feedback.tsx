@@ -135,7 +135,7 @@ export default function Feedback() {
       : (guestName.trim() || 'Community Innovator');
     
     const authorRole = user
-      ? (profile?.chapter_position || (profile?.role === 'teacher' ? 'STEM Educator' : profile?.role === 'mentor' ? 'YARA Mentor' : 'Robotics Innovator'))
+      ? ((profile as any)?.chapter_position || (profile?.role === 'teacher' ? 'STEM Educator' : profile?.role === 'mentor' ? 'YARA Mentor' : 'Robotics Innovator'))
       : (guestRole || 'Community Guest');
 
     setLoading(true);
@@ -350,7 +350,7 @@ export default function Feedback() {
                         Posting as: {profile?.display_name || user.email}
                       </p>
                       <p className="text-[10px] text-indigo-600 truncate">
-                        {profile?.chapter_position || profile?.role || 'Member'}
+                        {(profile as any)?.chapter_position || profile?.role || 'Member'}
                       </p>
                     </div>
                   </div>

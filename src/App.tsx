@@ -43,6 +43,7 @@ import EducatorPortal from './pages/EducatorPortal';
 import YaraLiveHub from './pages/YaraLiveHub';
 import YaraKids from './pages/YaraKids';
 import { PortalProvider } from './context/PortalContext';
+import FriendlyPlatformGuide from './components/FriendlyPlatformGuide';
 
 import PublicLayout from './components/public/PublicLayout';
 import Training from './pages/Training';
@@ -263,6 +264,7 @@ const AppContent = () => {
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FriendlyPlatformGuide />
       </PortalProvider>
     </Router>
   );

@@ -415,7 +415,7 @@ export default function SessionModal({ session, isOpen, onClose, onSessionUpdate
                     title={session.topic}
                     subtitle="Official video masterclass & lab demonstration. Tap to launch or follow the syllabus below."
                     duration="Micro-Lesson"
-                    level={`Level ${session.level}`}
+                    level={`Level ${(session as any).level || 1}`}
                     className="h-56 w-full"
                   />
                 </div>

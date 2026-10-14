@@ -87,10 +87,9 @@ export default function UniversalPaymentGatewayModal({
     defaultAmount || PURPOSE_OPTIONS.find(p => p.id === defaultPurpose)?.amount || 15
   );
 
-  // Payer Contact State
   const [payerName, setPayerName] = useState(profile?.display_name || '');
   const [payerEmail, setPayerEmail] = useState(profile?.email || user?.email || '');
-  const [payerPhone, setPayerPhone] = useState(profile?.phone || '');
+  const [payerPhone, setPayerPhone] = useState((profile as any)?.phone || '');
 
   // Card Form State
   const [cardNumber, setCardNumber] = useState('');
@@ -187,7 +186,7 @@ export default function UniversalPaymentGatewayModal({
         purposeTitle: itemTitle || currentOption?.label || 'YARA Official Contribution',
         amount: Number(finalAmount),
         currency: 'USD',
-        paymentGateway: selectedMethod,
+        paymentGateway: selectedMethod === 'bank' ? 'bank_transfer' : selectedMethod,
         transactionReference: ref,
         notes: `Paid via ${selectedMethod.toUpperCase()} for ${currentOption?.label}`
       });

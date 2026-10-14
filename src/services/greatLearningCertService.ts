@@ -90,10 +90,86 @@ export const DEFAULT_INITIAL_CERTIFICATES: VerifiableGreatLearningCertificate[] 
     coSignerTitle: 'Regional President & Evaluation Chair',
     credentialType: 'programming',
     certificateType: 'programming',
-    directorName: 'Harish Subramanian',
-    directorTitle: 'Academic Director, YARA Learning Academy',
-    organizationName: 'YARA Learning Academy',
-    citationText: 'For successfully completing an online course'
+    directorName: 'Mr. S.O. Manongwa',
+    directorTitle: 'Academic Director, YARA Academy',
+    organizationName: 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+    citationText: 'For successfully completing comprehensive programming and AI engineering curriculum in'
+  },
+  {
+    id: 'cert_gla_2026_008492',
+    certificateNumber: 'GLA-YARA-2026-008492',
+    userId: 'user_tariro_2026',
+    studentName: 'Tariro Anesu Moyo',
+    userEmail: 'tariro.moyo@yara.org.zw',
+    courseId: 'intro-to-rag',
+    courseTitle: 'Generative AI & Intelligent Systems Engineering',
+    courseCategory: 'programming',
+    grade: 'Distinction with Honors',
+    score: 94,
+    issueDate: 'October 12, 2026',
+    verificationUrl: typeof window !== 'undefined' ? `${window.location.origin}/verify-certificate?id=GLA-YARA-2026-008492` : 'https://yara.org/verify-certificate?id=GLA-YARA-2026-008492',
+    skillsAcquired: ['Retrieval Augmented Generation', 'Vector Databases', 'Prompt Engineering', 'LangChain', 'OpenAI / Gemini SDK'],
+    instructorName: 'Mr. S.O. Manongwa',
+    instructorTitle: 'Founder & Lead Instructor',
+    coSignerName: 'Ms. A.M. Chiambiro',
+    coSignerTitle: 'Regional President, YARA Zimbabwe',
+    credentialType: 'programming',
+    certificateType: 'programming',
+    directorName: 'Mr. S.O. Manongwa',
+    directorTitle: 'National Director, YARA Academy',
+    organizationName: 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+    citationText: 'For successfully demonstrating verified proficiency in modern generative AI architectures, prompt engineering, and intelligent system deployments in'
+  },
+  {
+    id: 'cert_rob_001',
+    certificateNumber: 'YARA-L1-ROB-001',
+    userId: 'user_kudakwashe_2026',
+    studentName: 'Kudakwashe T. Chidzero',
+    userEmail: 'kuda.chidzero@yara.org.zw',
+    courseId: 'rob_beg',
+    courseTitle: 'Level 1: Robotics Foundations & Embedded Systems',
+    courseCategory: 'robotics',
+    grade: 'Distinction (Honors)',
+    score: 92,
+    issueDate: 'October 10, 2026',
+    verificationUrl: typeof window !== 'undefined' ? `${window.location.origin}/verify-certificate?id=YARA-L1-ROB-001` : 'https://yara.org/verify-certificate?id=YARA-L1-ROB-001',
+    skillsAcquired: ['Ohm’s Law & Electronics', 'Breadboarding Circuitry', 'Sensor Interfacing', 'Motor PWM Drivers', 'Microcontroller Logic'],
+    instructorName: 'Mr. S.O. Manongwa',
+    instructorTitle: 'Founder & Lead Robotics Instructor',
+    coSignerName: 'Ms. A.M. Chiambiro',
+    coSignerTitle: 'Regional President, YARA Zimbabwe',
+    credentialType: 'foundation_robotics',
+    certificateType: 'robotics',
+    roboticsLevel: 1,
+    directorName: 'Mr. S.O. Manongwa',
+    directorTitle: 'Founder & Lead Instructor',
+    organizationName: 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+    citationText: 'For successfully mastering the foundations of electronics, Ohm’s law, breadboarding, sensor mechanics, and visual logic programming in'
+  },
+  {
+    id: 'cert_edu_harare',
+    certificateNumber: 'EDU-2026-AI-HARARE',
+    userId: 'user_educator_chipo',
+    studentName: 'Mrs. Chipo Ndlovu',
+    userEmail: 'chipo.ndlovu@education.gov.zw',
+    courseId: 'ai-for-educators-2026',
+    courseTitle: 'AI for Educators National Masterclass & Pedagogical Capstone',
+    courseCategory: 'educator',
+    grade: 'Certified AI Educator (Distinction)',
+    score: 95,
+    issueDate: 'October 14, 2026',
+    verificationUrl: typeof window !== 'undefined' ? `${window.location.origin}/verify-certificate?id=EDU-2026-AI-HARARE` : 'https://yara.org/verify-certificate?id=EDU-2026-AI-HARARE',
+    skillsAcquired: ['Generative AI in Education', 'Automated Lesson Planning', 'Intelligent Student Assessment', 'Ethical AI Pedagogy', 'STEM Lab Integration'],
+    instructorName: 'Mr. S.O. Manongwa',
+    instructorTitle: 'Founder & Lead Instructor',
+    coSignerName: 'Ms. A.M. Chiambiro',
+    coSignerTitle: 'Regional President, YARA Zimbabwe',
+    credentialType: 'educator',
+    certificateType: 'educator',
+    directorName: 'Mr. S.O. Manongwa',
+    directorTitle: 'National Director, YARA Academy',
+    organizationName: 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+    citationText: 'For successfully completing comprehensive professional development training in educational artificial intelligence, pedagogy, and classroom curriculum design in'
   }
 ];
 
@@ -196,9 +272,14 @@ export function getAllUnifiedCertificates(): VerifiableGreatLearningCertificate[
       return DEFAULT_INITIAL_CERTIFICATES;
     }
     const list = JSON.parse(raw) as VerifiableGreatLearningCertificate[];
-    // Ensure RBWHMNGF is included if missing
-    if (!list.some(c => c.certificateNumber === 'RBWHMNGF')) {
-      list.unshift(DEFAULT_INITIAL_CERTIFICATES[0]);
+    let changed = false;
+    for (const initCert of DEFAULT_INITIAL_CERTIFICATES) {
+      if (!list.some(c => c.certificateNumber.toUpperCase() === initCert.certificateNumber.toUpperCase())) {
+        list.push(initCert);
+        changed = true;
+      }
+    }
+    if (changed) {
       saveUnifiedCertificates(list);
     }
     return list;
