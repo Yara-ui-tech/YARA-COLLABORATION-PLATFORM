@@ -6,7 +6,7 @@ import {
   MessageSquare, ShieldCheck, 
   BarChart3, Brain, Trophy, 
   Building2, GraduationCap, Globe, 
-  QrCode, ArrowRight, Sparkles
+  QrCode, ArrowRight, Sparkles, Radio
 } from 'lucide-react';
 import { safeSignOut } from '../lib/supabase';
 import { useAuth } from './AuthContext';
@@ -25,49 +25,19 @@ interface NavItem {
   label: string;
   badge?: string;
   adminOnly?: boolean;
-  teacherOnly?: boolean;
-  section?: string;
 }
 
-// Streamlined, categorized navigation structure
-interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
-const categorizedNavSections: NavSection[] = [
-  {
-    title: 'LEARNING',
-    items: [
-      { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
-      { path: '/learning', icon: Brain, label: 'Robotics Courses', badge: 'L0–L8' },
-      { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
-    ]
-  },
-  {
-    title: 'COMMUNITY & ARENA',
-    items: [
-      { path: '/competitions', icon: Trophy, label: 'Competitions & Arena' },
-      { path: '/mentorship', icon: Users, label: 'Mentorship' },
-      { path: '/events', icon: Calendar, label: 'Events & Bootcamps' },
-      { path: '/chapters', icon: Building2, label: 'Chapters & Clubs' },
-    ]
-  },
-  {
-    title: 'TOOLS & SUPPORT',
-    items: [
-      { path: '/library', icon: BookOpen, label: 'Resource Library' },
-      { path: '/verify-certificate', icon: QrCode, label: 'Verify Certificate' },
-      { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews' },
-    ]
-  },
-  {
-    title: 'MANAGEMENT',
-    items: [
-      { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true },
-      { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
-    ]
-  }
+// Clean, streamlined navigation — direct and simple
+const navItems: NavItem[] = [
+  { path: '/', icon: Home, label: 'Home' },
+  { path: '/learning', icon: Brain, label: 'Robotics Courses', badge: 'L0–L8' },
+  { path: '/kids', icon: Sparkles, label: 'YARA Kids', badge: 'Ages 3–8' },
+  { path: '/live', icon: Radio, label: 'Live Stream', badge: 'Live' },
+  { path: '/competitions', icon: Trophy, label: 'Competitions & Arena', badge: '2026' },
+  { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
+  { path: '/verify-certificate', icon: QrCode, label: 'Verify Certificate' },
+  { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews' },
+  { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
 ];
 
 export default function Layout() {
@@ -118,59 +88,45 @@ export default function Layout() {
         </div>
 
         {/* Clean Structured Navigation Items */}
-        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
-          {categorizedNavSections.map((section) => {
-            const visibleItems = section.items.filter(
-              item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin)
-            );
-            if (visibleItems.length === 0) return null;
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+          {navItems
+            .filter(item => !item.adminOnly || isAdmin)
+            .map((item) => {
+              const isActive = location.pathname === item.path || 
+                (item.path !== '/' && location.pathname.startsWith(item.path));
 
-            return (
-              <div key={section.title} className="space-y-1">
-                <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  {section.title}
-                </div>
-                <div className="space-y-0.5">
-                  {visibleItems.map((item) => {
-                    const isActive = location.pathname === item.path || 
-                      (item.path !== '/' && location.pathname.startsWith(item.path));
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors duration-150 text-xs font-semibold",
+                    isActive
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  )}
+                >
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <item.icon className={cn(
+                      "w-4 h-4 shrink-0",
+                      isActive ? "text-amber-400" : "text-slate-400"
+                    )} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
 
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "flex items-center justify-between px-3 py-2 rounded-xl transition-colors duration-150 text-xs font-medium",
-                          isActive
-                            ? "bg-slate-900 text-white font-semibold shadow-xs"
-                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                        )}
-                      >
-                        <div className="flex items-center space-x-2.5 min-w-0">
-                          <item.icon className={cn(
-                            "w-4 h-4 shrink-0",
-                            isActive ? "text-amber-400" : "text-slate-400"
-                          )} />
-                          <span className="truncate">{item.label}</span>
-                        </div>
-
-                        {item.badge && (
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0",
-                            isActive
-                              ? "bg-amber-400/20 text-amber-300"
-                              : "bg-amber-50 text-amber-800 border border-amber-200/60"
-                          )}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                  {item.badge && (
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0",
+                      isActive
+                        ? "bg-amber-400/20 text-amber-300"
+                        : "bg-amber-50 text-amber-800 border border-amber-200/60"
+                    )}>
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
         </nav>
 
         {/* User Footer */}
@@ -253,50 +209,36 @@ export default function Layout() {
               </Link>
             </div>
 
-            <nav className="p-4 space-y-4">
-              {categorizedNavSections.map((section) => {
-                const visibleItems = section.items.filter(
-                  item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin)
-                );
-                if (visibleItems.length === 0) return null;
-
-                return (
-                  <div key={section.title} className="space-y-1">
-                    <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                      {section.title}
-                    </div>
-                    <div className="space-y-1">
-                      {visibleItems.map((item) => {
-                        const isActive = location.pathname === item.path || 
-                          (item.path !== '/' && location.pathname.startsWith(item.path));
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className={cn(
-                              "flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-xs font-semibold",
-                              isActive
-                                ? "bg-slate-900 text-white shadow-xs"
-                                : "text-slate-600 hover:bg-slate-100"
-                            )}
-                          >
-                            <div className="flex items-center space-x-2.5">
-                              <item.icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-400")} />
-                              <span>{item.label}</span>
-                            </div>
-                            {item.badge && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
-                                {item.badge}
-                              </span>
-                            )}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            <nav className="p-4 space-y-1">
+              {navItems
+                .filter(item => !item.adminOnly || isAdmin)
+                .map((item) => {
+                  const isActive = location.pathname === item.path || 
+                    (item.path !== '/' && location.pathname.startsWith(item.path));
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-xs font-semibold",
+                        isActive
+                          ? "bg-slate-900 text-white shadow-xs"
+                          : "text-slate-600 hover:bg-slate-100"
+                      )}
+                    >
+                      <div className="flex items-center space-x-2.5">
+                        <item.icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-400")} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);

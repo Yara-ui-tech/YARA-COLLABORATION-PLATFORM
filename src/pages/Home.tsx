@@ -40,6 +40,7 @@ export default function Home() {
   });
   
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
+  const [trendingPopup, setTrendingPopup] = useState<OrganizationPost | null>(null);
 
   useEffect(() => {
     async function loadFeed() {
@@ -47,6 +48,10 @@ export default function Home() {
         const posts = await getOrganizationPosts();
         if (posts && posts.length > 0) {
           setRecentPosts(posts.slice(0, 3));
+          const seen = sessionStorage.getItem('yara_trending_popup_seen');
+          if (!seen && posts[0]) {
+            setTrendingPopup(posts[0]);
+          }
         }
       } catch {}
     }
@@ -172,6 +177,57 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* =========================================================================
+          OFFICIAL NEWS & ANNOUNCEMENTS AT FOREFRONT
+         ========================================================================= */}
+      {recentPosts && recentPosts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+              <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+                Official News &amp; Announcements
+              </h2>
+            </div>
+            <Link to="/posts" className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <span>View All News</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {recentPosts.map((post) => (
+              <div 
+                key={post.id} 
+                className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition shadow-md flex flex-col justify-between space-y-3"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/20 font-bold text-[10px] uppercase">
+                      {post.category || 'Announcement'}
+                    </span>
+                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-white line-clamp-2 leading-snug">
+                    {post.title}
+                  </h3>
+                  <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
+                    {post.content}
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>{post.author_name || 'YARA Directorate'}</span>
+                  <Link to="/posts" className="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                    <span>Read</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* =========================================================================
           2. QUICK IN-PAGE NAVIGATION (Jump directly to any section on the same page)
@@ -568,23 +624,58 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Recent Updates if any */}
-      {recentPosts && recentPosts.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Latest News &amp; Updates</h3>
-            <Link to="/posts" className="text-xs font-bold text-blue-400 hover:underline">View All &rarr;</Link>
+      {/* Trending News Alert Modal Popup */}
+      {trendingPopup && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative border border-slate-700">
+            <div className="flex items-center justify-between">
+              <span className="px-3 py-1 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider rounded-full">
+                🔥 Trending News Alert
+              </span>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('yara_trending_popup_seen', 'true');
+                  setTrendingPopup(null);
+                }}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-white leading-snug">
+                {trendingPopup.title}
+              </h3>
+              <p className="text-xs text-slate-300 line-clamp-4 mt-2 leading-relaxed">
+                {trendingPopup.content}
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('yara_trending_popup_seen', 'true');
+                  setTrendingPopup(null);
+                }}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Dismiss
+              </button>
+              <Link
+                to="/posts"
+                onClick={() => {
+                  sessionStorage.setItem('yara_trending_popup_seen', 'true');
+                  setTrendingPopup(null);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+              >
+                <span>Read Full Press</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {recentPosts.map((post) => (
-              <div key={post.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
-                <span className="text-[10px] font-bold text-amber-400 uppercase">{post.category || 'Announcement'}</span>
-                <h4 className="text-xs font-bold text-white line-clamp-1">{post.title}</h4>
-                <p className="text-[11px] text-slate-400 line-clamp-2">{post.content}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        </div>
       )}
 
       {/* Dynamic Sections from Admin */}

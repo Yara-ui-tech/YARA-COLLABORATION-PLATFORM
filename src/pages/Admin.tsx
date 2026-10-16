@@ -1069,6 +1069,87 @@ export default function Admin() {
         </div>
       </header>
 
+      {/* Quick Shortcuts Bar for High-Priority Tasks */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 rounded-3xl text-white shadow-md flex flex-wrap items-center justify-between gap-3 border border-indigo-900/30">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Quick Manager Shortcuts:
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveHub('platform');
+              setActiveTab('org_posts');
+              setSearchParams({ tab: 'org_posts' });
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
+              activeTab === 'org_posts' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+            )}
+          >
+            <span>📢 News & Announcements</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveHub('lms');
+              setActiveTab('yara_kids');
+              setSearchParams({ tab: 'yara_kids' });
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
+              activeTab === 'yara_kids' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+            )}
+          >
+            <span>✨ YARA Kids Manager</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveHub('faculty');
+              setActiveTab('live');
+              setSearchParams({ tab: 'live' });
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
+              activeTab === 'live' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+            )}
+          >
+            <span>🔴 Live Stream</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveHub('platform');
+              setActiveTab('feedbacks_testimonials');
+              setSearchParams({ tab: 'feedbacks_testimonials' });
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
+              activeTab === 'feedbacks_testimonials' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+            )}
+          >
+            <span>💬 Feedback & Reviews</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveHub('members');
+              setActiveTab('members');
+              setSearchParams({ tab: 'members' });
+            }}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
+              activeTab === 'members' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+            )}
+          >
+            <span>👥 Members Directory</span>
+          </button>
+        </div>
+      </div>
+
       {/* 1. 5 Core Admin Hubs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {HUBS.map(hub => {
