@@ -157,31 +157,31 @@ export default function VerifyCertificate() {
   const linkedInAddUrl = certificate ? getLinkedInAddCertificationUrl(certificate) : '';
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6">
+    <div className="min-h-screen bg-slate-950 py-10 px-4 sm:px-6 text-slate-100">
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Navigation back */}
         <div className="flex items-center justify-between print:hidden">
           <Link
             to="/learning"
-            className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
+            className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to YARA Learning Academy
           </Link>
-          <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+          <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
             <ShieldCheck className="w-3.5 h-3.5" /> Official Accreditation Registry
           </div>
         </div>
 
         {/* Verification Container */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-sm space-y-6 print:border-none print:shadow-none print:p-0">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl space-y-6 print:border-none print:shadow-none print:p-0">
           <div className="text-center space-y-2 print:hidden">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400 shadow-sm">
               <ShieldCheck className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               YARA Credential Verification Portal
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
+            <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto">
               Verify the authenticity, academic distinction, and institutional standing of certificates issued by the Young Africans Robotics Association.
             </p>
           </div>
@@ -189,46 +189,23 @@ export default function VerifyCertificate() {
           {/* Search Bar */}
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 print:hidden">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Enter Credential ID (e.g. GLA-YARA-2026-008492, EDU-2026-AI-HARARE...)"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Verifying Credential…' : 'Verify Credential'}
             </button>
           </form>
-
-          {/* Friendly Helper Demo Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500 print:hidden">
-            <span className="font-semibold text-slate-600">💡 Quick Test Credential IDs:</span>
-            {[
-              'GLA-YARA-2026-008492',
-              'YARA-L1-ROB-001',
-              'EDU-2026-AI-HARARE'
-            ].map((code) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => {
-                  setInputCode(code);
-                  setSearchParams({ id: code });
-                  handleVerify(code);
-                }}
-                className="px-2.5 py-1 bg-slate-100 hover:bg-amber-100 hover:text-amber-900 border border-slate-200 rounded-lg text-[11px] font-mono font-bold transition cursor-pointer"
-              >
-                {code}
-              </button>
-            ))}
-          </div>
 
           {/* Verification Results */}
           {searched && (

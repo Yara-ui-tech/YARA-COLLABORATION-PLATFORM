@@ -29,28 +29,45 @@ interface NavItem {
   section?: string;
 }
 
-// Unified navigation: categorized for friendly, clear ease of use
-const unifiedNavItems: NavItem[] = [
-  // Learning & Growth
-  { path: '/dashboard', icon: BarChart3, label: 'My Dashboard', section: 'Learning & Growth' },
-  { path: '/learning', icon: Brain, label: 'Robotics Academy (LMS)', badge: 'L0–L8', section: 'Learning & Growth' },
-  { path: '/projects', icon: Briefcase, label: 'Hardware Projects', section: 'Learning & Growth' },
-  { path: '/mentorship', icon: Users, label: 'Mentor Hub', section: 'Learning & Growth' },
+// Streamlined, categorized navigation structure
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
-  // Events & Community
-  { path: '/competitions', icon: Trophy, label: 'Competitions & Arena', badge: '2026', section: 'Events & Community' },
-  { path: '/events', icon: Calendar, label: 'Events & Bootcamps', section: 'Events & Community' },
-  { path: '/chapters', icon: Building2, label: 'Provincial Chapters', section: 'Events & Community' },
-  { path: '/schools', icon: Building2, label: 'School Clubs', section: 'Events & Community' },
-
-  // Tools & Support
-  { path: '/verify-certificate', icon: QrCode, label: 'Verify Credentials', section: 'Credentials & Support' },
-  { path: '/library', icon: BookOpen, label: 'Resource Library', section: 'Credentials & Support' },
-  { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews', badge: 'Submit', section: 'Credentials & Support' },
-  { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true, section: 'Credentials & Support' },
-  { path: '/profile', icon: User, label: 'My Profile', section: 'Credentials & Support' },
-  { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true, section: 'Credentials & Support' },
-  { path: '/', icon: Globe, label: 'Public Website', section: 'Credentials & Support' },
+const categorizedNavSections: NavSection[] = [
+  {
+    title: 'LEARNING',
+    items: [
+      { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
+      { path: '/learning', icon: Brain, label: 'Robotics Courses', badge: 'L0–L8' },
+      { path: '/projects', icon: Briefcase, label: 'Hardware Projects' },
+    ]
+  },
+  {
+    title: 'COMMUNITY & ARENA',
+    items: [
+      { path: '/competitions', icon: Trophy, label: 'Competitions & Arena' },
+      { path: '/mentorship', icon: Users, label: 'Mentorship' },
+      { path: '/events', icon: Calendar, label: 'Events & Bootcamps' },
+      { path: '/chapters', icon: Building2, label: 'Chapters & Clubs' },
+    ]
+  },
+  {
+    title: 'TOOLS & SUPPORT',
+    items: [
+      { path: '/library', icon: BookOpen, label: 'Resource Library' },
+      { path: '/verify-certificate', icon: QrCode, label: 'Verify Certificate' },
+      { path: '/feedback', icon: MessageSquare, label: 'Feedback & Reviews' },
+    ]
+  },
+  {
+    title: 'MANAGEMENT',
+    items: [
+      { path: '/educator-portal', icon: ShieldCheck, label: 'Teacher / Patron Hub', teacherOnly: true },
+      { path: '/admin', icon: ShieldCheck, label: 'Admin Console', adminOnly: true },
+    ]
+  }
 ];
 
 export default function Layout() {
@@ -73,129 +90,94 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-slate-200 sticky top-0 h-screen shrink-0">
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 sticky top-0 h-screen shrink-0">
         {/* Brand Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-slate-950 border border-blue-500/40 shadow-md shadow-blue-900/20 flex items-center justify-center text-white overflow-hidden p-0.5 group-hover:scale-105 transition-all">
+            <div className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 shadow-xs flex items-center justify-center text-white overflow-hidden p-0.5 group-hover:scale-105 transition-all">
               {ASSETS.LOGO ? (
                 <img src={ASSETS.LOGO} alt="YARA" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               ) : (
-                <span className="text-xl font-black tracking-tighter text-blue-400">Y</span>
+                <span className="text-lg font-black tracking-tighter text-amber-400">Y</span>
               )}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-black text-slate-900 tracking-tight leading-none">YARA</h1>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none">YARA</h1>
+                <span className="text-[8px] font-bold px-1.5 py-0.2 rounded uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
                   Africa
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate max-w-[150px]">
-                Innovate Local, Build Global
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate max-w-[130px]">
+                Robotics &amp; AI Academy
               </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-1">
-            <NotificationBell />
-          </div>
+          <NotificationBell />
         </div>
 
-        {/* LMS Academy Quick Banner */}
-        <div className="px-3 pt-3 pb-2">
-          <Link
-            to="/learning"
-            className="p-3 bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 rounded-2xl text-white flex items-center justify-between hover:shadow-md transition-all group border border-emerald-800/40"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
-                <Brain className="w-4 h-4" />
+        {/* Clean Structured Navigation Items */}
+        <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+          {categorizedNavSections.map((section) => {
+            const visibleItems = section.items.filter(
+              item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin)
+            );
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={section.title} className="space-y-1">
+                <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  {section.title}
+                </div>
+                <div className="space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const isActive = location.pathname === item.path || 
+                      (item.path !== '/' && location.pathname.startsWith(item.path));
+
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-2 rounded-xl transition-colors duration-150 text-xs font-medium",
+                          isActive
+                            ? "bg-slate-900 text-white font-semibold shadow-xs"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                        )}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <item.icon className={cn(
+                            "w-4 h-4 shrink-0",
+                            isActive ? "text-amber-400" : "text-slate-400"
+                          )} />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+
+                        {item.badge && (
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0",
+                            isActive
+                              ? "bg-amber-400/20 text-amber-300"
+                              : "bg-amber-50 text-amber-800 border border-amber-200/60"
+                          )}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] font-black text-white group-hover:text-emerald-300 transition-colors">
-                  Robotics Academy (LMS)
-                </p>
-                <p className="text-[10px] text-slate-300">Level 0 to Level 8 Courses</p>
-              </div>
-            </div>
-            <ArrowRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        {/* Navigation Items with Friendly Section Categorization */}
-        <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto">
-          {(() => {
-            let lastSection = '';
-            return unifiedNavItems
-              .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
-              .map((item) => {
-                const isActive = location.pathname === item.path || 
-                  (item.path !== '/' && location.pathname.startsWith(item.path));
-                const showSectionHeader = item.section && item.section !== lastSection;
-                if (item.section) lastSection = item.section;
-
-                return (
-                  <React.Fragment key={item.path}>
-                    {showSectionHeader && (
-                      <div className="pt-3 pb-1 px-3 text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
-                        {item.section}
-                      </div>
-                    )}
-                    <Link
-                      to={item.path}
-                      className={cn(
-                        "flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group text-xs font-semibold",
-                        isActive
-                          ? "bg-blue-50 text-blue-700 font-bold border border-blue-100 shadow-xs"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                      )}
-                    >
-                      <div className="flex items-center space-x-2.5 min-w-0">
-                        <item.icon className={cn(
-                          "w-4 h-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
-                          isActive ? "text-blue-600" : "text-slate-400"
-                        )} />
-                        <span className="truncate">{item.label}</span>
-                      </div>
-
-                      {item.badge && (
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0",
-                          item.badge === 'Submit'
-                            ? "bg-pink-100 text-pink-700 border border-pink-200"
-                            : "bg-emerald-100 text-emerald-800"
-                        )}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  </React.Fragment>
-                );
-              });
-          })()}
+            );
+          })}
         </nav>
 
-        {/* User Footer with Direct WhatsApp Help Button */}
+        {/* User Footer */}
         <div className="p-3 border-t border-slate-100 bg-white space-y-2">
-          {/* Direct Friendly WhatsApp Support */}
-          <a
-            href="https://wa.me/263717468236?text=Hello%20Patron%2C%20I%20need%20assistance%20on%20YARA."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between px-3 py-1.5 rounded-xl text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition shadow-xs"
-            title="Chat directly with YARA Patron & Tech Support"
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Patron Help Line</span>
-            </span>
-            <span className="font-mono text-[10px] text-emerald-700">0717468236</span>
-          </a>
-
           <RuralDataSaverToggle variant="switch" />
-          <div className="flex items-center space-x-2.5 px-2 py-1.5">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden border border-slate-200 shrink-0">
+          <div className="flex items-center space-x-2.5 px-2 py-1">
+            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-xs overflow-hidden border border-slate-200 shrink-0">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
@@ -203,16 +185,16 @@ export default function Layout() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-900 truncate">{profile?.display_name || 'Innovator'}</p>
-              <p className="text-[10px] text-slate-500 truncate capitalize">{(profile as any)?.chapter_position || profile?.role || 'Member'}</p>
+              <p className="text-xs font-semibold text-slate-900 truncate">{profile?.display_name || 'Innovator'}</p>
+              <p className="text-[10px] text-slate-400 truncate capitalize">{(profile as any)?.chapter_position || profile?.role || 'Member'}</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 px-3 py-1.5 w-full rounded-lg text-xs text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors duration-200 cursor-pointer"
+            className="flex items-center space-x-2 px-3 py-1.5 w-full rounded-lg text-xs text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-150 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="font-medium">Logout</span>
+            <span>Logout</span>
           </button>
         </div>
       </aside>
@@ -271,44 +253,58 @@ export default function Layout() {
               </Link>
             </div>
 
-            <nav className="p-4 space-y-1">
-              {unifiedNavItems
-                .filter(item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin))
-                .map((item) => {
-                  const isActive = location.pathname === item.path || 
-                    (item.path !== '/' && location.pathname.startsWith(item.path));
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={cn(
-                        "flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 text-sm",
-                        isActive
-                          ? "bg-blue-50 text-blue-700 font-bold"
-                          : "text-slate-600 hover:bg-slate-50 font-medium"
-                      )}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <item.icon className="w-5 h-5" />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
+            <nav className="p-4 space-y-4">
+              {categorizedNavSections.map((section) => {
+                const visibleItems = section.items.filter(
+                  item => (!item.adminOnly || isAdmin) && (!item.teacherOnly || isTeacherOrAdmin)
+                );
+                if (visibleItems.length === 0) return null;
+
+                return (
+                  <div key={section.title} className="space-y-1">
+                    <div className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {section.title}
+                    </div>
+                    <div className="space-y-1">
+                      {visibleItems.map((item) => {
+                        const isActive = location.pathname === item.path || 
+                          (item.path !== '/' && location.pathname.startsWith(item.path));
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={cn(
+                              "flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 text-xs font-semibold",
+                              isActive
+                                ? "bg-slate-900 text-white shadow-xs"
+                                : "text-slate-600 hover:bg-slate-100"
+                            )}
+                          >
+                            <div className="flex items-center space-x-2.5">
+                              <item.icon className={cn("w-4 h-4", isActive ? "text-amber-400" : "text-slate-400")} />
+                              <span>{item.label}</span>
+                            </div>
+                            {item.badge && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   handleLogout();
                 }}
-                className="flex items-center space-x-3 px-4 py-3 w-full rounded-2xl text-red-600 hover:bg-red-50 transition-colors duration-200 mt-4 text-sm font-semibold"
+                className="flex items-center space-x-3 px-4 py-3 w-full rounded-2xl text-red-600 hover:bg-red-50 transition-colors duration-200 mt-4 text-xs font-bold"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
                 <span>Logout</span>
               </button>
             </nav>
@@ -326,7 +322,6 @@ export default function Layout() {
         </main>
       </div>
       <MobileBottomNav />
-      <SponsorPopups />
     </div>
   );
 }

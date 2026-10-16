@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, X, ChevronDown, GraduationCap, Trophy, Calendar, 
   Sparkles, Layers, ShieldCheck, ArrowRight, User, BookOpen, 
@@ -15,36 +15,44 @@ import { cn } from '../../lib/utils';
 
 export default function PublicHeader() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProgrammesDropdownOpen, setIsProgrammesDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  // Section 2: Top navigation on desktop: Home, Learn, Library, Chapters, Events & Competitions, About
+  // Smooth navigation for all-in-one unified page
+  const handleNavClick = (e: React.MouseEvent, targetId?: string, fallbackPath?: string) => {
+    if (targetId) {
+      if (location.pathname === '/') {
+        e.preventDefault();
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+          setIsMobileMenuOpen(false);
+          return;
+        }
+      } else if (fallbackPath) {
+        navigate(`/#${targetId}`);
+        setIsMobileMenuOpen(false);
+        return;
+      }
+    }
+    if (fallbackPath) {
+      navigate(fallbackPath);
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  // Streamlined primary navigation
   const navLinks = [
-    { label: 'Home', path: '/' },
-    { label: 'Robotics Academy (LMS)', path: '/learn' },
-    { label: 'Library', path: '/library' },
-    { label: 'Chapters', path: '/chapters' },
-    { label: 'Events & Competitions', path: '/events' },
-    { label: 'Feedback & Reviews', path: '/feedback' },
-    { 
-      label: 'About', 
-      path: '/about',
-      hasDropdown: true,
-      subItems: [
-        { label: 'About YARA', path: '/about' },
-        { label: 'Programmes & Tracks', path: '/programs' },
-        { label: 'Training System', path: '/training' },
-        { label: 'Feedback & Testimonials', path: '/feedback' },
-        { label: 'Impact & Galleries', path: '/impact' },
-        { label: 'Hardware Projects', path: '/projects' },
-        { label: 'Partners & Sponsors', path: '/partners' },
-        { label: 'News & Posts', path: '/posts' },
-        { label: 'Contact Us', path: '/contact' }
-      ]
-    },
+    { label: 'Home', path: '/', targetId: 'top' },
+    { label: 'Academy', path: '/learn', targetId: 'lms' },
+    { label: 'Competitions', path: '/competitions', targetId: 'competitions' },
+    { label: 'School Clubs', path: '/chapters', targetId: 'clubs' },
+    { label: 'Verify Cert', path: '/verify-certificate', targetId: 'verify' },
+    { label: 'Contact', path: '/contact', targetId: 'contact' },
   ];
 
   const isActive = (path: string) => {
@@ -55,7 +63,7 @@ export default function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 text-white transition-all">
       {/* Top Banner Ticker */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-blue-200 text-xs py-1.5 px-4 text-center border-b border-blue-800/40">
+      <div className="bg-gradient-to-r from-blue-900/80 via-indigo-900/60 to-slate-900 text-blue-200 text-xs py-1.5 px-4 text-center border-b border-blue-800/40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 truncate">
             <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider">
@@ -90,7 +98,7 @@ export default function PublicHeader() {
         <div className="flex items-center justify-between h-20">
           {/* Logo & Brand Identity */}
           <Link to="/" className="flex items-center gap-3.5 group shrink-0">
-            <div className="w-12 h-12 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg shadow-blue-500/10 border border-slate-700/60 group-hover:scale-105 transition-all overflow-hidden">
+            <div className="w-11 h-11 rounded-2xl bg-white p-1 flex items-center justify-center shadow-lg shadow-blue-500/10 border border-slate-700/60 group-hover:scale-105 transition-all overflow-hidden">
               <img 
                 src={ASSETS.LOGO} 
                 alt="Young Africans Robotics Association (YARA)" 
@@ -100,88 +108,48 @@ export default function PublicHeader() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xl sm:text-2xl font-black tracking-tight text-white group-hover:text-blue-400 transition-colors">
+                <span className="text-xl font-black tracking-tight text-white group-hover:text-blue-400 transition-colors">
                   YARA
                 </span>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
                   AFRICA
                 </span>
               </div>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium tracking-wide truncate max-w-[210px] sm:max-w-none">
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide truncate max-w-[190px] sm:max-w-none">
                 Young Africans Robotics Association
               </p>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center space-x-1 font-semibold text-xs">
-            {navLinks.map((item) => {
-              if (item.hasDropdown) {
-                return (
-                  <div 
-                    key={item.label}
-                    className="relative"
-                    onMouseEnter={() => setIsProgrammesDropdownOpen(true)}
-                    onMouseLeave={() => setIsProgrammesDropdownOpen(false)}
-                  >
-                    <Link
-                      to={item.path}
-                      className={cn(
-                        "px-3 py-2 rounded-xl flex items-center gap-1 transition-all",
-                        isActive(item.path)
-                          ? "text-blue-400 bg-blue-950/60 font-bold"
-                          : "text-slate-300 hover:text-white hover:bg-slate-900"
-                      )}
-                    >
-                      <span>{item.label}</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    </Link>
-
-                    {isProgrammesDropdownOpen && (
-                      <div className="absolute left-0 mt-1 w-64 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-                        {item.subItems?.map((sub) => (
-                          <Link
-                            key={sub.label}
-                            to={sub.path}
-                            onClick={() => setIsProgrammesDropdownOpen(false)}
-                            className="block px-3 py-2.5 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
-                          >
-                            {sub.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              return (
-                <Link
-                  key={item.label}
-                  to={item.path}
-                  className={cn(
-                    "px-3 py-2 rounded-xl transition-all",
-                    isActive(item.path)
-                      ? "text-blue-400 bg-blue-950/60 font-bold"
-                      : "text-slate-300 hover:text-white hover:bg-slate-900"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="hidden lg:flex items-center space-x-1 font-semibold text-xs">
+            {navLinks.map((item) => (
+              <a
+                key={item.label}
+                href={item.targetId ? `#${item.targetId}` : item.path}
+                onClick={(e) => handleNavClick(e, item.targetId, item.path)}
+                className={cn(
+                  "px-3 py-2 rounded-xl transition-all cursor-pointer",
+                  isActive(item.path)
+                    ? "text-blue-400 bg-blue-950/60 font-bold"
+                    : "text-slate-300 hover:text-white hover:bg-slate-900"
+                )}
+              >
+                {item.label}
+              </a>
+            ))}
           </nav>
 
-          {/* Actions: Search + Notifications + LMS Entrypoint + Join */}
-          <div className="hidden sm:flex items-center gap-2.5">
+          {/* Actions: Search + Quick Pay + Sign In / Join */}
+          <div className="hidden lg:flex items-center gap-2">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-xs font-medium transition cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-xs font-medium transition cursor-pointer"
               title="Search courses, library and chapters (Cmd+K)"
             >
               <Search className="w-3.5 h-3.5 text-blue-400" />
-              <span className="hidden lg:inline">Search...</span>
-              <kbd className="hidden lg:inline px-1.5 py-0.5 bg-slate-800 border border-slate-700 text-[9px] text-slate-400 rounded">⌘K</kbd>
+              <span className="hidden xl:inline">Search</span>
+              <kbd className="hidden xl:inline px-1 py-0.5 bg-slate-800 border border-slate-700 text-[9px] text-slate-400 rounded">⌘K</kbd>
             </button>
 
             <NotificationBell />
@@ -189,31 +157,21 @@ export default function PublicHeader() {
             {/* Pay Online Quick Button */}
             <button
               onClick={() => setIsPaymentModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-300 hover:text-white bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Pay Online for Kits, Events, Subscriptions & Dues"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300 hover:text-white bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Pay Online for Kits, Subscriptions & Dues"
             >
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden md:inline">Pay Online</span>
+              <span className="hidden xl:inline">Pay Online</span>
             </button>
 
-            {/* Direct Feedback Button */}
-            <Link
-              to="/feedback"
-              className="px-3 py-2 rounded-xl text-xs font-bold text-pink-300 hover:text-white bg-pink-950/70 hover:bg-pink-900 border border-pink-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-              title="Submit Platform Feedback or Review"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-pink-400" />
-              <span className="hidden lg:inline">Feedback</span>
-            </Link>
-
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-1">
                 <Link
                   to="/dashboard"
-                  className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-emerald-950/40 transition-all hover:scale-105"
+                  className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-2 rounded-xl font-bold text-xs shadow-md transition-all hover:scale-102"
                 >
                   <GraduationCap className="w-4 h-4" />
-                  <span>My Dashboard</span>
+                  <span>Dashboard</span>
                 </Link>
                 <Link
                   to="/profile"
@@ -224,28 +182,29 @@ export default function PublicHeader() {
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center gap-2.5">
-                <Link
-                  to="/auth"
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all flex items-center gap-1.5"
+              <div className="flex items-center gap-2 ml-1">
+                <a
+                  href="#auth-box"
+                  onClick={(e) => handleNavClick(e, 'auth-box', '/auth')}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-900 transition-all cursor-pointer"
                 >
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                  <span>LMS Login</span>
-                </Link>
+                  <span>Sign In</span>
+                </a>
 
-                <Link
-                  to="/auth"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-blue-900/40 transition-all hover:scale-105 flex items-center gap-1.5"
+                <a
+                  href="#auth-box"
+                  onClick={(e) => handleNavClick(e, 'auth-box', '/auth')}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-blue-900/30 transition-all hover:scale-102 flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <span>JOIN YARA</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                </a>
               </div>
             )}
           </div>
 
           {/* Mobile Menu Toggle Button */}
-          <div className="flex items-center gap-1.5 xl:hidden">
+          <div className="flex items-center gap-1.5 lg:!hidden">
             <button
               onClick={() => setIsSearchOpen(true)}
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
@@ -267,7 +226,7 @@ export default function PublicHeader() {
 
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="xl:hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top-4 duration-200">
+        <div className="lg:!hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top-4 duration-200">
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-800">
             {user ? (
               <Link
@@ -280,59 +239,59 @@ export default function PublicHeader() {
               </Link>
             ) : (
               <>
-                <Link
-                  to="/auth"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 bg-slate-900 text-slate-200 py-3 rounded-xl font-bold text-xs border border-slate-800"
+                <a
+                  href="#auth-box"
+                  onClick={(e) => handleNavClick(e, 'auth-box', '/auth')}
+                  className="flex items-center justify-center gap-2 bg-slate-900 text-slate-200 py-3 rounded-xl font-bold text-xs border border-slate-800 cursor-pointer"
                 >
                   <GraduationCap className="w-4 h-4 text-emerald-400" />
                   <span>LMS Login</span>
-                </Link>
-                <Link
-                  to="/auth"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider"
+                </a>
+                <a
+                  href="#auth-box"
+                  onClick={(e) => handleNavClick(e, 'auth-box', '/auth')}
+                  className="flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-wider cursor-pointer"
                 >
                   <span>Join YARA</span>
-                </Link>
+                </a>
               </>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-1 pt-2">
             {navLinks.map((item) => (
-              <Link
+              <a
                 key={item.label}
-                to={item.path}
-                onClick={() => setIsMobileMenuOpen(false)}
+                href={item.targetId ? `#${item.targetId}` : item.path}
+                onClick={(e) => handleNavClick(e, item.targetId, item.path)}
                 className={cn(
-                  "px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors",
+                  "px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer",
                   isActive(item.path)
                     ? "bg-blue-950 text-blue-400 font-bold"
                     : "text-slate-300 hover:bg-slate-900"
                 )}
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
           </div>
 
           <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-            <Link 
-              to="/verify-certificate" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-amber-400 hover:underline flex items-center gap-1"
+            <a 
+              href="#verify" 
+              onClick={(e) => handleNavClick(e, 'verify', '/verify-certificate')}
+              className="text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Verify Certificate</span>
-            </Link>
-            <Link 
-              to="/competitions/yara-2026" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-blue-400 hover:underline"
+            </a>
+            <a 
+              href="#competitions" 
+              onClick={(e) => handleNavClick(e, 'competitions', '/competitions/yara-2026')}
+              className="text-blue-400 hover:underline cursor-pointer"
             >
               YARA Arena 2026
-            </Link>
+            </a>
           </div>
         </div>
       )}

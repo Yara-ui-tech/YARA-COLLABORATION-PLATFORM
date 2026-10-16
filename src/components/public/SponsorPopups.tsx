@@ -92,42 +92,33 @@ export default function SponsorPopups() {
     } catch {}
   }, []);
 
-  // Popup cycle interval: Show for 7 seconds, hide for 5 seconds, cycle to next
+  // Check if previously dismissed
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('yara_hide_sponsor_popups') === 'true') {
+        setIsDismissed(true);
+      }
+    } catch {}
+  }, []);
+
+  // Show only once gently after 12 seconds if not previously dismissed
   useEffect(() => {
     if (isDismissed) return;
 
-    // Initial show delay so page loads cleanly
     const initialTimer = setTimeout(() => {
       setIsVisible(true);
-    }, 3500);
+    }, 12000);
 
     return () => clearTimeout(initialTimer);
   }, [isDismissed]);
 
-  useEffect(() => {
-    if (isDismissed || isPaused) return;
-
-    let hideTimer: NodeJS.Timeout;
-    let nextTimer: NodeJS.Timeout;
-
-    if (isVisible) {
-      // Stay visible for 8 seconds
-      hideTimer = setTimeout(() => {
-        setIsVisible(false);
-      }, 8000);
-    } else {
-      // Stay hidden for 6 seconds, then switch to next sponsor and show
-      nextTimer = setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % sponsors.length);
-        setIsVisible(true);
-      }, 6000);
-    }
-
-    return () => {
-      clearTimeout(hideTimer);
-      clearTimeout(nextTimer);
-    };
-  }, [isVisible, isPaused, isDismissed, sponsors.length]);
+  const handleDismiss = () => {
+    setIsVisible(false);
+    setIsDismissed(true);
+    try {
+      localStorage.setItem('yara_hide_sponsor_popups', 'true');
+    } catch {}
+  };
 
   if (isDismissed || sponsors.length === 0) return null;
 
@@ -136,7 +127,7 @@ export default function SponsorPopups() {
   return (
     <aside
       aria-label="Sponsor and partner notifications"
-      className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-40 max-w-sm pointer-events-none"
+      className="hidden md:block fixed bottom-6 left-6 z-40 max-w-sm pointer-events-none"
     >
       <AnimatePresence>
         {isVisible && current && (
@@ -164,10 +155,10 @@ export default function SponsorPopups() {
 
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setIsVisible(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Close popup"
-                  aria-label="Close sponsor message"
+                  onClick={handleDismiss}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Dismiss partner spotlight"
+                  aria-label="Dismiss sponsor message"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

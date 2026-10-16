@@ -37,16 +37,14 @@ interface TabItem {
 }
 
 export const LEARNING_NAV_TABS: TabItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'courses', label: 'Courses', icon: BookOpen, badge: 'All Tracks' },
-  { id: 'my-courses', label: 'My Courses', icon: GraduationCap },
-  { id: 'progress', label: 'Progress', icon: TrendingUp },
-  { id: 'assessments', label: 'Assessments', icon: CheckSquare },
-  { id: 'projects', label: 'Projects', icon: FolderGit2, badge: 'Portfolio' },
+  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+  { id: 'courses', label: 'Course Catalog', icon: BookOpen, badge: 'All' },
+  { id: 'my-courses', label: 'My Enrolled', icon: GraduationCap },
+  { id: 'assessments', label: 'Quizzes & Labs', icon: CheckSquare },
+  { id: 'projects', label: 'Portfolio', icon: FolderGit2 },
   { id: 'certificates', label: 'Certificates', icon: Award },
-  { id: 'subscription', label: 'Subscription', icon: CreditCard },
-  { id: 'resources', label: 'Resources', icon: Package },
-  { id: 'admin-center', label: 'Learners & Approvals', icon: ShieldCheck, badge: 'Admin Only', highlight: true }
+  { id: 'resources', label: 'Materials', icon: Package },
+  { id: 'admin-center', label: 'Admin Approvals', icon: ShieldCheck, badge: 'Admin', highlight: true }
 ];
 
 interface Props {

@@ -228,30 +228,30 @@ export default function Feedback() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 pb-16 px-4 sm:px-6">
+    <div className="max-w-5xl mx-auto space-y-10 pb-16 px-4 sm:px-6 pt-6 text-slate-100">
       {/* Page Header */}
       <header className="space-y-3">
-        <div className="inline-flex items-center space-x-2 bg-indigo-50 border border-indigo-200/80 text-indigo-700 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-          <MessageSquare className="w-4 h-4 text-indigo-600" />
+        <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+          <MessageSquare className="w-4 h-4 text-blue-400" />
           <span>Learner, Educator &amp; Community Voice</span>
         </div>
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
           Community Feedback &amp; Mentor Reviews
         </h1>
-        <p className="text-slate-600 font-medium text-sm md:text-base max-w-2xl leading-relaxed">
+        <p className="text-slate-300 font-normal text-sm md:text-base max-w-2xl leading-relaxed">
           Your feedback shapes YARA’s robotics hardware kits, LMS courses, mentor sessions, and continental competitions. Everyone—students, teachers, patrons, and guests—is welcome to submit.
         </p>
       </header>
 
       {/* Switcher Pills */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
         <button
           onClick={() => setActiveType('feedback')}
           className={cn(
             "px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer",
             activeType === 'feedback' 
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" 
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" 
+              : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
           )}
         >
           <MessageSquare className="w-4 h-4" />
@@ -264,7 +264,7 @@ export default function Feedback() {
             "px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer",
             activeType === 'mentor_review' 
               ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20" 
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
           )}
         >
           <Users className="w-4 h-4" />
@@ -277,7 +277,7 @@ export default function Feedback() {
             "px-4 py-2.5 rounded-2xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer",
             activeType === 'testimonial' 
               ? "bg-pink-600 text-white shadow-md shadow-pink-600/20" 
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              : "bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800"
           )}
         >
           <Heart className="w-4 h-4 text-pink-200" />
@@ -320,17 +320,17 @@ export default function Feedback() {
                 key="form"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-[2.5rem] p-7 border border-slate-200/80 shadow-sm sticky top-8 space-y-5"
+                className="bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-xl sticky top-8 space-y-5 text-white"
               >
                 <div className="space-y-1">
-                  <h3 className="text-lg font-black text-slate-900">
+                  <h3 className="text-lg font-black text-white">
                     {activeType === 'feedback' 
                       ? 'Submit Platform Feedback' 
                       : activeType === 'mentor_review'
                       ? 'Review a Mentor'
                       : 'Share Your Story'}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     {activeType === 'feedback' 
                       ? 'Tell us what features you want or report an issue.' 
                       : activeType === 'mentor_review'
@@ -341,22 +341,22 @@ export default function Feedback() {
 
                 {/* Logged in indicator or Guest form */}
                 {user ? (
-                  <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-2xl flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
                       {profile?.display_name?.[0] || 'U'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-indigo-950 truncate">
+                      <p className="text-xs font-bold text-white truncate">
                         Posting as: {profile?.display_name || user.email}
                       </p>
-                      <p className="text-[10px] text-indigo-600 truncate">
+                      <p className="text-[10px] text-blue-400 truncate">
                         {(profile as any)?.chapter_position || profile?.role || 'Member'}
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                    <p className="text-[11px] font-bold text-slate-700">Guest Submitter Details</p>
+                  <div className="space-y-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl">
+                    <p className="text-[11px] font-bold text-slate-300">Guest Submitter Details</p>
                     <div>
                       <input
                         type="text"
@@ -364,7 +364,7 @@ export default function Feedback() {
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder="Your Full Name *"
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-indigo-600"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder:text-slate-500 focus:outline-blue-500"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -373,12 +373,12 @@ export default function Feedback() {
                         value={guestContact}
                         onChange={(e) => setGuestContact(e.target.value)}
                         placeholder="Email / Phone (Optional)"
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-indigo-600"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-medium text-white placeholder:text-slate-500 focus:outline-blue-500"
                       />
                       <select
                         value={guestRole}
                         onChange={(e) => setGuestRole(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-indigo-600"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-2 text-xs font-semibold text-white focus:outline-blue-500"
                       >
                         <option value="Learner">Learner</option>
                         <option value="STEM Teacher">STEM Teacher</option>
@@ -394,7 +394,7 @@ export default function Feedback() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Rating Stars */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
                       Rating ({rating} of 5 Stars)
                     </label>
                     <div className="flex space-x-1.5">
@@ -404,8 +404,8 @@ export default function Feedback() {
                           type="button"
                           onClick={() => setRating(star)}
                           className={cn(
-                            "p-2 rounded-xl transition-all cursor-pointer",
-                            rating >= star ? "text-amber-400 bg-amber-50" : "text-slate-300 bg-slate-50 hover:bg-slate-100"
+                            "p-2 rounded-xl transition-all cursor-pointer border",
+                            rating >= star ? "text-amber-400 bg-amber-500/10 border-amber-500/40" : "text-slate-600 bg-slate-950 border-slate-800 hover:text-slate-400"
                           )}
                         >
                           <Star className={cn("w-5 h-5", rating >= star && "fill-amber-400")} />
@@ -417,14 +417,14 @@ export default function Feedback() {
                   {/* Mentor Selector if in mentor_review mode */}
                   {activeType === 'mentor_review' && (
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block">
+                      <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
                         Select Mentor
                       </label>
                       {mentorsList.length > 0 ? (
                         <select
                           value={selectedMentorId}
                           onChange={(e) => setSelectedMentorId(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-800 focus:outline-emerald-600"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-bold text-white focus:outline-emerald-500"
                         >
                           {mentorsList.map((m) => (
                             <option key={m.id} value={m.id}>
@@ -439,7 +439,7 @@ export default function Feedback() {
                           value={mentorCustomName}
                           onChange={(e) => setMentorCustomName(e.target.value)}
                           placeholder="Name of Mentor or Instructor *"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-emerald-600"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-medium text-white placeholder:text-slate-500 focus:outline-emerald-500"
                         />
                       )}
                     </div>
@@ -447,13 +447,13 @@ export default function Feedback() {
 
                   {/* Category */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
                       Category
                     </label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-medium focus:outline-indigo-600 text-slate-800"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-medium focus:outline-blue-500 text-white"
                     >
                       {activeType === 'mentor_review' ? (
                         <>
@@ -483,7 +483,7 @@ export default function Feedback() {
 
                   {/* Message Input */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-black text-slate-700 uppercase tracking-widest block">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
                       Your Message *
                     </label>
                     <textarea
@@ -497,7 +497,7 @@ export default function Feedback() {
                           ? 'Share your suggestions, recommendations, or bugs encountered...'
                           : 'Tell the community how YARA helped your school or robotics skills...'
                       }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 focus:outline-indigo-600 font-medium min-h-[120px] text-xs leading-relaxed text-slate-800"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3.5 focus:outline-blue-500 font-normal min-h-[120px] text-xs leading-relaxed text-white placeholder:text-slate-500"
                     />
                   </div>
 
@@ -510,7 +510,7 @@ export default function Feedback() {
                         ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20"
                         : activeType === 'testimonial'
                         ? "bg-pink-600 hover:bg-pink-500 shadow-pink-600/20"
-                        : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20"
+                        : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20"
                     )}
                   >
                     {loading ? (
@@ -540,20 +540,20 @@ export default function Feedback() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">Community Stories &amp; Testimonials</h3>
-                  <p className="text-xs text-slate-500">Inspiring experiences from schools and innovators across Africa.</p>
+                  <h3 className="text-xl font-bold text-white">Community Stories &amp; Testimonials</h3>
+                  <p className="text-xs text-slate-400">Inspiring experiences from schools and innovators across Africa.</p>
                 </div>
-                <span className="text-xs bg-pink-50 text-pink-700 font-bold px-3 py-1 rounded-full border border-pink-200">
+                <span className="text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30">
                   {testimonials.length} Stories
                 </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {testimonials.map((t) => (
-                  <div key={t.id} className="bg-white p-6 rounded-3xl border border-pink-100 shadow-xs space-y-3 flex flex-col justify-between">
+                  <div key={t.id} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-sm space-y-3 flex flex-col justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-pink-600 uppercase bg-pink-50 px-2.5 py-0.5 rounded-full border border-pink-100">
+                        <span className="text-[10px] font-bold text-pink-400 uppercase bg-pink-500/10 px-2.5 py-0.5 rounded-full border border-pink-500/30">
                           {t.category || 'Testimonial'}
                         </span>
                         <div className="flex items-center text-amber-400">
@@ -562,17 +562,17 @@ export default function Feedback() {
                           ))}
                         </div>
                       </div>
-                      <p className="text-slate-800 text-xs italic font-medium leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                      <p className="text-slate-300 text-xs italic font-normal leading-relaxed bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80">
                         "{t.content}"
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-bold text-slate-900">{t.author_name}</p>
+                        <p className="text-xs font-bold text-white">{t.author_name}</p>
                         <p className="text-[10px] text-slate-400">{t.author_role}</p>
                       </div>
-                      <Heart className="w-4 h-4 text-pink-400 fill-pink-100" />
+                      <Heart className="w-4 h-4 text-pink-400" />
                     </div>
                   </div>
                 ))}
@@ -582,39 +582,39 @@ export default function Feedback() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900">
+                  <h3 className="text-xl font-bold text-white">
                     {activeType === 'mentor_review' ? 'Real-Time Mentor Reviews' : 'Recent Platform Feedback'}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-400">
                     {activeType === 'mentor_review' 
                       ? 'Live learner reviews synchronized with mentors and admin portals.'
                       : 'Community feedback helping improve YARA daily.'}
                   </p>
                 </div>
-                <span className="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-200">
+                <span className="text-xs bg-blue-500/20 text-blue-300 font-bold px-3 py-1 rounded-full border border-blue-500/30">
                   {feedbacks.length} Entries
                 </span>
               </div>
 
               {fetching ? (
-                <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                <div className="p-12 text-center text-slate-400 bg-slate-900 rounded-3xl border border-slate-800 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
                   <span>Loading submissions...</span>
                 </div>
               ) : feedbacks.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-white rounded-3xl border border-slate-200">
+                <div className="p-12 text-center text-slate-400 bg-slate-900 rounded-3xl border border-slate-800">
                   No submissions yet. Be the first to share your thoughts!
                 </div>
               ) : (
                 feedbacks.map((fb) => (
-                  <div key={fb.id} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2.5">
+                  <div key={fb.id} className="bg-slate-900 p-5 rounded-3xl border border-slate-800 shadow-sm space-y-2.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center border border-indigo-100">
+                        <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 font-bold text-xs flex items-center justify-center border border-blue-500/30">
                           {fb.user_name?.[0] || 'U'}
                         </div>
                         <div>
-                          <span className="font-bold text-slate-900 text-xs block">{fb.user_name || 'Innovator'}</span>
+                          <span className="font-bold text-white text-xs block">{fb.user_name || 'Innovator'}</span>
                           <span className="text-[10px] text-slate-400">
                             {fb.created_at ? new Date(fb.created_at).toLocaleDateString() : 'Recent'}
                           </span>
@@ -626,7 +626,7 @@ export default function Feedback() {
                         ))}
                       </div>
                     </div>
-                    <p className="text-slate-700 text-xs leading-relaxed font-medium bg-slate-50/60 p-3 rounded-xl border border-slate-100">
+                    <p className="text-slate-300 text-xs leading-relaxed font-normal bg-slate-950 p-3 rounded-xl border border-slate-800/80">
                       {fb.content}
                     </p>
                   </div>

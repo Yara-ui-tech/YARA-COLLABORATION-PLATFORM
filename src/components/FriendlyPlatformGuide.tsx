@@ -20,21 +20,8 @@ interface QuickAction {
 
 export default function FriendlyPlatformGuide() {
   const [isOpen, setIsOpen] = useState(false);
-  const [hasPrompted, setHasPrompted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
-
-  // Show a gentle greeting toast after 3 seconds for first-time visitors
-  useEffect(() => {
-    const seen = localStorage.getItem('yara_seen_guide_prompt');
-    if (!seen) {
-      const timer = setTimeout(() => {
-        setHasPrompted(true);
-        localStorage.setItem('yara_seen_guide_prompt', 'true');
-      }, 3500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
 
   const quickActions: QuickAction[] = [
     {
@@ -105,67 +92,15 @@ export default function FriendlyPlatformGuide() {
 
   return (
     <>
-      {/* Floating Friendly Compass Button */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end print:hidden">
-        {/* First-time welcoming speech bubble */}
-        <AnimatePresence>
-          {hasPrompted && !isOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="mb-3 max-w-xs p-3.5 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-amber-500/40 text-xs font-sans relative"
-            >
-              <button
-                onClick={() => setHasPrompted(false)}
-                className="absolute top-2 right-2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
-                title="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-              <div className="flex items-start gap-2.5 pr-4">
-                <span className="text-xl">👋</span>
-                <div>
-                  <p className="font-bold text-amber-300">Need help getting started?</p>
-                  <p className="text-slate-300 text-[11px] mt-0.5 leading-snug">
-                    Explore robotics courses, verify certificates, or access AI tools with 1 click.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setHasPrompted(false);
-                      setIsOpen(true);
-                    }}
-                    className="mt-2 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-lg text-[10px] uppercase tracking-wider flex items-center gap-1 cursor-pointer shadow-xs"
-                  >
-                    <span>Open Guide</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Floating Toggle Button */}
+      {/* Discreet Help Button */}
+      <div className="fixed bottom-5 right-5 z-40 print:hidden">
         <button
-          onClick={() => {
-            setIsOpen(!isOpen);
-            setHasPrompted(false);
-          }}
-          className="group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 hover:from-slate-800 hover:to-indigo-900 text-white rounded-2xl shadow-2xl border-2 border-amber-500/50 hover:border-amber-400 transition-all duration-300 hover:scale-105 cursor-pointer"
-          title="Open Friendly Platform Guide"
-          aria-label="Platform Help and Guide"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-10 h-10 rounded-full bg-slate-900/90 hover:bg-slate-900 text-amber-400 border border-slate-700/80 shadow-lg flex items-center justify-center transition-transform hover:scale-105 cursor-pointer backdrop-blur-xs"
+          title="Platform Quick Guide"
+          aria-label="Platform Help"
         >
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md shrink-0">
-            {isOpen ? <X className="w-4 h-4" /> : <Compass className="w-4 h-4 animate-spin-slow" />}
-          </div>
-          <div className="text-left hidden sm:block">
-            <div className="text-xs font-black tracking-tight flex items-center gap-1.5">
-              <span>Quick Guide &amp; Help</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            </div>
-            <p className="text-[10px] text-slate-300">Easy navigation &amp; support</p>
-          </div>
+          {isOpen ? <X className="w-4 h-4 text-white" /> : <HelpCircle className="w-4 h-4 text-amber-400" />}
         </button>
       </div>
 

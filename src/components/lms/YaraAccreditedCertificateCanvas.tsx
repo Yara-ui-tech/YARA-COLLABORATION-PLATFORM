@@ -1,6 +1,6 @@
 import React from 'react';
 import { ASSETS } from '../../constants/assets';
-import { Award, ShieldCheck, Code, GraduationCap, Cpu, CheckCircle, Building2 } from 'lucide-react';
+import { Award, Cpu, Code, GraduationCap } from 'lucide-react';
 import { useQrCode } from '../../utils/qrCodeHelper';
 
 export type CertificateType = 'robotics' | 'programming' | 'educator';
@@ -69,12 +69,12 @@ export const ROBOTICS_LEVEL_CONFIG: Record<RoboticsLevel, {
   defaultCitation: string;
 }> = {
   1: {
-    tag: 'LEVEL 1 — ABSOLUTE BEGINNER & EXPLORER',
-    title: 'Absolute Beginner or Explorer',
+    tag: 'LEVEL 1 — BEGINNER & EXPLORER',
+    title: 'Beginner & Explorer',
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-900',
     badgeBorder: 'border-amber-300',
-    defaultCitation: 'For successfully mastering the foundations of electronics, Ohm’s law, breadboarding, sensor mechanics, and visual logic programming in'
+    defaultCitation: 'For successfully mastering electronics fundamentals, circuit prototyping, and visual robotics programming in'
   },
   2: {
     tag: 'LEVEL 2 — INTERMEDIATE LEARNER',
@@ -82,7 +82,7 @@ export const ROBOTICS_LEVEL_CONFIG: Record<RoboticsLevel, {
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-900',
     badgeBorder: 'border-amber-300',
-    defaultCitation: 'For successfully completing embedded C++ firmware engineering, Arduino/ESP32 microcontroller interfacing, PWM motor drivers, and mobile chassis assembly in'
+    defaultCitation: 'For demonstrated proficiency in embedded C++ engineering, microcontroller interfacing, and mobile robotics in'
   },
   3: {
     tag: 'LEVEL 3 — ADVANCED LEARNER',
@@ -90,15 +90,15 @@ export const ROBOTICS_LEVEL_CONFIG: Record<RoboticsLevel, {
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-900',
     badgeBorder: 'border-amber-300',
-    defaultCitation: 'For demonstrating verified proficiency in autonomous mobile robotics, PID control algorithms, telemetry streaming, line tracking, and edge AI computer vision in'
+    defaultCitation: 'For demonstrated competence in autonomous mobile robotics, PID control algorithms, and edge telemetry in'
   },
   4: {
-    tag: 'LEVEL 4 — ROBOTICS MASTERCLASS FOR REAL WORLD APPLICATIONS AND DEPLOYMENT',
-    title: 'Robotics Masterclass for Real World Applications and Deployment',
+    tag: 'LEVEL 4 — MASTERCLASS & DEPLOYMENT',
+    title: 'Masterclass for Real World Applications',
     badgeBg: 'bg-amber-50',
     badgeText: 'text-amber-900',
     badgeBorder: 'border-amber-300',
-    defaultCitation: 'For successfully completing advanced applied engineering research, 21-point technical documentation, industrial automation prototyping, and defended real-world capstone deployment in'
+    defaultCitation: 'For demonstrated mastery in applied robotics engineering, automation prototyping, and defended capstone deployment in'
   }
 };
 
@@ -116,33 +116,18 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
     issueDate,
     verificationUrl,
     directorName = 'Mr. S.O. Manongwa',
-    directorTitle = 'Founder & Lead Instructor, YARA',
-    organizationName = 'YARA ACADEMY OF ADVANCED ROBOTICS & AI',
+    directorTitle = 'Founder & Executive Director',
+    organizationName = 'YOUNG AFRICANS ROBOTICS ASSOCIATION',
     signatureUrl = ASSETS.SIGNATURE_MANONGWA,
     coSignerName = 'Ms. A.M. Chiambiro',
-    coSignerTitle = 'Regional President, YARA Zimbabwe',
+    coSignerTitle = 'Regional President, YARA',
     coSignerSignatureUrl = ASSETS.SIGNATURE_CHIAMBIRO,
-    
-    // Corporate Brand
     logoUrl = ASSETS.LOGO,
-
-    // Seal
     sealEnabled = true,
-
-    // Background & Watermark
-    bgPattern = 'guilloche',
-    watermarkEnabled = true,
-    watermarkText = 'YARA',
-    watermarkOpacity = 0.04,
-
-    // Partners
     hasPartner = false,
     partnerName,
     partnerLogoUrl,
-    partnerBadgeLabel = 'In Collaboration With',
-    partnerSignerName,
-    partnerSignerTitle,
-    partnerSignatureUrl
+    partnerBadgeLabel = 'In Collaboration With'
   } = data;
 
   const isRobotics = certificateType === 'robotics';
@@ -157,137 +142,95 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
   if (isRobotics) {
     certificateCategoryLabel = roboticsConfig.tag;
     if (!citation) {
-      citation = `${roboticsConfig.defaultCitation} the official YARA Robotics Academy curriculum, demonstrating verified hardware engineering and autonomous programming competence with distinction.`;
+      citation = `${roboticsConfig.defaultCitation} the official YARA Robotics Academy curriculum with distinguished performance.`;
     }
   } else if (isProgramming) {
-    certificateCategoryLabel = 'PROFESSIONAL SOFTWARE & COMPUTATIONAL ENGINEERING';
+    certificateCategoryLabel = 'SOFTWARE & COMPUTATIONAL ENGINEERING';
     if (!citation) {
-      citation = 'For successfully mastering modern software development, data structures, algorithm design, computational thinking, and defended practical software applications in';
+      citation = 'For successfully mastering modern software development, data structures, and practical software engineering with distinction.';
     }
   } else if (isEducator) {
     certificateCategoryLabel = 'AI FOR EDUCATORS NATIONAL ACCREDITATION';
     if (!citation) {
-      citation = 'For successfully completing comprehensive professional development training in educational artificial intelligence, pedagogy, and classroom curriculum design in';
+      citation = 'For successfully completing comprehensive professional development in educational artificial intelligence, pedagogy, and curriculum integration.';
     }
   } else if (!citation) {
-    citation = 'For successfully fulfilling all curriculum requirements, technical assignments, examination benchmarks, and capstone engineering deployment in';
+    citation = 'For successfully fulfilling all curriculum requirements, technical benchmarks, and practical capstone defense with distinction.';
   }
 
-  // Verification URL for QR code
   const targetVerificationUrl = verificationUrl || `https://yara.org/verify-certificate?id=${certificateNumber}`;
-  const qrCodeDataUrl = useQrCode(targetVerificationUrl, { width: 180, darkColor: '#0f172a' });
+  const qrCodeDataUrl = useQrCode(targetVerificationUrl, { width: 140, darkColor: '#0f172a' });
 
   return (
     <div
       ref={innerRef}
       id="yara-accredited-certificate-canvas"
-      className={`relative w-full aspect-[1.414/1] min-h-[580px] sm:min-h-[640px] bg-gradient-to-br from-amber-50/50 via-white to-amber-50/30 rounded-3xl p-6 sm:p-10 md:p-12 shadow-2xl border-[10px] sm:border-[12px] border-double border-amber-600/80 overflow-hidden flex flex-col justify-between select-none font-sans text-slate-900 mx-auto ${className}`}
+      className={`relative w-full aspect-[1.414/1] min-h-[540px] sm:min-h-[600px] bg-gradient-to-br from-[#fffdfa] via-white to-[#faf6ef] rounded-2xl p-6 sm:p-10 md:p-12 shadow-xl border-2 border-amber-600/40 overflow-hidden flex flex-col justify-between select-none font-sans text-slate-900 mx-auto ${className}`}
       style={{
-        maxWidth: '960px',
-        boxShadow: '0 25px 50px -12px rgba(180, 83, 9, 0.25), inset 0 0 80px rgba(245, 158, 11, 0.05)',
+        maxWidth: '940px',
         boxSizing: 'border-box'
       }}
     >
-      {/* 1. Background Watermark Pattern (AI for Educators Style) */}
-      <div className="absolute inset-0 opacity-[0.035] pointer-events-none flex items-center justify-center">
-        <svg viewBox="0 0 500 500" className="w-[85%] h-[85%] text-slate-950 fill-current">
+      {/* Inner Elegant Border */}
+      <div className="absolute inset-3 sm:inset-4 rounded-xl border border-amber-600/25 pointer-events-none" />
+
+      {/* Subtle Background Crest */}
+      <div className="absolute inset-0 opacity-[0.025] pointer-events-none flex items-center justify-center">
+        <svg viewBox="0 0 500 500" className="w-[75%] h-[75%] text-slate-950 fill-current">
           <circle cx="250" cy="250" r="230" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="10, 5" />
           <circle cx="250" cy="250" r="190" stroke="currentColor" strokeWidth="6" fill="none" />
           <polygon points="250,50 300,180 440,180 330,260 370,390 250,310 130,390 170,260 60,180 200,180" fill="currentColor" />
         </svg>
       </div>
 
-      {/* Background Guilloche Wave Accent */}
-      {bgPattern === 'guilloche' && (
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.2]"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 880 620"
-          preserveAspectRatio="none"
-        >
-          <g stroke="#d97706" strokeWidth="0.5" fill="none">
-            {Array.from({ length: 24 }).map((_, i) => (
-              <circle
-                key={`guilloche-circle-${i}`}
-                cx={440 + Math.sin(i * 0.4) * 60}
-                cy={310 + Math.cos(i * 0.4) * 40}
-                r={180 + i * 14}
-                strokeDasharray={i % 2 === 0 ? '4 3' : undefined}
-                opacity={0.25 + (i % 4) * 0.05}
-              />
-            ))}
-          </g>
-        </svg>
-      )}
+      {/* Elegant Corner Accents */}
+      <div className="absolute top-5 left-5 w-8 h-8 border-t-2 border-l-2 border-amber-600/70 pointer-events-none" />
+      <div className="absolute top-5 right-5 w-8 h-8 border-t-2 border-r-2 border-amber-600/70 pointer-events-none" />
+      <div className="absolute bottom-5 left-5 w-8 h-8 border-b-2 border-l-2 border-amber-600/70 pointer-events-none" />
+      <div className="absolute bottom-5 right-5 w-8 h-8 border-b-2 border-r-2 border-amber-600/70 pointer-events-none" />
 
-      {/* 2. Ornate Amber Corner Accents (Matching AI for Educators) */}
-      <div className="absolute top-4 left-4 w-12 sm:w-16 h-12 sm:h-16 border-t-4 border-l-4 border-amber-700 pointer-events-none" />
-      <div className="absolute top-4 right-4 w-12 sm:w-16 h-12 sm:h-16 border-t-4 border-r-4 border-amber-700 pointer-events-none" />
-      <div className="absolute bottom-4 left-4 w-12 sm:w-16 h-12 sm:h-16 border-b-4 border-l-4 border-amber-700 pointer-events-none" />
-      <div className="absolute bottom-4 right-4 w-12 sm:w-16 h-12 sm:h-16 border-b-4 border-r-4 border-amber-700 pointer-events-none" />
-
-      {/* Central Watermark Text */}
-      {watermarkEnabled && (
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 select-none overflow-hidden"
-          style={{ opacity: watermarkOpacity ?? 0.04 }}
-        >
-          <div className="font-serif font-black text-[70px] sm:text-[110px] tracking-[0.2em] text-[#0f172a] uppercase rotate-[-15deg] whitespace-nowrap">
-            {watermarkText || 'YARA'}
-          </div>
-        </div>
-      )}
-
-      {/* ================= HEADER SECTION ================= */}
+      {/* ================= HEADER ================= */}
       <div className="relative z-10 flex flex-col items-center text-center">
-        {/* Brand Header: Logo + Title */}
-        <div className="flex flex-wrap items-center justify-center gap-3.5 mb-1.5">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-white p-1 shadow-md border border-amber-300 flex items-center justify-center overflow-hidden shrink-0">
+        {/* Brand Header */}
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-xl bg-white p-1 shadow-xs border border-amber-200/80 flex items-center justify-center overflow-hidden shrink-0">
             <img 
               src={logoUrl || ASSETS.LOGO} 
-              alt="YARA Official Logo" 
-              className="w-full h-full object-contain rounded-xl"
+              alt="YARA" 
+              className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
             />
           </div>
           <div className="text-left">
-            <span className="text-sm sm:text-xl font-black tracking-wider text-slate-900 uppercase block">
-              {organizationName || 'YARA ACADEMY OF ADVANCED ROBOTICS & AI'}
+            <span className="text-xs sm:text-sm font-bold tracking-[0.2em] text-slate-800 uppercase block">
+              {organizationName}
             </span>
-            <p className="text-[9px] sm:text-xs tracking-widest uppercase text-amber-700 font-bold">
-              In Collaboration with YARA Zimbabwe • Executive Directorate
+            <p className="text-[9px] sm:text-[10px] tracking-wider uppercase text-amber-700 font-semibold">
+              Academy of Advanced Robotics &amp; AI
             </p>
           </div>
 
-          {/* Optional Partner Logo & Branding */}
+          {/* Optional Partner */}
           {hasPartner && (partnerName || partnerLogoUrl) && (
-            <div className="flex items-center gap-2 ml-auto sm:ml-4 border-l border-amber-300/60 pl-3">
-              <div className="flex flex-col items-start">
-                <span className="text-[8px] font-black uppercase tracking-wider text-amber-800">
-                  {partnerBadgeLabel || 'In Collaboration With'}
+            <div className="flex items-center gap-2 ml-3 border-l border-amber-300/60 pl-3">
+              {partnerLogoUrl ? (
+                <img
+                  src={partnerLogoUrl}
+                  alt={partnerName || 'Partner'}
+                  className="h-8 w-auto max-w-[90px] object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="font-bold text-xs text-slate-800">
+                  {partnerName}
                 </span>
-                {partnerLogoUrl ? (
-                  <img
-                    src={partnerLogoUrl}
-                    alt={partnerName || 'Partner'}
-                    className="h-9 sm:h-11 w-auto max-w-[110px] object-contain mt-0.5"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <span className="font-black text-xs text-slate-900 tracking-tight">
-                    {partnerName}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Golden Gradient Divider */}
-        <div className="w-28 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent my-1" />
-
         {/* Certificate Title */}
-        <h1 className="text-2xl sm:text-4xl font-serif font-black text-slate-900 tracking-wide mt-1 uppercase">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-slate-900 tracking-wide mt-2 uppercase">
           Certificate of Completion
         </h1>
         <p className="text-[10px] sm:text-xs font-semibold tracking-widest text-amber-800 uppercase mt-0.5">
@@ -295,62 +238,53 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
         </p>
       </div>
 
-      {/* ================= RECIPIENT BODY SECTION ================= */}
+      {/* ================= RECIPIENT BODY ================= */}
       <div className="relative z-10 text-center my-auto py-2">
-        <p className="text-xs sm:text-sm text-slate-600 italic">This is to officially certify that</p>
+        <p className="text-xs text-slate-500 italic">This is to officially certify that</p>
         
-        {/* Recipient Full Name in Bold Serif with Amber Underline */}
+        {/* Recipient Full Name */}
         <div className="my-1.5 sm:my-2">
-          <span className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 px-6 py-1 border-b-2 border-amber-600/60 inline-block">
+          <span className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 px-6 py-0.5 border-b border-amber-500/50 inline-block">
             {studentName || 'Learner Name'}
           </span>
         </div>
 
-        {/* Course / Program Title */}
+        {/* Track Title */}
         <p className="text-xs sm:text-sm font-semibold text-slate-800 mt-1 flex items-center justify-center gap-1.5">
           {isRobotics ? <Cpu className="w-3.5 h-3.5 text-amber-600 shrink-0" /> : isProgramming ? <Code className="w-3.5 h-3.5 text-amber-600 shrink-0" /> : <GraduationCap className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
           <span>Curriculum Track: <strong className="text-slate-900">{courseTitle}</strong></span>
         </p>
 
-        {/* Citation Body Text */}
-        <p className="text-[10px] sm:text-xs text-slate-600 max-w-3xl mx-auto mt-2 sm:mt-2.5 leading-relaxed px-4">
+        {/* Clean Citation Text */}
+        <p className="text-[11px] sm:text-xs text-slate-600 max-w-2xl mx-auto mt-2 leading-relaxed px-4">
           {citation}
         </p>
 
-        {/* Distinction Honors Badge & Skills */}
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-100/80 via-amber-200/80 to-amber-100/80 border border-amber-400 px-4 py-1 rounded-full text-xs font-bold text-amber-950 shadow-sm">
-            <Award className="w-4 h-4 text-amber-700" />
-            <span>
-              {data.grade || (data.score ? `Distinction with Honors (${data.score}%)` : 'Certified Graduate (Honors)')}
-            </span>
-          </div>
-
-          {data.skillsAcquired && data.skillsAcquired.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-[11px] font-semibold text-indigo-900">
-              <CheckCircle className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{data.skillsAcquired.slice(0, 3).join(' • ')}</span>
-            </span>
-          )}
+        {/* Single Refined Honors Pill */}
+        <div className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-0.5 bg-amber-50 border border-amber-300 rounded-full text-xs font-bold text-amber-950 shadow-xs">
+          <Award className="w-3.5 h-3.5 text-amber-600" />
+          <span>
+            {data.grade || (data.score ? `Distinction (${data.score}%)` : 'Graduated with Distinction')}
+          </span>
         </div>
       </div>
 
-      {/* ================= SIGNATURES & SEAL & QR CODE FOOTER ================= */}
-      <div className="relative z-10 flex flex-col gap-2 pt-3 sm:pt-4 border-t border-amber-600/30">
-        <div className="flex flex-row items-end justify-between gap-2 sm:gap-4">
+      {/* ================= FOOTER ================= */}
+      <div className="relative z-10 flex flex-col gap-2 pt-3 border-t border-amber-600/20">
+        <div className="flex flex-row items-end justify-between gap-3">
           
-          {/* 1. Academic Director / Founder Signature Block */}
+          {/* Founder Signature */}
           <div className="flex flex-col items-center text-center w-1/3">
-            <div className="h-12 sm:h-14 flex items-end justify-center mb-1 w-full max-w-[180px]">
+            <div className="h-11 sm:h-13 flex items-end justify-center mb-1 w-full max-w-[160px]">
               {signatureUrl ? (
                 <img 
                   src={signatureUrl} 
                   alt={directorName} 
-                  className="max-h-11 sm:max-h-13 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
+                  className="max-h-10 sm:max-h-12 max-w-full object-contain mix-blend-multiply"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <svg className="w-28 sm:w-32 h-9 text-indigo-950" viewBox="0 0 160 50">
+                <svg className="w-24 sm:w-28 h-8 text-indigo-950" viewBox="0 0 160 50">
                   <path 
                     d="M10,35 C25,10 40,40 55,15 C70,30 85,10 100,25 C115,15 130,35 150,20 M20,40 C60,45 110,40 140,42" 
                     fill="none" 
@@ -361,67 +295,56 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
                 </svg>
               )}
             </div>
-            <div className="w-32 sm:w-40 border-t border-slate-900/60 pt-1">
-              <p className="text-[11px] sm:text-xs font-bold text-slate-900">{directorName}</p>
-              <p className="text-[8px] sm:text-[9px] font-semibold text-slate-600 leading-tight truncate">
+            <div className="w-28 sm:w-36 border-t border-slate-700/50 pt-1">
+              <p className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">{directorName}</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-500 leading-tight">
                 {directorTitle}
               </p>
             </div>
           </div>
 
-          {/* 2. Official Gold Seal + Cryptographic Verification QR Code */}
-          <div className="flex items-center justify-center gap-2.5 sm:gap-5 shrink-0">
-            {/* Official Gold Foil Seal */}
+          {/* Official Gold Seal & QR Code */}
+          <div className="flex items-center justify-center gap-3 sm:gap-4 shrink-0 pb-1">
             {sealEnabled && (
-              <div className="flex flex-col items-center">
-                <div className="relative w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center">
-                  <img 
-                    src={ASSETS.EDUCATOR_SEAL} 
-                    alt="Official Certified Seal" 
-                    className="w-full h-full object-contain drop-shadow-xl select-none pointer-events-none transform transition-transform hover:scale-105"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <div className="mt-0.5 text-center">
-                  <span className="text-[7px] sm:text-[8px] font-mono text-slate-500 font-semibold block">
-                    Issued: {issueDate || 'October 2026'}
-                  </span>
-                </div>
+              <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center">
+                <img 
+                  src={ASSETS.EDUCATOR_SEAL} 
+                  alt="Official Seal" 
+                  className="w-full h-full object-contain select-none pointer-events-none drop-shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
               </div>
             )}
 
-            {/* Scannable High-DPI Verification QR Code */}
-            <div className="flex flex-col items-center">
-              <div className="p-1 sm:p-1.5 bg-white border-2 border-amber-600/70 rounded-xl shadow-md">
-                <img 
-                  src={qrCodeDataUrl} 
-                  alt="Scan to Verify Official Credential" 
-                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-md"
-                />
-              </div>
-              <div className="mt-0.5 text-center">
-                <span className="text-[7px] sm:text-[8px] font-mono text-amber-900 font-black block uppercase tracking-wider">
-                  Scan to Verify
+            <div className="flex items-center gap-1.5 p-1 bg-white border border-amber-300 rounded-lg shadow-xs">
+              <img 
+                src={qrCodeDataUrl} 
+                alt="QR Verification" 
+                className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded"
+              />
+              <div className="text-left pr-1">
+                <span className="text-[7px] font-mono text-amber-800 font-bold block uppercase tracking-wide">
+                  Verify
                 </span>
-                <span className="text-[7px] sm:text-[8px] font-mono text-slate-600 font-bold block">
+                <span className="text-[7px] font-mono text-slate-500 block">
                   {certificateNumber}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 3. Lead Instructor / Regional President Signature Block */}
+          {/* Co-Signer Signature */}
           <div className="flex flex-col items-center text-center w-1/3">
-            <div className="h-12 sm:h-14 flex items-end justify-center mb-1 w-full max-w-[180px]">
+            <div className="h-11 sm:h-13 flex items-end justify-center mb-1 w-full max-w-[160px]">
               {coSignerSignatureUrl ? (
                 <img 
                   src={coSignerSignatureUrl} 
                   alt={coSignerName} 
-                  className="max-h-11 sm:max-h-13 max-w-full object-contain mix-blend-multiply drop-shadow-xs"
+                  className="max-h-10 sm:max-h-12 max-w-full object-contain mix-blend-multiply"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <svg className="w-28 sm:w-32 h-9 text-indigo-950" viewBox="0 0 160 50">
+                <svg className="w-24 sm:w-28 h-8 text-indigo-950" viewBox="0 0 160 50">
                   <path 
                     d="M15,25 C30,5 50,45 75,10 C90,35 110,20 125,30 C135,15 145,25 155,18 M10,42 C50,40 100,43 145,39" 
                     fill="none" 
@@ -432,9 +355,9 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
                 </svg>
               )}
             </div>
-            <div className="w-32 sm:w-40 border-t border-slate-900/60 pt-1">
-              <p className="text-[11px] sm:text-xs font-bold text-slate-900">{coSignerName}</p>
-              <p className="text-[8px] sm:text-[9px] font-semibold text-slate-600 leading-tight truncate">
+            <div className="w-28 sm:w-36 border-t border-slate-700/50 pt-1">
+              <p className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">{coSignerName}</p>
+              <p className="text-[8px] sm:text-[9px] text-slate-500 leading-tight">
                 {coSignerTitle}
               </p>
             </div>
@@ -442,15 +365,12 @@ export const YaraAccreditedCertificateCanvas: React.FC<Props> = ({
 
         </div>
 
-        {/* Footnote / Accreditation Note Strip */}
-        <div className="text-center pt-1 border-t border-amber-900/10 flex flex-col sm:flex-row items-center justify-between gap-1 text-[7px] sm:text-[8px] text-slate-500 font-medium px-2">
-          <span>Official Credential • YARA Academy of Advanced Robotics &amp; AI</span>
-          <span className="font-mono text-amber-800 truncate max-w-sm">
-            Verify online: {targetVerificationUrl}
-          </span>
-          <span>Credential ID: <strong className="text-slate-800 font-mono">{certificateNumber}</strong></span>
+        {/* Minimal Clean Bottom Strip */}
+        <div className="text-center pt-1 flex items-center justify-between text-[8px] text-slate-400 font-mono px-2">
+          <span>YARA Credential ID: <strong className="text-slate-700">{certificateNumber}</strong></span>
+          <span>Issued: {issueDate || 'October 2026'}</span>
+          <span>yara.org/verify</span>
         </div>
-
       </div>
 
     </div>

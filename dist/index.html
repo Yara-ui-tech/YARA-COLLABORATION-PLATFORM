@@ -37,21 +37,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-DV5VMf91.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/react-vendor-DDWgQLQ7.js">
+    <script type="module" crossorigin src="/assets/index-sUPrMREj.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-CpSJm_PC.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-client-BiHzSKx7.js">
-    <link rel="modulepreload" crossorigin href="/assets/lucide-icons-Df9h0ame.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-E3aaYHHs.css">
+    <link rel="modulepreload" crossorigin href="/assets/lucide-icons-CnRSWbPi.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-Crh3TH18.css">
   </head>
   <body>
     <div id="root"></div>
     <script>
-      if ('serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then((reg) => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
             .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
         });
+      } else if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then((names) => {
+            for (const name of names) caches.delete(name);
+          });
+        }
       }
     </script>
   </body>
