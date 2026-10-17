@@ -201,6 +201,7 @@ const AppContent = () => {
             <Route path="/courses" element={<YaraLearning />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/reviews" element={<Feedback />} />
+            <Route path="/mentorship" element={<Mentorship />} />
             <Route path="/me" element={<Navigate to="/profile" replace />} />
           </Route>
 

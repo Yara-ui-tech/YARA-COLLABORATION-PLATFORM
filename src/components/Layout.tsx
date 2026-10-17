@@ -31,6 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/learning', icon: Brain, label: 'Robotics Courses', badge: 'L0–L8' },
+  { path: '/mentorship', icon: Users, label: 'Mentorship', badge: '1-on-1' },
   { path: '/kids', icon: Sparkles, label: 'YARA Kids', badge: 'Ages 3–8' },
   { path: '/live', icon: Radio, label: 'Live Stream', badge: 'Live' },
   { path: '/competitions', icon: Trophy, label: 'Competitions & Arena', badge: '2026' },

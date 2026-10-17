@@ -378,12 +378,21 @@ export async function checkAndVerifyUserSubscription(userId: string, userEmail: 
         .single();
 
       if (profile) {
-        if (profile.role === 'admin' || profile.role === 'mentor') {
+        const pos = String(profile.chapter_position || '').toLowerCase();
+        const isNatExec = profile.role === 'national_executive' || 
+          profile.role === 'executive' || 
+          pos.includes('national') || 
+          pos.includes('executive director') || 
+          pos.includes('secretary general');
+
+        if (profile.role === 'admin' || profile.role === 'mentor' || isNatExec) {
           return {
             isSubscribed: true,
             status: 'active',
             profile,
-            message: 'Account active under verified organizational privileges.'
+            message: isNatExec
+              ? 'Account active under National Executive leadership exemption (no subscription required).'
+              : 'Account active under verified organizational privileges.'
           };
         }
 

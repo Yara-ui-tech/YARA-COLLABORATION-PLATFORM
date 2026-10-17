@@ -49,6 +49,7 @@ export default function PublicHeader() {
   const navLinks = [
     { label: 'Home', path: '/', targetId: 'top' },
     { label: 'Academy', path: '/learn', targetId: 'lms' },
+    { label: 'Mentorship', path: '/mentorship' },
     { label: 'Competitions', path: '/competitions', targetId: 'competitions' },
     { label: 'School Clubs', path: '/chapters', targetId: 'clubs' },
     { label: 'Verify Cert', path: '/verify-certificate', targetId: 'verify' },

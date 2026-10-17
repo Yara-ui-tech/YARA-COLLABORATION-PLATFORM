@@ -11,7 +11,9 @@ interface UserProfile {
   bio?: string;
   skills?: string[];
   interests?: string[];
-  role: 'innovator' | 'mentor' | 'admin' | 'teacher';
+  role: 'innovator' | 'mentor' | 'admin' | 'teacher' | 'national_executive' | 'executive';
+  chapter_position?: string;
+  is_national_executive?: boolean;
   educational_level?: 'junior' | 'intermediate' | 'senior' | 'tertiary' | 'teacher';
   registration_paid: boolean;
   subscription_expires_at: string;
@@ -71,12 +73,35 @@ const isUserAdmin = (email?: string, userRole?: string): boolean => {
   );
 };
 
+export const isUserNationalExecutive = (p?: Partial<UserProfile> | null): boolean => {
+  if (!p) return false;
+  if ((p as any).is_national_executive === true) return true;
+  const role = String(p.role || '').toLowerCase();
+  if (role === 'national_executive' || role === 'executive') return true;
+  const pos = String(p.chapter_position || '').toLowerCase();
+  if (
+    pos.includes('national') ||
+    pos.includes('executive director') ||
+    pos.includes('secretary general') ||
+    pos.includes('presidium') ||
+    pos.includes('patron general')
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const buildFallbackProfile = (authUser: User): UserProfile => {
   const isAdmin = isUserAdmin(authUser.email, authUser.user_metadata?.role);
   const rawRole = authUser.user_metadata?.role;
   const isTeacher = rawRole === 'teacher' || authUser.user_metadata?.tier === 'T1' || authUser.user_metadata?.educational_level === 'teacher';
-  const resolvedRole: 'innovator' | 'mentor' | 'admin' | 'teacher' = isAdmin
+  const pos = String(authUser.user_metadata?.chapter_position || authUser.user_metadata?.position || '').toLowerCase();
+  const isNatExec = rawRole === 'national_executive' || rawRole === 'executive' || pos.includes('national') || pos.includes('executive director') || pos.includes('secretary general');
+  
+  const resolvedRole: 'innovator' | 'mentor' | 'admin' | 'teacher' | 'national_executive' | 'executive' = isAdmin
     ? 'admin'
+    : isNatExec
+    ? 'national_executive'
     : rawRole === 'mentor'
     ? 'mentor'
     : isTeacher
@@ -91,7 +116,7 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
     authUser.user_metadata?.display_name ||
     authUser.user_metadata?.full_name ||
     authUser.email?.split('@')[0] ||
-    (isAdmin ? 'YARA Admin' : isTeacher ? 'Educator' : 'Innovator');
+    (isAdmin ? 'YARA Admin' : isNatExec ? 'National Executive' : isTeacher ? 'Educator' : 'Innovator');
 
   return {
     id: authUser.id,
@@ -103,13 +128,15 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
     skills: authUser.user_metadata?.skills || (isTeacher ? ['AI in Education', 'Curriculum Design', 'STEM Pedagogy'] : ['Robotics', 'MicroPython', 'Arduino']),
     interests: authUser.user_metadata?.interests || (isTeacher ? ['Generative AI', 'Classroom Automation', 'EdTech'] : ['Hardware Design', 'Automation']),
     role: resolvedRole,
+    chapter_position: authUser.user_metadata?.chapter_position || authUser.user_metadata?.position,
+    is_national_executive: isNatExec,
     educational_level: isTeacher ? 'teacher' : (authUser.user_metadata?.educational_level || (isAdmin ? 'tertiary' : 'junior')),
-    registration_paid: isAdmin || resolvedRole === 'mentor' || isTeacher,
+    registration_paid: isAdmin || resolvedRole === 'mentor' || isTeacher || isNatExec,
     subscription_expires_at: new Date(
-      Date.now() + (isAdmin ? 3650 : 365) * 24 * 60 * 60 * 1000
+      Date.now() + (isAdmin || isNatExec ? 3650 : 365) * 24 * 60 * 60 * 1000
     ).toISOString(),
     trial_ends_at: new Date(
-      Date.now() + (isAdmin ? 3650 : 30) * 24 * 60 * 60 * 1000
+      Date.now() + (isAdmin || isNatExec ? 3650 : 30) * 24 * 60 * 60 * 1000
     ).toISOString(),
     is_halted: false,
     created_at: authUser.created_at || new Date().toISOString(),
@@ -146,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isSubscriptionExpired = useMemo(() => {
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
+    if (isUserNationalExecutive(profile)) return false; // National executive does not subscribe
     if (profile.registration_paid) return false;
     if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return false;
     if (!profile.subscription_expires_at) return false;
@@ -155,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isTrialExpired = useMemo(() => {
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
+    if (isUserNationalExecutive(profile)) return false; // National executive does not subscribe
     if (profile.registration_paid) return false;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return false;
     if (!profile.trial_ends_at) return false;
@@ -168,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAccountActive = useMemo(() => {
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return true;
+    if (isUserNationalExecutive(profile)) return true; // Always active for national executive
     if (profile.is_halted) return false;
     if (profile.registration_paid) return true;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return true;
@@ -331,10 +361,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (!error && data) {
           const isAdmin = isUserAdmin(user.email, data.role);
+          const isNatExec = isUserNationalExecutive(data);
           resolvedProfile = {
             ...data,
             role: isAdmin ? 'admin' : data.role,
-            registration_paid: isAdmin ? true : !!data.registration_paid
+            is_national_executive: isNatExec,
+            registration_paid: (isAdmin || isNatExec) ? true : !!data.registration_paid
           } as UserProfile;
         } else if (error && (error as any).code === 'PGRST116') {
           // Profile not yet created in table, create it

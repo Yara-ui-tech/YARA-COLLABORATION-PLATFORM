@@ -4887,5 +4887,36 @@ EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
 
+-- ============================================================================
+-- NATIONAL EXECUTIVE ROLES & SUBSCRIPTION EXEMPTION POLICY
+-- ============================================================================
+-- National Executive members do NOT subscribe to the platform.
+-- They possess permanent lifetime platform privileges, access to executive dashboards,
+-- chapter management, mentorship, and courses without requiring subscription payment.
+-- ============================================================================
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_national_executive') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_national_executive BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='chapter_position') THEN
+    ALTER TABLE public.profiles ADD COLUMN chapter_position TEXT DEFAULT 'Member';
+  END IF;
+END $$;
 
+-- Update existing profiles holding National Executive positions
+UPDATE public.profiles
+SET 
+  is_national_executive = true,
+  registration_paid = true,
+  subscription_expires_at = now() + INTERVAL '20 years'
+WHERE 
+  role IN ('national_executive', 'executive')
+  OR chapter_position ILIKE '%national%'
+  OR chapter_position ILIKE '%executive director%'
+  OR chapter_position ILIKE '%secretary general%'
+  OR chapter_position ILIKE '%presidium%'
+  OR chapter_position ILIKE '%patron general%';
+
+COMMENT ON COLUMN public.profiles.is_national_executive IS 'Flag indicating National Executive status. National executive members do not subscribe to the platform and possess full lifetime platform access.';

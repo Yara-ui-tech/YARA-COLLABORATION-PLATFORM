@@ -6,6 +6,7 @@ import { ASSETS } from '../../constants/assets';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { RequireInternetModal } from '../OfflineBanner';
 import { useQrCode } from '../../utils/qrCodeHelper';
+import { CertificateSecurityWatermark } from '../certificates/CertificateSecurityWatermark';
 
 interface CertificateModalProps {
   isOpen: boolean;
@@ -106,14 +107,12 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
             {/* Inner Border */}
             <div className="absolute inset-3 sm:inset-4 rounded-xl border border-amber-600/25 pointer-events-none" />
 
-            {/* Subtle Crest Watermark */}
-            <div className="absolute inset-0 opacity-[0.025] pointer-events-none flex items-center justify-center">
-              <svg viewBox="0 0 500 500" className="w-[75%] h-[75%] text-slate-950 fill-current">
-                <circle cx="250" cy="250" r="230" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="10, 5" />
-                <circle cx="250" cy="250" r="190" stroke="currentColor" strokeWidth="6" fill="none" />
-                <polygon points="250,50 300,180 440,180 330,260 370,390 250,310 130,390 170,260 60,180 200,180" fill="currentColor" />
-              </svg>
-            </div>
+            {/* Unique Banknote-Grade Embedded Security Watermark with Guilloche waves and micro-text */}
+            <CertificateSecurityWatermark
+              certificateNumber={certificate.certificate_number}
+              recipientName={certificate.student_name}
+              issueDate={certificate.issue_date}
+            />
 
             {/* Corner Decorative Accents */}
             <div className="absolute top-5 left-5 w-8 h-8 border-t-2 border-l-2 border-amber-600/70 pointer-events-none" />
@@ -194,8 +193,8 @@ export default function CertificateModal({ isOpen, onClose, certificate }: Certi
                 <div className="flex items-center justify-center gap-3 sm:gap-4 shrink-0 pb-1">
                   <div className="relative w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center">
                     <img 
-                      src={ASSETS.EDUCATOR_SEAL} 
-                      alt="Official Seal" 
+                      src={ASSETS.OFFICIAL_GOLD_SEAL || ASSETS.EDUCATOR_SEAL} 
+                      alt="Official YARA Seal" 
                       className="w-full h-full object-contain select-none pointer-events-none drop-shadow-sm"
                     />
                   </div>

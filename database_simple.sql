@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   member_id TEXT,
   avatar_url TEXT,
   role TEXT DEFAULT 'innovator',
+  chapter_position TEXT DEFAULT 'Member',
+  is_national_executive BOOLEAN DEFAULT false,
   registration_paid BOOLEAN DEFAULT false,
   is_halted BOOLEAN DEFAULT false,
   subscription_expires_at TIMESTAMPTZ,
@@ -21,6 +23,17 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Profiles open access" ON public.profiles;
 CREATE POLICY "Profiles open access" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- Ensure national executive exemption fields exist
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_national_executive') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_national_executive BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='chapter_position') THEN
+    ALTER TABLE public.profiles ADD COLUMN chapter_position TEXT DEFAULT 'Member';
+  END IF;
+END $$;
 
 -- 2. ORGANIZATION POSTS & NEWS (Home Page Feed)
 CREATE TABLE IF NOT EXISTS public.organization_posts (
@@ -145,7 +158,44 @@ ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Competitions open access" ON public.competitions;
 CREATE POLICY "Competitions open access" ON public.competitions FOR ALL USING (true) WITH CHECK (true);
 
--- 9. STARTER SEED DATA (Only inserted if empty)
+-- 9. MENTORSHIP REQUESTS & REAL-TIME SESSIONS
+CREATE TABLE IF NOT EXISTS public.mentorship_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  requester_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  requester_name TEXT NOT NULL,
+  requester_email TEXT,
+  whatsapp_number TEXT,
+  mentor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  mentor_name TEXT,
+  topic TEXT NOT NULL,
+  message TEXT NOT NULL,
+  preferred_time TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'completed', 'declined', 'cancelled')),
+  meeting_link TEXT,
+  mentor_response TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.mentorship_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Mentorship requests open access" ON public.mentorship_requests;
+CREATE POLICY "Mentorship requests open access" ON public.mentorship_requests FOR ALL USING (true) WITH CHECK (true);
+
+-- 10. MENTORSHIP REAL-TIME MESSAGES
+CREATE TABLE IF NOT EXISTS public.mentorship_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id UUID NOT NULL REFERENCES public.mentorship_requests(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  sender_name TEXT,
+  sender_role TEXT DEFAULT 'mentor',
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Mentorship messages open access" ON public.mentorship_messages;
+CREATE POLICY "Mentorship messages open access" ON public.mentorship_messages FOR ALL USING (true) WITH CHECK (true);
+
+-- 11. STARTER SEED DATA (Only inserted if empty)
 INSERT INTO public.organization_posts (title, content, category, author_name)
 SELECT 
   'Welcome to the YARA Robotics & Innovation Platform',
