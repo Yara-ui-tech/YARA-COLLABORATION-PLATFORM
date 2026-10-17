@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase, safeSignOut } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, UserX, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
@@ -2186,6 +2186,22 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
           <option value="mentor">Mentor</option>
           <option value="admin">Admin</option>
         </select>
+        {user.role === 'mentor' && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Are you sure you want to remove ${user.display_name} as a mentor? Their role will be reverted to innovator.`)) {
+                onUpdateRole(user.id, 'innovator');
+              }
+            }}
+            disabled={isUpdating}
+            className="mt-1.5 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+            title="Revoke mentor role and revert to innovator"
+          >
+            <UserX className="w-3 h-3 text-red-500" />
+            <span>Remove Mentor</span>
+          </button>
+        )}
       </td>
       <td className="px-8 py-6">
         {user.role === 'mentor' ? (

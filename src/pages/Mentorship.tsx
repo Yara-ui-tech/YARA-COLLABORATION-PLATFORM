@@ -1,25 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { 
-  Users, 
-  Search, 
-  MessageSquare, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Star, 
-  Loader2, 
-  Send, 
-  DollarSign, 
-  Award, 
-  Video, 
-  Play, 
-  ExternalLink, 
-  Calendar, 
-  Plus, 
-  FileText, 
-  Info, 
+import {
+  Users,
+  Search,
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Star,
+  Loader2,
+  Send,
+  DollarSign,
+  Award,
+  Video,
+  Play,
+  ExternalLink,
+  Calendar,
+  Plus,
+  FileText,
+  Info,
   Save,
   ChevronDown,
   ChevronUp,
@@ -34,7 +34,9 @@ import {
   AlertTriangle,
   Sparkles,
   Copy,
-  ExternalLink as ExtLinkIcon
+  ExternalLink as ExtLinkIcon,
+  Trash2,
+  UserX
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -54,140 +56,64 @@ export interface MentorReviewItem {
 export interface EnhancedMentor {
   id: string;
   display_name: string;
-  title: string;
-  bio: string;
-  rating: number;
-  review_count: number;
-  mentored_count: number;
-  skills: string[];
-  strengths: string[];
+  title?: string;
+  bio?: string;
+  rating?: number;
+  review_count?: number;
+  mentored_count?: number;
+  skills?: string[] | string;
+  strengths?: string[];
   avatar_url?: string;
-  reviews: MentorReviewItem[];
+  reviews?: MentorReviewItem[];
+  email?: string;
+  role?: string;
 }
-
-export const VERIFIED_INDUSTRIAL_MENTORS: EnhancedMentor[] = [
-  {
-    id: 'mentor_simba',
-    display_name: 'Simbarashe O. Manongwa',
-    title: 'Lead Robotics & Firmware Engineer',
-    bio: 'Founder of YARA and lead researcher in autonomous mobile robots (AMR), ROS2 navigation stacks, sensor fusion, and embedded motor control.',
-    rating: 4.95,
-    review_count: 58,
-    mentored_count: 142,
-    skills: ['ROS2', 'Autonomous Navigation', 'Embedded C++', 'SLAM & LiDAR', 'Hardware Prototyping', 'Circuit Design'],
-    strengths: ['ROS2 Architecture', 'Autonomous Navigation', 'Embedded C++', 'SLAM & LiDAR', 'Hardware Prototyping'],
-    reviews: [
-      {
-        id: 'r1',
-        student_name: 'Tinashe K.',
-        rating: 5,
-        date: 'Sept 2026',
-        comment: 'Simba broke down ROS2 tf coordinate frames and sensor fusion in just one session. Got our robot through the regional trial!'
-      },
-      {
-        id: 'r2',
-        student_name: 'Rutendo M.',
-        rating: 5,
-        date: 'Aug 2026',
-        comment: 'Extremely patient with deep technical mastery. Taught me how to write non-blocking firmware for motor control.'
-      },
-      {
-        id: 'r3',
-        student_name: 'David Z.',
-        rating: 5,
-        date: 'July 2026',
-        comment: 'The best mentor on the platform. Clear, direct, and gave me practical industry advice.'
-      }
-    ]
-  },
-  {
-    id: 'mentor_nyasha',
-    display_name: 'Nyasha Chiambiro',
-    title: 'PCB Hardware & Power Electronics Lead',
-    bio: 'Specialist in multi-layer high-speed PCB layout with Altium Designer, STM32 & ESP32 architecture, high-power motor drivers, and noise filtration.',
-    rating: 4.92,
-    review_count: 44,
-    mentored_count: 98,
-    skills: ['Altium Designer', 'STM32', 'ESP32', 'Power Electronics', 'PCB Layout', 'Noise Filtering'],
-    strengths: ['PCB Layout & Schematic', 'STM32 / ESP32', 'Power Electronics', 'Noise Filtering', 'Circuit Simulation'],
-    reviews: [
-      {
-        id: 'r4',
-        student_name: 'Farai C.',
-        rating: 5,
-        date: 'Aug 2026',
-        comment: 'Nyasha reviewed my PCB design before fabrication and caught 3 critical ground loops that would have blown my buck converters.'
-      },
-      {
-        id: 'r5',
-        student_name: 'Anesu T.',
-        rating: 5,
-        date: 'July 2026',
-        comment: 'Best mentor for learning Altium Designer and hardware prototyping. Clear step-by-step guidance.'
-      }
-    ]
-  },
-  {
-    id: 'mentor_kelvin',
-    display_name: 'Dr. Kelvin Mukumbira',
-    title: 'AI & Computer Vision Specialist',
-    bio: 'Research scientist in Edge AI, OpenCV computer vision on NVIDIA Jetson, YOLO real-time object tracking, and robotic arm inverse kinematics.',
-    rating: 4.88,
-    review_count: 39,
-    mentored_count: 87,
-    skills: ['Computer Vision', 'YOLO Tracking', 'Edge AI', 'NVIDIA Jetson', 'Inverse Kinematics', 'Python'],
-    strengths: ['Computer Vision & YOLO', 'Inverse Kinematics', 'Edge AI & Jetson', 'Python Deep Learning', 'Robotic Arm Control'],
-    reviews: [
-      {
-        id: 'r6',
-        student_name: 'Chipo N.',
-        rating: 5,
-        date: 'Sept 2026',
-        comment: 'Dr. Kelvin guided our underwater drone team on real-time vision detection. His mathematical explanations are crystal clear.'
-      },
-      {
-        id: 'r7',
-        student_name: 'Kudakwashe E.',
-        rating: 5,
-        date: 'June 2026',
-        comment: 'Helped me optimize inference latency from 120ms to 24ms on Jetson Nano. Brilliant mentor!'
-      }
-    ]
-  },
-  {
-    id: 'mentor_tadiwa',
-    display_name: 'Tadiwa Masango',
-    title: 'Industrial Automation & PLC Specialist',
-    bio: 'Industrial automation engineer with deep experience in Siemens / Allen-Bradley PLCs, SCADA, industrial fieldbuses, and manufacturing robotics.',
-    rating: 4.90,
-    review_count: 31,
-    mentored_count: 64,
-    skills: ['PLC Programming', 'SCADA', 'HMI', 'Industrial Safety', 'Sensors', 'Industrial Robotics'],
-    strengths: ['PLC Programming', 'SCADA & HMI', 'Industrial Safety', 'Factory Automation', 'Sensors & Actuators'],
-    reviews: [
-      {
-        id: 'r8',
-        student_name: 'Blessing D.',
-        rating: 5,
-        date: 'Aug 2026',
-        comment: 'Helped me understand industrial ladder logic and prepare for automation job interviews. Truly invaluable!'
-      },
-      {
-        id: 'r9',
-        student_name: 'Munyaradzi B.',
-        rating: 5,
-        date: 'May 2026',
-        comment: 'Super knowledgeable about factory automation and safety interlocks. Highly recommend!'
-      }
-    ]
-  }
-];
 
 export default function Mentorship() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+
+  const isUserAdmin = Boolean(
+    profile?.role === 'admin' ||
+    profile?.email === 'manongwasimbarashe394@gmail.com' ||
+    profile?.email === 'goyaracorp@gmail.com' ||
+    user?.email === 'manongwasimbarashe394@gmail.com' ||
+    user?.email === 'goyaracorp@gmail.com'
+  );
+
   const [activeTab, setActiveTab] = useState<'mentors' | 'requests' | 'live' | 'materials'>('mentors');
-  const [mentors, setMentors] = useState<any[]>(VERIFIED_INDUSTRIAL_MENTORS);
+  const [mentors, setMentors] = useState<any[]>([]);
+  const [isRemovingMentorId, setIsRemovingMentorId] = useState<string | null>(null);
+
+  const handleRemoveMentor = async (mentor: any) => {
+    const mentorName = mentor.display_name || mentor.name || 'this mentor';
+    const confirmed = window.confirm(
+      `Remove Mentor Confirmation:\n\nAre you sure you want to remove ${mentorName} from active mentors?\n\nTheir role will be reverted to innovator, and they will immediately be removed from the public mentors directory.`
+    );
+    if (!confirmed) return;
+
+    setIsRemovingMentorId(mentor.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'innovator',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', mentor.id);
+
+      if (error) throw error;
+
+      // Remove immediately from state
+      setMentors(prev => prev.filter(m => m.id !== mentor.id));
+      alert(`Successfully removed "${mentorName}" as a mentor. Their role was reverted to innovator.`);
+    } catch (err: any) {
+      console.error('Failed to remove mentor:', err);
+      alert(`Failed to remove mentor: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsRemovingMentorId(null);
+    }
+  };
   const [requests, setRequests] = useState<any[]>([]);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -245,24 +171,38 @@ export default function Mentorship() {
   }, [searchParams]);
 
   const runSmartMentorMatcher = (queryText: string) => {
-
     const q = queryText.trim().toLowerCase();
     if (!q) {
       setMatchedMentor(null);
       return;
     }
 
+    if (!mentors || mentors.length === 0) {
+      setMatchedMentor(null);
+      setMatchScore(0);
+      setMatchReasons(['No registered mentors available on the platform yet.']);
+      return;
+    }
+
     let bestScore = 0;
-    let bestMentor: EnhancedMentor = VERIFIED_INDUSTRIAL_MENTORS[0];
+    let bestMentor: EnhancedMentor | null = null;
     let bestReasons: string[] = [];
 
-    VERIFIED_INDUSTRIAL_MENTORS.forEach(m => {
+    mentors.forEach(m => {
       let score = 50;
       const reasons: string[] = [];
 
-      // Check skills & strengths
-      const allKeywords = [...m.skills, ...m.strengths, m.title, m.bio].map(k => k.toLowerCase());
-      
+      const mSkills: string[] = Array.isArray(m.skills)
+        ? m.skills
+        : (typeof m.skills === 'string' && m.skills.trim()
+            ? m.skills.split(',').map((s: string) => s.trim())
+            : []);
+      const mStrengths: string[] = Array.isArray(m.strengths) ? m.strengths : [];
+      const mTitle = (m.title || '').toLowerCase();
+      const mBio = (m.bio || '').toLowerCase();
+      const mName = (m.display_name || '').toLowerCase();
+
+      const allKeywords = [...mSkills, ...mStrengths, mTitle, mBio, mName].map(k => (k || '').toLowerCase());
       const qWords = q.split(/\s+/).filter(w => w.length > 2);
       let matchCount = 0;
 
@@ -273,43 +213,38 @@ export default function Mentorship() {
         }
       });
 
-      // Special domain matches
-      if ((q.includes('ros') || q.includes('slam') || q.includes('nav') || q.includes('lidar') || q.includes('autonomous')) && m.id === 'mentor_simba') {
-        score += 35;
-        reasons.push('Specializes in Autonomous Mobile Robots, SLAM, and ROS2 architecture');
+      const directMatchedSkills = mSkills.filter(skill => {
+        const s = skill.toLowerCase();
+        return qWords.some(w => s.includes(w) || w.includes(s));
+      });
+
+      if (directMatchedSkills.length > 0) {
+        score += directMatchedSkills.length * 20;
+        reasons.push(`Direct skill match: ${directMatchedSkills.slice(0, 3).join(', ')}`);
       }
-      if ((q.includes('pcb') || q.includes('circuit') || q.includes('hardware') || q.includes('stm32') || q.includes('altium') || q.includes('power')) && m.id === 'mentor_nyasha') {
-        score += 35;
-        reasons.push('Expert in Multi-layer PCB Layout, Altium Designer, and STM32 embedded circuits');
+      if (m.mentored_count && m.mentored_count > 0) {
+        reasons.push(`Experienced mentor with ${m.mentored_count}+ students successfully guided`);
       }
-      if ((q.includes('vision') || q.includes('ai') || q.includes('yolo') || q.includes('jetson') || q.includes('arm') || q.includes('kinematics')) && m.id === 'mentor_kelvin') {
-        score += 35;
-        reasons.push('Research expert in Computer Vision, Edge AI on NVIDIA Jetson, and Robotic Arm Kinematics');
+      if (m.rating && Number(m.rating) >= 4.5) {
+        reasons.push(`Top student rating (${Number(m.rating).toFixed(1)} ★)`);
       }
-      if ((q.includes('plc') || q.includes('scada') || q.includes('industrial') || q.includes('factory') || q.includes('safety') || q.includes('automation')) && m.id === 'mentor_tadiwa') {
-        score += 35;
-        reasons.push('Industrial automation specialist in Siemens/Allen-Bradley PLCs and SCADA architecture');
+      if (reasons.length === 0) {
+        reasons.push('Verified engineering mentor open to 1-on-1 technical advisory sessions');
       }
 
-      // Add general reasons
-      if (m.mentored_count > 80) {
-        reasons.push(`Highly experienced with ${m.mentored_count} students successfully mentored`);
-      }
-      if (m.rating >= 4.9) {
-        reasons.push(`Top-tier student satisfaction rating (${m.rating} ★ across ${m.review_count} verified reviews)`);
-      }
-
-      const finalScore = Math.min(99, Math.max(78, score));
-      if (finalScore > bestScore) {
+      const finalScore = Math.min(99, Math.max(65, score));
+      if (finalScore > bestScore || !bestMentor) {
         bestScore = finalScore;
         bestMentor = m;
         bestReasons = reasons;
       }
     });
 
-    setMatchedMentor(bestMentor);
-    setMatchScore(bestScore);
-    setMatchReasons(bestReasons.slice(0, 3));
+    if (bestMentor) {
+      setMatchedMentor(bestMentor);
+      setMatchScore(bestScore);
+      setMatchReasons(bestReasons.slice(0, 3));
+    }
   };
 
   const fetchMessagesForRequest = async (requestId: string) => {
@@ -333,20 +268,17 @@ export default function Mentorship() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('role', 'mentor');
-        
-        const dbMentors = (data && !error) ? data : [];
-        const existingIds = new Set(dbMentors.map(m => m.id));
-        const combined = [...dbMentors];
-        
-        VERIFIED_INDUSTRIAL_MENTORS.forEach(vm => {
-          if (!existingIds.has(vm.id)) {
-            combined.push(vm);
-          }
-        });
-        setMentors(combined);
+          .eq('role', 'mentor')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setMentors(data);
+        } else {
+          setMentors([]);
+        }
       } catch (err) {
-        setMentors(VERIFIED_INDUSTRIAL_MENTORS);
+        console.warn('Error fetching mentors:', err);
+        setMentors([]);
       }
     };
 
@@ -354,13 +286,12 @@ export default function Mentorship() {
       if (!user) return;
       try {
         let dbRequests: any[] = [];
-        const isUserAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
         const isUserMentor = profile?.role === 'mentor';
 
         let query = supabase.from('mentorship_requests').select('*');
         if (!isUserAdmin) {
           if (isUserMentor) {
-            query = query.or(`mentor_id.eq.${user.id},mentor_id.eq.mentor_simba,mentor_id.eq.mentor_nyasha,mentor_id.eq.mentor_kelvin,mentor_id.eq.mentor_tadiwa`);
+            query = query.eq('mentor_id', user.id);
           } else {
             query = query.eq('requester_id', user.id);
           }
@@ -375,7 +306,7 @@ export default function Mentorship() {
         try {
           const raw = localStorage.getItem('yara_local_mentorship_requests');
           if (raw) localRequests = JSON.parse(raw);
-        } catch {}
+        } catch { }
 
         const dbIds = new Set(dbRequests.map(r => r.id));
         const merged = [
@@ -400,14 +331,14 @@ export default function Mentorship() {
         .from('live_sessions')
         .select('*, mentor:profiles!mentor_id(display_name)')
         .eq('is_live', true);
-      
+
       // Non-admins only see approved sessions, or their own
       if (profile?.role !== 'admin') {
         query = query.or(`is_approved.eq.true,mentor_id.eq.${user?.id}`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
-      
+
       if (error) console.error('Error fetching live sessions:', error);
       else setLiveSessions(data || []);
     };
@@ -417,7 +348,7 @@ export default function Mentorship() {
         .from('study_materials')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) console.error('Error fetching materials:', error);
       else setStudyMaterials(data || []);
     };
@@ -439,8 +370,8 @@ export default function Mentorship() {
           try {
             const reqId = payload?.new?.request_id || payload?.old?.request_id;
             if (reqId) fetchMessagesForRequest(reqId);
-          } catch (err: any) { 
-            console.warn('Realtime message update notice:', err?.message || err); 
+          } catch (err: any) {
+            console.warn('Realtime message update notice:', err?.message || err);
           }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'live_sessions' }, () => {
@@ -455,7 +386,7 @@ export default function Mentorship() {
       if (requestsSubscription) {
         try {
           supabase.removeChannel(requestsSubscription);
-        } catch {}
+        } catch { }
       }
     };
   }, [user, profile?.role]);
@@ -489,7 +420,7 @@ export default function Mentorship() {
       setIsExternal(false);
       setExternalAnnouncement('');
       setExternalLink('');
-      
+
       if (profile?.role === 'admin') {
         navigate(`/live/${roomId}`);
       } else {
@@ -565,7 +496,7 @@ export default function Mentorship() {
         const raw = localStorage.getItem('yara_local_mentorship_requests');
         const existing = raw ? JSON.parse(raw) : [];
         localStorage.setItem('yara_local_mentorship_requests', JSON.stringify([newLocalRequest, ...existing]));
-      } catch {}
+      } catch { }
 
       setRequests(prev => [newLocalRequest, ...prev]);
 
@@ -602,7 +533,7 @@ export default function Mentorship() {
           const updated = list.map((r: any) => r.id === requestId ? { ...r, status } : r);
           localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
         }
-      } catch {}
+      } catch { }
 
       // Add system message to the request conversation
       await supabase.from('mentorship_messages').insert({
@@ -633,7 +564,7 @@ export default function Mentorship() {
           const updated = list.map((r: any) => r.id === requestId ? { ...r, meeting_link: cleanLink } : r);
           localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
         }
-      } catch {}
+      } catch { }
 
       await supabase.from('mentorship_messages').insert({
         request_id: requestId,
@@ -672,12 +603,12 @@ export default function Mentorship() {
           sender_role: newMsg.sender_role,
           message: messageText.trim()
         });
-      } catch {}
+      } catch { }
 
       if (isMentor) {
         try {
           await supabase.from('mentorship_requests').update({ mentor_response: messageText.trim() }).eq('id', requestId);
-        } catch {}
+        } catch { }
       }
 
       setMessagesMap(prev => ({
@@ -727,7 +658,7 @@ export default function Mentorship() {
         const { data: { publicUrl } } = supabase.storage
           .from('materials')
           .getPublicUrl(filePath);
-        
+
         finalUrl = publicUrl;
       }
 
@@ -787,16 +718,16 @@ Possible causes:
     let matched = targetReq;
     if (!matched) {
       // Find the most appropriate request belonging to or assigned to this mentor
-      matched = requests.find(r => 
-        (r.status === 'accepted' || r.status === 'completed') && 
+      matched = requests.find(r =>
+        (r.status === 'accepted' || r.status === 'completed') &&
         (r.mentor_id === user?.id || r.mentor_name === profile?.display_name || profile?.role === 'admin')
       ) || requests.find(r => r.mentor_id === user?.id || profile?.role === 'admin') || requests[0];
     }
 
     const defaultStandardCommission = 15.00;
     const commission = (
-      profile?.commission_rate && profile.commission_rate > 0 
-        ? Math.max(10, profile.commission_rate * 100) 
+      profile?.commission_rate && profile.commission_rate > 0
+        ? Math.max(10, profile.commission_rate * 100)
         : defaultStandardCommission
     ).toFixed(2);
 
@@ -850,7 +781,7 @@ Possible causes:
       try {
         const existingLogs = JSON.parse(localStorage.getItem('yara_mentor_session_logs') || '[]');
         localStorage.setItem('yara_mentor_session_logs', JSON.stringify([newLog, ...existingLogs]));
-      } catch {}
+      } catch { }
 
       // 3. If linked to a request, mark it as completed
       if (selectedLinkedRequestId) {
@@ -875,7 +806,7 @@ Possible causes:
             } : r);
             localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
           }
-        } catch {}
+        } catch { }
       }
 
       // 4. Update profile stats: mentored_count and total_commission
@@ -908,10 +839,20 @@ Possible causes:
     }
   };
 
-  const filteredMentors = mentors.filter(mentor => 
-    mentor.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mentor.skills?.some((skill: string) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredMentors = mentors.filter(mentor => {
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) return true;
+    const nameMatch = (mentor.display_name || '').toLowerCase().includes(q);
+    const titleMatch = (mentor.title || '').toLowerCase().includes(q);
+    const bioMatch = (mentor.bio || '').toLowerCase().includes(q);
+    const skillsList: string[] = Array.isArray(mentor.skills)
+      ? mentor.skills
+      : (typeof mentor.skills === 'string' && mentor.skills.trim()
+          ? mentor.skills.split(',').map((s: string) => s.trim())
+          : []);
+    const skillMatch = skillsList.some(skill => (skill || '').toLowerCase().includes(q));
+    return nameMatch || titleMatch || bioMatch || skillMatch;
+  });
 
   return (
     <div className="space-y-8 pb-12">
@@ -967,12 +908,12 @@ Possible causes:
             )}
           </div>
           <h3 className="text-xl sm:text-2xl font-black text-white">
-            {profile?.role === 'mentor' 
-              ? 'Mentor Response & Session Console' 
+            {profile?.role === 'mentor'
+              ? 'Mentor Response & Session Console'
               : 'My Mentorship Requests & Active Sessions'}
           </h3>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-            {profile?.role === 'mentor' 
+            {profile?.role === 'mentor'
               ? 'Review incoming mentee submissions, accept or decline sessions, send meeting links (Google Meet, Zoom, WhatsApp), and respond with engineering guidance.'
               : 'Track mentor response statuses, access meeting room links, message your assigned mentor directly, and rate completed sessions.'}
           </p>
@@ -1100,7 +1041,7 @@ Possible causes:
           {/* Great Learning AI Smart Mentor Matcher Hero Section */}
           <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden border border-indigo-900/50">
             <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-            
+
             <div className="relative z-10 space-y-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -1236,140 +1177,197 @@ Possible causes:
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredMentors.map((mentor, index) => (
-                <motion.div
-                  key={mentor.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-[2.5rem] border border-slate-200/80 p-7 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all group flex flex-col justify-between"
-                >
-                  <div className="space-y-5">
-                    {/* Header: Avatar, Status & Mentored Count */}
-                    <div className="flex items-start justify-between">
-                      <div className="relative">
-                        <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-md group-hover:scale-105 transition-transform">
-                          {mentor.avatar_url ? (
-                            <img src={mentor.avatar_url} alt={mentor.display_name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <PlaceholderImage type="avatar" text={mentor.display_name} />
+            {filteredMentors.length === 0 ? (
+              <div className="bg-white rounded-[2.5rem] border border-slate-100 p-12 text-center max-w-xl mx-auto shadow-sm space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                  <Users className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-lg font-bold text-slate-900">
+                    {searchTerm ? 'No Mentors Match Search' : 'No Mentors Currently Registered'}
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    {searchTerm
+                      ? `No registered mentors found matching "${searchTerm}". Try searching by another skill or mentor name.`
+                      : 'Only verified registered mentors and their actual skills are displayed here. Qualified educators and robotics professionals can sign up as mentors.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredMentors.map((mentor, index) => (
+                  <motion.div
+                    key={mentor.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="bg-white rounded-[2.5rem] border border-slate-200/80 p-7 hover:shadow-2xl hover:shadow-indigo-100/50 transition-all group flex flex-col justify-between"
+                  >
+                    <div className="space-y-5">
+                      {/* Header: Avatar, Status & Mentored Count */}
+                      <div className="flex items-start justify-between">
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-md group-hover:scale-105 transition-transform">
+                            {mentor.avatar_url ? (
+                              <img src={mentor.avatar_url} alt={mentor.display_name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <PlaceholderImage type="avatar" text={mentor.display_name} />
+                            )}
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        </div>
+
+                        {/* Mentored count badge & Star rating */}
+                        <div className="text-right space-y-1.5">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs">
+                            <Users className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                            {mentor.mentored_count || 0} Mentored
+                          </span>
+                          <div className="flex items-center justify-end text-amber-500">
+                            <Star className="w-4 h-4 fill-amber-400" />
+                            <span className="text-sm font-bold ml-1 text-slate-800">
+                              {mentor.rating ? Number(mentor.rating).toFixed(1) : '5.0'}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-1">
+                              ({mentor.review_count || mentor.reviews?.length || 0})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mentor Name & Title */}
+                      <div>
+                        <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          {mentor.display_name}
+                        </h4>
+                        <p className="text-xs font-bold text-indigo-600 mt-1 line-clamp-1">
+                          {mentor.title || 'Accredited YARA Mentor'}
+                        </p>
+                      </div>
+
+                      <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
+                        {mentor.bio || "Dedicated robotics & automation engineer passionate about developing student technical mastery."}
+                      </p>
+
+                      {/* Registered Skills & Strengths */}
+                      {(() => {
+                        const skillsList: string[] = Array.isArray(mentor.skills)
+                          ? mentor.skills
+                          : (typeof mentor.skills === 'string' && mentor.skills.trim()
+                              ? mentor.skills.split(',').map((s: string) => s.trim()).filter(Boolean)
+                              : []);
+                        const strengthsList: string[] = Array.isArray(mentor.strengths)
+                          ? mentor.strengths
+                          : skillsList.slice(0, 3);
+
+                        return (
+                          <div className="space-y-3 pt-3 border-t border-slate-100">
+                            {strengthsList.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center">
+                                  <Zap className="w-3 h-3 text-amber-500 mr-1" />
+                                  Core Strengths
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {strengthsList.map((st: string) => (
+                                    <span key={st} className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-semibold border border-emerald-100">
+                                      {st}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                Registered Skills
+                              </span>
+                              {skillsList.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {skillsList.map((skill: string) => (
+                                    <span key={skill} className="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[11px] font-semibold border border-slate-200">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">No specific skills listed yet</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Reviews Accordion & Booking Action */}
+                    <div className="space-y-3 pt-4 border-t border-slate-100 mt-5">
+                      {mentor.reviews && mentor.reviews.length > 0 && (
+                        <div className="border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReviewsMentorId(expandedReviewsMentorId === mentor.id ? null : mentor.id)}
+                            className="w-full flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-700 py-1.5 px-2 rounded-xl hover:bg-indigo-50 transition-colors"
+                          >
+                            <span className="flex items-center space-x-1.5">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                              <span>Student Reviews ({mentor.reviews.length})</span>
+                            </span>
+                            {expandedReviewsMentorId === mentor.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+
+                          {expandedReviewsMentorId === mentor.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="space-y-2 mt-2 pt-2 border-t border-slate-200/60 text-left"
+                            >
+                              {mentor.reviews.map((rev: MentorReviewItem) => (
+                                <div key={rev.id} className="bg-white rounded-xl p-3 border border-slate-100 shadow-xs text-xs space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-800">{rev.student_name}</span>
+                                    <div className="flex items-center text-amber-500">
+                                      <Star className="w-3 h-3 fill-amber-400" />
+                                      <span className="text-[11px] font-bold ml-1">{rev.rating}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-slate-600 italic">"{rev.comment}"</p>
+                                  <span className="text-[10px] text-slate-400 block">{rev.date}</span>
+                                </div>
+                              ))}
+                            </motion.div>
                           )}
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      </div>
+                      )}
 
-                      {/* Mentored count badge & Star rating */}
-                      <div className="text-right space-y-1.5">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs">
-                          <Users className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-                          {mentor.mentored_count || 30}+ Mentored
-                        </span>
-                        <div className="flex items-center justify-end text-amber-500">
-                          <Star className="w-4 h-4 fill-amber-400" />
-                          <span className="text-sm font-bold ml-1 text-slate-800">
-                            {mentor.rating ? Number(mentor.rating).toFixed(2) : '4.90'}
-                          </span>
-                          <span className="text-xs text-slate-400 ml-1">
-                            ({mentor.review_count || mentor.reviews?.length || 18})
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      <button
+                        onClick={() => setIsRequesting(mentor.id)}
+                        disabled={profile?.role === 'mentor' || mentor.id === user?.id}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-100 hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:hover:translate-y-0 cursor-pointer"
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span>Select &amp; Book Mentor</span>
+                      </button>
 
-                    {/* Mentor Name & Title */}
-                    <div>
-                      <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                        {mentor.display_name}
-                      </h4>
-                      <p className="text-xs font-bold text-indigo-600 mt-1 line-clamp-1">
-                        {mentor.title || 'Senior Engineering Mentor'}
-                      </p>
-                    </div>
-
-                    <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
-                      {mentor.bio || "Dedicated robotics & automation engineer passionate about developing student technical mastery."}
-                    </p>
-
-                    {/* Mentor Strengths */}
-                    <div className="space-y-1.5 pt-3 border-t border-slate-100">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center">
-                        <Zap className="w-3 h-3 text-amber-500 mr-1" />
-                        Core Strengths
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(mentor.strengths || mentor.skills?.slice(0, 4) || ['Robotics', 'Embedded']).map((st: string) => (
-                          <span key={st} className="px-2.5 py-1 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-semibold border border-emerald-100">
-                            {st}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Skills list */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {(mentor.skills || []).map((skill: string) => (
-                        <span key={skill} className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium border border-slate-200/60">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reviews Accordion & Booking Action */}
-                  <div className="space-y-3 pt-4 border-t border-slate-100 mt-5">
-                    {mentor.reviews && mentor.reviews.length > 0 && (
-                      <div className="border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
+                      {/* Admin Remove Mentor Button */}
+                      {isUserAdmin && (
                         <button
                           type="button"
-                          onClick={() => setExpandedReviewsMentorId(expandedReviewsMentorId === mentor.id ? null : mentor.id)}
-                          className="w-full flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-700 py-1.5 px-2 rounded-xl hover:bg-indigo-50 transition-colors"
+                          onClick={() => handleRemoveMentor(mentor)}
+                          disabled={isRemovingMentorId === mentor.id}
+                          className="w-full py-2.5 px-4 rounded-2xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50 cursor-pointer"
+                          title="Remove this mentor (reverts user role to innovator)"
                         >
-                          <span className="flex items-center space-x-1.5">
-                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                            <span>Student Reviews ({mentor.reviews.length})</span>
-                          </span>
-                          {expandedReviewsMentorId === mentor.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          <span>{isRemovingMentorId === mentor.id ? 'Removing Mentor...' : 'Remove Mentor (Admin)'}</span>
                         </button>
-
-                        {expandedReviewsMentorId === mentor.id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="space-y-2 mt-2 pt-2 border-t border-slate-200/60 text-left"
-                          >
-                            {mentor.reviews.map((rev: MentorReviewItem) => (
-                              <div key={rev.id} className="bg-white rounded-xl p-3 border border-slate-100 shadow-xs text-xs space-y-1">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-slate-800">{rev.student_name}</span>
-                                  <div className="flex items-center text-amber-500">
-                                    <Star className="w-3 h-3 fill-amber-400" />
-                                    <span className="text-[11px] font-bold ml-1">{rev.rating}</span>
-                                  </div>
-                                </div>
-                                <p className="text-slate-600 italic">"{rev.comment}"</p>
-                                <span className="text-[10px] text-slate-400 block">{rev.date}</span>
-                              </div>
-                            ))}
-                          </motion.div>
-                        )}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => setIsRequesting(mentor.id)}
-                      disabled={profile?.role === 'mentor' || mentor.id === user?.id}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-100 hover:-translate-y-0.5 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:hover:translate-y-0"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>Select & Book Mentor</span>
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       )}
@@ -1383,8 +1381,8 @@ Possible causes:
                 <span>Mentorship Sessions &amp; Requests Console</span>
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-1">
-                {profile?.role === 'mentor' 
-                  ? 'Review mentees seeking guidance, provide virtual meeting rooms, and send structured replies.' 
+                {profile?.role === 'mentor'
+                  ? 'Review mentees seeking guidance, provide virtual meeting rooms, and send structured replies.'
                   : 'Track your requested mentorship sessions, access virtual meeting rooms, and chat directly with your mentors.'}
               </p>
             </div>
@@ -1471,8 +1469,8 @@ Possible causes:
                         <div className={cn(
                           "px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center space-x-1.5 border shadow-xs",
                           request.status === 'pending' ? "bg-amber-500/20 text-amber-300 border-amber-500/40" :
-                          request.status === 'accepted' ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : 
-                          request.status === 'completed' ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" : "bg-red-500/20 text-red-300 border-red-500/40"
+                            request.status === 'accepted' ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" :
+                              request.status === 'completed' ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40" : "bg-red-500/20 text-red-300 border-red-500/40"
                         )}>
                           {request.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
                           {request.status === 'accepted' && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -1597,7 +1595,7 @@ Possible causes:
                             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                               Mentor Session Actions
                             </span>
-                            
+
                             <div className="flex flex-wrap gap-2">
                               {request.status === 'pending' && (
                                 <>
@@ -1722,7 +1720,7 @@ Possible causes:
                                     <div
                                       className={cn(
                                         "p-3 rounded-2xl max-w-md leading-relaxed",
-                                        isSelf 
+                                        isSelf
                                           ? "bg-indigo-600 text-white rounded-tr-none shadow-sm"
                                           : "bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-xs"
                                       )}
@@ -1783,7 +1781,7 @@ Possible causes:
             </div>
             <span>Study Materials</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {studyMaterials.length === 0 ? (
               <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center">
@@ -1804,10 +1802,10 @@ Possible causes:
                     <div className={cn(
                       "w-12 h-12 rounded-2xl flex items-center justify-center",
                       material.file_type === 'pdf' ? "bg-red-50 text-red-500" :
-                      material.file_type === 'video' ? "bg-indigo-50 text-indigo-500" : "bg-emerald-50 text-emerald-500"
+                        material.file_type === 'video' ? "bg-indigo-50 text-indigo-500" : "bg-emerald-50 text-emerald-500"
                     )}>
-                      {material.file_type === 'pdf' ? <FileText className="w-6 h-6" /> : 
-                       material.file_type === 'video' ? <Video className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                      {material.file_type === 'pdf' ? <FileText className="w-6 h-6" /> :
+                        material.file_type === 'video' ? <Video className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                       {new Date(material.created_at).toLocaleDateString()}
@@ -1860,8 +1858,8 @@ Possible causes:
                   onClick={() => setSelectedLiveCategory(cat.id as any)}
                   className={cn(
                     "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                    selectedLiveCategory === cat.id 
-                      ? "bg-white text-indigo-600 shadow-sm" 
+                    selectedLiveCategory === cat.id
+                      ? "bg-white text-indigo-600 shadow-sm"
                       : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -1870,7 +1868,7 @@ Possible causes:
               ))}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {liveSessions.filter(s => selectedLiveCategory === 'all' || s.category === selectedLiveCategory).length === 0 ? (
               <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center">
@@ -1883,100 +1881,100 @@ Possible causes:
               liveSessions
                 .filter(s => selectedLiveCategory === 'all' || s.category === selectedLiveCategory)
                 .map((session) => (
-                <motion.div
-                  key={session.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden hover:shadow-2xl hover:shadow-indigo-50 transition-all group"
-                >
-                  <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent z-10" />
-                    <div className="absolute top-4 left-4 z-20 flex items-center space-x-2">
-                      <div className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center space-x-1.5",
-                        session.is_approved ? "bg-red-500 text-white animate-pulse" : "bg-amber-500 text-white"
-                      )}>
-                        <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                        <span>{session.is_approved ? 'Live Now' : 'Pending Approval'}</span>
+                  <motion.div
+                    key={session.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden hover:shadow-2xl hover:shadow-indigo-50 transition-all group"
+                  >
+                    <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent z-10" />
+                      <div className="absolute top-4 left-4 z-20 flex items-center space-x-2">
+                        <div className={cn(
+                          "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center space-x-1.5",
+                          session.is_approved ? "bg-red-500 text-white animate-pulse" : "bg-amber-500 text-white"
+                        )}>
+                          <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                          <span>{session.is_approved ? 'Live Now' : 'Pending Approval'}</span>
+                        </div>
+                        <div className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                          {session.category === 'junior' ? 'Junior (Form 1-2)' :
+                            session.category === 'intermediate' ? 'Intermediate (Form 3-4)' :
+                              session.category === 'senior' ? 'Senior (Form 5-6)' : 'Teachers'}
+                        </div>
                       </div>
-                      <div className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                        {session.category === 'junior' ? 'Junior (Form 1-2)' :
-                         session.category === 'intermediate' ? 'Intermediate (Form 3-4)' :
-                         session.category === 'senior' ? 'Senior (Form 5-6)' : 'Teachers'}
-                      </div>
-                    </div>
-                    <Video className="w-12 h-12 text-white/20 relative z-0" />
-                    <div className="absolute bottom-4 left-4 right-4 z-20">
-                      <p className="text-white font-bold text-lg line-clamp-1">{session.title}</p>
-                      <p className="text-white/70 text-sm font-medium">by {session.mentor?.display_name}</p>
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-4">
-                    {session.is_external && session.description && (
-                      <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
-                        <p className="text-amber-800 text-[10px] font-black uppercase tracking-widest flex items-center mb-1">
-                          <Info className="w-3 h-3 mr-1" />
-                          External Announcement
-                        </p>
-                        <p className="text-amber-700 text-sm font-medium leading-relaxed">
-                          {session.description}
-                        </p>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center text-slate-500 font-medium">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      <div className="flex items-center text-indigo-600 font-bold">
-                        <Users className="w-4 h-4 mr-2" />
-                        {session.is_external ? 'External' : 'Active'}
+                      <Video className="w-12 h-12 text-white/20 relative z-0" />
+                      <div className="absolute bottom-4 left-4 right-4 z-20">
+                        <p className="text-white font-bold text-lg line-clamp-1">{session.title}</p>
+                        <p className="text-white/70 text-sm font-medium">by {session.mentor?.display_name}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      {session.is_external ? (
-                        <a
-                          href={session.video_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition-all flex items-center justify-center space-x-2"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>Join External Session</span>
-                        </a>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => navigate(`/live/${session.room_id}`)}
-                            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
+                    <div className="p-6 space-y-4">
+                      {session.is_external && session.description && (
+                        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
+                          <p className="text-amber-800 text-[10px] font-black uppercase tracking-widest flex items-center mb-1">
+                            <Info className="w-3 h-3 mr-1" />
+                            External Announcement
+                          </p>
+                          <p className="text-amber-700 text-sm font-medium leading-relaxed">
+                            {session.description}
+                          </p>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center text-slate-500 font-medium">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="flex items-center text-indigo-600 font-bold">
+                          <Users className="w-4 h-4 mr-2" />
+                          {session.is_external ? 'External' : 'Active'}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {session.is_external ? (
+                          <a
+                            href={session.video_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition-all flex items-center justify-center space-x-2"
                           >
-                            <Play className="w-4 h-4 fill-current" />
-                            <span>Join Session</span>
-                          </button>
-                          {session.video_url && (
-                            <a
-                              href={session.video_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all"
+                            <ExternalLink className="w-4 h-4" />
+                            <span>Join External Session</span>
+                          </a>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => navigate(`/live/${session.room_id}`)}
+                              className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
                             >
-                              <ExternalLink className="w-5 h-5" />
-                            </a>
-                          )}
-                        </>
+                              <Play className="w-4 h-4 fill-current" />
+                              <span>Join Session</span>
+                            </button>
+                            {session.video_url && (
+                              <a
+                                href={session.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-3 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all"
+                              >
+                                <ExternalLink className="w-5 h-5" />
+                              </a>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {profile?.role === 'mentor' && session.mentor_id === user?.id && (
+                        <button
+                          onClick={() => endLiveSession(session.id)}
+                          className="w-full py-2 text-red-600 font-bold text-xs hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          End Session
+                        </button>
                       )}
                     </div>
-                    {profile?.role === 'mentor' && session.mentor_id === user?.id && (
-                      <button
-                        onClick={() => endLiveSession(session.id)}
-                        className="w-full py-2 text-red-600 font-bold text-xs hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        End Session
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              ))
+                  </motion.div>
+                ))
             )}
           </div>
         </section>
@@ -2237,8 +2235,8 @@ Possible causes:
                       Schedule 1-on-1 Mentorship
                     </h3>
                   </div>
-                  <button 
-                    onClick={() => { setIsRequesting(null); setBookingSuccess(false); }} 
+                  <button
+                    onClick={() => { setIsRequesting(null); setBookingSuccess(false); }}
                     className="p-2 text-slate-400 hover:text-white rounded-xl transition-colors"
                   >
                     <XCircle className="w-6 h-6" />
@@ -2481,8 +2479,8 @@ Possible causes:
                     <p className="text-xs text-slate-500 font-medium">Automatic Detection & Real-Time Commission Sync</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowLogSessionModal(false)} 
+                <button
+                  onClick={() => setShowLogSessionModal(false)}
                   className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors cursor-pointer"
                 >
                   <XCircle className="w-6 h-6" />
@@ -2499,8 +2497,8 @@ Possible causes:
                         {selectedLinkedRequestId ? 'Linked to Platform Session' : 'Auto-Detected Session Active'}
                       </span>
                       <span className="text-[10px] text-slate-500 block truncate">
-                        {selectedLinkedRequestId 
-                          ? 'Session details and commission automatically extracted from your mentorship record.' 
+                        {selectedLinkedRequestId
+                          ? 'Session details and commission automatically extracted from your mentorship record.'
                           : 'Fields auto-populated with standard mentor session remuneration.'}
                       </span>
                     </div>
@@ -2536,7 +2534,7 @@ Possible causes:
                       <option value="custom">⚡ Auto-Detected Standard Session</option>
                       {requests.map(r => (
                         <option key={r.id} value={r.id}>
-                          {r.topic} — {r.requester_name} ({r.status.toUpperCase()})
+                          {r.topic || r.message || 'Mentorship Session'} — {r.requester_name} ({(r.status || 'PENDING').toUpperCase()})
                         </option>
                       ))}
                     </select>

@@ -398,115 +398,56 @@ app.post('/api/certificates/issue', (req: Request, res: Response) => {
   res.json({ success: true, certificate: newCert });
 });
 
-// ==========================================
 // 5. MENTORSHIP & SMART MATCHER API
 // ==========================================
-const INDUSTRIAL_MENTORS = [
-  {
-    id: 'mentor_simba',
-    display_name: 'Simbarashe O. Manongwa',
-    title: 'Autonomous Mobile Robots & ROS2 Specialist',
-    rating: 4.95,
-    review_count: 48,
-    mentored_count: 128,
-    skills: ['ROS2 Humble', 'SLAM Mapping', 'Nav2 Path Planning', 'Sensor Fusion', 'LiDAR', 'Robotics Hardware'],
-    strengths: ['ROS2 Architecture', 'Differential Drive Kinematics', 'Micro-ROS', 'Real-time Telemetry'],
-    reviews: [
-      { id: 'r1', student_name: 'Tatenda K.', rating: 5, date: 'Oct 2026', comment: 'Simba is hands down the best robotics mentor. Guided me step by step through Nav2 SLAM.' },
-      { id: 'r2', student_name: 'Farai M.', rating: 5, date: 'Sep 2026', comment: 'Helped our team debug robot hardware telemetry in 30 minutes!' }
-    ]
-  },
-  {
-    id: 'mentor_nyasha',
-    display_name: 'Nyasha Chiambiro',
-    title: 'Embedded Systems & Multi-Layer PCB Specialist',
-    rating: 4.92,
-    review_count: 36,
-    mentored_count: 94,
-    skills: ['Altium Designer', 'KiCAD', 'STM32', 'Power Electronics', 'High-Speed Layout', 'SMD Soldering'],
-    strengths: ['Multi-layer PCB Design', 'Power Supply Design', 'Signal Integrity', 'Embedded Firmware'],
-    reviews: [
-      { id: 'r3', student_name: 'Chiedza R.', rating: 5, date: 'Aug 2026', comment: 'Nyasha transformed how I design circuits. My 4-layer STM32 board worked on the first rev!' }
-    ]
-  },
-  {
-    id: 'mentor_kelvin',
-    display_name: 'Dr. Kelvin Mukumbira',
-    title: 'Edge AI, Computer Vision & Robotic Arms',
-    rating: 4.97,
-    review_count: 52,
-    mentored_count: 140,
-    skills: ['NVIDIA Jetson', 'YOLO Object Detection', 'OpenCV', 'Inverse Kinematics', 'MoveIt2', 'PyTorch'],
-    strengths: ['Edge AI Inference', '6-DOF Robotic Arms', 'Vision-Guided Pick & Place', 'Deep Learning'],
-    reviews: [
-      { id: 'r4', student_name: 'Kudakwashe N.', rating: 5, date: 'Oct 2026', comment: 'Incredible depth in robotic arms and inverse kinematics. Highly recommend!' }
-    ]
-  },
-  {
-    id: 'mentor_tadiwa',
-    display_name: 'Tadiwa Masango',
-    title: 'Industrial Automation & PLC / SCADA Specialist',
-    rating: 4.90,
-    review_count: 31,
-    mentored_count: 64,
-    skills: ['PLC Programming', 'SCADA', 'HMI', 'Industrial Safety', 'Sensors', 'Industrial Robotics'],
-    strengths: ['PLC Programming', 'SCADA & HMI', 'Industrial Safety', 'Factory Automation'],
-    reviews: [
-      { id: 'r5', student_name: 'Blessing D.', rating: 5, date: 'Aug 2026', comment: 'Helped me understand industrial ladder logic and prepare for automation job interviews.' }
-    ]
-  }
-];
+const getStoredMentors = (): any[] => {
+  return readJsonFile<any[]>('mentors.json', []);
+};
 
 app.get('/api/mentorship/mentors', (_req: Request, res: Response) => {
-  res.json(INDUSTRIAL_MENTORS);
+  res.json(getStoredMentors());
 });
 
 app.post('/api/mentorship/match', (req: Request, res: Response) => {
+  const mentors = getStoredMentors();
   const { query } = req.body;
   const q = (query || '').toLowerCase().trim();
 
+  if (!mentors || mentors.length === 0) {
+    return res.json({ matched: null, score: 0, reasons: ['No registered mentors available yet.'] });
+  }
+
   if (!q) {
-    return res.json({ matched: INDUSTRIAL_MENTORS[0], score: 85, reasons: ['Senior faculty advisor'] });
+    return res.json({ matched: mentors[0], score: 75, reasons: ['Accredited faculty mentor'] });
   }
 
   let bestScore = 0;
-  let bestMentor = INDUSTRIAL_MENTORS[0];
+  let bestMentor = mentors[0];
   let bestReasons: string[] = [];
 
-  INDUSTRIAL_MENTORS.forEach(m => {
-    let score = 60;
+  mentors.forEach(m => {
+    let score = 50;
     const reasons: string[] = [];
 
-    const allKeywords = [...m.skills, ...m.strengths, m.title].map(k => k.toLowerCase());
+    const mSkills = Array.isArray(m.skills) ? m.skills : [];
+    const mStrengths = Array.isArray(m.strengths) ? m.strengths : [];
+    const allKeywords = [...mSkills, ...mStrengths, m.title || '', m.bio || '', m.display_name || ''].map(k => (k || '').toLowerCase());
     const words = q.split(/\s+/).filter(w => w.length > 2);
 
     words.forEach(w => {
       if (allKeywords.some(kw => kw.includes(w))) {
-        score += 12;
+        score += 15;
       }
     });
 
-    if ((q.includes('ros') || q.includes('slam') || q.includes('nav') || q.includes('lidar') || q.includes('autonomous')) && m.id === 'mentor_simba') {
-      score += 35;
-      reasons.push('Specialized expertise in Autonomous Mobile Robots, SLAM Mapping, and ROS2');
+    if (m.mentored_count) {
+      reasons.push(`Experienced with ${m.mentored_count}+ students mentored`);
     }
-    if ((q.includes('pcb') || q.includes('circuit') || q.includes('stm32') || q.includes('altium') || q.includes('hardware')) && m.id === 'mentor_nyasha') {
-      score += 35;
-      reasons.push('Specialized in Multi-layer PCB Layout, Altium Designer, and STM32 embedded circuits');
-    }
-    if ((q.includes('vision') || q.includes('ai') || q.includes('yolo') || q.includes('jetson') || q.includes('arm')) && m.id === 'mentor_kelvin') {
-      score += 35;
-      reasons.push('Research faculty expert in Computer Vision, Edge AI on NVIDIA Jetson, and Robotic Arms');
-    }
-    if ((q.includes('plc') || q.includes('scada') || q.includes('industrial') || q.includes('factory')) && m.id === 'mentor_tadiwa') {
-      score += 35;
-      reasons.push('Industrial automation specialist in Siemens/Allen-Bradley PLCs and SCADA systems');
+    if (m.rating) {
+      reasons.push(`Top student rating: ${m.rating} ★`);
     }
 
-    reasons.push(`Proven faculty track record with ${m.mentored_count}+ students successfully mentored`);
-    reasons.push(`Top student satisfaction: ${m.rating} ★ across ${m.review_count} verified reviews`);
-
-    const finalScore = Math.min(99, Math.max(75, score));
+    const finalScore = Math.min(99, Math.max(60, score));
     if (finalScore > bestScore) {
       bestScore = finalScore;
       bestMentor = m;

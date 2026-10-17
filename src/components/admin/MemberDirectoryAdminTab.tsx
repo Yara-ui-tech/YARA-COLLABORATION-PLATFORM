@@ -1017,14 +1017,21 @@ export default function MemberDirectoryAdminTab() {
               <span className="text-[8px] bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">National Exec</span>
             </div>
           ) : (
-            <span className={cn(
-              "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
-              isLeader
-                ? "bg-amber-100 text-amber-900 border border-amber-200"
-                : "bg-slate-100 text-slate-700"
-            )}>
-              {member.chapter_position || 'Member'}
-            </span>
+            <div className="flex flex-col gap-1 items-start">
+              <span className={cn(
+                "px-2.5 py-1 rounded-lg text-[11px] font-black inline-block",
+                isLeader
+                  ? "bg-amber-100 text-amber-900 border border-amber-200"
+                  : "bg-slate-100 text-slate-700"
+              )}>
+                {member.chapter_position || 'Member'}
+              </span>
+              {member.role === 'mentor' && (
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 border border-purple-200">
+                  Mentor
+                </span>
+              )}
+            </div>
           )}
         </td>
 
@@ -1146,6 +1153,31 @@ export default function MemberDirectoryAdminTab() {
             >
               {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
             </button>
+
+            {/* If member is a mentor, show Revoke Mentor button */}
+            {member.role === 'mentor' && (
+              <button
+                onClick={async () => {
+                  if (window.confirm(`Are you sure you want to remove ${member.display_name} as a mentor? Their role will be reverted to innovator.`)) {
+                    try {
+                      const { error } = await supabase
+                        .from('profiles')
+                        .update({ role: 'innovator', updated_at: new Date().toISOString() })
+                        .eq('id', member.id);
+                      if (error) throw error;
+                      setUsers(prev => prev.map(u => u.id === member.id ? { ...u, role: 'innovator' } : u));
+                      showToast('success', `Removed mentor status for ${member.display_name}.`);
+                    } catch (err: any) {
+                      showToast('error', err.message || 'Failed to remove mentor.');
+                    }
+                  }
+                }}
+                className="p-2 rounded-xl bg-purple-50 hover:bg-red-50 text-purple-700 hover:text-red-600 transition"
+                title="Remove Mentor Status (Revert to Innovator)"
+              >
+                <UserX className="w-3.5 h-3.5" />
+              </button>
+            )}
 
             {/* Delete Member Account */}
             <button

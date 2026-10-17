@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, MessageSquare, Send, CheckCircle2, 
   X, AlertCircle, Sparkles, HelpCircle, ShieldCheck
 } from 'lucide-react';
 import { createMentorHelpRequest } from '../../services/unifiedCourseService';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   isOpen: boolean;
@@ -18,13 +19,6 @@ interface Props {
   defaultTopic?: string;
 }
 
-const APPROVED_MENTORS = [
-  { name: 'Simbarashe Manongwa', title: 'Executive Director & Senior Robotics Mentor', specialty: 'Firmware, Circuit Design & Capstones' },
-  { name: 'T. Chiambiro', title: 'Regional President & STEM Pedagogy Coach', specialty: 'Patron Support, Lesson Plans & Rules' },
-  { name: 'Eng. K. Moyo', title: 'Industrial Automation Specialist', specialty: 'PID Control, Microcontrollers & Hardware Labs' },
-  { name: 'T. Sithole', title: 'Software & Python Lead', specialty: 'Algorithms, Web Telemetry & MicroPython' }
-];
-
 export const MentorHelpModal: React.FC<Props> = ({
   isOpen,
   onClose,
@@ -37,11 +31,56 @@ export const MentorHelpModal: React.FC<Props> = ({
   moduleTitle,
   defaultTopic = 'Concept clarification or hardware debugging'
 }) => {
-  const [selectedMentor, setSelectedMentor] = useState(APPROVED_MENTORS[0].name);
+  const [mentorsList, setMentorsList] = useState<Array<{ name: string; title: string; specialty: string }>>([]);
+  const [selectedMentor, setSelectedMentor] = useState('YARA Technical Mentorship Team');
   const [topic, setTopic] = useState(defaultTopic);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchRealMentors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('display_name, title, skills')
+          .eq('role', 'mentor')
+          .order('display_name');
+
+        if (!error && data && data.length > 0) {
+          const mapped = data.map(m => {
+            const skillsArr = Array.isArray(m.skills) ? m.skills : (typeof m.skills === 'string' && m.skills.trim() ? m.skills.split(',') : []);
+            return {
+              name: m.display_name || 'Accredited Mentor',
+              title: m.title || 'YARA Industrial Mentor',
+              specialty: skillsArr.length > 0 ? skillsArr.slice(0, 3).join(', ') : 'Robotics & STEM Mentorship'
+            };
+          });
+          setMentorsList(mapped);
+          setSelectedMentor(mapped[0].name);
+        } else {
+          const fallback = [{
+            name: 'YARA Technical Mentorship Team',
+            title: 'Continental Engineering & Curriculum Faculty',
+            specialty: 'Robotics Labs, Embedded Code & Circuit Guidance'
+          }];
+          setMentorsList(fallback);
+          setSelectedMentor(fallback[0].name);
+        }
+      } catch (err) {
+        const fallback = [{
+          name: 'YARA Technical Mentorship Team',
+          title: 'Continental Engineering & Curriculum Faculty',
+          specialty: 'Robotics Labs, Embedded Code & Circuit Guidance'
+        }];
+        setMentorsList(fallback);
+        setSelectedMentor(fallback[0].name);
+      }
+    };
+
+    fetchRealMentors();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -121,7 +160,7 @@ export const MentorHelpModal: React.FC<Props> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5">Select Approved Mentor</label>
                 <div className="space-y-1.5">
-                  {APPROVED_MENTORS.map(m => (
+                  {mentorsList.map(m => (
                     <label
                       key={m.name}
                       className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
