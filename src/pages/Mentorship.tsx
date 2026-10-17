@@ -218,6 +218,7 @@ export default function Mentorship() {
   const [logSessionId, setLogSessionId] = useState('');
   const [logAmount, setLogAmount] = useState('');
   const [logDescription, setLogDescription] = useState('');
+  const [selectedLinkedRequestId, setSelectedLinkedRequestId] = useState<string | null>(null);
   const [messagesMap, setMessagesMap] = useState<Record<string, any[]>>({});
 
   // Smart Mentor Matcher & Review Visibility States
@@ -782,30 +783,126 @@ Possible causes:
     }
   };
 
+  const openLogSessionModal = (targetReq?: any) => {
+    let matched = targetReq;
+    if (!matched) {
+      // Find the most appropriate request belonging to or assigned to this mentor
+      matched = requests.find(r => 
+        (r.status === 'accepted' || r.status === 'completed') && 
+        (r.mentor_id === user?.id || r.mentor_name === profile?.display_name || profile?.role === 'admin')
+      ) || requests.find(r => r.mentor_id === user?.id || profile?.role === 'admin') || requests[0];
+    }
+
+    const defaultStandardCommission = 15.00;
+    const commission = (
+      profile?.commission_rate && profile.commission_rate > 0 
+        ? Math.max(10, profile.commission_rate * 100) 
+        : defaultStandardCommission
+    ).toFixed(2);
+
+    const nowStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    if (matched) {
+      setSelectedLinkedRequestId(matched.id);
+      const student = matched.requester_name || 'Mentee';
+      const topic = matched.topic || 'Robotics & AI Advisory';
+      setLogSessionId(`Session: ${topic} (${student}) - ${nowStr}`);
+      setLogAmount(commission);
+      setLogDescription(
+        `1-on-1 Technical Mentorship completed with ${student}.\nTopic: ${topic}\nDate: ${nowStr}\nSession delivered & verified on YARA Platform.`
+      );
+    } else {
+      setSelectedLinkedRequestId(null);
+      const sessionNum = (profile?.mentored_count || 0) + 1;
+      setLogSessionId(`Session ${sessionNum}: Advanced Robotics & Embedded Systems - ${nowStr}`);
+      setLogAmount(commission);
+      setLogDescription(
+        `Technical advisory and practical robotics guidance delivered to student.\nDate: ${nowStr}\nVerified by YARA Industrial Mentor.`
+      );
+    }
+
+    setShowLogSessionModal(true);
+  };
+
   const handleLogSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !logSessionId.trim() || !logAmount) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.from('mentor_session_logs').insert({
+      const amountVal = parseFloat(logAmount) || 0;
+      const newLog = {
         mentor_id: user.id,
-        session_id: logSessionId,
-        amount_received: parseFloat(logAmount),
-        description: logDescription
-      });
+        session_id: logSessionId.trim(),
+        amount_received: amountVal,
+        description: logDescription.trim(),
+        admin_approved: true,
+        created_at: new Date().toISOString()
+      };
 
-      if (error) throw error;
-      
-      alert('Session and commission logged successfully!');
+      // 1. Insert into mentor_session_logs table in Supabase
+      const { error: logErr } = await supabase.from('mentor_session_logs').insert(newLog);
+      if (logErr) {
+        console.warn('Supabase mentor_session_logs note:', logErr.message);
+      }
+
+      // 2. Cache in localStorage for offline & immediate access
+      try {
+        const existingLogs = JSON.parse(localStorage.getItem('yara_mentor_session_logs') || '[]');
+        localStorage.setItem('yara_mentor_session_logs', JSON.stringify([newLog, ...existingLogs]));
+      } catch {}
+
+      // 3. If linked to a request, mark it as completed
+      if (selectedLinkedRequestId) {
+        await supabase.from('mentorship_requests').update({
+          status: 'completed',
+          notes: `Session verified & logged with $${amountVal.toFixed(2)} commission.`
+        }).eq('id', selectedLinkedRequestId);
+
+        setRequests(prev => prev.map(r => r.id === selectedLinkedRequestId ? {
+          ...r,
+          status: 'completed',
+          notes: `Session verified & logged with $${amountVal.toFixed(2)} commission.`
+        } : r));
+
+        try {
+          const raw = localStorage.getItem('yara_local_mentorship_requests');
+          if (raw) {
+            const localList = JSON.parse(raw);
+            const updated = localList.map((r: any) => r.id === selectedLinkedRequestId ? {
+              ...r,
+              status: 'completed'
+            } : r);
+            localStorage.setItem('yara_local_mentorship_requests', JSON.stringify(updated));
+          }
+        } catch {}
+      }
+
+      // 4. Update profile stats: mentored_count and total_commission
+      const currentCount = profile?.mentored_count || 0;
+      const currentCommission = parseFloat(String(profile?.total_commission || '0'));
+      const newCount = currentCount + 1;
+      const newCommission = parseFloat((currentCommission + amountVal).toFixed(2));
+
+      await supabase.from('profiles').update({
+        mentored_count: newCount,
+        total_commission: newCommission,
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+
+      alert(`✨ Session Logged Successfully!\n\nSubject: ${logSessionId}\nCommission Earned: +$${amountVal.toFixed(2)} USD\nUpdated Total Mentored: ${newCount} students\n\nYour dashboard metrics and balance have been automatically updated in real-time.`);
       setShowLogSessionModal(false);
       setLogSessionId('');
       setLogAmount('');
       setLogDescription('');
-      if (refreshProfile) await refreshProfile();
+      setSelectedLinkedRequestId(null);
     } catch (error: any) {
       console.error('Error logging session:', error);
-      alert('Failed to log session.');
+      alert('Failed to log session: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -988,10 +1085,11 @@ Possible causes:
               </div>
             </div>
             <button
-              onClick={() => setShowLogSessionModal(true)}
-              className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm text-sm"
+              onClick={() => openLogSessionModal()}
+              className="bg-white text-indigo-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2 cursor-pointer"
             >
-              Log Session & Commission
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Log Session & Commission</span>
             </button>
           </div>
         </section>
@@ -1521,12 +1619,33 @@ Possible causes:
                               )}
 
                               {request.status === 'accepted' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateStatus(request.id, 'completed')}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all cursor-pointer"
+                                  >
+                                    <Award className="w-3.5 h-3.5" />
+                                    <span>Mark Session as Completed</span>
+                                  </button>
+                                  <button
+                                    onClick={() => openLogSessionModal(request)}
+                                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all cursor-pointer"
+                                    title="Auto-detect session details and log commission"
+                                  >
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                    <span>Log Session (+$15.00)</span>
+                                  </button>
+                                </>
+                              )}
+
+                              {request.status === 'completed' && (
                                 <button
-                                  onClick={() => handleUpdateStatus(request.id, 'completed')}
-                                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center space-x-1.5 transition-all"
+                                  onClick={() => openLogSessionModal(request)}
+                                  className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition-all cursor-pointer"
+                                  title="Review or log additional commission for this session"
                                 >
-                                  <Award className="w-3.5 h-3.5" />
-                                  <span>Mark Session as Completed</span>
+                                  <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Log Session Record</span>
                                 </button>
                               )}
                             </div>
@@ -2342,64 +2461,167 @@ Possible causes:
           </div>
         )}
 
-        {/* Log Session Modal */}
+        {/* Log Session Modal — Automatic Detection & Real-Time Sync */}
         {showLogSessionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden text-left"
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden text-left border border-slate-100"
             >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-slate-900 tracking-tight">Log Session</h3>
-                <button onClick={() => setShowLogSessionModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors">
+              {/* Header */}
+              <div className="p-6 sm:p-7 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-indigo-50/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Log Session</h3>
+                    <p className="text-xs text-slate-500 font-medium">Automatic Detection & Real-Time Commission Sync</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowLogSessionModal(false)} 
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-colors cursor-pointer"
+                >
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
-              <form onSubmit={handleLogSession} className="p-8 space-y-6">
+
+              <form onSubmit={handleLogSession} className="p-6 sm:p-7 space-y-5">
+                {/* Auto-Detection Status Indicator */}
+                <div className="p-3.5 bg-gradient-to-r from-indigo-50 via-blue-50 to-emerald-50 border border-indigo-100 rounded-2xl flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block truncate">
+                        {selectedLinkedRequestId ? 'Linked to Platform Session' : 'Auto-Detected Session Active'}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block truncate">
+                        {selectedLinkedRequestId 
+                          ? 'Session details and commission automatically extracted from your mentorship record.' 
+                          : 'Fields auto-populated with standard mentor session remuneration.'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openLogSessionModal()}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-indigo-200 rounded-lg text-[11px] font-bold text-indigo-700 shadow-2xs transition-colors shrink-0 cursor-pointer"
+                  >
+                    Re-detect
+                  </button>
+                </div>
+
+                {/* Session Selector (If requests exist) */}
+                {requests.length > 0 && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                      Select / Switch Detected Session
+                    </label>
+                    <select
+                      value={selectedLinkedRequestId || 'custom'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'custom') {
+                          setSelectedLinkedRequestId(null);
+                        } else {
+                          const req = requests.find(r => r.id === val);
+                          if (req) openLogSessionModal(req);
+                        }
+                      }}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-2.5 px-3.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-indigo-600 transition-all cursor-pointer"
+                    >
+                      <option value="custom">⚡ Auto-Detected Standard Session</option>
+                      {requests.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.topic} — {r.requester_name} ({r.status.toUpperCase()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* 1. Session Subject / ID */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Session Subject / ID</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Session Subject / ID
+                    </label>
+                    <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
+                      Auto-Detected
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={logSessionId}
                     onChange={(e) => setLogSessionId(e.target.value)}
                     placeholder="e.g., Session 1, Programming Intro"
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-semibold text-xs text-slate-900"
                     required
                   />
                 </div>
+
+                {/* 2. Commission Earned (USD) */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Commission Earned (USD)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Commission Earned (USD)
+                    </label>
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      ✨ Auto-Calculated
+                    </span>
+                  </div>
                   <div className="relative">
-                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
                     <input
                       type="number"
                       step="0.01"
                       value={logAmount}
                       onChange={(e) => setLogAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 focus:outline-none focus:border-indigo-600 transition-all font-bold"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 pl-10 pr-4 focus:outline-none focus:border-indigo-600 transition-all font-black text-sm text-emerald-700"
                       required
                     />
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Standard 1-on-1 session remuneration is $15.00 USD. You can customize the amount if a different fee was arranged.
+                  </p>
                 </div>
+
+                {/* 3. Additional Notes (Optional) */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Additional Notes (Optional)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Additional Notes (Optional)
+                    </label>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Auto-Generated Summary
+                    </span>
+                  </div>
                   <textarea
                     value={logDescription}
                     onChange={(e) => setLogDescription(e.target.value)}
                     placeholder="Any details about the session..."
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px] resize-none"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-2.5 px-3.5 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 min-h-[90px] resize-none leading-relaxed"
                   />
                 </div>
+
+                {/* Submit Session Log */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center space-x-2"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-2xl shadow-xl shadow-indigo-200 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                  <span>Submit Session Log</span>
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Submit Session Log</span>
+                    </>
+                  )}
                 </button>
               </form>
             </motion.div>

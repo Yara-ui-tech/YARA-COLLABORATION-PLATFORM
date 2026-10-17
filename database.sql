@@ -4887,6 +4887,11 @@ EXCEPTION WHEN OTHERS THEN
   NULL;
 END $$;
 
+-- Policies for mentor_session_logs
+ALTER TABLE public.mentor_session_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Mentor session logs open access" ON public.mentor_session_logs;
+CREATE POLICY "Mentor session logs open access" ON public.mentor_session_logs FOR ALL USING (true) WITH CHECK (true);
+
 -- ============================================================================
 -- NATIONAL EXECUTIVE ROLES & SUBSCRIPTION EXEMPTION POLICY
 -- ============================================================================

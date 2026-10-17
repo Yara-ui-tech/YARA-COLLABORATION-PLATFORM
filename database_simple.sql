@@ -195,7 +195,21 @@ ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Mentorship messages open access" ON public.mentorship_messages;
 CREATE POLICY "Mentorship messages open access" ON public.mentorship_messages FOR ALL USING (true) WITH CHECK (true);
 
--- 11. STARTER SEED DATA (Only inserted if empty)
+-- 11. MENTOR COMMISSION & SESSION LOGS
+CREATE TABLE IF NOT EXISTS public.mentor_session_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  amount_received NUMERIC(10,2) DEFAULT 0.00,
+  description TEXT,
+  admin_approved BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.mentor_session_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Mentor session logs open access" ON public.mentor_session_logs;
+CREATE POLICY "Mentor session logs open access" ON public.mentor_session_logs FOR ALL USING (true) WITH CHECK (true);
+
+-- 12. STARTER SEED DATA (Only inserted if empty)
 INSERT INTO public.organization_posts (title, content, category, author_name)
 SELECT 
   'Welcome to the YARA Robotics & Innovation Platform',
