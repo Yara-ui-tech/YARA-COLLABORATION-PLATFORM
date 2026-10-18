@@ -28,107 +28,19 @@ export interface SchoolProfile {
   achievements: string[];
 }
 
-const DEFAULT_SCHOOLS: SchoolProfile[] = [
-  {
-    id: 'sch_01',
-    name: 'Chinhoyi High School',
-    province: 'Mashonaland West',
-    district: 'Makonde',
-    address: 'Private Bag 7720, Chinhoyi',
-    principal_name: 'Mr. E. Mupamhanga',
-    patron_name: 'Mr. K. Nyashanu',
-    patron_email: 'nyashanu.k@chinhoyihigh.ac.zw',
-    patron_phone: '+263 77 234 5678',
-    has_active_robotics_club: true,
-    club_meeting_schedule: 'Fridays 14:00 - 16:30',
-    student_count: 48,
-    teams_entered_2026: 2,
-    kits_deployed: 4,
-    status: 'active',
-    achievements: ['2025 Mashwest Provincial Hackathon 1st Place', 'Autonomous Maze Solver Finalist']
-  },
-  {
-    id: 'sch_02',
-    name: 'Kutama College',
-    province: 'Mashonaland West',
-    district: 'Zvimba',
-    address: 'P.O. Box 40, Norton',
-    principal_name: 'Br. N. Mukonori',
-    patron_name: 'Mrs. S. Marange',
-    patron_email: 'marange.s@kutama.ac.zw',
-    patron_phone: '+263 71 890 1234',
-    has_active_robotics_club: true,
-    club_meeting_schedule: 'Wednesdays & Saturdays 15:00',
-    student_count: 65,
-    teams_entered_2026: 3,
-    kits_deployed: 6,
-    status: 'active',
-    achievements: ['2025 STEM Innovation Trophy', '100% Female & Male Team Gender Parity Award']
-  },
-  {
-    id: 'sch_03',
-    name: 'Nemakonde High School',
-    province: 'Mashonaland West',
-    district: 'Makonde',
-    address: 'Stand 448, Cold Stream, Chinhoyi',
-    principal_name: 'Mrs. F. Mutsvangwa',
-    patron_name: 'Mr. P. Chiware',
-    patron_email: 'chiware.p@nemakonde.ac.zw',
-    patron_phone: '+263 77 456 7890',
-    has_active_robotics_club: true,
-    club_meeting_schedule: 'Thursdays 14:00 - 16:00',
-    student_count: 36,
-    teams_entered_2026: 2,
-    kits_deployed: 3,
-    status: 'active',
-    achievements: ['Community Agri-Bot Prototype Defense Top 3']
-  },
-  {
-    id: 'sch_04',
-    name: 'Banket High School',
-    province: 'Mashonaland West',
-    district: 'Zvimba',
-    address: 'Main St, Banket',
-    principal_name: 'Mr. T. Mashava',
-    patron_name: 'Ms. R. Hove',
-    patron_email: 'hove.r@bankethigh.ac.zw',
-    patron_phone: '+263 78 321 6549',
-    has_active_robotics_club: true,
-    club_meeting_schedule: 'Tuesdays 15:00 - 17:00',
-    student_count: 30,
-    teams_entered_2026: 1,
-    kits_deployed: 2,
-    status: 'active',
-    achievements: ['2025 Grassroots Outreach Outstanding Initiative']
-  },
-  {
-    id: 'sch_05',
-    name: 'Kabidza Secondary School',
-    province: 'Mashonaland West',
-    district: 'Kadoma',
-    address: 'Kabidza Rural Growth Point',
-    principal_name: 'Mr. G. Chitepo',
-    patron_name: 'Mr. D. Moyo',
-    patron_email: 'moyo.d@kabidza.org',
-    patron_phone: '+263 77 876 5432',
-    has_active_robotics_club: true,
-    club_meeting_schedule: 'Fridays 13:30 - 15:30',
-    student_count: 42,
-    teams_entered_2026: 1,
-    kits_deployed: 2,
-    status: 'active',
-    achievements: ['Solar Micro-Irrigation Automated Model Recognition']
-  }
-];
+const DEFAULT_SCHOOLS: SchoolProfile[] = [];
 
 export default function SchoolManagement() {
   const { user, profile } = useAuth();
   const [schools, setSchools] = useState<SchoolProfile[]>(() => {
     try {
       const stored = localStorage.getItem('yara_schools_directory_cache');
-      return stored ? JSON.parse(stored) : DEFAULT_SCHOOLS;
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      const mockSchoolIds = ['sch_01', 'sch_02', 'sch_03', 'sch_04', 'sch_05'];
+      return Array.isArray(parsed) ? parsed.filter((s: any) => !mockSchoolIds.includes(s.id)) : [];
     } catch {
-      return DEFAULT_SCHOOLS;
+      return [];
     }
   });
 
@@ -291,7 +203,23 @@ export default function SchoolManagement() {
 
         {/* Schools Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSchools.map((sch) => (
+          {filteredSchools.length === 0 ? (
+          <div className="col-span-full bg-slate-900/60 rounded-3xl p-12 text-center border border-slate-800">
+            <School className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-white mb-1">No Schools Registered Yet</h3>
+            <p className="text-slate-400 text-xs max-w-sm mx-auto mb-4">
+              Registered schools and active clubs will appear here. Click "Register School Club" to add your institution.
+            </p>
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Register School Club</span>
+            </button>
+          </div>
+        ) : (
+          filteredSchools.map((sch) => (
             <div
               key={sch.id}
               className="rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/40 p-6 transition-all shadow-xl flex flex-col justify-between space-y-4 group"
@@ -359,8 +287,8 @@ export default function SchoolManagement() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        )}</div>
       </section>
 
       {/* School Detail Modal */}

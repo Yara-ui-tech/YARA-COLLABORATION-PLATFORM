@@ -57,32 +57,7 @@ export default function Feedback() {
         if (testData && testData.length > 0) {
           setTestimonials(testData);
         } else {
-          setTestimonials([
-            {
-              id: 't-1',
-              author_name: 'Farai M.',
-              author_role: 'Robotics Innovator (Tier 4)',
-              rating: 5,
-              category: 'Platform Experience',
-              content: 'YARA has completely transformed my approach to microcontroller coding and hardware prototyping!'
-            },
-            {
-              id: 't-2',
-              author_name: 'Chipo K.',
-              author_role: 'STEM Educator & Patron',
-              rating: 5,
-              category: 'Educator Tools',
-              content: 'The AI lesson plan generator and bootcamp modules saved me dozens of hours every week.'
-            },
-            {
-              id: 't-3',
-              author_name: 'Tinashe Z.',
-              author_role: 'Mashwest Chapter Lead',
-              rating: 5,
-              category: 'Robotics Competitions',
-              content: 'Our team built our first obstacle-avoiding bot using the Level 1 course and placed in provincial qualifiers!'
-            }
-          ]);
+          setTestimonials([]);
         }
 
         // 3. Fetch Mentors List for Mentor Reviews
@@ -548,8 +523,15 @@ export default function Feedback() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {testimonials.map((t) => (
+              {testimonials.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-slate-900 rounded-3xl border border-slate-800">
+                  <Heart className="w-8 h-8 text-slate-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-slate-300">No testimonials published yet</p>
+                  <p className="text-xs text-slate-500">Approved community stories and success spotlights will appear here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {testimonials.map((t) => (
                   <div key={t.id} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-sm space-y-3 flex flex-col justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -576,7 +558,8 @@ export default function Feedback() {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

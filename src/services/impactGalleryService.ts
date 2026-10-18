@@ -5,39 +5,7 @@ import { ASSETS } from '../constants/assets';
 const STORAGE_KEY = 'yara_impact_galleries_store';
 const DELETED_KEY = 'yara_deleted_impact_gallery_ids';
 
-export const INITIAL_IMPACT_GALLERIES: ImpactGallery[] = [
-  {
-    id: 'mashwest_2025_gallery',
-    title: '2025 Impact Outreach: Mashwest Province Gallery',
-    subtitle: 'Chinhoyi, Karoi & Banket Hands-On Robotics & AI Bootcamp',
-    province: 'Mashonaland West',
-    year: 2025,
-    description: 'Hands-on STEM and autonomous robotics training delivered across high schools, primary schools, and community youth hubs in Mashonaland West Province. Over 450 students built ESP32 micro-rovers and learned C++ firmware logic.',
-    cover_image_url: ASSETS.OUTREACH[0] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
-    video_url: 'https://www.youtube.com/watch?v=FCMxA3m_Imc',
-    gallery_urls: [
-      ASSETS.OUTREACH[0] || 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80',
-      ASSETS.OUTREACH[1] || 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
-      ASSETS.OUTREACH[2] || 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80',
-      ASSETS.OUTREACH[3] || 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=80',
-      ASSETS.OUTREACH[4] || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80',
-      ASSETS.OUTREACH[5] || 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80'
-    ],
-    achievements: [
-      '450+ Youth Trained in Micro-Rover Fabrication',
-      '62% Female Student Participation Rate',
-      '12 High School Robotics Clubs Established',
-      '3 Provincial Competition Qualifying Teams'
-    ],
-    people_reached: 450,
-    girls_reached: 280,
-    boys_reached: 170,
-    schools_impacted: 14,
-    is_featured: true,
-    created_at: new Date('2025-11-15').toISOString(),
-    updated_at: new Date('2025-11-15').toISOString()
-  }
-];
+export const INITIAL_IMPACT_GALLERIES: ImpactGallery[] = [];
 
 function getDeletedGalleryIds(): string[] {
   try {
@@ -67,7 +35,7 @@ function saveLocalGalleries(list: ImpactGallery[]): void {
 
 export async function getImpactGalleries(): Promise<ImpactGallery[]> {
   const deletedIds = getDeletedGalleryIds();
-  const localList = getLocalGalleries();
+  const localList = getLocalGalleries().filter(g => g.id !== 'mashwest_2025_gallery');
 
   const galleryMap = new Map<string, ImpactGallery>();
 

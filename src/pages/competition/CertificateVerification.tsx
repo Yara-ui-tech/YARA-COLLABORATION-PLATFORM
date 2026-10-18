@@ -58,20 +58,7 @@ export default function CertificateVerification() {
         </form>
 
         <div className="mt-3 flex items-center space-x-2 text-[11px] text-slate-400">
-          <span>Sample verification codes:</span>
-          <button
-            onClick={() => { setQuery('YARA-CERT-2026-004821'); }}
-            className="underline text-indigo-600 font-mono"
-          >
-            YARA-CERT-2026-004821
-          </button>
-          <span>•</span>
-          <button
-            onClick={() => { setQuery('YARA-CERT-2026-001094'); }}
-            className="underline text-indigo-600 font-mono"
-          >
-            YARA-CERT-2026-001094
-          </button>
+          <span>Enter the unique credential identification code printed on your official certificate or badge.</span>
         </div>
       </div>
 

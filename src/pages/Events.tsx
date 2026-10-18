@@ -44,7 +44,7 @@ export default function Events() {
   );
 
   const [events, setEvents] = useState<Event[]>([]);
-  const [competitions, setCompetitions] = useState<Competition[]>(INITIAL_COMPETITIONS as Competition[]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [virtualCompetitions, setVirtualCompetitions] = useState<VirtualCompetition[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'virtual' | 'physical'>('all');

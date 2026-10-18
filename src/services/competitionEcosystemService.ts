@@ -12,26 +12,7 @@ import { YaraCompetitionRegistration } from '../types/yaraCompetition';
 import { getRegistrations } from './yaraCompetitionService';
 
 // Default initial datasets - zeroed out / empty as requested (no mock sponsors or fake money)
-const DEFAULT_ANNOUNCEMENTS: CompetitionAnnouncement[] = [
-  {
-    id: 'ann-1',
-    title: '🔔 Technical Submissions Open for All 2026 Challenges',
-    body: 'All registered teams may now prepare robot specifications, circuit schematics, and pitch decks ahead of the 2026 Continental Championship.',
-    target_audience: 'all',
-    priority: 'high',
-    created_at: new Date().toISOString(),
-    author: 'YARA Organizing Committee'
-  },
-  {
-    id: 'ann-2',
-    title: '🌊 Underwater Drone Test Tank Dimensions & Water Salinity Guidelines',
-    body: 'The official test tank specifications have been published. Depth: 2.2m, Salinity: Fresh chlorinated water. Review the ROV buoyancy guidance in the Rules section.',
-    target_audience: 'teams',
-    priority: 'normal',
-    created_at: new Date().toISOString(),
-    author: 'Lead Technical Judge'
-  }
-];
+const DEFAULT_ANNOUNCEMENTS: CompetitionAnnouncement[] = [];
 
 const DEFAULT_SPONSORS: SponsorRecord[] = [];
 

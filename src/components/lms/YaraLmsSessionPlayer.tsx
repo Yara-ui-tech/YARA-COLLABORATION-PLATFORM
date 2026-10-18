@@ -210,30 +210,11 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
     try {
       const raw = localStorage.getItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`);
       if (raw) {
-        setDoubts(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        const filtered = Array.isArray(parsed) ? parsed.filter((d: any) => d.id !== 'd1') : [];
+        setDoubts(filtered);
       } else {
-        // Starter initial sample doubts to jumpstart discussion
-        const initial: DoubtQuestion[] = [
-          {
-            id: 'd1',
-            authorName: 'Tinashe Moyo',
-            authorRole: 'student',
-            timestamp: 'Yesterday at 3:15 PM',
-            question: `What is the most effective approach to calibrate the sensors for this session without external oscilloscope equipment?`,
-            upvotes: 4,
-            replies: [
-              {
-                id: 'r1',
-                authorName: 'Mr. S.O. Manongwa',
-                authorRole: 'faculty',
-                timestamp: 'Yesterday at 4:30 PM',
-                reply: `Great question, Tinashe! You can use the Arduino Serial Plotter (9600 baud) to monitor live analog readings in real time and establish baseline thresholds.`
-              }
-            ]
-          }
-        ];
-        setDoubts(initial);
-        localStorage.setItem(`${DEFAULT_DOUBTS_STORAGE_KEY}_${session.id}`, JSON.stringify(initial));
+        setDoubts([]);
       }
     } catch {
       setDoubts([]);
@@ -1167,7 +1148,14 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
 
               {/* Doubt Threads */}
               <div className="space-y-4">
-                {doubts.map(d => (
+                {doubts.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-900 rounded-2xl border border-slate-800 text-slate-400">
+                    <HelpCircle className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                    <p className="text-xs font-semibold text-slate-300">No questions asked yet for this session.</p>
+                    <p className="text-[11px] text-slate-500 mt-1">Have a question about the schematics, code, or hardware? Ask below!</p>
+                  </div>
+                ) : (
+                  doubts.map(d => (
                   <div key={d.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1233,7 +1221,8 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
                       </button>
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
             </div>
           )}

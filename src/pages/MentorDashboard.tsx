@@ -166,7 +166,7 @@ export default function MentorDashboard() {
         <Link to="/resources" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center">
-              <PlaceholderImage type="resource" className="w-full h-full" />
+              <BookOpen className="w-8 h-8 text-indigo-600" />
             </div>
             <div>
               <h3 className="font-bold">Manage Resources</h3>
@@ -178,7 +178,7 @@ export default function MentorDashboard() {
         <Link to="/mentorship" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
-              <PlaceholderImage text="Mentors" className="w-full h-full" />
+              <Users className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
               <h3 className="font-bold">Mentee Requests</h3>
@@ -190,7 +190,7 @@ export default function MentorDashboard() {
         <Link to="/live" className="group block p-6 bg-white rounded-3xl border border-slate-100 shadow hover:shadow-lg transform hover:-translate-y-1 transition">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center">
-              <PlaceholderImage type="project" className="w-full h-full" />
+              <Radio className="w-8 h-8 text-amber-600" />
             </div>
             <div>
               <h3 className="font-bold">Live Sessions</h3>

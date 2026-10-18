@@ -149,7 +149,16 @@ export default function YaraKids() {
 
       {/* TAB 1: ANIMATED VIDEOS */}
       {activeTab === 'videos' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        videos.length === 0 ? (
+          <div className="p-16 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+            <Play className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-slate-700">No Animated Videos Yet</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              New STEM and robotics learning videos will appear here soon. Check back shortly!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {videos.map((vid) => (
             <div
               key={vid.id}
@@ -189,11 +198,21 @@ export default function YaraKids() {
             </div>
           ))}
         </div>
+        )
       )}
 
       {/* TAB 2: AUDIO SONGS & RHYMES */}
       {activeTab === 'songs' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        songs.length === 0 ? (
+          <div className="p-16 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+            <Music className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-slate-700">No STEM Songs Yet</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Exciting musical sing-alongs and STEM rhymes will appear here once released!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {songs.map((song) => {
             const isPlaying = playingSongId === song.id;
             return (
@@ -234,11 +253,21 @@ export default function YaraKids() {
             );
           })}
         </div>
+        )
       )}
 
       {/* TAB 3: PICTURE FLASHCARDS */}
       {activeTab === 'flashcards' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        flashcards.length === 0 ? (
+          <div className="p-16 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+            <Sparkles className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-slate-700">No Flashcards Yet</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Educational visual flashcards will appear here soon.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {flashcards.map((card) => {
             const isFlipped = flippedCardId === card.id;
             return (
@@ -274,67 +303,78 @@ export default function YaraKids() {
             );
           })}
         </div>
+        )
       )}
 
       {/* TAB 4: KIDS CHALLENGES */}
       {activeTab === 'challenges' && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          {challenges.map((chal) => {
-            const isSolved = solvedChallenges[chal.id];
-            const selectedOpt = selectedAnswers[chal.id];
+        challenges.length === 0 ? (
+          <div className="p-16 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+            <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-slate-700">No Interactive Quizzes Yet</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Interactive questions and fun challenges will appear here once configured.
+            </p>
+          </div>
+        ) : (
+          <div className="max-w-3xl mx-auto space-y-6">
+            {challenges.map((chal) => {
+              const isSolved = solvedChallenges[chal.id];
+              const selectedOpt = selectedAnswers[chal.id];
 
-            return (
-              <div
-                key={chal.id}
-                className={`bg-white rounded-[2.5rem] p-8 border-4 transition-all shadow-xl space-y-6 ${isSolved ? 'border-emerald-400 bg-emerald-50/30' : 'border-amber-200'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="px-3.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-black uppercase tracking-wider">
-                    Hero Challenge • +{chal.reward_stars} Stars ⭐
-                  </span>
-                  {isSolved && (
-                    <span className="px-3.5 py-1 bg-emerald-500 text-white rounded-full text-xs font-black flex items-center gap-1.5 shadow-md">
-                      <CheckCircle2 className="w-4 h-4" /> Solved!
+              return (
+                <div
+                  key={chal.id}
+                  className={`bg-white rounded-[2.5rem] p-8 border-4 transition-all shadow-xl space-y-6 ${isSolved ? 'border-emerald-400 bg-emerald-50/30' : 'border-amber-200'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-3.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-black uppercase tracking-wider">
+                      Hero Challenge • +{chal.reward_stars} Stars ⭐
                     </span>
-                  )}
-                </div>
+                    {isSolved && (
+                      <span className="px-3.5 py-1 bg-emerald-500 text-white rounded-full text-xs font-black flex items-center gap-1.5 shadow-md">
+                        <CheckCircle2 className="w-4 h-4" /> Solved!
+                      </span>
+                    )}
+                  </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black text-slate-900">{chal.title}</h3>
-                  <p className="text-slate-600 text-sm font-semibold">{chal.question}</p>
-                </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-slate-900">{chal.title}</h3>
+                    <p className="text-slate-600 text-sm font-semibold">{chal.question}</p>
+                  </div>
 
-                {/* Options list */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {chal.options.map((opt, idx) => {
-                    const isSelected = selectedOpt === idx;
-                    const isCorrect = idx === chal.correct_option;
+                  {/* Options list */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {chal.options.map((opt, idx) => {
+                      const isSelected = selectedOpt === idx;
+                      const isCorrect = idx === chal.correct_option;
 
-                    let btnStyle = "bg-slate-50 border-2 border-slate-200 text-slate-800 hover:border-amber-400";
-                    if (isSelected) {
-                      if (isCorrect) {
-                        btnStyle = "bg-emerald-500 border-emerald-500 text-white font-black shadow-lg";
-                      } else {
-                        btnStyle = "bg-red-500 border-red-500 text-white font-black";
+                      let btnStyle = "bg-slate-50 border-2 border-slate-200 text-slate-800 hover:border-amber-400";
+                      if (isSelected) {
+                        if (isCorrect) {
+                          btnStyle = "bg-emerald-500 border-emerald-500 text-white font-black shadow-lg";
+                        } else {
+                          btnStyle = "bg-red-500 border-red-500 text-white font-black";
+                        }
                       }
-                    }
 
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => handleSelectOption(chal.id, idx, chal.correct_option, chal.reward_stars)}
-                        disabled={isSolved}
-                        className={`p-4 rounded-2xl text-xs font-bold transition-all ${btnStyle}`}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleSelectOption(chal.id, idx, chal.correct_option, chal.reward_stars)}
+                          disabled={isSolved}
+                          className={`p-4 rounded-2xl text-xs font-bold transition-all ${btnStyle}`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {/* VIDEO PLAYBACK MODAL */}
