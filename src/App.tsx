@@ -275,16 +275,26 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialogHost from './components/ConfirmDialogHost';
 
 import { RuralAccessibilityProvider } from './context/RuralAccessibilityContext';
+import { AccessibilityProvider } from './context/AccessibilityContext';
+import AccessibilityWidget from './components/accessibility/AccessibilityWidget';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <RuralAccessibilityProvider>
-          <AppContent />
-          <ConfirmDialogHost />
+          <AccessibilityProvider>
+            {/* Screen Reader & Keyboard Skip Link */}
+            <a href="#main-content" className="skip-link">
+              Skip to main content
+            </a>
+            <AppContent />
+            <AccessibilityWidget />
+            <ConfirmDialogHost />
+          </AccessibilityProvider>
         </RuralAccessibilityProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
 }
+

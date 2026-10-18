@@ -4925,3 +4925,207 @@ WHERE
   OR chapter_position ILIKE '%patron general%';
 
 COMMENT ON COLUMN public.profiles.is_national_executive IS 'Flag indicating National Executive status. National executive members do not subscribe to the platform and possess full lifetime platform access.';
+
+-- ============================================================================
+-- EQUITY, ACCESSIBILITY & UNDERSERVED SCHOLARSHIP INFRASTRUCTURE
+-- "LEAVE NO ONE BEHIND"
+-- ============================================================================
+
+-- 1. Extend profiles for Disability, Accessibility & Free Underserved Access
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='school_institution') THEN
+    ALTER TABLE public.profiles ADD COLUMN school_institution TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='location_region') THEN
+    ALTER TABLE public.profiles ADD COLUMN location_region TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='disability_type') THEN
+    ALTER TABLE public.profiles ADD COLUMN disability_type TEXT DEFAULT 'none';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='accessibility_preferences') THEN
+    ALTER TABLE public.profiles ADD COLUMN accessibility_preferences JSONB DEFAULT '{"fontSize":"normal","highContrast":"none","dyslexicFont":false,"textToSpeech":false,"reducedMotion":false,"colorBlindFilter":"none","readingRuler":false}'::jsonb;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_fee_exempt') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_fee_exempt BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_underserved_scholarship') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_underserved_scholarship BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='underserved_scholarship_reason') THEN
+    ALTER TABLE public.profiles ADD COLUMN underserved_scholarship_reason TEXT;
+  END IF;
+END $$;
+
+-- 2. Table: Underserved Schools
+CREATE TABLE IF NOT EXISTS public.underserved_schools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  district TEXT,
+  province TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  is_active BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.underserved_schools ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Underserved schools open access" ON public.underserved_schools;
+CREATE POLICY "Underserved schools open access" ON public.underserved_schools FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. Table: Underserved Regions & Locations
+CREATE TABLE IF NOT EXISTS public.underserved_regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  region_name TEXT NOT NULL UNIQUE,
+  province_state TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  is_active BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.underserved_regions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Underserved regions open access" ON public.underserved_regions;
+CREATE POLICY "Underserved regions open access" ON public.underserved_regions FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. Table: Free Access Whitelist (Admins can add individual users/emails for free access)
+CREATE TABLE IF NOT EXISTS public.free_access_whitelist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  reason TEXT DEFAULT 'Equity & Inclusion Scholarship',
+  granted_by TEXT DEFAULT 'Admin',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.free_access_whitelist ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Free access whitelist open access" ON public.free_access_whitelist;
+CREATE POLICY "Free access whitelist open access" ON public.free_access_whitelist FOR ALL USING (true) WITH CHECK (true);
+
+-- 5. Seed Initial Underserved Schools & Regions
+INSERT INTO public.underserved_schools (name, district, province, country, notes)
+VALUES 
+  ('Binga High School', 'Binga', 'Matabeleland North', 'Zimbabwe', 'Rural STEM Hub - Priority Community'),
+  ('Nemakonde High School', 'Makonde', 'Mashonaland West', 'Zimbabwe', 'Underserved Public Secondary'),
+  ('Banket High School', 'Zvimba', 'Mashonaland West', 'Zimbabwe', 'Public Rural Innovation Chapter'),
+  ('Dotito High School', 'Mount Darwin', 'Mashonaland Central', 'Zimbabwe', 'Rural District Secondary'),
+  ('Tongogara Secondary School', 'Shurugwi', 'Midlands', 'Zimbabwe', 'Rural Community School'),
+  ('Rushinga Secondary School', 'Rushinga', 'Mashonaland Central', 'Zimbabwe', 'Border Rural STEM Center'),
+  ('Mwenezi High School', 'Mwenezi', 'Masvingo', 'Zimbabwe', 'Arid Belt Innovation Outreach'),
+  ('Mudzi High School', 'Mudzi', 'Mashonaland East', 'Zimbabwe', 'Rural Community Cluster'),
+  ('Tsholotsho High School', 'Tsholotsho', 'Matabeleland North', 'Zimbabwe', 'Rural District Innovation Hub'),
+  ('Chivi High School', 'Chivi', 'Masvingo', 'Zimbabwe', 'Rural Public High School')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.underserved_regions (region_name, province_state, country, notes)
+VALUES
+  ('Binga', 'Matabeleland North', 'Zimbabwe', 'Remote Zambezi basin district'),
+  ('Mwenezi', 'Masvingo', 'Zimbabwe', 'Southern rural district'),
+  ('Mudzi', 'Mashonaland East', 'Zimbabwe', 'Remote eastern rural district'),
+  ('Chiredzi', 'Masvingo', 'Zimbabwe', 'Lowveld rural community'),
+  ('Rushinga', 'Mashonaland Central', 'Zimbabwe', 'Remote north-eastern district'),
+  ('Tsholotsho', 'Matabeleland North', 'Zimbabwe', 'Remote western district'),
+  ('Mount Darwin', 'Mashonaland Central', 'Zimbabwe', 'Rural educational cluster'),
+  ('Epworth', 'Harare Province', 'Zimbabwe', 'Underserved high-density urban community'),
+  ('Chitungwiza', 'Harare Province', 'Zimbabwe', 'High-density student innovation zone'),
+  ('Zvimba Rural', 'Mashonaland West', 'Zimbabwe', 'Agricultural farming schools'),
+  ('Makonde Rural', 'Mashonaland West', 'Zimbabwe', 'Mining & agrarian peripheral communities'),
+  ('Kariba Rural', 'Mashonaland West', 'Zimbabwe', 'Lakeside rural outposts')
+ON CONFLICT (region_name) DO NOTHING;
+
+-- 6. Automated Trigger to Grant Free Access on Profile Creation or Update
+CREATE OR REPLACE FUNCTION public.check_and_apply_underserved_scholarship()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_school_matched BOOLEAN := false;
+  v_region_matched BOOLEAN := false;
+  v_email_matched BOOLEAN := false;
+  v_match_reason TEXT := '';
+BEGIN
+  -- Check whitelist
+  IF NEW.email IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.free_access_whitelist 
+      WHERE LOWER(email) = LOWER(NEW.email) AND is_active = true
+    ) INTO v_email_matched;
+    
+    IF v_email_matched THEN
+      v_match_reason := 'Whitelisted Free Access Grantee';
+    END IF;
+  END IF;
+
+  -- Check underserved school
+  IF NOT v_email_matched AND NEW.school_institution IS NOT NULL AND LENGTH(TRIM(NEW.school_institution)) > 2 THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.underserved_schools
+      WHERE is_active = true 
+        AND (
+          LOWER(name) = LOWER(TRIM(NEW.school_institution))
+          OR LOWER(TRIM(NEW.school_institution)) ILIKE '%' || LOWER(name) || '%'
+          OR LOWER(name) ILIKE '%' || LOWER(TRIM(NEW.school_institution)) || '%'
+        )
+    ) INTO v_school_matched;
+
+    IF v_school_matched THEN
+      v_match_reason := 'Underserved School Scholarship: ' || NEW.school_institution;
+    END IF;
+  END IF;
+
+  -- Check underserved location / region
+  IF NOT v_email_matched AND NOT v_school_matched AND NEW.location_region IS NOT NULL AND LENGTH(TRIM(NEW.location_region)) > 2 THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.underserved_regions
+      WHERE is_active = true 
+        AND (
+          LOWER(region_name) = LOWER(TRIM(NEW.location_region))
+          OR LOWER(TRIM(NEW.location_region)) ILIKE '%' || LOWER(region_name) || '%'
+          OR LOWER(region_name) ILIKE '%' || LOWER(TRIM(NEW.location_region)) || '%'
+        )
+    ) INTO v_region_matched;
+
+    IF v_region_matched THEN
+      v_match_reason := 'Underserved Community/Region Scholarship: ' || NEW.location_region;
+    END IF;
+  END IF;
+
+  -- If any criteria matched, apply free lifetime platform scholarship!
+  IF v_email_matched OR v_school_matched OR v_region_matched THEN
+    NEW.is_fee_exempt := true;
+    NEW.is_underserved_scholarship := true;
+    NEW.registration_paid := true;
+    NEW.subscription_expires_at := now() + INTERVAL '20 years';
+    NEW.trial_ends_at := now() + INTERVAL '20 years';
+    IF NEW.underserved_scholarship_reason IS NULL OR NEW.underserved_scholarship_reason = '' THEN
+      NEW.underserved_scholarship_reason := v_match_reason;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_apply_underserved_scholarship ON public.profiles;
+CREATE TRIGGER trg_apply_underserved_scholarship
+BEFORE INSERT OR UPDATE OF email, school_institution, location_region
+ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.check_and_apply_underserved_scholarship();
+
+-- Update any existing profiles that match these schools, locations, or whitelisted emails
+UPDATE public.profiles p
+SET 
+  is_fee_exempt = true,
+  is_underserved_scholarship = true,
+  registration_paid = true,
+  subscription_expires_at = now() + INTERVAL '20 years',
+  trial_ends_at = now() + INTERVAL '20 years',
+  underserved_scholarship_reason = 'Underserved Community/School Exemption'
+WHERE 
+  p.is_fee_exempt IS NOT TRUE
+  AND (
+    EXISTS (SELECT 1 FROM public.free_access_whitelist w WHERE LOWER(w.email) = LOWER(p.email) AND w.is_active = true)
+    OR EXISTS (SELECT 1 FROM public.underserved_schools s WHERE s.is_active = true AND LOWER(p.school_institution) ILIKE '%' || LOWER(s.name) || '%')
+    OR EXISTS (SELECT 1 FROM public.underserved_regions r WHERE r.is_active = true AND LOWER(p.location_region) ILIKE '%' || LOWER(r.region_name) || '%')
+  );
+

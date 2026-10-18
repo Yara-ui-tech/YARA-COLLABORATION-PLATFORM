@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut } from 'lucide-react';
+import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut, Building2, MapPin, HeartHandshake } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -19,6 +19,9 @@ export default function Profile() {
     skills: [] as string[],
     interests: [] as string[],
     role: 'innovator',
+    school_institution: '',
+    location_region: '',
+    disability_type: 'none',
   });
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
@@ -32,6 +35,9 @@ export default function Profile() {
         skills: profile.skills || [],
         interests: profile.interests || [],
         role: profile.role || 'innovator',
+        school_institution: profile.school_institution || '',
+        location_region: profile.location_region || '',
+        disability_type: profile.disability_type || 'none',
       });
     }
   }, [profile]);
@@ -118,10 +124,14 @@ Possible causes:
           skills: formData.skills,
           interests: formData.interests,
           role: formData.role,
+          school_institution: formData.school_institution.trim() || null,
+          location_region: formData.location_region.trim() || null,
+          disability_type: formData.disability_type,
         })
         .eq('id', user.id);
       
       if (error) throw error;
+      if (refreshProfile) await refreshProfile();
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -235,26 +245,44 @@ Possible causes:
             </div>
 
             <div className="mt-8 pt-8 border-t border-slate-50 space-y-4">
-              {/* Subscription Status */}
-              <div className={cn(
-                "p-6 rounded-3xl border-2 flex flex-col items-center space-y-3",
-                profile?.is_halted ? "bg-red-50 border-red-100 text-red-700" : 
-                (new Date(profile?.subscription_expires_at || '') < new Date() ? "bg-amber-50 border-amber-100 text-amber-700" : "bg-emerald-50 border-emerald-100 text-emerald-700")
-              )}>
-                <ShieldCheck className="w-10 h-10" />
-                <div className="text-center">
-                  <p className="font-bold text-lg">Subscription</p>
-                  <p className="text-xs font-black uppercase tracking-widest opacity-80">
-                    {profile?.is_halted ? 'Halted' : 
-                     (new Date(profile?.subscription_expires_at || '') < new Date() ? 'Expired' : 'Active')}
-                  </p>
-                  {profile?.subscription_expires_at && (
-                    <p className="text-[10px] mt-1 opacity-60">
-                      Expires: {new Date(profile.subscription_expires_at).toLocaleDateString()}
+              {/* Equity & Underserved Area Scholarship Badge */}
+              {(profile?.is_fee_exempt || profile?.is_underserved_scholarship) ? (
+                <div className="p-6 rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex flex-col items-center space-y-2.5 text-emerald-900 shadow-sm">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <HeartHandshake className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-black text-sm">Equity Scholarship Active</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700 mt-0.5">
+                      100% Free Lifetime Platform Access ($0.00)
                     </p>
-                  )}
+                    <p className="text-[10px] text-emerald-600 font-medium mt-1 leading-relaxed">
+                      {profile?.underserved_scholarship_reason || 'Underserved Community/School Exemption'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Standard Subscription Status */
+                <div className={cn(
+                  "p-6 rounded-3xl border-2 flex flex-col items-center space-y-3",
+                  profile?.is_halted ? "bg-red-50 border-red-100 text-red-700" : 
+                  (new Date(profile?.subscription_expires_at || '') < new Date() ? "bg-amber-50 border-amber-100 text-amber-700" : "bg-emerald-50 border-emerald-100 text-emerald-700")
+                )}>
+                  <ShieldCheck className="w-10 h-10" />
+                  <div className="text-center">
+                    <p className="font-bold text-lg">Subscription</p>
+                    <p className="text-xs font-black uppercase tracking-widest opacity-80">
+                      {profile?.is_halted ? 'Halted' : 
+                       (new Date(profile?.subscription_expires_at || '') < new Date() ? 'Expired' : 'Active')}
+                    </p>
+                    {profile?.subscription_expires_at && (
+                      <p className="text-[10px] mt-1 opacity-60">
+                        Expires: {new Date(profile.subscription_expires_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 border-t border-slate-100">
                 <button
@@ -304,6 +332,58 @@ Possible causes:
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium disabled:opacity-70"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>School / Institution</span>
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={formData.school_institution}
+                    onChange={(e) => setFormData({ ...formData, school_institution: e.target.value })}
+                    placeholder="e.g. Binga High School"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-xs font-medium disabled:opacity-70"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Location / District</span>
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    value={formData.location_region}
+                    onChange={(e) => setFormData({ ...formData, location_region: e.target.value })}
+                    placeholder="e.g. Binga, Mwenezi, Chiredzi"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-purple-600 focus:bg-white transition-all text-xs font-medium disabled:opacity-70"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
+                    <span>♿</span>
+                    <span>Disability Accommodation</span>
+                  </label>
+                  <select
+                    disabled={!isEditing}
+                    value={formData.disability_type}
+                    onChange={(e) => setFormData({ ...formData, disability_type: e.target.value })}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-xs font-medium disabled:opacity-70"
+                  >
+                    <option value="none">Standard Support</option>
+                    <option value="visual">Visual Impairment (Screen reader / High contrast)</option>
+                    <option value="hearing">Hearing Impairment (Visual captions)</option>
+                    <option value="motor">Motor Impairment (Keyboard navigation)</option>
+                    <option value="cognitive_dyslexia">Learning / Dyslexia (Reading ruler / Dyslexic font)</option>
+                    <option value="other">Other specialized accommodation</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-2">

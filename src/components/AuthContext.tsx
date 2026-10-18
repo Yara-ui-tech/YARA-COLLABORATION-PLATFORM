@@ -27,8 +27,14 @@ interface UserProfile {
   total_commission: number;
   commission_rate: number;
   amount_paid?: number;
-  total_dues?: number;
   phone_number?: string;
+  school_institution?: string;
+  location_region?: string;
+  disability_type?: string;
+  accessibility_preferences?: any;
+  is_fee_exempt?: boolean;
+  is_underserved_scholarship?: boolean;
+  underserved_scholarship_reason?: string;
 }
 
 interface AuthContextType {
@@ -174,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
     if (isUserNationalExecutive(profile)) return false; // National executive does not subscribe
+    if (profile.is_fee_exempt || profile.is_underserved_scholarship) return false; // Free underserved scholarship access
     if (profile.registration_paid) return false;
     if (profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) return false;
     if (!profile.subscription_expires_at) return false;
@@ -184,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return false;
     if (isUserNationalExecutive(profile)) return false; // National executive does not subscribe
+    if (profile.is_fee_exempt || profile.is_underserved_scholarship) return false; // Free underserved scholarship access
     if (profile.registration_paid) return false;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return false;
     if (!profile.trial_ends_at) return false;
@@ -198,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!profile) return false;
     if (profile.role === 'admin' || profile.role === 'mentor' || profile.role === 'teacher') return true;
     if (isUserNationalExecutive(profile)) return true; // Always active for national executive
+    if (profile.is_fee_exempt || profile.is_underserved_scholarship) return true; // Always active for free scholarship recipients
     if (profile.is_halted) return false;
     if (profile.registration_paid) return true;
     if (profile.subscription_expires_at && new Date(profile.subscription_expires_at) > new Date()) return true;

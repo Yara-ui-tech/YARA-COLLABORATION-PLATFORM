@@ -456,3 +456,147 @@ textarea::placeholder {
     margin: 10mm;
   }
 }
+
+/* ============================================================
+   UNIVERSAL ACCESSIBILITY & ASSISTIVE TECHNOLOGY ("LEAVE NO ONE BEHIND")
+   ============================================================ */
+
+/* 1. Skip to Content Link (For Keyboard & Screen Reader Users) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: #0038A8;
+  color: #ffffff;
+  padding: 12px 20px;
+  font-weight: 800;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  z-index: 999999;
+  transition: top 0.2s ease;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 16px;
+  outline: 4px solid #F59E0B;
+}
+
+/* 2. High-Visibility Keyboard Focus Rings */
+:focus-visible {
+  outline: 3px solid #00D2FF !important;
+  outline-offset: 3px !important;
+}
+
+/* 3. Dynamic Font Sizing (Root rem scale) */
+html.text-size-large {
+  font-size: 115% !important;
+}
+html.text-size-xlarge {
+  font-size: 130% !important;
+}
+
+/* 4. Dyslexic-Friendly Typography & Spacing */
+html.dyslexic-friendly,
+html.dyslexic-friendly body,
+html.dyslexic-friendly p,
+html.dyslexic-friendly span,
+html.dyslexic-friendly div,
+html.dyslexic-friendly h1,
+html.dyslexic-friendly h2,
+html.dyslexic-friendly h3,
+html.dyslexic-friendly h4,
+html.dyslexic-friendly li,
+html.dyslexic-friendly a,
+html.dyslexic-friendly button,
+html.dyslexic-friendly input,
+html.dyslexic-friendly textarea {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', 'Lexend', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  letter-spacing: 0.06em !important;
+  word-spacing: 0.12em !important;
+  line-height: 1.85 !important;
+}
+
+/* 5. Reduced Motion for Vestibular & Cognitive Comfort */
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 6. High Contrast Dark Mode (WCAG AAA Compliant) */
+html.high-contrast-dark body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+html.high-contrast-dark .bg-white,
+html.high-contrast-dark .bg-slate-50,
+html.high-contrast-dark .bg-slate-100,
+html.high-contrast-dark .bg-slate-900,
+html.high-contrast-dark .bg-slate-950 {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #FACC15 !important;
+}
+html.high-contrast-dark p,
+html.high-contrast-dark span,
+html.high-contrast-dark h1,
+html.high-contrast-dark h2,
+html.high-contrast-dark h3,
+html.high-contrast-dark h4,
+html.high-contrast-dark label {
+  color: #ffffff !important;
+}
+html.high-contrast-dark a,
+html.high-contrast-dark button {
+  border: 2px solid #FACC15 !important;
+  color: #FACC15 !important;
+}
+html.high-contrast-dark input,
+html.high-contrast-dark textarea,
+html.high-contrast-dark select {
+  background-color: #111111 !important;
+  color: #ffffff !important;
+  border: 2px solid #FACC15 !important;
+}
+
+/* 7. High Contrast Light Mode */
+html.high-contrast-light body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+html.high-contrast-light * {
+  border-color: #000000 !important;
+}
+html.high-contrast-light p,
+html.high-contrast-light span,
+html.high-contrast-light h1,
+html.high-contrast-light h2,
+html.high-contrast-light h3,
+html.high-contrast-light h4,
+html.high-contrast-light label {
+  color: #000000 !important;
+}
+html.high-contrast-light a,
+html.high-contrast-light button {
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  background: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+/* 8. Color Blindness Filters */
+html.cb-protanopia {
+  filter: sepia(30%) hue-rotate(-25deg) contrast(110%) !important;
+}
+html.cb-deuteranopia {
+  filter: sepia(35%) hue-rotate(170deg) contrast(105%) !important;
+}
+html.cb-tritanopia {
+  filter: hue-rotate(95deg) saturate(130%) !important;
+}
+html.cb-monochrome {
+  filter: grayscale(100%) contrast(125%) !important;
+}

@@ -31,7 +31,8 @@ import { deleteEventItem } from '../constants/eventsData';
 import { deleteCompetition as deleteCompetitionService } from '../services/competitionsService';
 import MemberDirectoryAdminTab from '../components/admin/MemberDirectoryAdminTab';
 import EducationalResourcesAdminTab from '../components/admin/EducationalResourcesAdminTab';
-import { Sliders, Heart, Upload } from 'lucide-react';
+import EquityInclusionAdminTab from '../components/admin/EquityInclusionAdminTab';
+import { Sliders, Heart, Upload, HeartHandshake } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -107,7 +108,7 @@ export default function Admin() {
     authUser?.email === 'goyaracorp@gmail.com';
   
   const getHubForTab = (tab: string): AdminHub => {
-    if (['event_registrations', 'members', 'admin_management'].includes(tab)) return 'members';
+    if (['event_registrations', 'members', 'admin_management', 'equity_inclusion'].includes(tab)) return 'members';
     if (['learning_academy', 'resources_media', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
     if (['competitions', 'competition_teams', 'events', 'virtual_comp', 'yara_competition'].includes(tab)) return 'competitions';
     if (['mentorship', 'live', 'reviews', 'mentor_req'].includes(tab)) return 'faculty';
@@ -977,6 +978,7 @@ export default function Admin() {
       { id: 'event_registrations', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10 Verified' },
       { id: 'members', label: 'Member Directory & IDs', icon: Users },
       { id: 'admin_management', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
+      { id: 'equity_inclusion', label: 'Equity & Free Access', icon: HeartHandshake, badge: 'Leave No One Behind' },
     ],
     lms: [
       { id: 'learning_academy', label: 'Academy Courses & Tiers', icon: BookOpen, badge: 'Tiers 1–4' },
@@ -1704,6 +1706,12 @@ export default function Admin() {
               users={users} 
               onRefresh={fetchUsers} 
             />
+          </div>
+        )}
+
+        {activeTab === 'equity_inclusion' && (
+          <div className="p-6 md:p-8">
+            <EquityInclusionAdminTab />
           </div>
         )}
 

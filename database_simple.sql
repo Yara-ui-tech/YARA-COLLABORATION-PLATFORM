@@ -236,6 +236,100 @@ SELECT
   true
 WHERE NOT EXISTS (SELECT 1 FROM public.live_sessions LIMIT 1);
 
+-- 13. EQUITY, ACCESSIBILITY & UNDERSERVED SCHOLARSHIPS ("LEAVE NO ONE BEHIND")
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='school_institution') THEN
+    ALTER TABLE public.profiles ADD COLUMN school_institution TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='location_region') THEN
+    ALTER TABLE public.profiles ADD COLUMN location_region TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='disability_type') THEN
+    ALTER TABLE public.profiles ADD COLUMN disability_type TEXT DEFAULT 'none';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_fee_exempt') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_fee_exempt BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='is_underserved_scholarship') THEN
+    ALTER TABLE public.profiles ADD COLUMN is_underserved_scholarship BOOLEAN DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='underserved_scholarship_reason') THEN
+    ALTER TABLE public.profiles ADD COLUMN underserved_scholarship_reason TEXT;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.underserved_schools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  district TEXT,
+  province TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  is_active BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.underserved_schools ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Underserved schools open access" ON public.underserved_schools;
+CREATE POLICY "Underserved schools open access" ON public.underserved_schools FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.underserved_regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  region_name TEXT NOT NULL UNIQUE,
+  province_state TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  is_active BOOLEAN DEFAULT true,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.underserved_regions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Underserved regions open access" ON public.underserved_regions;
+CREATE POLICY "Underserved regions open access" ON public.underserved_regions FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.free_access_whitelist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  reason TEXT DEFAULT 'Equity & Inclusion Scholarship',
+  granted_by TEXT DEFAULT 'Admin',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE public.free_access_whitelist ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Free access whitelist open access" ON public.free_access_whitelist;
+CREATE POLICY "Free access whitelist open access" ON public.free_access_whitelist FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO public.underserved_schools (name, district, province, country, notes)
+VALUES 
+  ('Binga High School', 'Binga', 'Matabeleland North', 'Zimbabwe', 'Rural STEM Hub - Priority Community'),
+  ('Nemakonde High School', 'Makonde', 'Mashonaland West', 'Zimbabwe', 'Underserved Public Secondary'),
+  ('Banket High School', 'Zvimba', 'Mashonaland West', 'Zimbabwe', 'Public Rural Innovation Chapter'),
+  ('Dotito High School', 'Mount Darwin', 'Mashonaland Central', 'Zimbabwe', 'Rural District Secondary'),
+  ('Tongogara Secondary School', 'Shurugwi', 'Midlands', 'Zimbabwe', 'Rural Community School'),
+  ('Rushinga Secondary School', 'Rushinga', 'Mashonaland Central', 'Zimbabwe', 'Border Rural STEM Center'),
+  ('Mwenezi High School', 'Mwenezi', 'Masvingo', 'Zimbabwe', 'Arid Belt Innovation Outreach'),
+  ('Mudzi High School', 'Mudzi', 'Mashonaland East', 'Zimbabwe', 'Rural Community Cluster'),
+  ('Tsholotsho High School', 'Tsholotsho', 'Matabeleland North', 'Zimbabwe', 'Rural District Innovation Hub'),
+  ('Chivi High School', 'Chivi', 'Masvingo', 'Zimbabwe', 'Rural Public High School')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.underserved_regions (region_name, province_state, country, notes)
+VALUES
+  ('Binga', 'Matabeleland North', 'Zimbabwe', 'Remote Zambezi basin district'),
+  ('Mwenezi', 'Masvingo', 'Zimbabwe', 'Southern rural district'),
+  ('Mudzi', 'Mashonaland East', 'Zimbabwe', 'Remote eastern rural district'),
+  ('Chiredzi', 'Masvingo', 'Zimbabwe', 'Lowveld rural community'),
+  ('Rushinga', 'Mashonaland Central', 'Zimbabwe', 'Remote north-eastern district'),
+  ('Tsholotsho', 'Matabeleland North', 'Zimbabwe', 'Remote western district'),
+  ('Mount Darwin', 'Mashonaland Central', 'Zimbabwe', 'Rural educational cluster'),
+  ('Epworth', 'Harare Province', 'Zimbabwe', 'Underserved high-density urban community'),
+  ('Chitungwiza', 'Harare Province', 'Zimbabwe', 'High-density student innovation zone'),
+  ('Zvimba Rural', 'Mashonaland West', 'Zimbabwe', 'Agricultural farming schools'),
+  ('Makonde Rural', 'Mashonaland West', 'Zimbabwe', 'Mining & agrarian peripheral communities'),
+  ('Kariba Rural', 'Mashonaland West', 'Zimbabwe', 'Lakeside rural outposts')
+ON CONFLICT (region_name) DO NOTHING;
+
 -- ==============================================================================
 -- DONE! All tables created cleanly with full open read/write access.
 -- ==============================================================================
+

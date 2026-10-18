@@ -26,6 +26,12 @@ interface SubscriptionLockoutViewProps {
 
 export default function SubscriptionLockoutView({ type }: SubscriptionLockoutViewProps) {
   const { user, profile, refreshProfile } = useAuth();
+
+  // If user is fee exempt or on equity scholarship, do not lock out
+  if (profile?.is_fee_exempt || profile?.is_underserved_scholarship) {
+    return null;
+  }
+
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<{
     checked: boolean;

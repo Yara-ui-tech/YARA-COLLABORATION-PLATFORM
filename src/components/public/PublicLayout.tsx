@@ -11,7 +11,7 @@ export default function PublicLayout() {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-blue-500 selection:text-white pb-16 md:pb-0">
       <OfflineBanner />
       <PublicHeader />
-      <main className="flex-1 w-full">
+      <main id="main-content" className="flex-1 w-full">
         <Outlet />
       </main>
       <PublicFooter />

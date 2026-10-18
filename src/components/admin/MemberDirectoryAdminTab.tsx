@@ -6,7 +6,7 @@ import {
   Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus,
   Layers, Upload, Download, FileSpreadsheet, CheckSquare, Square,
   MessageSquare, Sparkles, ChevronRight, Share2, Info, CreditCard,
-  ShieldCheck, AlertTriangle, Key, Trash2
+  ShieldCheck, AlertTriangle, Key, Trash2, HeartHandshake
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
@@ -46,6 +46,10 @@ export interface ExtendedUserProfile {
   rating?: number;
   mentored_count?: number;
   total_commission?: number;
+  is_fee_exempt?: boolean;
+  is_underserved_scholarship?: boolean;
+  underserved_scholarship_reason?: string;
+  disability_type?: string;
 }
 
 export interface ChapterJoinRequestItem {
@@ -1045,11 +1049,15 @@ export default function MemberDirectoryAdminTab() {
           </span>
         </td>
 
-        {/* Status: Active / Trial Expired / Suspended */}
+        {/* Status: Active / Trial Expired / Suspended / Scholarship */}
         <td className="px-4 py-4 whitespace-nowrap">
           {member.is_halted ? (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800">
               Suspended
+            </span>
+          ) : (member.is_fee_exempt || member.is_underserved_scholarship) ? (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-900 border border-purple-200">
+              Free Scholarship ($0)
             </span>
           ) : isPaidActive ? (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
@@ -1152,6 +1160,43 @@ export default function MemberDirectoryAdminTab() {
               title={member.is_halted ? "Re-activate Member" : "Suspend Member"}
             >
               {member.is_halted ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Grant / Revoke Free Equity Scholarship */}
+            <button
+              onClick={async () => {
+                const isCurrentlyExempt = member.is_fee_exempt || member.is_underserved_scholarship;
+                if (isCurrentlyExempt) {
+                  if (window.confirm(`Revoke free scholarship access for ${member.display_name}?`)) {
+                    await supabase.from('profiles').update({ is_fee_exempt: false, is_underserved_scholarship: false, underserved_scholarship_reason: null }).eq('id', member.id);
+                    setUsers(prev => prev.map(u => u.id === member.id ? { ...u, is_fee_exempt: false, is_underserved_scholarship: false } : u));
+                    showToast('success', `Revoked scholarship for ${member.display_name}.`);
+                  }
+                } else {
+                  if (window.confirm(`Grant 100% Free Lifetime Scholarship to ${member.display_name}? (Underserved / Disability Bursary)`)) {
+                    const expiresAt = new Date(Date.now() + 20 * 365 * 24 * 60 * 60 * 1000).toISOString();
+                    await supabase.from('profiles').update({
+                      is_fee_exempt: true,
+                      is_underserved_scholarship: true,
+                      registration_paid: true,
+                      subscription_expires_at: expiresAt,
+                      trial_ends_at: expiresAt,
+                      underserved_scholarship_reason: 'Admin Equity Bursary'
+                    }).eq('id', member.id);
+                    setUsers(prev => prev.map(u => u.id === member.id ? { ...u, is_fee_exempt: true, is_underserved_scholarship: true, registration_paid: true } : u));
+                    showToast('success', `Granted 100% Free Lifetime Scholarship to ${member.display_name}.`);
+                  }
+                }
+              }}
+              className={cn(
+                "p-2 rounded-xl transition cursor-pointer",
+                (member.is_fee_exempt || member.is_underserved_scholarship)
+                  ? "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                  : "bg-slate-100 text-slate-600 hover:bg-purple-50 hover:text-purple-700"
+              )}
+              title={(member.is_fee_exempt || member.is_underserved_scholarship) ? "Revoke Free Scholarship Access" : "Grant 100% Free Scholarship Access (Underserved / Disability)"}
+            >
+              <HeartHandshake className="w-3.5 h-3.5" />
             </button>
 
             {/* If member is a mentor, show Revoke Mentor button */}

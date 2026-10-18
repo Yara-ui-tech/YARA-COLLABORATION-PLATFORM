@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase, clearStaleSupabaseAuth, safeSignOut } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award, Globe } from 'lucide-react';
+import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award, Globe, Building2, MapPin, HeartHandshake, CheckCircle2 } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { 
+  checkEquityScholarshipEligibility, 
+  getUnderservedSchools, 
+  getUnderservedRegions, 
+  UnderservedSchool, 
+  UnderservedRegion 
+} from '../services/equityService';
 
 import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
 
@@ -18,6 +25,12 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
+  const [schoolInstitution, setSchoolInstitution] = useState('');
+  const [locationRegion, setLocationRegion] = useState('');
+  const [disabilityType, setDisabilityType] = useState<'none' | 'visual' | 'hearing' | 'motor' | 'cognitive_dyslexia' | 'other'>('none');
+  const [equityEligibility, setEquityEligibility] = useState<{ isEligible: boolean; reason: string }>({ isEligible: false, reason: '' });
+  const [underservedSchools, setUnderservedSchools] = useState<UnderservedSchool[]>([]);
+  const [underservedRegions, setUnderservedRegions] = useState<UnderservedRegion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -40,7 +53,42 @@ export default function Auth() {
       }
     };
     fetchSettings();
+
+    // Fetch underserved schools & regions for autocomplete
+    const loadEquityData = async () => {
+      try {
+        const [schools, regions] = await Promise.all([
+          getUnderservedSchools(),
+          getUnderservedRegions()
+        ]);
+        setUnderservedSchools(schools);
+        setUnderservedRegions(regions);
+      } catch (e) {
+        console.warn('Could not load equity registries:', e);
+      }
+    };
+    loadEquityData();
   }, []);
+
+  // Check equity scholarship eligibility live as user types
+  useEffect(() => {
+    if (isLogin) return;
+    const verifyEligibility = async () => {
+      if (!email && !schoolInstitution && !locationRegion) {
+        setEquityEligibility({ isEligible: false, reason: '' });
+        return;
+      }
+      const res = await checkEquityScholarshipEligibility({
+        email,
+        school: schoolInstitution,
+        location: locationRegion
+      });
+      setEquityEligibility({ isEligible: res.isEligible, reason: res.reason });
+    };
+
+    const timer = setTimeout(verifyEligibility, 300);
+    return () => clearTimeout(timer);
+  }, [email, schoolInstitution, locationRegion, isLogin]);
 
   if (isAuthReady && user && !showSuccessModal) {
     if (profile?.role === 'teacher') {
@@ -140,6 +188,15 @@ export default function Auth() {
         const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
         const generatedMemberId = `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+        // Verify Equity Scholarship Eligibility
+        const eligibilityCheck = await checkEquityScholarshipEligibility({
+          email: cleanEmail,
+          school: schoolInstitution,
+          location: locationRegion
+        });
+
+        const isFreeAccessGrantee = eligibilityCheck.isEligible || isAdminEmail || finalRole === 'teacher' || finalRole === 'admin';
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
@@ -150,6 +207,12 @@ export default function Auth() {
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : undefined,
               member_id: generatedMemberId,
+              school_institution: schoolInstitution.trim() || undefined,
+              location_region: locationRegion.trim() || undefined,
+              disability_type: disabilityType,
+              is_fee_exempt: eligibilityCheck.isEligible,
+              is_underserved_scholarship: eligibilityCheck.isEligible,
+              underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : undefined,
             },
           },
         });
@@ -157,7 +220,7 @@ export default function Auth() {
         if (signUpError) throw signUpError;
         
         if (data.user) {
-          // Asynchronously upsert profile to ensure fields are persisted
+          // Asynchronously upsert profile to ensure all fields are persisted
           try {
             await supabase.from('profiles').upsert({
               id: data.user.id,
@@ -167,9 +230,15 @@ export default function Auth() {
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
               member_id: generatedMemberId,
-              registration_paid: finalRole === 'admin' || finalRole === 'teacher', 
-              trial_ends_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 4) * 24 * 60 * 60 * 1000).toISOString(),
-              subscription_expires_at: new Date(Date.now() + (isAdminEmail || finalRole === 'teacher' ? 3650 : 30) * 24 * 60 * 60 * 1000).toISOString(),
+              school_institution: schoolInstitution.trim() || null,
+              location_region: locationRegion.trim() || null,
+              disability_type: disabilityType,
+              is_fee_exempt: eligibilityCheck.isEligible,
+              is_underserved_scholarship: eligibilityCheck.isEligible,
+              underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : null,
+              registration_paid: isFreeAccessGrantee, 
+              trial_ends_at: new Date(Date.now() + (isFreeAccessGrantee ? 20 * 365 : 4) * 24 * 60 * 60 * 1000).toISOString(),
+              subscription_expires_at: new Date(Date.now() + (isFreeAccessGrantee ? 20 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
               is_halted: false,
             }, { onConflict: 'id' });
           } catch (e) {
@@ -408,6 +477,108 @@ export default function Auth() {
                   />
                 </div>
               </div>
+
+              {/* Equity & Underserved Location / School Fields (Sign Up) */}
+              {!isLogin && (
+                <>
+                  {/* Live Free Access Scholarship Alert Banner */}
+                  {equityEligibility.isEligible && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-2 border-emerald-500/40 rounded-2xl p-3.5 flex items-start gap-3 text-emerald-900"
+                    >
+                      <div className="p-1.5 bg-emerald-500 text-white rounded-xl shrink-0 mt-0.5 shadow-md shadow-emerald-500/20">
+                        <HeartHandshake className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-black text-xs text-emerald-800 flex items-center gap-1.5">
+                          <span>🎉 100% Free Lifetime Access Applied ($0.00)</span>
+                        </p>
+                        <p className="text-[11px] text-emerald-700 font-medium leading-relaxed mt-0.5">
+                          {equityEligibility.reason} — You qualify for the YARA Equity & Underserved Area Scholarship. All platform fees are completely waived!
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* School / Institution Field */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>School or Institution</span>
+                      </label>
+                      <span className="text-[10px] text-indigo-600 font-semibold">
+                        Underserved schools qualify for free access
+                      </span>
+                    </div>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        list="underserved-schools-list"
+                        value={schoolInstitution}
+                        onChange={(e) => setSchoolInstitution(e.target.value)}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium text-xs"
+                        placeholder="e.g. Binga High School, Nemakonde High..."
+                      />
+                      <datalist id="underserved-schools-list">
+                        {underservedSchools.map(s => (
+                          <option key={s.id} value={s.name}>{s.district ? `${s.district}, ${s.province}` : s.province}</option>
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* Location / District / Region */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between ml-1">
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Location / District / Town</span>
+                      </label>
+                      <span className="text-[10px] text-purple-600 font-semibold">
+                        Priority districts qualify for $0 access
+                      </span>
+                    </div>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        list="underserved-regions-list"
+                        value={locationRegion}
+                        onChange={(e) => setLocationRegion(e.target.value)}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-purple-600 focus:bg-white transition-all text-slate-900 font-medium text-xs"
+                        placeholder="e.g. Binga, Mwenezi, Mudzi, Epworth..."
+                      />
+                      <datalist id="underserved-regions-list">
+                        {underservedRegions.map(r => (
+                          <option key={r.id} value={r.region_name}>{r.province_state || r.country}</option>
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* Disability & Assistive Support (Leave No One Behind) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 ml-1 uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-xs">♿</span>
+                      <span>Disability & Assistive Support (Optional)</span>
+                    </label>
+                    <select
+                      value={disabilityType}
+                      onChange={(e) => setDisabilityType(e.target.value as any)}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-800 font-medium text-xs"
+                    >
+                      <option value="none">No assistive accommodations needed</option>
+                      <option value="visual">Visual Impairment (Screen reader / High contrast support)</option>
+                      <option value="hearing">Hearing Impairment (Deaf / Hard of hearing - Visual captions)</option>
+                      <option value="motor">Motor Impairment (Keyboard navigation / Large touch controls)</option>
+                      <option value="cognitive_dyslexia">Learning / Dyslexia (Reading ruler / Dyslexic font)</option>
+                      <option value="other">Other specialized assistive accommodation</option>
+                    </select>
+                  </div>
+                </>
+              )}
 
               {!isLogin && (
                 <div className="space-y-3 pt-2">
