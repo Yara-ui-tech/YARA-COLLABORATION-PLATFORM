@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import ItemCoverDisplay from '../resources/ItemCoverDisplay';
-import { CURATED_MATERIALS } from '../../pages/Resources';
 
 export interface EducationalResource {
   id: string;
@@ -100,27 +99,7 @@ export default function EducationalResourcesAdminTab() {
       if (error) console.warn('Study materials fetch notice:', error);
       
       const dbItems = (data || []) as EducationalResource[];
-      const dbIds = new Set(dbItems.map(m => m.id));
-      const curatedAsEdu = CURATED_MATERIALS.map(c => ({
-        id: c.id,
-        title: c.title,
-        description: c.description,
-        category: c.category || 'Robotics & Embedded Systems',
-        file_url: c.file_url,
-        file_type: c.file_type as any,
-        file_size_bytes: c.file_size_bytes,
-        target_level: c.target_level || 'All Levels',
-        target_age_group: 'All Ages',
-        language: 'English',
-        is_downloadable: true,
-        is_published: true,
-        thumbnail_url: c.thumbnail_url,
-        tags: [c.file_type, 'Curated'],
-        created_at: c.created_at
-      }));
-
-      const merged = [...dbItems, ...curatedAsEdu.filter(c => !dbIds.has(c.id))];
-      setResources(merged);
+      setResources(dbItems);
     } catch (err: any) {
       console.error('Error fetching educational resources:', err);
       setFeedback({ type: 'error', text: err.message || 'Failed to load resources.' });

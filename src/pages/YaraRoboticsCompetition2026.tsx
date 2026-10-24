@@ -169,30 +169,31 @@ export default function YaraRoboticsCompetition2026() {
 
       {/* 2. LIVE DUAL COUNTDOWN COMPONENT */}
       <LiveCountdownTimer
-        targetDate="2026-10-16T08:00:00"
-        registrationDeadline="2026-09-20T23:59:59"
+        targetDate="2027-03-26T08:00:00"
+        registrationDeadline="2026-11-28T23:59:59"
+        eventTitle="Continental Championship Finals Countdown"
       />
 
       {/* 3. MANDATORY TEAM COMPOSITION REQUIREMENT BANNER */}
-      <div className="p-5 bg-indigo-50/80 border border-indigo-200 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+      <div className="p-6 bg-gradient-to-r from-indigo-950/60 via-slate-900/80 to-purple-950/60 border border-indigo-500/30 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-md">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold shrink-0 shadow-inner">
             <Users className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-indigo-950">
+            <h3 className="text-sm font-black text-white tracking-wide">
               Mandatory Team Composition Rule (2 Boys + 2 Girls)
             </h3>
-            <p className="text-xs text-indigo-800/80">
-              Every team must register at least <strong>4 participants</strong> comprising a minimum of <strong>2 boys and 2 girls</strong> for gender inclusion.
+            <p className="text-xs text-indigo-200/80 leading-relaxed">
+              Every participating cohort team must register at least <strong className="text-white">4 participants</strong> comprising a minimum of <strong className="text-white">2 boys and 2 girls</strong> for gender parity.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-bold text-indigo-900 shrink-0">
-          <span className="px-3 py-1 bg-white rounded-xl border border-indigo-200 shadow-2xs">👦 Min 2 Boys</span>
-          <span className="px-3 py-1 bg-white rounded-xl border border-indigo-200 shadow-2xs">👧 Min 2 Girls</span>
-          <span className="px-3 py-1 bg-white rounded-xl border border-indigo-200 shadow-2xs">👥 Min 4 Total</span>
+        <div className="flex items-center space-x-2 text-xs font-bold shrink-0">
+          <span className="px-3.5 py-1.5 bg-slate-800/80 text-indigo-300 rounded-xl border border-indigo-500/30">👦 Min 2 Boys</span>
+          <span className="px-3.5 py-1.5 bg-slate-800/80 text-pink-300 rounded-xl border border-pink-500/30">👧 Min 2 Girls</span>
+          <span className="px-3.5 py-1.5 bg-indigo-600/40 text-white rounded-xl border border-indigo-400/40">👥 Min 4 Total</span>
         </div>
       </div>
 
@@ -200,61 +201,61 @@ export default function YaraRoboticsCompetition2026() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Link
           to="/competition/participant"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-indigo-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <Users className="w-5 h-5 text-indigo-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Team Portal</span>
+          <Users className="w-5 h-5 text-indigo-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Team Portal</span>
           <span className="block text-[10px] text-slate-400">Dossier & Badges</span>
         </Link>
 
         <Link
           to="/competition/sponsors"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-amber-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <DollarSign className="w-5 h-5 text-amber-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Sponsor Hub</span>
+          <DollarSign className="w-5 h-5 text-amber-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Sponsor Hub</span>
           <span className="block text-[10px] text-slate-400">Tiers & Packages</span>
         </Link>
 
         <Link
           to="/volunteer"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-emerald-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <UserCheck className="w-5 h-5 text-emerald-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Volunteer Corps</span>
+          <UserCheck className="w-5 h-5 text-emerald-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Volunteer Corps</span>
           <span className="block text-[10px] text-slate-400">15 Departments</span>
         </Link>
 
         <Link
           to="/competition/judges"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-purple-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-purple-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <Award className="w-5 h-5 text-purple-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Judge Panel</span>
+          <Award className="w-5 h-5 text-purple-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Judge Panel</span>
           <span className="block text-[10px] text-slate-400">Digital Rubric</span>
         </Link>
 
         <Link
           to="/competition/impact"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-blue-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-blue-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <BarChart3 className="w-5 h-5 text-blue-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Impact Ledger</span>
+          <BarChart3 className="w-5 h-5 text-blue-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Impact Ledger</span>
           <span className="block text-[10px] text-slate-400">Transparency</span>
         </Link>
 
         <Link
           to="/verify"
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-400 text-center space-y-1 transition-all group shadow-2xs"
+          className="p-4 bg-slate-900/80 hover:bg-slate-800/90 rounded-2xl border border-slate-800 hover:border-teal-500/50 text-center space-y-1.5 transition-all group shadow-sm backdrop-blur-sm"
         >
-          <QrCode className="w-5 h-5 text-teal-600 mx-auto group-hover:scale-110 transition-transform" />
-          <span className="block font-bold text-xs text-slate-900">Verify Creds</span>
+          <QrCode className="w-5 h-5 text-teal-400 mx-auto group-hover:scale-110 transition-transform" />
+          <span className="block font-bold text-xs text-white">Verify Creds</span>
           <span className="block text-[10px] text-slate-400">Digital Certs</span>
         </Link>
       </div>
 
       {/* 5. SECTION NAVIGATION TABS */}
-      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex space-x-2 border-b border-slate-800 pb-2 overflow-x-auto">
         {[
           { id: 'overview' as const, label: 'Overview & Format' },
           { id: 'challenges' as const, label: 'Competition Challenges (3)' },
@@ -269,8 +270,8 @@ export default function YaraRoboticsCompetition2026() {
             className={cn(
               "px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap",
               activeTab === tab.id
-                ? "bg-slate-900 text-white shadow-md"
-                : "text-slate-600 hover:bg-slate-100"
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                : "text-slate-400 hover:bg-slate-900 hover:text-white"
             )}
           >
             {tab.label}
@@ -282,42 +283,42 @@ export default function YaraRoboticsCompetition2026() {
       {activeTab === 'overview' && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3 shadow-sm">
-              <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+            <div className="p-6 bg-slate-900/80 rounded-3xl border border-slate-800 hover:border-blue-500/30 transition-all space-y-3 shadow-md backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
                 <Waves className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-base text-slate-900">Underwater Drone Missions</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-base text-white">Underwater Drone Missions</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Design and pilot tethered remotely operated vehicles (ROVs) to navigate subaquatic obstacle courses, identify marked underwater targets, and recover objects. (35% Weight)
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3 shadow-sm">
-              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <div className="p-6 bg-slate-900/80 rounded-3xl border border-slate-800 hover:border-amber-500/30 transition-all space-y-3 shadow-md backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
                 <Compass className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-base text-slate-900">Autonomous Maze Solving</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-base text-white">Autonomous Maze Solving</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Build sensor-guided autonomous rovers navigating labyrinth corridors with intelligent wall-following algorithms and dynamic dead-end recovery. (35% Weight)
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-3xl border border-slate-200 space-y-3 shadow-sm">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <div className="p-6 bg-slate-900/80 rounded-3xl border border-slate-800 hover:border-emerald-500/30 transition-all space-y-3 shadow-md backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
                 <Lightbulb className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-base text-slate-900">Innovation Pitch Challenge</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-base text-white">Innovation Pitch Challenge</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Theme: “Technology for the Underserved”. Pitch tech prototypes solving rural education, agriculture, digital access, and healthcare limitations for youth. (30% Weight)
               </p>
             </div>
           </div>
 
           {/* Championship Weighting Formula */}
-          <div className="p-6 bg-slate-900 text-white rounded-3xl space-y-4">
-            <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+          <div className="p-6 bg-gradient-to-br from-slate-950 to-indigo-950/80 text-white rounded-3xl border border-indigo-500/30 space-y-4 shadow-xl">
+            <div className="flex items-center space-x-2 text-amber-400 text-xs font-black uppercase tracking-wider">
               <Trophy className="w-4 h-4" />
-              <span>Overall YARA Robotics Champion 2026 Formula</span>
+              <span>Overall YARA Robotics Championship Formula</span>
             </div>
 
             <h3 className="text-xl font-bold">How the Grand Champion is Crowned</h3>
@@ -326,17 +327,17 @@ export default function YaraRoboticsCompetition2026() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 font-mono text-xs">
-              <div className="p-3 bg-white/10 rounded-2xl border border-white/10">
-                <span className="text-blue-300 font-bold block">35% Weight</span>
-                <span className="text-white">Underwater Drone Mission</span>
+              <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10">
+                <span className="text-blue-400 font-black block">35% Weight</span>
+                <span className="text-slate-200">Underwater Drone Mission</span>
               </div>
-              <div className="p-3 bg-white/10 rounded-2xl border border-white/10">
-                <span className="text-amber-300 font-bold block">35% Weight</span>
-                <span className="text-white">Autonomous Maze Solving</span>
+              <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10">
+                <span className="text-amber-400 font-black block">35% Weight</span>
+                <span className="text-slate-200">Autonomous Maze Solving</span>
               </div>
-              <div className="p-3 bg-white/10 rounded-2xl border border-white/10">
-                <span className="text-emerald-300 font-bold block">30% Weight</span>
-                <span className="text-white">Innovation Pitch Defense</span>
+              <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10">
+                <span className="text-emerald-400 font-black block">30% Weight</span>
+                <span className="text-slate-200">Innovation Pitch Defense</span>
               </div>
             </div>
           </div>
@@ -347,14 +348,14 @@ export default function YaraRoboticsCompetition2026() {
       {activeTab === 'challenges' && (
         <div className="space-y-6">
           {config.categories.map((cat, idx) => (
-            <div key={cat.id} className="p-6 md:p-8 bg-white rounded-3xl border border-slate-200 space-y-6 shadow-sm">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div className="flex items-center space-x-3">
+            <div key={cat.id} className="p-6 md:p-8 bg-slate-900/80 rounded-3xl border border-slate-800 space-y-6 shadow-md backdrop-blur-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="flex items-center space-x-3.5">
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg",
-                    cat.id === 'underwater_drone' ? "bg-blue-100 text-blue-700" :
-                    cat.id === 'autonomous_maze' ? "bg-amber-100 text-amber-700" :
-                    "bg-emerald-100 text-emerald-700"
+                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg border",
+                    cat.id === 'underwater_drone' ? "bg-blue-500/20 text-blue-400 border-blue-500/30" :
+                    cat.id === 'autonomous_maze' ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
+                    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                   )}>
                     {cat.id === 'underwater_drone' ? <Waves className="w-6 h-6" /> :
                      cat.id === 'autonomous_maze' ? <Compass className="w-6 h-6" /> :
@@ -362,28 +363,28 @@ export default function YaraRoboticsCompetition2026() {
                   </div>
                   <div>
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Category {idx + 1} • Overall Weight: {cat.weight_percentage}%</span>
-                    <h3 className="text-xl font-bold text-slate-900">{cat.title}</h3>
+                    <h3 className="text-xl font-bold text-white">{cat.title}</h3>
                   </div>
                 </div>
 
                 <button
                   onClick={() => openRegistration(cat.id)}
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-200 self-start md:self-auto"
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 self-start md:self-auto transition-all"
                 >
                   Register for this Challenge
                 </button>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 {cat.description}
               </p>
 
               {/* Skills Assessed */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Skills Assessed:</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Skills Assessed:</h4>
                 <div className="flex flex-wrap gap-2">
                   {cat.skills_assessed.map((skill, sIdx) => (
-                    <span key={sIdx} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
+                    <span key={sIdx} className="px-3 py-1 bg-slate-800/80 text-slate-200 border border-slate-700/60 rounded-lg text-xs font-medium">
                       ✓ {skill}
                     </span>
                   ))}
@@ -391,8 +392,8 @@ export default function YaraRoboticsCompetition2026() {
               </div>
 
               {/* Rules summary */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-700 space-y-1">
-                <span className="font-bold text-slate-900">Arena & Rules Brief:</span>
+              <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 text-xs text-slate-300 space-y-1">
+                <span className="font-bold text-white">Arena & Rules Brief:</span>
                 <p>{cat.rules_summary}</p>
               </div>
             </div>
@@ -405,12 +406,12 @@ export default function YaraRoboticsCompetition2026() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {COMPETITION_AWARDS.map(award => (
-              <div key={award.title} className="p-5 bg-white rounded-3xl border border-slate-200 hover:border-indigo-300 transition-all shadow-sm space-y-2">
+              <div key={award.title} className="p-5 bg-slate-900/80 rounded-3xl border border-slate-800 hover:border-indigo-500/40 transition-all shadow-md space-y-2 backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
                   <span className="text-3xl">{award.badge}</span>
-                  <h4 className="font-bold text-sm text-slate-900">{award.title}</h4>
+                  <h4 className="font-bold text-sm text-white">{award.title}</h4>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">{award.description}</p>
+                <p className="text-xs text-slate-400 leading-relaxed">{award.description}</p>
               </div>
             ))}
           </div>
@@ -429,19 +430,19 @@ export default function YaraRoboticsCompetition2026() {
 
       {/* TAB 6: RULES & GUIDELINES */}
       {activeTab === 'rules' && (
-        <div className="p-6 md:p-8 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6 text-xs text-slate-700 leading-relaxed">
-          <h3 className="text-xl font-bold text-slate-900">Official Championship Regulations</h3>
+        <div className="p-6 md:p-8 bg-slate-900/80 rounded-3xl border border-slate-800 shadow-md space-y-6 text-xs text-slate-300 leading-relaxed backdrop-blur-sm">
+          <h3 className="text-xl font-bold text-white">Official Championship Regulations</h3>
           <div className="space-y-4">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-              <strong className="block text-slate-900 font-bold mb-1">1. Eligibility & Age Brackets</strong>
+            <div className="p-4.5 bg-slate-950/60 rounded-2xl border border-slate-800/80">
+              <strong className="block text-white font-bold mb-1">1. Eligibility & Age Brackets</strong>
               Participants must be between the ages of 12 and 22 years on the competition date. Open to secondary school students, vocational colleges, and community youth clubs.
             </div>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-              <strong className="block text-slate-900 font-bold mb-1">2. Team Parity Rule (2 Boys + 2 Girls)</strong>
+            <div className="p-4.5 bg-slate-950/60 rounded-2xl border border-slate-800/80">
+              <strong className="block text-white font-bold mb-1">2. Team Parity Rule (2 Boys + 2 Girls)</strong>
               All teams must maintain a minimum ratio of at least 2 female and 2 male members actively participating during both arena trials and technical presentations.
             </div>
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-              <strong className="block text-slate-900 font-bold mb-1">3. Original Work & Code Authorship</strong>
+            <div className="p-4.5 bg-slate-950/60 rounded-2xl border border-slate-800/80">
+              <strong className="block text-white font-bold mb-1">3. Original Work & Code Authorship</strong>
               While mentors may provide guidance, robot construction, wire routing, and algorithm coding must be executed and defended solely by student team members.
             </div>
           </div>

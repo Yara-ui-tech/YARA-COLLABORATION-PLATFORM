@@ -66,8 +66,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
       { title: 'Autonomous Micromouse Maze Navigation (Tier 3)', level: 'Advanced', duration: '4 Weeks', path: '/learning?course=robotics-advanced' }
     ],
     upcomingSessions: [
-      { title: 'Junior Robotics Saturday Lab Cohort', date: 'Starts Sept 12, 2026', format: 'Provincial Chapter Centers' },
-      { title: 'YARA 2026 National Arena Bootcamp', date: 'Oct 02 – 04, 2026', format: 'National Science Arena' }
+      { title: 'Junior Robotics Saturday Lab Cohort', date: 'Starts Nov 14, 2026', format: 'Provincial Chapter Centers' },
+      { title: 'YARA Continental Arena Preparation Lab', date: 'Nov 28 – 30, 2026', format: 'National Science Arena' }
     ],
     ctaText: 'Enroll in Robotics Track in LMS',
     ctaPath: '/learning?course=robotics-beginner'
@@ -100,7 +100,7 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
       { title: 'Real-Time Embedded C++ for Robotics Competitions', level: 'Advanced', duration: '6 Weeks', path: '/learning?course=robotics-intermediate' }
     ],
     upcomingSessions: [
-      { title: 'Virtual Firmware Sprint (MicroPython)', date: 'Starts Sept 18, 2026', format: 'Online Live Stream' }
+      { title: 'Virtual Firmware Sprint (MicroPython)', date: 'Starts Nov 21, 2026', format: 'Online Live Stream' }
     ],
     ctaText: 'Start Coding Hardware in LMS',
     ctaPath: '/learning?course=python-robotics'
@@ -133,7 +133,7 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
       { title: 'IoT Connected Systems for African Agriculture', level: 'Advanced', duration: '5 Weeks', path: '/learning?course=iot-cloud-telemetry' }
     ],
     upcomingSessions: [
-      { title: 'AI for Educators National Bootcamp', date: 'Aug 31 – Sep 04, 2026', format: 'Live Google Meet' }
+      { title: 'AI & IoT Environmental Telemetry Masterclass', date: 'Dec 07 – 11, 2026', format: 'Live Virtual Lab' }
     ],
     ctaText: 'Explore AI & IoT Courses in LMS',
     ctaPath: '/learning?course=iot-cloud-telemetry'
@@ -165,7 +165,7 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
       { title: 'Differentiated STEM Lesson Planning Workbench', level: 'Teacher', duration: 'Self-Paced', path: '/learning?course=ai-for-educators' }
     ],
     upcomingSessions: [
-      { title: 'Mashwest Provincial School Patrons Assembly', date: 'Sept 15, 2026', format: 'Chinhoyi Provincial Hall' }
+      { title: 'Provincial STEM Patrons Assembly & Qualifier Briefing', date: 'Dec 05, 2026', format: 'Chinhoyi Provincial Hall' }
     ],
     ctaText: 'Enrol in Patron Course in LMS',
     ctaPath: '/learning?course=school-robotics-patron'
@@ -197,7 +197,7 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
       { title: 'CAD 3D Modeling for Robot Mechanisms', level: 'Intermediate', duration: '4 Weeks', path: '/learning?course=cad-pcb-design' }
     ],
     upcomingSessions: [
-      { title: 'PCB Fabrication & Assembly Masterclass', date: 'Sept 26, 2026', format: 'Innovation Lab Chinhoyi' }
+      { title: 'PCB Fabrication & Soldering Masterclass', date: 'Dec 12, 2026', format: 'Innovation Lab Chinhoyi' }
     ],
     ctaText: 'Join CAD & PCB Course in LMS',
     ctaPath: '/learning?course=cad-pcb-design'

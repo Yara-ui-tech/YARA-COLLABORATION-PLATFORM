@@ -424,48 +424,50 @@ export default function Home() {
             <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="space-y-3.5 max-w-2xl">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-black uppercase tracking-wider">
-                    Flagship Event
+                  <span className="px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 text-xs font-black uppercase tracking-wider">
+                    Next Championship Arena
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
-                    ● Team Registration Open
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Team Registrations Active</span>
                   </span>
                 </div>
 
                 <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
-                  YARA Educational Robotics Competition 2026
+                  YARA Aquatic ROV &amp; Submersible Navigation Open 2026
                 </h3>
 
-                <p className="text-amber-300 text-xs sm:text-sm font-bold">
-                  Theme: “Engineering Opportunity: Robotics and Innovation for Underserved Youth”
+                <p className="text-cyan-300 text-xs sm:text-sm font-bold">
+                  Theme: “Engineering Opportunity: Underwater Robotics, Marine Telemetry &amp; Autonomous Systems”
                 </p>
 
                 <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                  Featuring 3 premier categories: <strong>Underwater Drone Missions</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Innovation Pitch Defense</strong> (30%). Mandatory 2 boys + 2 girls gender parity team composition.
+                  Featuring 3 premier challenges: <strong>Underwater Drone Submersible Navigation</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Underserved Community Innovation Pitch Defense</strong> (30%). Strict 2 boys + 2 girls gender parity team composition.
                 </p>
 
                 <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300 pt-1">
-                  <span>• October 16–18, 2026</span>
-                  <span>• National Championship Arena</span>
-                  <span>• Hardware Grants &amp; Lab Kits</span>
+                  <span className="text-cyan-400 font-bold">• November 06–07, 2026</span>
+                  <span>• Lake Chivero Aquatic Arena</span>
+                  <span className="text-emerald-400 font-bold">• $6,500 Prize Pool &amp; Lab Toolkits</span>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
                 <Link
-                  to="/competitions/yara-2026"
-                  className="px-6 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5"
+                  to="/competitions"
+                  className="px-6 py-3.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer"
                 >
-                  <Trophy className="w-4 h-4" />
-                  <span>Enter Team &amp; Read Rules</span>
+                  <Trophy className="w-4 h-4 text-slate-950" />
+                  <span>Register 4-Person Team</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <Link
-                  to="/competitions"
+                  to="/competition/live-results"
                   className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition border border-white/10"
                 >
-                  <span>All Competitions</span>
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span>Live Arena Board</span>
                 </Link>
               </div>
             </div>

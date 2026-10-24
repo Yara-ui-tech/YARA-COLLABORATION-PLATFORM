@@ -63,106 +63,7 @@ const simulationTools = [
   }
 ];
 
-export const CURATED_MATERIALS: StudyMaterial[] = [
-  {
-    id: 'mat_curated_01',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'YARA Engineering Faculty',
-    title: 'Robotics Systems & Circuit Engineering Handbook (Tier 1 & 2)',
-    description: 'Comprehensive 180-page textbook covering voltage, Ohm\'s law, solderless breadboards, sensor integration, and DC motor drivers.',
-    file_url: 'https://cyberbotics.com/doc/guide/index',
-    file_type: 'pdf',
-    category: 'book',
-    target_level: 'Level 0–2',
-    file_size_bytes: 4200000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-01-15').toISOString()
-  },
-  {
-    id: 'mat_curated_02',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'Simbarashe Manongwa',
-    title: 'Embedded C++ & Microcontroller Firmware Guide for ESP32 & Arduino',
-    description: 'Practical embedded programming handbook: registers, GPIO, PWM duty cycles, analog-to-digital conversion, and non-blocking state machines.',
-    file_url: 'https://docs.espressif.com/projects/esp-idf/en/latest/esp32/',
-    file_type: 'pdf',
-    category: 'book',
-    target_level: 'Level 3–5',
-    file_size_bytes: 5800000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-02-10').toISOString()
-  },
-  {
-    id: 'mat_curated_03',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'Dr. Chiambiro',
-    title: 'Autonomous Mobile Robotics, PID & Sensor Navigation Manual',
-    description: 'Field manual covering differential drive kinematics, ultrasonic echo timing, infrared reflective sensors, and closed-loop PID control loops.',
-    file_url: 'https://gazebosim.org/docs',
-    file_type: 'pdf',
-    category: 'book',
-    target_level: 'Level 4–7',
-    file_size_bytes: 7100000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-02-25').toISOString()
-  },
-  {
-    id: 'mat_curated_04',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'YARA Education Board',
-    title: 'AI for African STEM Educators & Robotics Patron Curriculum Guide',
-    description: 'Curriculum manual with lesson plans, classroom safety protocols, competition coaching rubrics, and diagnostic quiz frameworks for teachers.',
-    file_url: 'https://www.unesco.org/en/artificial-intelligence/education',
-    file_type: 'pdf',
-    category: 'book',
-    target_level: 'Educators & Patrons',
-    file_size_bytes: 3900000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-03-01').toISOString()
-  },
-  {
-    id: 'mat_curated_05',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'YARA Tech Labs',
-    title: 'Mastering ESP32 Microcontrollers, GPIO & Dual-Core FreeRTOS',
-    description: 'Video masterclass demonstrating pin multiplexing, interrupt handling, and real-time task scheduling on the ESP32 platform.',
-    file_url: 'https://www.youtube.com/watch?v=ly_x6i03j9I',
-    file_type: 'video',
-    category: 'video',
-    target_level: 'Level 3–5',
-    file_size_bytes: 84000000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-03-05').toISOString()
-  },
-  {
-    id: 'mat_curated_06',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'YARA Innovation Squad',
-    title: 'Autonomous Obstacle Avoidance Rover with Ultrasonic & IR Sensors',
-    description: 'Complete hands-on video guide to wiring an HC-SR04 sonar sensor, servo sweep, and obstacle-avoidance logic in C++.',
-    file_url: 'https://www.youtube.com/watch?v=ly_x6i03j9I',
-    file_type: 'video',
-    category: 'video',
-    target_level: 'Level 4–6',
-    file_size_bytes: 92000000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-03-12').toISOString()
-  },
-  {
-    id: 'mat_curated_07',
-    mentor_id: 'yara_faculty',
-    mentor_name: 'YARA Hardware Faculty',
-    title: 'L298N Dual H-Bridge Motor Driver & 5V Regulator Pinout Blueprint',
-    description: 'Engineering schematic blueprint detailing 2WD mobile chassis drive, enable jumpers, back-EMF protection diodes, and battery tie-in.',
-    file_url: 'https://cyberbotics.com/',
-    file_type: 'pdf',
-    category: 'lab',
-    target_level: 'Level 2–4',
-    file_size_bytes: 1800000,
-    thumbnail_url: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=800',
-    created_at: new Date('2026-03-18').toISOString()
-  }
-];
+export const CURATED_MATERIALS: StudyMaterial[] = [];
 
 export default function Resources() {
   const { user, profile } = useAuth();
@@ -201,13 +102,11 @@ export default function Resources() {
         console.warn('Database study_materials notice:', error);
       }
       
-      const dbItems = data || [];
-      const dbIds = new Set(dbItems.map((m: any) => m.id));
-      const merged = [...dbItems, ...CURATED_MATERIALS.filter(c => !dbIds.has(c.id))];
-      setMaterials(merged);
+      const dbItems = (data || []) as StudyMaterial[];
+      setMaterials(dbItems);
     } catch (error) {
       console.error('Error fetching materials:', error);
-      setMaterials(CURATED_MATERIALS);
+      setMaterials([]);
     } finally {
       setLoading(false);
     }

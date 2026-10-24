@@ -54,24 +54,15 @@ export interface SiteContentSection {
 
 const STORAGE_KEY = 'yara_site_content_sections';
 
+const isDisallowedSection = (s: SiteContentSection): boolean => {
+  if (!s) return true;
+  if (s.id === 'sec_home_announcement') return true;
+  if (s.title && s.title.toLowerCase().includes('pan-african robotics & ai challenge 2026')) return true;
+  return false;
+};
+
 // Default built-in starter sections that can be edited or removed by admin
 const DEFAULT_SECTIONS: SiteContentSection[] = [
-  {
-    id: 'sec_home_announcement',
-    page: 'home',
-    sectionType: 'hero_banner',
-    title: 'Pan-African Robotics & AI Challenge 2026',
-    subtitle: 'Registrations are now open for teams and mentors across Africa.',
-    badgeText: '🌟 Major Announcement',
-    themeColor: 'indigo',
-    content: 'Join over 5,000 innovators building high-impact robotics, IoT, and embedded AI solutions tailored for African industry and agriculture.',
-    ctaText: 'Register Competition Team',
-    ctaLink: '/competitions',
-    secondaryCtaText: 'Download Starter Kit',
-    secondaryCtaLink: '/resources',
-    sortOrder: 1,
-    isActive: true
-  },
   {
     id: 'sec_home_pillars',
     page: 'home',
@@ -159,14 +150,14 @@ export const getSiteSections = async (page?: PageTarget): Promise<SiteContentSec
       .maybeSingle();
 
     if (!error && data?.value && Array.isArray(data.value)) {
-      sections = data.value;
+      sections = (data.value as SiteContentSection[]).filter(s => !isDisallowedSection(s));
       if (typeof window !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
       }
     } else {
       const local = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
       if (local) {
-        sections = JSON.parse(local);
+        sections = (JSON.parse(local) as SiteContentSection[]).filter(s => !isDisallowedSection(s));
       } else {
         sections = DEFAULT_SECTIONS;
         if (typeof window !== 'undefined') {
@@ -176,17 +167,22 @@ export const getSiteSections = async (page?: PageTarget): Promise<SiteContentSec
     }
   } catch {
     const local = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    sections = local ? JSON.parse(local) : DEFAULT_SECTIONS;
+    sections = local ? (JSON.parse(local) as SiteContentSection[]).filter(s => !isDisallowedSection(s)) : DEFAULT_SECTIONS;
+  }
+
+  // Ensure storage is sanitized
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sections.filter(s => !isDisallowedSection(s))));
   }
 
   // Filter by target page if specified
   if (page && page !== 'all') {
     return sections
-      .filter(s => (s.page === page || s.page === 'all') && s.isActive)
+      .filter(s => (s.page === page || s.page === 'all') && s.isActive && !isDisallowedSection(s))
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  return sections.sort((a, b) => a.sortOrder - b.sortOrder);
+  return sections.filter(s => !isDisallowedSection(s)).sort((a, b) => a.sortOrder - b.sortOrder);
 };
 
 export const getAllSiteSectionsForAdmin = async (): Promise<SiteContentSection[]> => {
@@ -198,10 +194,11 @@ export const getAllSiteSectionsForAdmin = async (): Promise<SiteContentSection[]
       .maybeSingle();
 
     if (!error && data?.value && Array.isArray(data.value)) {
+      const sanitized = (data.value as SiteContentSection[]).filter(s => !isDisallowedSection(s));
       if (typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
       }
-      return (data.value as SiteContentSection[]).sort((a, b) => a.sortOrder - b.sortOrder);
+      return sanitized.sort((a, b) => a.sortOrder - b.sortOrder);
     }
   } catch {
     // fallback
@@ -210,7 +207,9 @@ export const getAllSiteSectionsForAdmin = async (): Promise<SiteContentSection[]
   const local = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
   if (local) {
     try {
-      return (JSON.parse(local) as SiteContentSection[]).sort((a, b) => a.sortOrder - b.sortOrder);
+      return (JSON.parse(local) as SiteContentSection[])
+        .filter(s => !isDisallowedSection(s))
+        .sort((a, b) => a.sortOrder - b.sortOrder);
     } catch {
       return DEFAULT_SECTIONS;
     }

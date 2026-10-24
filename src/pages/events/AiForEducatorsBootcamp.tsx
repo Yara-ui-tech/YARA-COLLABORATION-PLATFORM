@@ -349,12 +349,12 @@ export default function AiForEducatorsBootcamp() {
             <FileText className="w-3.5 h-3.5" />
             <span>Download Official Receipt / Check Status</span>
           </button>
-          <span className="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-full flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-            <span>Google Meet Live Portal</span>
+          <span className="px-3 py-1 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold rounded-full flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span>Cohort 1 Concluded (Archived)</span>
           </span>
-          <span className="px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-full">
-            Fee: US$10 | Mentorship: US$15/term
+          <span className="px-3 py-1 bg-indigo-900/60 border border-indigo-700/60 text-indigo-300 text-xs font-bold rounded-full">
+            Available On-Demand in LMS
           </span>
         </div>
       </div>
@@ -372,8 +372,8 @@ export default function AiForEducatorsBootcamp() {
               <span className="px-3.5 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full text-xs font-black uppercase tracking-wider">
                 Young Africans Robotics Association (YARA)
               </span>
-              <span className="px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-black uppercase tracking-wider">
-                Empower. Educate. Innovate.
+              <span className="px-3 py-1 bg-slate-800 text-amber-300 border border-amber-400/30 rounded-full text-xs font-black uppercase tracking-wider">
+                Cohort 1 Archive
               </span>
             </div>
 
@@ -391,26 +391,26 @@ export default function AiForEducatorsBootcamp() {
             {/* Quick Fact Badges */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Schedule</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cohort 1 Timeline</span>
                 <p className="text-xs font-bold text-white flex items-center space-x-1">
                   <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>31 Aug – 4 Sep 2026</span>
+                  <span>31 Aug – 4 Sep 2026 (Completed)</span>
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Registration Fee</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Format</span>
                 <p className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>US$10 Once-off</span>
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>On-Demand in LMS</span>
                 </p>
               </div>
 
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Continuous Support</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Credential</span>
                 <p className="text-xs font-bold text-purple-300 flex items-center space-x-1">
                   <Award className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                  <span>US$15 per term</span>
+                  <span>Accredited Certificate</span>
                 </p>
               </div>
             </div>
@@ -645,25 +645,23 @@ export default function AiForEducatorsBootcamp() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      setRegisteredResult(null);
-                      setShowRegModal(true);
-                    }}
-                    className="w-full py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
+                <div className="space-y-2.5">
+                  <Link
+                    to="/learning?course=ai-for-educators"
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-indigo-500 hover:from-amber-300 hover:to-indigo-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer"
                   >
-                    <span>Register for Event (US$10)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                    <BookOpen className="w-4 h-4 text-slate-950" />
+                    <span>Enroll in On-Demand Course in LMS</span>
+                    <ArrowRight className="w-4 h-4 text-slate-950" />
+                  </Link>
 
                   <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                    <span>Admin verifies payment & approves access</span>
+                    <span>Cohort 1 completed (31 Aug – 4 Sep)</span>
                     <button
                       onClick={() => setShowReceiptLookupModal(true)}
-                      className="text-indigo-400 hover:underline font-bold"
+                      className="text-cyan-400 hover:underline font-bold cursor-pointer"
                     >
-                      Already paid? Retrieve receipt
+                      Already attended? Retrieve receipt & cert
                     </button>
                   </div>
                 </div>

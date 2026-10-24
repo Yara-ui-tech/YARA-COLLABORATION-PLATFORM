@@ -25,7 +25,41 @@ export interface EventItem {
   created_at?: string;
 }
 
-export const INITIAL_EVENTS: EventItem[] = [];
+export const INITIAL_EVENTS: EventItem[] = [
+  {
+    id: 'yara-aquatic-rov-lab-2026',
+    title: 'Aquatic ROV Buoyancy & Thruster Telemetry Lab',
+    description: 'Hands-on practical calibration workshop for underwater remotely operated vehicles. Teams test waterproofing seals, neutral buoyancy ballast, brushless motor ESC signals, and live tethered video telemetry.',
+    date: 'November 06, 2026',
+    location: 'Lake Chivero Aquatic Science Pool, Harare',
+    image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+    registration_link: '/competitions',
+    is_upcoming: true,
+    category: 'Hardware Lab & Field Test'
+  },
+  {
+    id: 'yara-agro-drone-hack-2026',
+    title: 'Smart Agro-Robotics & AI Drone Innovation Sprint',
+    description: 'Practical hackathon tackling real food security challenges across rural farming through autonomous agro-drones, environmental IoT sensor networks, and smart irrigation controllers.',
+    date: 'November 20 – 21, 2026',
+    location: 'Chinhoyi University of Technology (CUT) Innovation Hub',
+    image_url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1200&q=80',
+    registration_link: '/competitions',
+    is_upcoming: true,
+    category: 'Agro-Tech Hackathon'
+  },
+  {
+    id: 'yara-micromouse-derby-2026',
+    title: 'National Autonomous Micromouse & Labyrinth Cup',
+    description: 'Precision autonomous rovers navigate unknown labyrinth corridors without remote human control. Uses ultrasonic sensor telemetry, flood-fill maze mapping algorithms, and closed-loop PID control.',
+    date: 'December 04 – 05, 2026',
+    location: 'National University of Science & Technology (NUST), Bulawayo',
+    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
+    registration_link: '/competitions',
+    is_upcoming: true,
+    category: 'Autonomous Arena'
+  }
+];
 
 export const INITIAL_COMPETITIONS: FallbackCompetition[] = [];
 
@@ -60,18 +94,19 @@ function saveLocalEvents(list: EventItem[]): void {
 
 export async function fetchAllEvents(): Promise<EventItem[]> {
   const deleted = getDeletedEventIds();
-  const mockEventIds = ['yara-workshop-01', 'yara-outreach-02'];
-  const localList = getLocalEvents().filter(e => !mockEventIds.includes(e.id));
+  // Filter out any past mock or expired events
+  const expiredOrMockIds = ['yara-workshop-01', 'yara-outreach-02', 'ai-for-educators-2026'];
+  const localList = getLocalEvents().filter(e => !expiredOrMockIds.includes(e.id) && !deleted.includes(e.id));
 
   const eventMap = new Map<string, EventItem>();
   INITIAL_EVENTS.forEach(evt => {
-    if (!deleted.includes(evt.id)) {
+    if (!deleted.includes(evt.id) && !expiredOrMockIds.includes(evt.id)) {
       eventMap.set(evt.id, evt);
     }
   });
 
   localList.forEach(evt => {
-    if (!deleted.includes(evt.id)) {
+    if (!deleted.includes(evt.id) && !expiredOrMockIds.includes(evt.id)) {
       eventMap.set(evt.id, evt);
     }
   });
@@ -84,17 +119,17 @@ export async function fetchAllEvents(): Promise<EventItem[]> {
 
     if (!error && data && data.length > 0) {
       data.forEach((item: any) => {
-        if (!deleted.includes(item.id)) {
+        if (!deleted.includes(item.id) && !expiredOrMockIds.includes(item.id)) {
           eventMap.set(item.id, {
             id: item.id,
             title: item.title,
             description: item.description || '',
             date: item.date || 'Upcoming 2026',
             location: item.location || 'YARA Arena',
-            image_url: item.image_url || 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80',
+            image_url: item.image_url || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
             registration_link: item.registration_link || '/events',
             is_upcoming: item.is_upcoming !== undefined ? item.is_upcoming : true,
-            category: item.category || 'Virtual Bootcamp'
+            category: item.category || 'Physical Tournament'
           });
         }
       });

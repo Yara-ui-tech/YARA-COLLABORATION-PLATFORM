@@ -60,12 +60,12 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
 
   if (!isPublished) {
     return (
-      <div className="p-8 bg-slate-50 border border-slate-200 rounded-3xl text-center space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+      <div className="p-8 bg-slate-900/80 border border-slate-800 rounded-3xl text-center space-y-3 backdrop-blur-sm">
+        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
           <Trophy className="w-6 h-6" />
         </div>
-        <h3 className="text-lg font-bold text-slate-800">Leaderboard Scoring in Progress</h3>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
+        <h3 className="text-lg font-bold text-white">Leaderboard Scoring in Progress</h3>
+        <p className="text-xs text-slate-400 max-w-md mx-auto">
           Judges are currently recording scores across the arena mission tanks and pitch sessions. Standings will be published by the YARA Technical Committee.
         </p>
       </div>
@@ -75,7 +75,7 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
   return (
     <div className="space-y-6">
       {/* Category Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
         <div className="flex flex-wrap gap-2">
           {[
             { id: 'overall' as const, label: '🏆 Overall Championship (35/35/30)', icon: Crown },
@@ -88,10 +88,10 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2",
+                "px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2 border",
                 activeTab === tab.id
-                  ? "bg-slate-900 text-white shadow-md"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30"
+                  : "bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-white border-slate-800"
               )}
             >
               <span>{tab.label}</span>
@@ -107,7 +107,7 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search teams or schools..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-600"
+            className="w-full pl-9 pr-4 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
@@ -116,21 +116,21 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
       {activeTab === 'awards' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {COMPETITION_AWARDS.map(award => (
-            <div key={award.title} className="p-5 bg-white rounded-3xl border border-slate-200 hover:border-indigo-200 transition-all shadow-sm space-y-2">
+            <div key={award.title} className="p-5 bg-slate-900/80 rounded-3xl border border-slate-800 hover:border-indigo-500/40 transition-all shadow-md space-y-2 backdrop-blur-sm">
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{award.badge}</span>
-                <h4 className="font-bold text-sm text-slate-900">{award.title}</h4>
+                <h4 className="font-bold text-sm text-white">{award.title}</h4>
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">{award.description}</p>
+              <p className="text-xs text-slate-400 leading-relaxed">{award.description}</p>
             </div>
           ))}
         </div>
       ) : (
         /* LEADERBOARD TABLE */
-        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-slate-900/80 rounded-3xl border border-slate-800 overflow-hidden shadow-xl backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200 text-[10px]">
+              <thead className="bg-slate-950/80 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800 text-[10px]">
                 <tr>
                   <th className="py-3.5 px-4 w-16 text-center">Rank</th>
                   <th className="py-3.5 px-4">Team & School</th>
@@ -154,7 +154,7 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-800/60">
                 {sortedStandings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-slate-400">
@@ -165,18 +165,18 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                   sortedStandings.map((team, idx) => {
                     const rank = idx + 1;
                     return (
-                      <tr key={team.team_id} className={cn("hover:bg-slate-50/80 transition-colors", rank === 1 ? "bg-amber-50/30" : "")}>
+                      <tr key={team.team_id} className={cn("hover:bg-slate-800/50 transition-colors", rank === 1 ? "bg-amber-500/10" : "")}>
                         <td className="py-3.5 px-4 text-center font-bold">
                           {rank === 1 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black shadow-sm">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30">
                               1
                             </span>
                           ) : rank === 2 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300 text-slate-800 font-black">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-700 text-slate-100 font-black">
                               2
                             </span>
                           ) : rank === 3 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700/30 text-amber-900 font-black">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-800/70 text-amber-200 font-black">
                               3
                             </span>
                           ) : (
@@ -185,25 +185,25 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                         </td>
 
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900">{team.team_name}</div>
-                          <div className="text-[11px] text-slate-500">{team.school_organization}</div>
+                          <div className="font-bold text-white">{team.team_name}</div>
+                          <div className="text-[11px] text-slate-400">{team.school_organization}</div>
                         </td>
 
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{team.province}</td>
+                        <td className="py-3.5 px-4 text-slate-300 font-medium">{team.province}</td>
 
                         {activeTab === 'overall' && (
                           <>
-                            <td className="py-3.5 px-3 text-center font-mono">
+                            <td className="py-3.5 px-3 text-center font-mono text-slate-300">
                               {team.underwater_score !== undefined ? `${team.underwater_score}` : '—'}
                             </td>
-                            <td className="py-3.5 px-3 text-center font-mono">
+                            <td className="py-3.5 px-3 text-center font-mono text-slate-300">
                               {team.maze_score !== undefined ? `${team.maze_score}` : '—'}
                             </td>
-                            <td className="py-3.5 px-3 text-center font-mono">
+                            <td className="py-3.5 px-3 text-center font-mono text-slate-300">
                               {team.pitch_score !== undefined ? `${team.pitch_score}` : '—'}
                             </td>
                             <td className="py-3.5 px-4 text-right">
-                              <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-black font-mono text-xs">
+                              <span className="px-2.5 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 font-black font-mono text-xs">
                                 {team.overall_championship_score} pts
                               </span>
                             </td>
@@ -211,19 +211,19 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                         )}
 
                         {activeTab === 'underwater_drone' && (
-                          <td className="py-3.5 px-4 text-right font-black font-mono text-blue-700">
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-blue-400">
                             {team.underwater_score !== undefined ? `${team.underwater_score} / 100` : 'Not Entered'}
                           </td>
                         )}
 
                         {activeTab === 'autonomous_maze' && (
-                          <td className="py-3.5 px-4 text-right font-black font-mono text-amber-700">
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-amber-400">
                             {team.maze_score !== undefined ? `${team.maze_score} / 100` : 'Not Entered'}
                           </td>
                         )}
 
                         {activeTab === 'innovation_pitch' && (
-                          <td className="py-3.5 px-4 text-right font-black font-mono text-emerald-700">
+                          <td className="py-3.5 px-4 text-right font-black font-mono text-emerald-400">
                             {team.pitch_score !== undefined ? `${team.pitch_score} / 100` : 'Not Entered'}
                           </td>
                         )}

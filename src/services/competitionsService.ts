@@ -6,88 +6,32 @@ const DELETED_KEY = 'yara_deleted_competition_ids';
 
 export const DEFAULT_COMPETITIONS: Competition[] = [
   {
-    id: 'yara-2026-flagship',
-    slug: 'yara-2026',
-    title: 'YARA Educational Robotics Competition 2026',
-    subtitle: '“Engineering Opportunity: Robotics and Autonomous Innovation for Underserved Youth”',
-    description: 'The premier continental robotics and STEM championship. Features Underwater Drone Navigation (35%), Autonomous Maze Solving (35%), and Community Innovation Pitches (30%). Teams must strictly comprise 4+ members with a balanced 2 Boys + 2 Girls gender parity ratio.',
-    category: 'flagship_robotics',
-    format: 'hybrid',
-    status: 'upcoming',
-    start_date: '2026-10-16T08:00:00.000Z',
-    end_date: '2026-10-18T18:00:00.000Z',
-    registration_deadline: '2026-09-30T23:59:59.000Z',
-    location: 'YARA National Science Arena & Innovation Pool, Harare',
-    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$15,000 Prize Pool & STEM Grants',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 64,
-    registered_teams_count: 14,
-    eligibility: 'High Schools, Polytechnics, Universities, and Community Youth Chapters (Mandatory 2B + 2G ratio)',
-    rules_summary: 'Underwater Drone buoyancy payload recovery (35%), Micromouse ultrasonic maze solving (35%), and Community Impact technology pitch (30%).',
-    is_featured: true,
-    display_order: 1,
-    tags: ['Flagship', 'Underwater ROV', 'Autonomous Navigation', 'Innovation Pitch']
-  },
-  {
     id: 'yara-underwater-rov-open',
     slug: 'underwater-rov-challenge',
-    title: 'YARA Aquatic ROV & Submersible Navigation Open',
-    subtitle: 'Underwater Marine Telemetry, Waterproofing & Depth Buoyancy Challenge',
+    title: 'YARA Aquatic ROV & Submersible Navigation Open 2026',
+    subtitle: 'Underwater Marine Telemetry, Hydrodynamics & Depth Buoyancy Challenge',
     description: 'Specialized aquatic robotics championship focused on submersible exploration, underwater acoustics, brushless thruster control, and ecological water sensor retrieval in deep pool courses.',
     category: 'underwater_rov',
     format: 'in_person',
     status: 'upcoming',
     start_date: '2026-11-06T09:00:00.000Z',
     end_date: '2026-11-07T17:00:00.000Z',
-    registration_deadline: '2026-10-25T23:59:59.000Z',
+    registration_deadline: '2026-10-31T23:59:59.000Z',
     location: 'Lake Chivero Aquatic Science Centre & Training Pool',
     image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
     banner_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1600&q=80',
     internal_route: '/competitions/yara-2026',
     registration_link: '/competition/participant',
-    prize_pool: '$5,000 + Aquatic Electronics Toolkits',
+    prize_pool: '$6,500 + Aquatic Electronics Toolkits',
     entry_fee: 0.00,
     currency: 'USD',
     max_teams: 32,
-    registered_teams_count: 8,
-    eligibility: 'Student robotics teams with functional waterproof submersibles',
+    registered_teams_count: 12,
+    eligibility: 'Student robotics teams with functional waterproof submersibles (Mandatory 2B + 2G ratio)',
     rules_summary: 'Submersible must perform submerged pipe inspections, retrieve seabed markers at 3.5m depth, and beam live optical telemetry.',
     is_featured: true,
-    display_order: 2,
+    display_order: 1,
     tags: ['Aquatic Drone', 'Waterproofing', 'Marine Tech', 'Telemetry']
-  },
-  {
-    id: 'yara-maze-derby-2026',
-    slug: 'high-school-maze-derby',
-    title: 'National High School Autonomous Maze Derby 2026',
-    subtitle: 'Precision Micromouse, Wall Following & Speed Labyrinth Solving',
-    description: 'High-octane autonomous rover race where high school teams code ground robots to navigate complex dynamic labyrinths using ultrasonic, LiDAR, and PID loop algorithms.',
-    category: 'autonomous_vehicles',
-    format: 'in_person',
-    status: 'upcoming',
-    start_date: '2026-09-25T08:30:00.000Z',
-    end_date: '2026-09-26T16:30:00.000Z',
-    registration_deadline: '2026-09-15T23:59:59.000Z',
-    location: 'National University of Science & Technology (NUST), Bulawayo',
-    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$3,500 STEM Equipment Grants',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 40,
-    registered_teams_count: 14,
-    eligibility: 'All high school chapters across Zimbabwe’s 10 provinces',
-    rules_summary: 'Strictly zero manual control. Time penalties applied for collisions. Best 2 out of 3 runs scored.',
-    is_featured: false,
-    display_order: 3,
-    tags: ['Micromouse', 'High School', 'PID Control', 'Sensors']
   },
   {
     id: 'yara-smart-agri-hack',
@@ -100,7 +44,7 @@ export const DEFAULT_COMPETITIONS: Competition[] = [
     status: 'upcoming',
     start_date: '2026-11-20T08:00:00.000Z',
     end_date: '2026-11-22T18:00:00.000Z',
-    registration_deadline: '2026-11-10T23:59:59.000Z',
+    registration_deadline: '2026-11-15T23:59:59.000Z',
     location: 'Chinhoyi University of Technology (CUT) Innovation Hub',
     image_url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1200&q=80',
     banner_url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=1600&q=80',
@@ -110,12 +54,96 @@ export const DEFAULT_COMPETITIONS: Competition[] = [
     entry_fee: 0.00,
     currency: 'USD',
     max_teams: 30,
-    registered_teams_count: 6,
+    registered_teams_count: 9,
     eligibility: 'Open to youth innovators, tertiary students, and agrarian innovators',
     rules_summary: 'Deploy hardware and computer vision prototypes tested on crop beds or calibrated simulation rigs.',
-    is_featured: false,
-    display_order: 4,
+    is_featured: true,
+    display_order: 2,
     tags: ['Agro-Tech', 'Drones', 'IoT', 'Food Security']
+  },
+  {
+    id: 'yara-maze-derby-winter',
+    slug: 'autonomous-maze-derby',
+    title: 'National Autonomous Micromouse & Labyrinth Derby 2026/2027',
+    subtitle: 'Precision Micromouse, Wall Following & Speed Labyrinth Solving',
+    description: 'High-octane autonomous rover tournament where teams code ground robots to navigate complex dynamic labyrinths using ultrasonic, LiDAR, and PID loop algorithms.',
+    category: 'autonomous_vehicles',
+    format: 'in_person',
+    status: 'upcoming',
+    start_date: '2026-12-04T08:30:00.000Z',
+    end_date: '2026-12-05T17:00:00.000Z',
+    registration_deadline: '2026-11-28T23:59:59.000Z',
+    location: 'National University of Science & Technology (NUST), Bulawayo',
+    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
+    banner_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1600&q=80',
+    internal_route: '/competitions/yara-2026',
+    registration_link: '/competition/participant',
+    prize_pool: '$4,500 STEM Equipment Grants',
+    entry_fee: 0.00,
+    currency: 'USD',
+    max_teams: 40,
+    registered_teams_count: 18,
+    eligibility: 'All primary and high school chapters across Zimbabwe’s 10 provinces',
+    rules_summary: 'Strictly zero manual control. Time penalties applied for collisions. Best 2 out of 3 runs scored.',
+    is_featured: false,
+    display_order: 3,
+    tags: ['Micromouse', 'PID Control', 'Sensors', 'Autonomous Navigation']
+  },
+  {
+    id: 'yara-2027-flagship',
+    slug: 'yara-2027',
+    title: 'YARA Continental Robotics Grand Championship 2027',
+    subtitle: '“Engineering Opportunity: Robotics & AI for Africa’s Underserved Youth”',
+    description: 'The premier continental championship bringing together top young minds across Zimbabwe and Africa. Features Underwater Drone Submersible Navigation (35%), Autonomous Maze Solving (35%), and Community Innovation Pitches (30%). Teams must strictly comprise at least 4 members with a balanced 2 Boys + 2 Girls ratio.',
+    category: 'flagship_robotics',
+    format: 'hybrid',
+    status: 'upcoming',
+    start_date: '2027-03-26T08:00:00.000Z',
+    end_date: '2027-03-28T18:00:00.000Z',
+    registration_deadline: '2027-03-10T23:59:59.000Z',
+    location: 'YARA National Science Arena & Innovation Pool, Harare',
+    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
+    banner_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80',
+    internal_route: '/competitions/yara-2026',
+    registration_link: '/competition/participant',
+    prize_pool: '$15,000 Prize Pool & STEM Grants',
+    entry_fee: 0.00,
+    currency: 'USD',
+    max_teams: 64,
+    registered_teams_count: 22,
+    eligibility: 'High Schools, Polytechnics, Universities, and Community Youth Chapters (Mandatory 2B + 2G ratio)',
+    rules_summary: 'Underwater Drone buoyancy payload recovery (35%), Micromouse ultrasonic maze solving (35%), and Community Impact technology pitch (30%).',
+    is_featured: true,
+    display_order: 4,
+    tags: ['Flagship', 'Underwater ROV', 'Autonomous Navigation', 'Innovation Pitch']
+  },
+  {
+    id: 'yara-2026-flagship',
+    slug: 'yara-2026-concluded',
+    title: 'YARA Educational Robotics Competition 2026 (Completed)',
+    subtitle: 'Season 2026 National Championship & Arena Finals',
+    description: 'The inaugural 2026 national robotics championship. Competitors tackled Underwater Drone Missions, Autonomous Maze Navigation, and Innovation Pitches. Archived results and award winners are viewable in the Live Results portal.',
+    category: 'flagship_robotics',
+    format: 'hybrid',
+    status: 'completed',
+    start_date: '2026-10-16T08:00:00.000Z',
+    end_date: '2026-10-18T18:00:00.000Z',
+    registration_deadline: '2026-09-30T23:59:59.000Z',
+    location: 'YARA National Science Arena, Harare',
+    image_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1200&q=80',
+    banner_url: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=1600&q=80',
+    internal_route: '/competition/live-results',
+    registration_link: '/competition/live-results',
+    prize_pool: '$15,000 Awarded',
+    entry_fee: 0.00,
+    currency: 'USD',
+    max_teams: 64,
+    registered_teams_count: 64,
+    eligibility: 'High Schools & Youth Chapters (Completed)',
+    rules_summary: 'Championship completed. Results certified by arbitration judges.',
+    is_featured: false,
+    display_order: 10,
+    tags: ['Completed', 'Archived', 'National Arena']
   }
 ];
 
@@ -148,6 +176,21 @@ function saveLocalCustomCompetitions(comps: Competition[]) {
 export async function getCompetitions(): Promise<Competition[]> {
   const deletedIds = getDeletedIds();
   const localCustom = getLocalCustomCompetitions();
+  const now = new Date();
+
+  // Helper to dynamically calculate if competition is expired
+  const computeStatus = (c: any): 'upcoming' | 'active' | 'completed' => {
+    if (c.status === 'completed') return 'completed';
+    const endDate = c.end_date ? new Date(c.end_date) : null;
+    const startDate = c.start_date ? new Date(c.start_date) : null;
+    if (endDate && endDate < now) {
+      return 'completed';
+    }
+    if (startDate && startDate <= now && endDate && endDate >= now) {
+      return 'active';
+    }
+    return c.status || 'upcoming';
+  };
 
   try {
     const { data, error } = await supabase
@@ -168,7 +211,7 @@ export async function getCompetitions(): Promise<Competition[]> {
           description: c.description || '',
           category: c.category || 'flagship_robotics',
           format: c.format || 'hybrid',
-          status: c.status || 'upcoming',
+          status: computeStatus(c),
           start_date: c.start_date || new Date().toISOString(),
           end_date: c.end_date || new Date().toISOString(),
           registration_deadline: c.registration_deadline || null,
@@ -193,7 +236,9 @@ export async function getCompetitions(): Promise<Competition[]> {
 
       // Merge with any extra local ones not in DB
       const dbIds = new Set(formatted.map(f => f.id));
-      const extras = localCustom.filter(lc => !dbIds.has(lc.id) && !deletedIds.includes(lc.id));
+      const extras = localCustom
+        .filter(lc => !dbIds.has(lc.id) && !deletedIds.includes(lc.id))
+        .map(c => ({ ...c, status: computeStatus(c) }));
       return [...formatted, ...extras];
     }
   } catch (err) {
@@ -204,12 +249,12 @@ export async function getCompetitions(): Promise<Competition[]> {
   const baseMap = new Map<string, Competition>();
   DEFAULT_COMPETITIONS.forEach(c => {
     if (!deletedIds.includes(c.id) && !deletedIds.includes(c.slug)) {
-      baseMap.set(c.id, c);
+      baseMap.set(c.id, { ...c, status: computeStatus(c) });
     }
   });
   localCustom.forEach(c => {
     if (!deletedIds.includes(c.id)) {
-      baseMap.set(c.id, c);
+      baseMap.set(c.id, { ...c, status: computeStatus(c) });
     }
   });
 

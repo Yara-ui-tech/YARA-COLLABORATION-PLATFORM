@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { 
   CreditCard, Smartphone, Building2, CheckCircle2, ShieldCheck, 
   Lock, X, ArrowRight, Printer, Download, Sparkles, AlertCircle, 
@@ -236,7 +237,7 @@ export default function UniversalPaymentGatewayModal({
     window.print();
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
@@ -634,6 +635,7 @@ export default function UniversalPaymentGatewayModal({
           </form>
         )}
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

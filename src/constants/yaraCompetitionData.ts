@@ -2,15 +2,15 @@ import { CompetitionEventConfig } from '../types/yaraCompetition';
 
 export const YARA_EVENT_2026_DEFAULT: CompetitionEventConfig = {
   id: 'yara-competition-2026',
-  name: 'YARA EDUCATIONAL ROBOTICS COMPETITION 2026',
+  name: 'YARA EDUCATIONAL ROBOTICS CHAMPIONSHIP',
   edition_year: 2026,
   theme: 'Engineering Opportunity: Robotics and Innovation for Underserved Youth',
   tagline: 'Innovate for Inclusion. Build for Impact.',
-  description: 'The flagship national and continental championship organized by the Young Africans Robotics Association (YARA). Bringing together brilliant student builders, schools, and youth tech teams to compete in Underwater Robotics, Autonomous Maze Solving, and Technology for the Underserved innovation pitches.',
+  description: 'The flagship national and continental championship series organized by the Young Africans Robotics Association (YARA). Bringing together brilliant student builders, schools, and youth tech teams to compete in Underwater Robotics, Autonomous Maze Solving, and Technology for the Underserved innovation pitches.',
   organizer: 'Young Africans Robotics Association (YARA)',
-  date_display: 'October 16 – 18, 2026 (Dates subject to official finalization by organizing committee)',
-  venue_display: 'National Science & Innovation Arena / Virtual Live Stream',
-  registration_deadline_display: 'September 20, 2026 (Early Team Registration Open)',
+  date_display: 'March 26 – 28, 2027 (Continental Grand Finals) • Regional Qualifiers Underway',
+  venue_display: 'National Science Arena & Virtual Tele-Arena Stream',
+  registration_deadline_display: 'November 28, 2026 (Phase 2 Cohort Open)',
   is_registration_open: true,
   is_leaderboard_published: true,
   categories: [
