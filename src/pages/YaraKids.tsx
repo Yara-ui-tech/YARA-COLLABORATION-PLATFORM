@@ -7,7 +7,7 @@ import {
 } from '../services/yaraKidsService';
 import { 
   Play, Pause, Music, Video, BookOpen, Trophy, 
-  Star, Volume2, RotateCcw, CheckCircle2, Award, Heart, HelpCircle, X
+  Star, Volume2, RotateCcw, CheckCircle2, Award, Heart, HelpCircle, X, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 

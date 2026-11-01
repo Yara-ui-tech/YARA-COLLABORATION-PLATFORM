@@ -27,6 +27,7 @@ interface UserProfile {
   total_commission: number;
   commission_rate: number;
   amount_paid?: number;
+  total_dues?: number | string;
   phone_number?: string;
   school_institution?: string;
   location_region?: string;

@@ -193,6 +193,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT 'approved';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS registration_paid BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS total_dues DECIMAL(10,2) DEFAULT 15.00;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS commission_due NUMERIC(10,2) DEFAULT 0.00;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import PlaceholderImage from '../components/PlaceholderImage';
-import { Star, MessageSquare, Award, CheckCircle2, User, RefreshCw } from 'lucide-react';
+import { Star, MessageSquare, Award, CheckCircle2, User, RefreshCw, BookOpen, Users, Radio } from 'lucide-react';
 
 export default function MentorDashboard() {
   const { profile, refreshProfile } = useAuth();

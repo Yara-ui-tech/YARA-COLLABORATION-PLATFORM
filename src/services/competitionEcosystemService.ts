@@ -329,7 +329,34 @@ export async function verifyCertificateById(certId: string): Promise<DigitalCert
   const list = await getCertificates();
   const normalized = certId.trim().toUpperCase();
   const found = list.find(c => c.certificate_id.toUpperCase() === normalized || c.qr_code_hash.toUpperCase() === normalized);
-  return found || null;
+  if (found) return found;
+
+  try {
+    const { data } = await supabase
+      .from('certificates')
+      .select('*')
+      .ilike('certificate_number', normalized)
+      .maybeSingle();
+
+    if (data) {
+      return {
+        certificate_id: data.certificate_number || data.id,
+        recipient_name: data.student_name,
+        recipient_email: '',
+        type: 'participant',
+        event_name: data.course_title || 'YARA Educational Robotics Championship',
+        edition_year: new Date(data.created_at || Date.now()).getFullYear(),
+        achievement_title: data.grade || 'Certified Technical Competence',
+        issued_date: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+        qr_code_hash: data.certificate_number || data.id,
+        is_verified: true
+      };
+    }
+  } catch (err) {
+    console.warn('Supabase certificate query notice:', err);
+  }
+
+  return null;
 }
 
 // ==========================================

@@ -21,7 +21,8 @@ import {
   MapPin, 
   RotateCcw,
   Trash2,
-  Award
+  Award,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
 import { ASSETS } from '../constants/assets';
