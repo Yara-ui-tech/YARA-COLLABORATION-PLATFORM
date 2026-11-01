@@ -1,45 +1,27 @@
 import React, { useState, useEffect } from 'react';
-// YARA Unified Single-Page Platform
 import { Link } from 'react-router-dom';
 import { 
-  Cpu, 
-  Brain, 
-  Trophy, 
-  Users, 
-  Calendar, 
-  ArrowRight, 
-  ShieldCheck, 
-  CheckCircle2, 
-  ChevronRight, 
-  GraduationCap, 
-  Sparkles, 
   Globe, 
   BookOpen, 
-  Phone, 
-  Mail, 
-  CreditCard, 
-  MapPin, 
-  RotateCcw,
-  Trash2,
-  Award,
-  Zap
+  Trophy, 
+  GraduationCap, 
+  ArrowRight, 
+  CheckCircle2, 
+  ChevronRight,
+  Sparkles,
+  Users,
+  ShieldCheck,
+  Cpu,
+  Award
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
-import { ASSETS } from '../constants/assets';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
 import QuickAuthCard from '../components/home/QuickAuthCard';
-import QuickCertVerify from '../components/home/QuickCertVerify';
 
 export default function Home() {
-  const { user, profile } = useAuth();
-  const isAdmin = profile?.role === 'admin' || profile?.email === 'manongwasimbarashe394@gmail.com' || profile?.email === 'goyaracorp@gmail.com';
-  
-  const [isFlagshipDismissed, setIsFlagshipDismissed] = useState(() => {
-    return localStorage.getItem('yara_hide_home_flagship') === 'true';
-  });
-  
+  const { user } = useAuth();
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
   const [trendingPopup, setTrendingPopup] = useState<OrganizationPost | null>(null);
 
@@ -61,33 +43,18 @@ export default function Home() {
 
   const impactMetrics = [
     { value: '1,200+', label: 'Students Reached', sub: 'Hands-on hardware labs' },
-    { value: '14+', label: 'School Clubs', sub: 'Mashwest & Harare network' },
+    { value: '14+', label: 'School Clubs', sub: 'Active provincial chapters' },
     { value: '100%', label: 'Gender Parity', sub: '2 Boys + 2 Girls team rule' },
     { value: '42', label: 'Micro-Modules', sub: 'Tiers 1 to 4 mastered' },
   ];
 
-  const quickNavTabs = [
-    { label: 'LMS Academy', target: 'lms', icon: BookOpen },
-    { label: '2026 Championship', target: 'competitions', icon: Trophy },
-    { label: 'School Clubs', target: 'clubs', icon: GraduationCap },
-    { label: 'Verify Certificate', target: 'verify', icon: ShieldCheck },
-    { label: 'About & Contact', target: 'contact', icon: Phone },
-  ];
-
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <div className="space-y-16 pb-20 text-slate-100">
+    <div className="space-y-16 pb-20 text-slate-100 font-sans">
       
       {/* =========================================================================
-          1. HERO & INSTANT LMS SIGN IN / SIGN UP (Everything on the first screen)
+          1. HERO SECTION (Focused strictly on Home)
          ========================================================================= */}
-      <section id="top" className="relative overflow-hidden pt-8 pb-16 lg:pt-14 lg:pb-20 border-b border-slate-800/80">
+      <section className="relative overflow-hidden pt-8 pb-16 lg:pt-14 lg:pb-20 border-b border-slate-800/80">
         {/* Glow Effects */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-gradient-to-tr from-blue-600/20 via-indigo-600/15 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -119,24 +86,24 @@ export default function Home() {
                 We equip young Africans, teachers, and schools with hands-on technical skills in <strong className="text-white">Robotics</strong>, <strong className="text-white">Engineering</strong>, <strong className="text-white">Artificial Intelligence</strong>, <strong className="text-white">IoT</strong>, and <strong className="text-white">STEM Education</strong> to solve real local challenges.
               </p>
 
-              {/* Action Jump Buttons */}
+              {/* Direct Standalone Tab Navigation Buttons */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-1">
-                <button
-                  onClick={() => scrollToSection('lms')}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-blue-900/30 transition-all hover:scale-105 flex items-center gap-2 cursor-pointer"
+                <Link
+                  to="/learn"
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-blue-900/30 transition-all hover:scale-105 flex items-center gap-2 cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>Explore Courses Below</span>
+                  <span>Explore Academy</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
 
-                <button
-                  onClick={() => scrollToSection('competitions')}
-                  className="px-5 py-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+                <Link
+                  to="/competitions"
+                  className="px-5 py-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <span>2026 Championship Arena</span>
-                </button>
+                  <span>2026 Championship</span>
+                </Link>
               </div>
 
               {/* Trust Indicators */}
@@ -147,18 +114,18 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Verified 2B+2G Gender Parity</span>
+                  <span>Mandatory Gender Parity</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Authentic School Hardware Labs</span>
+                  <span>School Hardware Labs</span>
                 </div>
               </div>
 
               {/* Impact Metrics strip */}
               <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {impactMetrics.map((m, i) => (
-                  <div key={i} className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-center lg:text-left">
+                  <div key={i} className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-center lg:text-left">
                     <span className="text-xl sm:text-2xl font-black text-cyan-400 block">
                       {m.value}
                     </span>
@@ -170,9 +137,9 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: Direct On-Page Sign In / Sign Up to LMS */}
+            {/* Right Column: LMS Sign In / Sign Up Card */}
             <div className="lg:col-span-5 flex justify-center">
-              <QuickAuthCard onGuestExplore={() => scrollToSection('lms')} />
+              <QuickAuthCard />
             </div>
 
           </div>
@@ -180,7 +147,7 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          OFFICIAL NEWS & ANNOUNCEMENTS AT FOREFRONT
+          2. OFFICIAL NEWS & ANNOUNCEMENTS
          ========================================================================= */}
       {recentPosts && recentPosts.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
@@ -192,7 +159,7 @@ export default function Home() {
               </h2>
             </div>
             <Link to="/posts" className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1">
-              <span>View All News</span>
+              <span>View All Press</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -220,7 +187,7 @@ export default function Home() {
                 <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{post.author_name || 'YARA Directorate'}</span>
                   <Link to="/posts" className="text-blue-400 hover:underline font-semibold flex items-center gap-1">
-                    <span>Read</span>
+                    <span>Read More</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -231,399 +198,85 @@ export default function Home() {
       )}
 
       {/* =========================================================================
-          2. QUICK IN-PAGE NAVIGATION (Jump directly to any section on the same page)
+          3. PLATFORM GATEWAYS (Concise previews linking to Standalone Tabs)
          ========================================================================= */}
-      <nav aria-label="Page Sections" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 scrollbar-none">
-          {quickNavTabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.target}
-                onClick={() => scrollToSection(tab.target)}
-                className="px-4 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 transition shrink-0 cursor-pointer shadow-sm"
-              >
-                <Icon className="w-3.5 h-3.5 text-blue-400" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* =========================================================================
-          3. LMS ACADEMY & COURSES EXPLORER (Same Page)
-         ========================================================================= */}
-      <section id="lms" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 scroll-mt-24">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
-              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
-              <span>YARA Learning Platform (LMS) • 42 Micro-Modules</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Curriculum Stages &amp; Hands-On Pathways
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
-              From absolute breadboard circuits to autonomous maze mapping, embedded C++, and accredited STEM credentials. Works in Data-Saver mode.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/learn"
-              className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-blue-900/30 flex items-center gap-2 transition shrink-0"
-            >
-              <span>Open Full LMS Screen</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* 4 Progressive Learning Stages */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Stage 1 */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-sky-500/40 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-black uppercase">
-                  Stage 1 • S00–S07
-                </span>
-                <span className="text-[10px] font-bold text-emerald-400">Low Data ~3.2 MB</span>
-              </div>
-              <h3 className="text-base font-black text-white">Tier 1: Curious Beginner</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Foundations of robotics, Ohm’s law, breadboarding, safety protocols, and block-based coding logic.
-              </p>
-              <div className="p-3 bg-slate-950 rounded-xl text-[11px] text-slate-300 space-y-1 border border-slate-800/80">
-                <div className="flex justify-between"><span className="text-slate-400">Modules:</span><span className="font-bold text-white">8 Sessions</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Kit:</span><span className="font-bold text-emerald-400">Simulation / Free</span></div>
-              </div>
-            </div>
-
-            <Link
-              to="/learn?tab=courses&tier=1"
-              className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-sky-400 hover:text-sky-300 transition"
-            >
-              <span>Start Stage 1</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Stage 2 */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-400 border border-indigo-800 text-[10px] font-black uppercase">
-                  Stage 2 • S08–S19
-                </span>
-                <span className="text-[10px] font-bold text-indigo-300">12 Sessions</span>
-              </div>
-              <h3 className="text-base font-black text-white">Tier 2: Intermediate Maker</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Embedded C++, Arduino &amp; ESP32 architecture, ultrasonic range sensors, motor drivers, and chassis geometry.
-              </p>
-              <div className="p-3 bg-slate-950 rounded-xl text-[11px] text-slate-300 space-y-1 border border-slate-800/80">
-                <div className="flex justify-between"><span className="text-slate-400">Modules:</span><span className="font-bold text-white">12 Sessions</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Focus:</span><span className="font-bold text-indigo-400">Microcontrollers</span></div>
-              </div>
-            </div>
-
-            <Link
-              to="/learn?tab=courses&tier=2"
-              className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-indigo-400 hover:text-indigo-300 transition"
-            >
-              <span>Start Stage 2</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Stage 3 */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full bg-purple-950 text-purple-400 border border-purple-800 text-[10px] font-black uppercase">
-                  Stage 3 • S20–S27
-                </span>
-                <span className="text-[10px] font-bold text-purple-300">8 High-Order</span>
-              </div>
-              <h3 className="text-base font-black text-white">Tier 3: Autonomous Systems</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Autonomous maze solving, PID line-following algorithms, IoT environmental telemetry, and TinyML Edge AI.
-              </p>
-              <div className="p-3 bg-slate-950 rounded-xl text-[11px] text-slate-300 space-y-1 border border-slate-800/80">
-                <div className="flex justify-between"><span className="text-slate-400">Control:</span><span className="font-bold text-white">Closed-Loop PID</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Telemetry:</span><span className="font-bold text-purple-400">IoT Cloud</span></div>
-              </div>
-            </div>
-
-            <Link
-              to="/learn?tab=courses&tier=3"
-              className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-purple-400 hover:text-purple-300 transition"
-            >
-              <span>Start Stage 3</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {/* Stage 4 */}
-          <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-4">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-black uppercase">
-                  Stage 4 • S28–S36
-                </span>
-                <span className="text-[10px] font-bold text-amber-300">Capstone</span>
-              </div>
-              <h3 className="text-base font-black text-white">Tier 4: Capstone &amp; Defense</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Physical prototype engineering defense, 21-point technical writeup, accredited certificates &amp; championship entry.
-              </p>
-              <div className="p-3 bg-slate-950 rounded-xl text-[11px] text-slate-300 space-y-1 border border-slate-800/80">
-                <div className="flex justify-between"><span className="text-slate-400">Outcome:</span><span className="font-bold text-amber-300">Verified Certificate</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Arena:</span><span className="font-bold text-white">Championship Entry</span></div>
-              </div>
-            </div>
-
-            <Link
-              to="/learn?tab=courses&tier=4"
-              className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-amber-400 hover:text-amber-300 transition"
-            >
-              <span>Start Stage 4</span>
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          4. 2026 CHAMPIONSHIP & ROBOTICS ARENA (Same Page)
-         ========================================================================= */}
-      <section id="competitions" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        {!isFlagshipDismissed ? (
-          <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-slate-800 p-6 sm:p-10 text-white shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Admin Delete Action Button */}
-            {isAdmin && (
-              <div className="absolute top-4 right-4 z-20">
-                <button
-                  onClick={() => {
-                    if (window.confirm("Remove Flagship Event banner?")) {
-                      localStorage.setItem('yara_hide_home_flagship', 'true');
-                      setIsFlagshipDismissed(true);
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Delete Banner</span>
-                </button>
-              </div>
-            )}
-
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-              <div className="space-y-3.5 max-w-2xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 text-xs font-black uppercase tracking-wider">
-                    Next Championship Arena
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Team Registrations Active</span>
-                  </span>
-                </div>
-
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
-                  YARA Aquatic ROV &amp; Submersible Navigation Open 2026
-                </h3>
-
-                <p className="text-cyan-300 text-xs sm:text-sm font-bold">
-                  Theme: “Engineering Opportunity: Underwater Robotics, Marine Telemetry &amp; Autonomous Systems”
-                </p>
-
-                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                  Featuring 3 premier challenges: <strong>Underwater Drone Submersible Navigation</strong> (35%), <strong>Autonomous Maze Solving</strong> (35%), and <strong>Underserved Community Innovation Pitch Defense</strong> (30%). Strict 2 boys + 2 girls gender parity team composition.
-                </p>
-
-                <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-300 pt-1">
-                  <span className="text-cyan-400 font-bold">• November 06–07, 2026</span>
-                  <span>• Lake Chivero Aquatic Arena</span>
-                  <span className="text-emerald-400 font-bold">• $6,500 Prize Pool &amp; Lab Toolkits</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-                <Link
-                  to="/competitions"
-                  className="px-6 py-3.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer"
-                >
-                  <Trophy className="w-4 h-4 text-slate-950" />
-                  <span>Register 4-Person Team</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <Link
-                  to="/competition/live-results"
-                  className="px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition border border-white/10"
-                >
-                  <Zap className="w-4 h-4 text-emerald-400" />
-                  <span>Live Arena Board</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        ) : (
-          isAdmin && (
-            <div className="p-3 bg-slate-900 border border-dashed border-slate-800 rounded-2xl flex items-center justify-between text-xs text-slate-400">
-              <span>Flagship banner hidden from homepage.</span>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('yara_hide_home_flagship');
-                  setIsFlagshipDismissed(false);
-                }}
-                className="text-cyan-400 font-bold hover:underline flex items-center gap-1.5 cursor-pointer"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Restore Banner</span>
-              </button>
-            </div>
-          )
-        )}
-      </section>
-
-      {/* =========================================================================
-          5. SCHOOL CLUBS & CHAPTERS (Same Page)
-         ========================================================================= */}
-      <section id="clubs" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <div className="p-6 sm:p-10 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>School Clubs &amp; Chapters</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">
-              Start an Official Robotics Club in Your School
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              We provide accredited club charters, hardware starter kits (Arduino/ESP32, ultrasonic sensors, chassis), and complete lesson plans with mandatory 2 boys + 2 girls gender parity.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 text-xs">
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="font-bold text-emerald-400 block">1. Charter Club</span>
-                <span className="text-slate-400 text-[11px]">Primary or secondary school registration</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="font-bold text-emerald-400 block">2. Receive Kits</span>
-                <span className="text-slate-400 text-[11px]">Subsidized school lab starter hardware</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="font-bold text-emerald-400 block">3. Compete in Arena</span>
-                <span className="text-slate-400 text-[11px]">Participate in provincial hackathons</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-3 w-full sm:w-auto">
-            <Link
-              to="/chapters"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3.5 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/40 transition-all flex items-center justify-center gap-2 hover:scale-102"
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Register School Club</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              to="/educator-portal"
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-6 py-3.5 rounded-2xl text-xs text-center transition-all"
-            >
-              Teacher / Patron Workbench
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          6. CERTIFICATE VERIFICATION REGISTRY (Embedded on the same page)
-         ========================================================================= */}
-      <section id="verify" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <QuickCertVerify />
-      </section>
-
-      {/* =========================================================================
-          7. ABOUT YARA & DIRECT LEADERSHIP CONTACT (Same Page)
-         ========================================================================= */}
-      <section id="contact" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24 space-y-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-bold uppercase tracking-wider">
-            <Phone className="w-3.5 h-3.5 text-blue-400" />
-            <span>Direct Access &amp; Governance</span>
-          </div>
+          <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">Explore YARA</span>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            About YARA &amp; Direct Leadership Contact
+            Our Core Ecosystem Programs
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
-            Reach out directly to the executive directorate for school setups, sponsorship, or general inquiries.
+            Select a specialized tab to access self-contained tools, resources, and platforms.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Executive Leadership */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-              <Users className="w-5 h-5" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Academy & LMS */}
+          <Link
+            to="/learn"
+            className="group p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all flex flex-col justify-between space-y-6 hover:-translate-y-1 shadow-lg"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors">
+                Robotics Academy &amp; LMS
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                42 structured micro-modules from beginner breadboarding to autonomous systems, embedded C++, and verified STEM graduation diplomas.
+              </p>
             </div>
-            <h3 className="text-base font-bold text-white">YARA Executive Directorate</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Pan-African coalition dedicated to nurturing 100,000 young African robotics and hardware engineers by 2030.
-            </p>
-            <div className="pt-2 text-xs text-slate-300 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>Chinhoyi University of Technology (CUT), Zimbabwe</span>
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-blue-400">
+              <span>Open Academy Tab</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </Link>
 
-          {/* Telephone Lines */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Phone className="w-5 h-5" />
+          {/* Card 2: Competitions Arena */}
+          <Link
+            to="/competitions"
+            className="group p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-6 hover:-translate-y-1 shadow-lg"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">
+                2026 Championship Arena
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Flagship Underwater Drone Missions, Autonomous Maze Solving, and Innovation Pitches with strict 2 boys + 2 girls parity.
+              </p>
             </div>
-            <h3 className="text-base font-bold text-white">Direct Phone Lines</h3>
-            <p className="text-xs text-slate-400">
-              Available Monday to Friday, 08:00 – 17:00 CAT for student and school support:
-            </p>
-            <div className="space-y-1.5 pt-1 text-xs">
-              <a href="tel:0719199274" className="flex items-center gap-2 text-emerald-300 hover:underline font-mono font-bold">
-                <Phone className="w-3.5 h-3.5" />
-                <span>0719 199 274</span>
-              </a>
-              <a href="tel:0717468236" className="flex items-center gap-2 text-emerald-300 hover:underline font-mono font-bold">
-                <Phone className="w-3.5 h-3.5" />
-                <span>0717 468 236</span>
-              </a>
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-amber-400">
+              <span>Open Competitions Tab</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </Link>
 
-          {/* Payments & Subscriptions */}
-          <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <CreditCard className="w-5 h-5" />
+          {/* Card 3: School Chapters */}
+          <Link
+            to="/chapters"
+            className="group p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-6 hover:-translate-y-1 shadow-lg"
+          >
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors">
+                School Clubs &amp; Chapters
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Charter an official YARA robotics club at your primary or secondary school. Access starter kits, lesson plans, and provincial leagues.
+              </p>
             </div>
-            <h3 className="text-base font-bold text-white">EcoCash &amp; Payments</h3>
-            <p className="text-xs text-slate-400">
-              Official EcoCash line for course subscriptions, starter kits, and club dues:
-            </p>
-            <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1 text-xs">
-              <div className="text-amber-300 font-mono font-bold">0788953986</div>
-              <div className="text-[11px] text-slate-400">Name: Simbarashe Manongwa</div>
+            <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-emerald-400">
+              <span>Open Chapters Tab</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
-            <a href="mailto:inforyaraorg@gmail.com" className="flex items-center gap-2 text-xs text-blue-400 hover:underline pt-1">
-              <Mail className="w-3.5 h-3.5" />
-              <span>inforyaraorg@gmail.com</span>
-            </a>
-          </div>
+          </Link>
         </div>
       </section>
 
@@ -661,7 +314,7 @@ export default function Home() {
                   sessionStorage.setItem('yara_trending_popup_seen', 'true');
                   setTrendingPopup(null);
                 }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Dismiss
               </button>
@@ -671,7 +324,7 @@ export default function Home() {
                   sessionStorage.setItem('yara_trending_popup_seen', 'true');
                   setTrendingPopup(null);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Read Full Press</span>
                 <ArrowRight className="w-3.5 h-3.5" />
