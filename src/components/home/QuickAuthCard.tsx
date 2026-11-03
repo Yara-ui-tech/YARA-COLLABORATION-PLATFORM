@@ -113,19 +113,14 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <a
-              href="#lms"
-              onClick={(e) => {
-                e.preventDefault();
-                const el = document.getElementById('lms');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                else navigate('/learn');
-              }}
+            <button
+              type="button"
+              onClick={() => navigate('/learn')}
               className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer text-center"
             >
               <BookOpen className="w-4 h-4 text-cyan-400" />
               <span>Continue Learning Micro-Modules</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -472,24 +467,17 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
 
         {/* Guest Explore Option */}
         <div className="pt-2 border-t border-slate-800 text-center space-y-2">
-          <a
-            href="#lms"
-            onClick={(e) => {
-              e.preventDefault();
+          <button
+            type="button"
+            onClick={() => {
               loginAsGuest();
-              if (onGuestExplore) {
-                onGuestExplore();
-              } else {
-                const el = document.getElementById('lms');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-                else navigate('/learn');
-              }
+              navigate('/learn');
             }}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-cyan-400 transition cursor-pointer"
           >
             <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Or explore courses as Guest (No login required) &darr;</span>
-          </a>
+            <span>Or explore courses as Guest (No login required)</span>
+          </button>
         </div>
       </div>
 
