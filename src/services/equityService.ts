@@ -40,34 +40,10 @@ export interface EquityCheckResult {
   isWhitelisted?: boolean;
 }
 
-// Fallback seeds in case local DB hasn't run the latest migration yet
-export const DEFAULT_UNDERSERVED_SCHOOLS: Omit<UnderservedSchool, 'id'>[] = [
-  { name: 'Binga High School', district: 'Binga', province: 'Matabeleland North', country: 'Zimbabwe', is_active: true, notes: 'Rural Zambezi STEM Priority Hub' },
-  { name: 'Nemakonde High School', district: 'Makonde', province: 'Mashonaland West', country: 'Zimbabwe', is_active: true, notes: 'Public Secondary Outreach' },
-  { name: 'Banket High School', district: 'Zvimba', province: 'Mashonaland West', country: 'Zimbabwe', is_active: true, notes: 'Public Rural Innovation Chapter' },
-  { name: 'Dotito High School', district: 'Mount Darwin', province: 'Mashonaland Central', country: 'Zimbabwe', is_active: true, notes: 'Rural District Secondary' },
-  { name: 'Tongogara Secondary School', district: 'Shurugwi', province: 'Midlands', country: 'Zimbabwe', is_active: true, notes: 'Rural Community School' },
-  { name: 'Rushinga Secondary School', district: 'Rushinga', province: 'Mashonaland Central', country: 'Zimbabwe', is_active: true, notes: 'Border Rural STEM Center' },
-  { name: 'Mwenezi High School', district: 'Mwenezi', province: 'Masvingo', country: 'Zimbabwe', is_active: true, notes: 'Arid Belt Innovation Outreach' },
-  { name: 'Mudzi High School', district: 'Mudzi', province: 'Mashonaland East', country: 'Zimbabwe', is_active: true, notes: 'Rural Community Cluster' },
-  { name: 'Tsholotsho High School', district: 'Tsholotsho', province: 'Matabeleland North', country: 'Zimbabwe', is_active: true, notes: 'Rural District Innovation Hub' },
-  { name: 'Chivi High School', district: 'Chivi', province: 'Masvingo', country: 'Zimbabwe', is_active: true, notes: 'Rural Public High School' }
-];
+// Fallback seeds (empty by default - only authentic entries in database are loaded)
+export const DEFAULT_UNDERSERVED_SCHOOLS: Omit<UnderservedSchool, 'id'>[] = [];
 
-export const DEFAULT_UNDERSERVED_REGIONS: Omit<UnderservedRegion, 'id'>[] = [
-  { region_name: 'Binga', province_state: 'Matabeleland North', country: 'Zimbabwe', is_active: true, notes: 'Remote Zambezi basin district' },
-  { region_name: 'Mwenezi', province_state: 'Masvingo', country: 'Zimbabwe', is_active: true, notes: 'Southern rural district' },
-  { region_name: 'Mudzi', province_state: 'Mashonaland East', country: 'Zimbabwe', is_active: true, notes: 'Remote eastern rural district' },
-  { region_name: 'Chiredzi', province_state: 'Masvingo', country: 'Zimbabwe', is_active: true, notes: 'Lowveld rural community' },
-  { region_name: 'Rushinga', province_state: 'Mashonaland Central', country: 'Zimbabwe', is_active: true, notes: 'Remote north-eastern district' },
-  { region_name: 'Tsholotsho', province_state: 'Matabeleland North', country: 'Zimbabwe', is_active: true, notes: 'Remote western district' },
-  { region_name: 'Mount Darwin', province_state: 'Mashonaland Central', country: 'Zimbabwe', is_active: true, notes: 'Rural educational cluster' },
-  { region_name: 'Epworth', province_state: 'Harare Province', country: 'Zimbabwe', is_active: true, notes: 'Underserved high-density community' },
-  { region_name: 'Chitungwiza', province_state: 'Harare Province', country: 'Zimbabwe', is_active: true, notes: 'High-density student innovation zone' },
-  { region_name: 'Zvimba Rural', province_state: 'Mashonaland West', country: 'Zimbabwe', is_active: true, notes: 'Agricultural farming schools' },
-  { region_name: 'Makonde Rural', province_state: 'Mashonaland West', country: 'Zimbabwe', is_active: true, notes: 'Mining & agrarian peripheral communities' },
-  { region_name: 'Kariba Rural', province_state: 'Mashonaland West', country: 'Zimbabwe', is_active: true, notes: 'Lakeside rural outposts' }
-];
+export const DEFAULT_UNDERSERVED_REGIONS: Omit<UnderservedRegion, 'id'>[] = [];
 
 // 1. Schools
 export async function getUnderservedSchools(): Promise<UnderservedSchool[]> {

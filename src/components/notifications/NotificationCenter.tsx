@@ -21,44 +21,7 @@ export interface AppNotification {
   is_user_activity?: boolean;
 }
 
-const DEFAULT_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif_comp_2026',
-    title: 'YARA Robotics Competition 2026',
-    message: 'Official team registrations are open for Autonomous Maze Solving & Underwater Drone challenges.',
-    notification_type: 'competition',
-    action_link: '/competitions/yara-2026',
-    is_read: false,
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'notif_bootcamp',
-    title: 'AI for Educators & Patrons Bootcamp',
-    message: 'Registration confirmed. Review your syllabus and automated lesson planning workbench.',
-    notification_type: 'event',
-    action_link: '/educator-portal',
-    is_read: false,
-    created_at: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: 'notif_curriculum',
-    title: 'Robotics Mastery Tier 1 Released',
-    message: 'Master introductory circuits, motor drivers, and sensor telemetry in Level 1 of the YARA Academy.',
-    notification_type: 'course',
-    action_link: '/learning',
-    is_read: false,
-    created_at: new Date(Date.now() - 172800000).toISOString()
-  },
-  {
-    id: 'notif_cert_verify',
-    title: 'Online Certificate Registry Live',
-    message: 'Digital technical credentials can now be verified instantly via official YARA QR codes and ID lookup.',
-    notification_type: 'certificate',
-    action_link: '/verify-certificate',
-    is_read: true,
-    created_at: new Date(Date.now() - 259200000).toISOString()
-  }
-];
+const DEFAULT_NOTIFICATIONS: AppNotification[] = [];
 
 export function NotificationBell() {
   const { user, profile } = useAuth();
@@ -67,9 +30,9 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
       const stored = localStorage.getItem('yara_notifications_cache');
-      return stored ? JSON.parse(stored) : DEFAULT_NOTIFICATIONS;
+      return stored ? JSON.parse(stored) : [];
     } catch {
-      return DEFAULT_NOTIFICATIONS;
+      return [];
     }
   });
   const [isOpen, setIsOpen] = useState(false);
@@ -90,8 +53,6 @@ export function NotificationBell() {
 
       if (personalNotifs && personalNotifs.length > 0) {
         combined = [...(personalNotifs as AppNotification[])];
-      } else {
-        combined = [...DEFAULT_NOTIFICATIONS];
       }
 
       // 2. If Admin, fetch incoming notifications directly from users!

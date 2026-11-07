@@ -14,62 +14,16 @@ export interface SponsorPopupItem {
   websiteUrl?: string;
 }
 
-const DEFAULT_SPONSORS: SponsorPopupItem[] = [
-  {
-    id: 'sp_liquid',
-    name: 'Liquid Intelligent Technologies',
-    tier: 'Platinum Connectivity Sponsor',
-    badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-    message: 'Empowering Pan-African youth with high-speed cloud telemetry and low-latency robotics competition servers.',
-    impactTag: 'High-Speed Fiber Telemetry',
-    websiteUrl: 'https://liquid.tech'
-  },
-  {
-    id: 'sp_hit',
-    name: 'Harare Institute of Technology (HIT)',
-    tier: 'Premier Academic & Lab Partner',
-    badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
-    message: 'Providing state-of-the-art mechatronics testing labs and joint engineering curriculum accreditation.',
-    impactTag: 'Hardware Testing & Fabrication',
-    websiteUrl: 'https://hit.ac.zw'
-  },
-  {
-    id: 'sp_stem_africa',
-    name: 'STEM For Africa Initiative',
-    tier: 'Hardware Grant & Lab Kits Partner',
-    badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-    message: 'Co-funding 150+ Arduino & ESP32 starter kits for underserved rural schools and girl-led STEM clubs.',
-    impactTag: '150+ School Starter Kits',
-    websiteUrl: '/donate'
-  },
-  {
-    id: 'sp_cut',
-    name: 'Chinhoyi University of Technology (CUT)',
-    tier: 'Provincial Lead & Innovation Hub',
-    badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-    message: 'Hosting provincial robotics hackathons and providing hands-on university engineering mentors.',
-    impactTag: 'Provincial Arena Host',
-    websiteUrl: 'https://cut.ac.zw'
-  },
-  {
-    id: 'sp_econet',
-    name: 'Econet Wireless Zimbabwe',
-    tier: 'Digital Inclusion & Connectivity Partner',
-    badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
-    message: 'Supporting zero-rated educational data access and mobile IoT telemetry across Zimbabwe.',
-    impactTag: 'Zero-Rated STEM Data',
-    websiteUrl: '/partners'
-  }
-];
+const DEFAULT_SPONSORS: SponsorPopupItem[] = [];
 
 export default function SponsorPopups() {
-  const [sponsors, setSponsors] = useState<SponsorPopupItem[]>(DEFAULT_SPONSORS);
+  const [sponsors, setSponsors] = useState<SponsorPopupItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
-  // Load any custom approved partners or sponsors from local/backend cache
+  // Load any real approved partners or sponsors from local/backend cache
   useEffect(() => {
     try {
       const stored = localStorage.getItem('yara_approved_partners_cache');
@@ -86,7 +40,7 @@ export default function SponsorPopups() {
             logoUrl: p.logo_url,
             websiteUrl: p.website_url || '/partners'
           }));
-          setSponsors([...DEFAULT_SPONSORS, ...mapped]);
+          setSponsors(mapped);
         }
       }
     } catch {}

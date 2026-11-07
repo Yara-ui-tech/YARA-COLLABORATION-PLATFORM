@@ -15,7 +15,6 @@ import {
   Trash2,
   Image as ImageIcon
 } from 'lucide-react';
-import { YARA_HARDWARE_KITS } from '../../../constants/yaraLmsCatalog';
 import { useAuth } from '../../AuthContext';
 import ItemCoverDisplay from '../../resources/ItemCoverDisplay';
 import { 
@@ -62,7 +61,8 @@ export const ResourcesTab: React.FC = () => {
   const [docFile, setDocFile] = useState('');
   const [docCoverImage, setDocCoverImage] = useState('');
 
-  const staticDocs = [
+  const staticDocs: any[] = [];
+  const _unusedDocs = [
     { 
       id: 'static_1', 
       title: 'ESP32 & Arduino Pinout & Power Rail Cheat Sheet', 
@@ -201,8 +201,8 @@ export const ResourcesTab: React.FC = () => {
     }
   };
 
-  const allKits = [...YARA_HARDWARE_KITS, ...customKits];
-  const allDocs = [...staticDocs, ...customDocs];
+  const allKits = customKits;
+  const allDocs = customDocs;
 
   const effectiveAdminMode = isAdmin && isAdminMode;
 
@@ -270,8 +270,15 @@ export const ResourcesTab: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {allKits.map(kit => {
+        {allKits.length === 0 ? (
+          <div className="text-center py-12 px-4 rounded-3xl border border-dashed border-slate-200 bg-white">
+            <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-700">No hardware starter kits listed yet</p>
+            <p className="text-xs text-slate-500 mt-1">Available hardware kits and lab component packages will be published here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {allKits.map(kit => {
             const isCustom = 'id' in kit && typeof kit.id === 'string' && kit.id.startsWith('kit_');
             return (
               <div
@@ -343,6 +350,7 @@ export const ResourcesTab: React.FC = () => {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* 3. Downloadable Resources & Catalogues */}
@@ -364,7 +372,14 @@ export const ResourcesTab: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {allDocs.length === 0 ? (
+          <div className="text-center py-12 px-4 rounded-3xl border border-dashed border-slate-200 bg-white">
+            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-700">No technical documents or study materials published yet</p>
+            <p className="text-xs text-slate-500 mt-1">Datasheets, schematics, and lab manuals will appear here once uploaded.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {allDocs.map((doc) => {
             const isCustom = 'id' in doc && typeof doc.id === 'string' && doc.id.startsWith('doc_');
             return (
@@ -427,6 +442,7 @@ export const ResourcesTab: React.FC = () => {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* --- ADD KIT MODAL --- */}

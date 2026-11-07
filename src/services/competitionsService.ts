@@ -4,36 +4,7 @@ import { Competition } from '../types/competition';
 const STORAGE_KEY = 'yara_custom_competitions';
 const DELETED_KEY = 'yara_deleted_competition_ids';
 
-export const DEFAULT_COMPETITIONS: Competition[] = [
-  {
-    id: 'yara-2027-flagship',
-    slug: 'yara-2026',
-    title: 'YARA Continental Robotics Grand Championship 2026/2027',
-    subtitle: '“Engineering Opportunity: Robotics & AI for Africa’s Underserved Youth”',
-    description: 'The premier continental championship bringing together top young minds across Zimbabwe and Africa. Features Underwater Drone Submersible Navigation (35%), Autonomous Maze Solving (35%), and Community Innovation Pitches (30%). Teams must strictly comprise at least 4 members with a balanced 2 Boys + 2 Girls ratio.',
-    category: 'flagship_robotics',
-    format: 'hybrid',
-    status: 'upcoming',
-    start_date: '2027-03-26T08:00:00.000Z',
-    end_date: '2027-03-28T18:00:00.000Z',
-    registration_deadline: '2027-03-10T23:59:59.000Z',
-    location: 'YARA National Science Arena & Innovation Pool, Harare',
-    image_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80',
-    banner_url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80',
-    internal_route: '/competitions/yara-2026',
-    registration_link: '/competition/participant',
-    prize_pool: '$15,000 Prize Pool & STEM Grants',
-    entry_fee: 0.00,
-    currency: 'USD',
-    max_teams: 64,
-    registered_teams_count: 22,
-    eligibility: 'High Schools, Polytechnics, Universities, and Community Youth Chapters (Mandatory 2B + 2G ratio)',
-    rules_summary: 'Underwater Drone buoyancy payload recovery (35%), Micromouse ultrasonic maze solving (35%), and Community Impact technology pitch (30%).',
-    is_featured: true,
-    display_order: 1,
-    tags: ['Flagship', 'Underwater ROV', 'Autonomous Navigation', 'Innovation Pitch']
-  }
-];
+export const DEFAULT_COMPETITIONS: Competition[] = [];
 
 function getDeletedIds(): string[] {
   try {
@@ -152,7 +123,7 @@ export async function getCompetitions(): Promise<Competition[]> {
 export async function createCompetition(compData: Partial<Competition>): Promise<Competition> {
   const newId = crypto.randomUUID();
   const slug = compData.slug || compData.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `comp-${Date.now()}`;
-  
+
   const newComp: Competition = {
     id: newId,
     slug,

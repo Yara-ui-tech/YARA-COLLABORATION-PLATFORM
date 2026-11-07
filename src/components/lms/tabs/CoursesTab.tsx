@@ -242,39 +242,6 @@ export const CoursesTab: React.FC<Props> = ({
           <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed max-w-3xl">
             Step-by-step engineering pathway from electricity fundamentals to embedded C++ programming, sensor fusion, non-blocking state machines, autonomous robotics capstones, and deployed industrial systems across 4 authoritative tiers and 8 comprehensive levels.
           </p>
-
-          {/* Quick Action Navigation Bar */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-2">
-            <button
-              onClick={() => setIsBrainstormingModalOpen(true)}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 transition cursor-pointer"
-            >
-              <Brain className="w-4 h-4" />
-              <span>Brainstorming Image Quiz</span>
-              <Zap className="w-3.5 h-3.5 fill-current" />
-            </button>
-            <button
-              onClick={() => setIsExamModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition cursor-pointer"
-            >
-              <Award className="w-4 h-4" />
-              <span>{examAttempt?.passed ? 'Review Final Exam' : 'Take Final Exam'}</span>
-            </button>
-            <button
-              onClick={() => setIsProjectModalOpen(true)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition cursor-pointer"
-            >
-              <Rocket className="w-4 h-4 text-emerald-400" />
-              <span>{projectSubmission ? 'View Capstone Build' : 'Submit Capstone Build'}</span>
-            </button>
-            <button
-              onClick={() => setIsCertModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{certificate ? 'View Official Certificate' : 'Certificate Criteria & Claim'}</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -316,31 +283,6 @@ export const CoursesTab: React.FC<Props> = ({
       {/* Conditional: Centralized Course Catalogue vs Robotics Sessions Explorer */}
       {activeCatalogTrack !== 'robotics' ? (
         <div className="space-y-6">
-          {/* Featured Robotics Academy Banner on "All Courses" view */}
-          {activeCatalogTrack === 'all' && (
-            <div className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-              <div className="space-y-2 max-w-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Flagship Core Programme
-                  </span>
-                  <span className="text-[11px] text-slate-300 font-bold">4 Tiers • Levels 0–8 • 42 Sessions</span>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-black text-white">YARA Robotics Academy</h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Complete hands-on engineering journey from electricity fundamentals, breadboard prototyping, embedded C++, and PID motor control, to edge AI vision, ROS 2, and defended African community hardware capstones.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveCatalogTrack('robotics')}
-                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-lg transition flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                <Cpu className="w-4 h-4" />
-                <span>Explore Robotics Sessions & Labs →</span>
-              </button>
-            </div>
-          )}
-
           {/* Search Bar for Unified Courses */}
           <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs">
             <div className="relative">
@@ -460,124 +402,42 @@ export const CoursesTab: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setSelectedTier('all');
+              setSelectedLevel('all');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              selectedTier === 'all'
+                ? 'bg-slate-900 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All Tiers
+          </button>
           {ROBOTICS_TIER_CATEGORIES.map(tier => {
             const isSelected = selectedTier === tier.id;
             return (
-              <div
+              <button
                 key={tier.id}
                 onClick={() => {
                   setSelectedTier(prev => (prev === tier.id ? 'all' : tier.id));
                   setSelectedLevel('all');
                 }}
-                className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
-                  isSelected 
-                    ? tier.activeColor + ' shadow-md scale-[1.02]' 
-                    : tier.color + ' hover:border-slate-400 shadow-xs'
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider opacity-85">
-                      {tier.badge}
-                    </span>
-                    <span className="text-[10px] font-mono font-bold opacity-75">
-                      {tier.sessionsSummary}
-                    </span>
-                  </div>
-                  <h4 className="text-sm font-black tracking-tight leading-snug">
-                    {tier.name}
-                  </h4>
-                  <p className="text-xs opacity-85 leading-relaxed pt-1">
-                    {tier.description}
-                  </p>
-                </div>
-                <div className="pt-3 text-[10px] font-bold flex items-center gap-1 opacity-90">
-                  <span>{isSelected ? '✓ Filter Active (Click to reset)' : 'Click to filter sessions →'}</span>
-                </div>
-              </div>
+                <span>{tier.badge}</span>
+                <span className="text-[10px] opacity-75">({tier.sessionsSummary})</span>
+              </button>
             );
           })}
         </div>
       </div>
-
-      {/* Graduation & Certification Milestone Card */}
-      <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-indigo-500/5 rounded-l-full blur-2xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 font-bold text-xs rounded-full uppercase tracking-wider flex items-center space-x-1 border border-amber-500/30">
-                <Award className="w-3.5 h-3.5" />
-                <span>Graduation & Accreditation Milestone</span>
-              </span>
-              {certificate && (
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 font-bold text-xs rounded-full uppercase tracking-wider flex items-center space-x-1 border border-emerald-500/30">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Certified Graduate</span>
-                </span>
-              )}
-            </div>
-
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Final Examination & Official Technical Certification
-            </h3>
-
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Complete the course modules, pass the 12-question comprehensive robotics examination (70%+ passing threshold), and submit your final capstone robot build to earn an accredited, verified YARA Certificate of Technical Mastery.
-            </p>
-
-            {/* Checklist items */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
-              <div className="flex items-center space-x-2 text-slate-300">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                  examAttempt?.passed ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
-                }`}>
-                  {examAttempt?.passed ? '✓' : '1'}
-                </div>
-                <span>Final Exam: {examAttempt?.passed ? `Passed (${examAttempt.percentage}%)` : 'Ready to take'}</span>
-              </div>
-
-              <div className="flex items-center space-x-2 text-slate-300">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                  projectSubmission ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'
-                }`}>
-                  {projectSubmission ? '✓' : '2'}
-                </div>
-                <span>Capstone Project: {projectSubmission ? `Submitted (${projectSubmission.status})` : 'Pending'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 w-full lg:w-auto shrink-0">
-            <button
-              onClick={() => setIsExamModalOpen(true)}
-              className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <Award className="w-4 h-4" />
-              <span>{examAttempt?.passed ? 'Review Final Exam' : 'Take Final Exam'}</span>
-            </button>
-
-            <button
-              onClick={() => setIsProjectModalOpen(true)}
-              className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <Rocket className="w-4 h-4" />
-              <span>{projectSubmission ? 'View Capstone Project' : 'Submit Capstone Project'}</span>
-            </button>
-
-            <button
-              onClick={() => setIsCertModalOpen(true)}
-              className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-xl shadow-amber-500/20 hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <Award className="w-4 h-4 text-slate-950" />
-              <span>{certificate ? 'View Official Certificate' : 'Certificate Criteria & Claim'}</span>
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* 2. Filter & Search Controls */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-4">
