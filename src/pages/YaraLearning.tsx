@@ -51,9 +51,11 @@ export default function YaraLearning() {
   const [lockedCourseTitle, setLockedCourseTitle] = useState('');
   const [isPendingApproval, setIsPendingApproval] = useState(false);
 
-  // Active Tab from URL search params
-  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || (searchParams.get('course') ? 'courses' : 'dashboard');
-  const [activeTab, setActiveTab] = useState<LearningTabId>(tabFromQuery);
+  // Active Tab from URL search params (Default: 'courses' for clean, direct learning)
+  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || 'courses';
+  const [activeTab, setActiveTab] = useState<LearningTabId>(
+    tabFromQuery === 'dashboard' ? 'courses' : tabFromQuery
+  );
 
   // Active Session Player modal
   const sessionFromQuery = searchParams.get('session');
@@ -102,7 +104,10 @@ export default function YaraLearning() {
 
     React.startTransition(() => {
       if (tabParam) {
-        setActiveTab(prev => (prev !== tabParam ? tabParam : prev));
+        const normalized = (tabParam === 'dashboard' || tabParam === 'my-courses' || tabParam === 'assessments' || tabParam === 'projects' || tabParam === 'programming')
+          ? 'courses'
+          : tabParam;
+        setActiveTab(prev => (prev !== normalized ? normalized : prev));
       } else if (courseParam) {
         setActiveTab(prev => (prev !== 'courses' ? 'courses' : prev));
       }

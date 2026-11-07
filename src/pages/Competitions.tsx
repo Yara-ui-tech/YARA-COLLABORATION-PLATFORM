@@ -4,7 +4,7 @@ import {
   Loader2, Zap, Search, Filter, ShieldCheck, CheckCircle2, 
   ExternalLink, Layers, Award, Waves, Compass, Lightbulb, 
   HelpCircle, ChevronRight, X, DollarSign, BookOpen, Star, AlertCircle, Lock, Trash2,
-  Sparkles
+  Sparkles, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { Competition } from '../types/competition';
 import { getCompetitions, deleteCompetition } from '../services/competitionsService';
 import { cn } from '../lib/utils';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
+import ChapterRegistrationModal from '../components/chapters/ChapterRegistrationModal';
 import { useAuth } from '../components/AuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 
@@ -53,6 +54,9 @@ export default function Competitions() {
   // Trial Lock Modal State
   const [trialLockModalOpen, setTrialLockModalOpen] = useState(false);
   const [lockedCompName, setLockedCompName] = useState('');
+
+  // Chapter Registration Modal State
+  const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -147,6 +151,13 @@ export default function Competitions() {
 
             {/* Quick Ecosystem Navigation Badges */}
             <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              <button
+                onClick={() => setIsChapterModalOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-900/30 transition-all flex items-center space-x-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Club Chapter</span>
+              </button>
               <Link
                 to="/competition/participant"
                 className="px-4 py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl font-bold text-xs border border-slate-800 hover:border-cyan-500/40 transition-all flex items-center space-x-2"
@@ -787,6 +798,17 @@ export default function Competitions() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Chapter Registration Modal */}
+      {isChapterModalOpen && (
+        <ChapterRegistrationModal
+          isOpen={isChapterModalOpen}
+          onClose={() => setIsChapterModalOpen(false)}
+          onSuccess={() => {
+            setIsChapterModalOpen(false);
+          }}
+        />
       )}
     </div>
   );

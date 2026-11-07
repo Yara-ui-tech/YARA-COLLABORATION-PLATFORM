@@ -36,7 +36,8 @@ import {
   Copy,
   ExternalLink as ExtLinkIcon,
   Trash2,
-  UserX
+  UserX,
+  ArrowRight
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -440,8 +441,33 @@ export default function Mentorship() {
         .update({ is_live: false, ended_at: new Date().toISOString() })
         .eq('id', sessionId);
       if (error) throw error;
+      setLiveSessions(prev => prev.filter(s => s.id !== sessionId));
     } catch (error) {
       console.error('Error ending session:', error);
+    }
+  };
+
+  const deleteLiveSession = async (sessionId: string) => {
+    if (!window.confirm('Are you sure you want to remove this live session? This will permanently remove it from the platform.')) {
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('live_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) {
+        // Fallback to closing session if delete is restricted by RLS
+        await supabase
+          .from('live_sessions')
+          .update({ is_live: false, ended_at: new Date().toISOString() })
+          .eq('id', sessionId);
+      }
+      setLiveSessions(prev => prev.filter(s => s.id !== sessionId));
+    } catch (error) {
+      console.error('Error deleting live session:', error);
+      setLiveSessions(prev => prev.filter(s => s.id !== sessionId));
     }
   };
 
@@ -983,15 +1009,14 @@ Possible causes:
           </div>
         </button>
         <button
-          onClick={() => setActiveTab('materials')}
-          className={cn(
-            "px-6 py-2.5 rounded-xl font-bold text-sm transition-all",
-            activeTab === 'materials' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-          )}
+          onClick={() => navigate('/learn?tab=resources')}
+          className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer"
+          title="Open official study materials inside the Academy"
         >
           <div className="flex items-center space-x-2">
-            <FileText className="w-4 h-4" />
-            <span>Study Materials</span>
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span>Study Materials (In Academy)</span>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
           </div>
         </button>
       </div>
@@ -1964,13 +1989,25 @@ Possible causes:
                           </>
                         )}
                       </div>
-                      {profile?.role === 'mentor' && session.mentor_id === user?.id && (
+                      {/* Admin or Session Creator Controls */}
+                      {isUserAdmin ? (
                         <button
-                          onClick={() => endLiveSession(session.id)}
-                          className="w-full py-2 text-red-600 font-bold text-xs hover:bg-red-50 rounded-lg transition-all"
+                          onClick={() => deleteLiveSession(session.id)}
+                          className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 border border-red-200 cursor-pointer shadow-xs"
+                          title="Remove live session as Administrator"
                         >
-                          End Session
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove Session (Admin)</span>
                         </button>
+                      ) : (
+                        profile?.role === 'mentor' && session.mentor_id === user?.id && (
+                          <button
+                            onClick={() => endLiveSession(session.id)}
+                            className="w-full py-2 text-red-600 font-bold text-xs hover:bg-red-50 rounded-lg transition-all"
+                          >
+                            End Session
+                          </button>
+                        )
                       )}
                     </div>
                   </motion.div>

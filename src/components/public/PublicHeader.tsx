@@ -142,11 +142,11 @@ export default function PublicHeader() {
             {user ? (
               <div className="flex items-center gap-2 ml-1">
                 <Link
-                  to="/dashboard"
-                  className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-2 rounded-xl font-bold text-xs shadow-md transition-all hover:scale-102"
+                  to="/learn"
+                  className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
                 >
                   <GraduationCap className="w-4 h-4" />
-                  <span>Dashboard</span>
+                  <span>Academy</span>
                 </Link>
                 <Link
                   to="/profile"
@@ -203,12 +203,12 @@ export default function PublicHeader() {
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-800">
             {user ? (
               <Link
-                to="/dashboard"
+                to="/learn"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="col-span-2 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs shadow-md"
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>Go to LMS Dashboard</span>
+                <span>Enter Academy</span>
               </Link>
             ) : (
               <>

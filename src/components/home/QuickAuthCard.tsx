@@ -104,12 +104,12 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
               onClick={() => {
                 if (isAdmin) navigate('/admin');
                 else if (isTeacher) navigate('/educator-portal');
-                else navigate('/dashboard');
+                else navigate('/learn');
               }}
               className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-xl shadow-blue-900/30 flex items-center justify-center gap-2 transition hover:scale-102 cursor-pointer"
             >
               <GraduationCap className="w-4 h-4" />
-              <span>Enter LMS Dashboard</span>
+              <span>Enter Robotics Academy</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -174,7 +174,7 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
 
           if (isAdmin) navigate('/admin');
           else if (uRole === 'teacher') navigate('/educator-portal');
-          else navigate('/dashboard');
+          else navigate('/learn');
         }
       } else {
         // Sign Up
@@ -217,7 +217,7 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
 
           if (signUpData.session) {
             if (role === 'teacher') navigate('/educator-portal');
-            else navigate('/dashboard');
+            else navigate('/learn');
           } else {
             setSuccessMsg('Account created successfully! Check your email to confirm, or sign in.');
             setMode('signin');

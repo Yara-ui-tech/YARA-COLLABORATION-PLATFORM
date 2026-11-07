@@ -107,7 +107,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     profile?.email === 'goyaracorp@gmail.com';
 
   if (!user || !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/learn" replace />;
   }
 
   return <>{children}</>;
@@ -192,7 +192,8 @@ const AppContent = () => {
             <Route path="/verify/:number" element={<VerifyCertificate />} />
             <Route path="/verify-certificate" element={<VerifyCertificate />} />
             <Route path="/verify-certificate/:number" element={<VerifyCertificate />} />
-            <Route path="/library" element={<Resources />} />
+            <Route path="/library" element={<Navigate to="/learn?tab=resources" replace />} />
+            <Route path="/resources" element={<Navigate to="/learn?tab=resources" replace />} />
             <Route path="/learn" element={<YaraLearning />} />
             <Route path="/learning" element={<YaraLearning />} />
             <Route path="/learning/*" element={<YaraLearning />} />
@@ -223,8 +224,8 @@ const AppContent = () => {
               </PrivateRoute>
             }
           >
-            {/* Student & Role Dashboard */}
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Student & Role Dashboard - Unified into Academy to avoid fragmented redirects */}
+            <Route path="/dashboard" element={<Navigate to="/learn" replace />} />
 
             {/* Unified Learning Academy & Modules */}
             <Route path="/learning" element={<YaraLearning />} />
@@ -241,7 +242,7 @@ const AppContent = () => {
             {/* Innovation & Mentorship */}
             <Route path="/ideas" element={<Ideas />} />
             <Route path="/mentorship" element={<Mentorship />} />
-            <Route path="/resources" element={<Resources />} />
+            <Route path="/resources" element={<Navigate to="/learn?tab=resources" replace />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/profile" element={<Profile />} />
 

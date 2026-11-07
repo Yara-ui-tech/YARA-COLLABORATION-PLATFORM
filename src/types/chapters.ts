@@ -4,7 +4,12 @@ export type ChapterCategory =
   | 'primary_school'
   | 'community_youth'
   | 'polytechnic'
-  | 'provincial_hub';
+  | 'provincial_hub'
+  | 'stem_club'
+  | 'girls_in_stem'
+  | 'makerspace'
+  | 'independent_club'
+  | 'other';
 
 export type ChapterStatus = 'active' | 'chartered' | 'forming' | 'probation' | 'archived';
 

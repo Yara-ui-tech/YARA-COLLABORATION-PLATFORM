@@ -227,11 +227,11 @@ export const ResourcesTab: React.FC = () => {
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="max-w-3xl space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-            <Package className="w-3.5 h-3.5" /> Hardware & Engineering Knowledge Base
+            <Package className="w-3.5 h-3.5" /> Academy Study Materials & Hardware Blueprints
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black">Official Learning Kits & Technical Resources</h1>
+          <h1 className="text-2xl sm:text-3xl font-black">Official Study Materials, Pinouts &amp; Lab Manuals</h1>
           <p className="text-xs sm:text-sm text-slate-300">
-            Official hardware kits, downloadable pinout cheat sheets, design thinking canvases, and 21-point engineering templates.
+            Download official robotics cheat sheets, breadboard wiring schematics, lab manuals, code templates, and hardware starter kits.
           </p>
         </div>
 

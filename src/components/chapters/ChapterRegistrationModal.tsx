@@ -358,11 +358,16 @@ export default function ChapterRegistrationModal({
                     onChange={e => setFormData({ ...formData, category: e.target.value as ChapterCategory })}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-sm font-semibold text-slate-900 bg-white"
                   >
-                    <option value="high_school">High School Chapter (Form 1 - 6)</option>
-                    <option value="university">University / Tertiary Chapter (CUT, UZ, NUST...)</option>
-                    <option value="primary_school">Primary / Junior Robotics Club (Grade 3 - 7)</option>
-                    <option value="community_youth">Community Youth Hub / Makerspace</option>
-                    <option value="polytechnic">Polytechnic / Technical Vocational College</option>
+                    <option value="high_school">High School Robotics Club (Form 1 - 6)</option>
+                    <option value="primary_school">Primary / Junior STEM Club (Grade 1 - 7)</option>
+                    <option value="university">University Chapter (CUT, UZ, NUST, MSU...)</option>
+                    <option value="polytechnic">Polytechnic / Vocational Technical College</option>
+                    <option value="community_youth">Community Youth Hub / Innovation Lab</option>
+                    <option value="stem_club">School / Private STEM Club</option>
+                    <option value="girls_in_stem">Girls in STEM / Women in Robotics Chapter</option>
+                    <option value="makerspace">Independent Makerspace &amp; Hardware Club</option>
+                    <option value="independent_club">Independent / Neighborhood Tech Club</option>
+                    <option value="other">Other / Custom Club Chapter</option>
                   </select>
                 </div>
 

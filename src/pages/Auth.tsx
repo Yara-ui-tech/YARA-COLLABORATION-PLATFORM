@@ -97,7 +97,7 @@ export default function Auth() {
     if (profile?.role === 'admin') {
       return <Navigate to="/admin" />;
     }
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/learn" />;
   }
 
   const handleGoogleSignIn = async () => {
@@ -177,7 +177,7 @@ export default function Auth() {
             navigate('/educator-portal');
             return;
           }
-          navigate('/dashboard');
+          navigate('/learn');
           return;
         }
       } else {
@@ -256,7 +256,7 @@ export default function Auth() {
       if (role === 'teacher') {
         navigate('/educator-portal');
       } else {
-        navigate('/dashboard');
+        navigate('/learn');
       }
     } catch (err: any) {
       console.warn('Authentication error:', err);
@@ -828,7 +828,7 @@ export default function Auth() {
                     } else if (role === 'admin') {
                       navigate('/admin');
                     } else {
-                      navigate('/dashboard');
+                      navigate('/learn');
                     }
                   }}
                   className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all"
