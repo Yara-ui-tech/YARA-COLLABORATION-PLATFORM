@@ -107,3 +107,4 @@ export async function deleteShopProduct(id: string): Promise<boolean> {
   const filtered = current.filter(p => p.id !== id);
   return await saveShopProducts(filtered);
 }
+

@@ -110,14 +110,14 @@ export default function Admin() {
     authUser?.user_metadata?.role === 'admin';
   
   const getHubForTab = (tab: string): AdminHub => {
-    if (['event_registrations', 'members', 'admin_management', 'equity_inclusion'].includes(tab)) return 'members';
+    if (['site_content', 'shop_manager', 'org_posts', 'impact_gallery', 'feedbacks_testimonials'].includes(tab)) return 'webpage';
     if (['learning_academy', 'resources_media', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
     if (['competitions', 'competition_teams', 'events', 'virtual_comp', 'yara_competition'].includes(tab)) return 'competitions';
-    if (['mentorship', 'live', 'reviews', 'mentor_req'].includes(tab)) return 'faculty';
+    if (['event_registrations', 'members', 'chapters', 'admin_management', 'equity_inclusion'].includes(tab)) return 'members';
     return 'platform';
   };
 
-  const initialTab = searchParams.get('tab') || 'event_registrations';
+  const initialTab = searchParams.get('tab') || 'site_content';
   const [activeHub, setActiveHub] = useState<AdminHub>(() => getHubForTab(initialTab));
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
@@ -131,7 +131,7 @@ export default function Admin() {
 
   const handleSelectHub = (hubId: AdminHub) => {
     setActiveHub(hubId);
-    const defaultSub = HUBS.find(h => h.id === hubId)?.defaultSub || 'event_registrations';
+    const defaultSub = HUBS.find(h => h.id === hubId)?.defaultSub || 'site_content';
     setActiveTab(defaultSub);
     setSearchParams({ tab: defaultSub }, { replace: true });
   };
@@ -913,7 +913,7 @@ export default function Admin() {
     u.member_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  type AdminHub = 'members' | 'lms' | 'competitions' | 'faculty' | 'platform';
+  type AdminHub = 'webpage' | 'lms' | 'competitions' | 'members' | 'platform';
 
   interface SubTabItem {
     id: string;
@@ -932,18 +932,18 @@ export default function Admin() {
     badge?: string;
   }> = [
     {
-      id: 'members',
-      label: 'Members & Registrations',
-      tagline: 'Bootcamp signups, directory & IDs',
-      icon: Users,
-      color: 'from-blue-600 to-indigo-600',
-      defaultSub: 'event_registrations',
-      badge: 'Core'
+      id: 'webpage',
+      label: 'Webpage & Content Studio',
+      tagline: 'Homepage sections, shop pricing & news',
+      icon: Globe,
+      color: 'from-blue-600 to-cyan-600',
+      defaultSub: 'site_content',
+      badge: 'Web Studio'
     },
     {
       id: 'lms',
-      label: 'YARA Learning Academy',
-      tagline: 'Robotics Tiers 1–4, LMS & certs',
+      label: 'Robotics Academy & LMS',
+      tagline: 'Courses, modules, tiers & certificates',
       icon: BookOpen,
       color: 'from-emerald-600 to-teal-600',
       defaultSub: 'learning_academy',
@@ -951,24 +951,25 @@ export default function Admin() {
     },
     {
       id: 'competitions',
-      label: 'Competitions & Events',
-      tagline: 'YARA 2026, teams (2B+2G) & arena',
+      label: 'Competitions & Arena',
+      tagline: 'Championships, teams (2B+2G) & arena',
       icon: Trophy,
       color: 'from-amber-500 to-amber-600',
       defaultSub: 'competitions'
     },
     {
-      id: 'faculty',
-      label: 'Mentorship & Faculty',
-      tagline: 'Live sessions, requests & ratings',
-      icon: MessageSquare,
+      id: 'members',
+      label: 'Members & Chapters',
+      tagline: 'Directory, registrations & chapters',
+      icon: Users,
       color: 'from-purple-600 to-indigo-600',
-      defaultSub: 'mentorship'
+      defaultSub: 'members',
+      badge: 'Directory'
     },
     {
       id: 'platform',
-      label: 'Platform & Finance',
-      tagline: 'Gateways, payouts, countdown & CMS',
+      label: 'Operations & Settings',
+      tagline: 'Finance ledger, CSV import & settings',
       icon: Sliders,
       color: 'from-slate-700 to-slate-900',
       defaultSub: 'finance'
@@ -976,15 +977,16 @@ export default function Admin() {
   ];
 
   const HUB_SUBTABS: Record<AdminHub, SubTabItem[]> = {
-    members: [
-      { id: 'event_registrations', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10 Verified' },
-      { id: 'members', label: 'Member Directory & IDs', icon: Users },
-      { id: 'admin_management', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
-      { id: 'equity_inclusion', label: 'Equity & Free Access', icon: HeartHandshake, badge: 'Leave No One Behind' },
+    webpage: [
+      { id: 'site_content', label: 'Dynamic Webpage Banners & CMS', icon: Layers, badge: 'Homepage' },
+      { id: 'shop_manager', label: 'Hardware Shop & Pricing', icon: ShoppingBag, badge: 'Store' },
+      { id: 'org_posts', label: 'News & Official Dispatches', icon: Send, badge: 'Press' },
+      { id: 'impact_gallery', label: 'Media & Photo Galleries', icon: Award },
+      { id: 'feedbacks_testimonials', label: 'Testimonials & Reviews', icon: Heart },
     ],
     lms: [
       { id: 'learning_academy', label: 'Academy Courses & Tiers', icon: BookOpen, badge: 'Tiers 1–4' },
-      { id: 'resources_media', label: 'Educational Resources & Uploads', icon: Upload, badge: 'Uploads' },
+      { id: 'resources_media', label: 'Technical Datasheets & Schematics', icon: Upload, badge: 'Uploads' },
       { id: 'cert_templates', label: 'Accredited Certificate Templates', icon: Award },
       { id: 'yara_kids', label: 'YARA Kids STEM (Ages 3–8)', icon: Star },
       { id: 'brainstorming', label: 'Critical Thinking Quizzes', icon: Brain },
@@ -995,24 +997,21 @@ export default function Admin() {
       { id: 'events', label: 'Events Schedule', icon: Calendar },
       { id: 'virtual_comp', label: 'Virtual Arena', icon: Zap },
     ],
-    faculty: [
-      { id: 'mentorship', label: 'Mentorship Requests', icon: MessageSquare },
-      { id: 'live', label: 'Live Session Approvals', icon: Video },
-      { id: 'reviews', label: 'Faculty Reviews & Ratings', icon: Star },
-      { id: 'mentor_req', label: 'Auto Mentor Match Requests', icon: UserPlus },
+    members: [
+      { id: 'members', label: 'Member Directory & IDs', icon: Users },
+      { id: 'event_registrations', label: 'Bootcamp Registrations', icon: ShieldCheck, badge: '$10 Verified' },
+      { id: 'chapters', label: 'Chapters & Clubs', icon: Building2 },
+      { id: 'admin_management', label: 'Admins & Permissions', icon: UserPlus, badge: 'Council' },
+      { id: 'equity_inclusion', label: 'Equity & Free Access', icon: HeartHandshake, badge: 'Leave No One Behind' },
     ],
     platform: [
-      { id: 'shop_manager', label: 'Hardware Shop & Pricing', icon: ShoppingBag, badge: 'Store' },
-      { id: 'data_uploads', label: 'Bulk Data Ingestion (CSV)', icon: Upload, badge: 'Staging' },
       { id: 'finance', label: 'Finance & Payouts', icon: DollarSign },
       { id: 'donations_partners', label: 'Payment Gateways & Donations', icon: CreditCard },
+      { id: 'data_uploads', label: 'Bulk Data Ingestion (CSV)', icon: Upload, badge: 'Staging' },
       { id: 'impact_ledger', label: 'M&E Audit Ledger (CSV)', icon: DollarSign, badge: 'Audited' },
-      { id: 'site_content', label: 'Dynamic CMS & Content', icon: Sliders },
+      { id: 'mentorship', label: 'Mentorship Requests', icon: MessageSquare },
+      { id: 'live', label: 'Live Session Approvals', icon: Video },
       { id: 'settings', label: 'Platform & Launch Settings', icon: Save },
-      { id: 'chapters', label: 'Chapters & Secretaries', icon: Building2 },
-      { id: 'org_posts', label: 'Press & Social Posts', icon: Send },
-      { id: 'impact_gallery', label: 'Impact Galleries', icon: Award },
-      { id: 'feedbacks_testimonials', label: 'Feedbacks & Testimonials', icon: Heart },
     ],
   };
 
@@ -1033,124 +1032,188 @@ export default function Admin() {
   return (
     <div className="space-y-8 pb-12">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h2>
-          <p className="text-slate-500 font-medium">Manage YARA members and assign identification numbers.</p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={deletePastData}
-            disabled={loading}
-            className="flex items-center space-x-2 bg-amber-50 text-amber-600 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-amber-100 transition-all border border-amber-100"
-            title="Remove expired events and competitions"
-          >
-            <Clock className="w-4 h-4" />
-            <span>Clean Expired</span>
-          </button>
-          <button
-            onClick={wipeAllData}
-            disabled={loading}
-            className="flex items-center space-x-2 bg-red-50 text-red-600 px-6 py-3 rounded-2xl font-bold text-sm hover:bg-red-100 transition-all border border-red-100"
-            title="Wipe all user data"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Wipe All Data</span>
-          </button>
-          <button
-            onClick={() => {
-              if (activeTab === 'events') openCreateEventModal();
-              else if (activeTab === 'competitions') openCreateCompModal();
-              else setShowAddModal(true);
-            }}
-            className="flex items-center space-x-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>
-              {activeTab === 'events' ? 'Add Event' : 
-               activeTab === 'competitions' ? 'Add Competition' : 
-               'Add Member'}
-            </span>
-          </button>
-        </div>
-      </header>
-
-      {/* Quick Shortcuts Bar for High-Priority Tasks */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 rounded-3xl text-white shadow-md flex flex-wrap items-center justify-between gap-3 border border-indigo-900/30">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-            Quick Manager Shortcuts:
-          </span>
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>YARA Central Command &amp; Webpage Studio</span>
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Admin &amp; Webpage Content Studio</h2>
+          <p className="text-slate-500 text-sm font-medium">
+            Publish webpage banners, update hardware shop prices, build robotics curriculum, manage competitions, and govern registrations.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={deletePastData}
+            disabled={loading}
+            className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer border border-slate-200"
+            title="Remove expired events and competitions"
+          >
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
+            <span>Clean Expired</span>
+          </button>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-2 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer border border-slate-200 shadow-xs"
+            title="View public live website in new tab"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-indigo-600" />
+            <span>View Public Site</span>
+          </a>
+        </div>
+      </header>
+
+      {/* ─── QUICK WEBPAGE CREATORS & ACTIONS ─── */}
+      <div className="bg-slate-900 rounded-3xl p-6 text-white border border-slate-800 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-300">
+              Webpage &amp; Content Quick Creators — Click to Add Instantly:
+            </h3>
+          </div>
+          <span className="text-[11px] text-slate-400 font-medium">1-Click studio access</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Action 1: Webpage CMS Banner */}
+          <button
             onClick={() => {
-              setActiveHub('platform');
+              setActiveHub('webpage');
+              setActiveTab('site_content');
+              setSearchParams({ tab: 'site_content' });
+            }}
+            className={cn(
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'site_content'
+                ? "bg-blue-600 text-white border-blue-500 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-blue-400"
+            )}
+          >
+            <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ Webpage Banner</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Homepage CMS &amp; Hero</span>
+            </div>
+          </button>
+
+          {/* Action 2: Shop Product & Price */}
+          <button
+            onClick={() => {
+              setActiveHub('webpage');
+              setActiveTab('shop_manager');
+              setSearchParams({ tab: 'shop_manager' });
+            }}
+            className={cn(
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'shop_manager'
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-emerald-400"
+            )}
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ Hardware &amp; Price</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Store kit / sensor</span>
+            </div>
+          </button>
+
+          {/* Action 3: Press / News Dispatch */}
+          <button
+            onClick={() => {
+              setActiveHub('webpage');
               setActiveTab('org_posts');
               setSearchParams({ tab: 'org_posts' });
             }}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
-              activeTab === 'org_posts' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'org_posts'
+                ? "bg-amber-600 text-white border-amber-500 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-amber-400"
             )}
           >
-            <span>📢 News & Announcements</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Send className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ News / Dispatch</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Announcements &amp; press</span>
+            </div>
           </button>
 
+          {/* Action 4: Course & LMS Module */}
           <button
             onClick={() => {
               setActiveHub('lms');
-              setActiveTab('yara_kids');
-              setSearchParams({ tab: 'yara_kids' });
+              setActiveTab('learning_academy');
+              setSearchParams({ tab: 'learning_academy' });
             }}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
-              activeTab === 'yara_kids' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'learning_academy'
+                ? "bg-purple-600 text-white border-purple-500 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-purple-400"
             )}
           >
-            <span>✨ YARA Kids Manager</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ Robotics Course</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Tiers 1–4 curriculum</span>
+            </div>
           </button>
 
+          {/* Action 5: Competition & Arena */}
           <button
             onClick={() => {
-              setActiveHub('faculty');
-              setActiveTab('live');
-              setSearchParams({ tab: 'live' });
+              setActiveHub('competitions');
+              setActiveTab('competitions');
+              setSearchParams({ tab: 'competitions' });
             }}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
-              activeTab === 'live' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'competitions'
+                ? "bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-amber-400"
             )}
           >
-            <span>🔴 Live Stream</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Trophy className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ Competition</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Championship &amp; rules</span>
+            </div>
           </button>
 
+          {/* Action 6: Study Datasheet / Schematic */}
           <button
             onClick={() => {
-              setActiveHub('platform');
-              setActiveTab('feedbacks_testimonials');
-              setSearchParams({ tab: 'feedbacks_testimonials' });
+              setActiveHub('lms');
+              setActiveTab('resources_media');
+              setSearchParams({ tab: 'resources_media' });
             }}
             className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
-              activeTab === 'feedbacks_testimonials' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
+              "p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between gap-3 group cursor-pointer",
+              activeTab === 'resources_media'
+                ? "bg-teal-600 text-white border-teal-500 shadow-md"
+                : "bg-slate-800/80 hover:bg-slate-800 text-slate-200 border-slate-700/80 hover:border-teal-400"
             )}
           >
-            <span>💬 Feedback & Reviews</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveHub('members');
-              setActiveTab('members');
-              setSearchParams({ tab: 'members' });
-            }}
-            className={cn(
-              "px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer",
-              activeTab === 'members' ? "bg-amber-400 text-slate-950 font-black" : "bg-white/10 hover:bg-white/20 text-white"
-            )}
-          >
-            <span>👥 Members Directory</span>
+            <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Upload className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black block text-white leading-tight">+ Datasheet / PDF</span>
+              <span className="text-[10px] text-slate-400 block line-clamp-1 mt-0.5">Lab guide &amp; schematics</span>
+            </div>
           </button>
         </div>
       </div>

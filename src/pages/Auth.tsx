@@ -6,12 +6,12 @@ import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbu
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { 
-  checkEquityScholarshipEligibility, 
-  getUnderservedSchools, 
-  getUnderservedRegions, 
-  UnderservedSchool, 
-  UnderservedRegion 
+import {
+  checkEquityScholarshipEligibility,
+  getUnderservedSchools,
+  getUnderservedRegions,
+  UnderservedSchool,
+  UnderservedRegion
 } from '../services/equityService';
 
 import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
@@ -25,7 +25,7 @@ export default function Auth() {
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [gender, setGender] = useState<'girl' | 'boy'>('girl');
-  const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
+  const [tier, setTier] = useState<'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6'>('T2');
   const [schoolInstitution, setSchoolInstitution] = useState('');
   const [locationRegion, setLocationRegion] = useState('');
   const [disabilityType, setDisabilityType] = useState<'none' | 'visual' | 'hearing' | 'motor' | 'cognitive_dyslexia' | 'other'>('none');
@@ -48,7 +48,7 @@ export default function Auth() {
         .select('value')
         .eq('key', 'course_fee')
         .single();
-      
+
       if (data?.value) {
         setCourseFee(data.value);
       }
@@ -94,8 +94,8 @@ export default function Auth() {
   if (isAuthReady && user && !showSuccessModal) {
     const userRole = profile?.role || user.user_metadata?.role;
     const userEmail = (user.email || '').toLowerCase().trim();
-    const isAdmin = userRole === 'admin' || 
-      userEmail === 'manongwasimbarashe394@gmail.com' || 
+    const isAdmin = userRole === 'admin' ||
+      userEmail === 'manongwasimbarashe394@gmail.com' ||
       userEmail === 'goyaracorp@gmail.com';
 
     if (isAdmin) {
@@ -132,7 +132,7 @@ export default function Auth() {
     try {
       if (isLogin) {
         let loginEmail = email.trim();
-        
+
         if (loginMethod === 'memberId') {
           // 1. Look up email by Member ID
           const cleanMemberId = memberId.trim();
@@ -150,11 +150,11 @@ export default function Auth() {
             if (lookupError || !profileData || !profileData.email) {
               throw new Error('Member ID not found. Please verify your ID or switch to Email login.');
             }
-            
+
             if (profileData.is_halted) {
               throw new Error('Your account has been temporarily halted by an administrator. Please contact support.');
             }
-            
+
             loginEmail = profileData.email;
           } catch (err: any) {
             throw new Error(err.message || 'Could not verify Member ID. Please use your Email address to sign in.');
@@ -162,11 +162,11 @@ export default function Auth() {
         }
 
         // 2. Sign in with password with safety
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ 
-          email: loginEmail, 
-          password 
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password
         });
-        
+
         if (signInError) throw signInError;
 
         if (signInData.user) {
@@ -179,11 +179,11 @@ export default function Auth() {
               .eq('id', signInData.user.id)
               .maybeSingle();
             if (dbProfile?.role) resolvedRole = dbProfile.role;
-          } catch {}
+          } catch { }
 
           const userEmail = (signInData.user.email || '').toLowerCase().trim();
-          const isAdmin = userEmail === 'manongwasimbarashe394@gmail.com' || 
-            userEmail === 'goyaracorp@gmail.com' || 
+          const isAdmin = userEmail === 'manongwasimbarashe394@gmail.com' ||
+            userEmail === 'goyaracorp@gmail.com' ||
             resolvedRole === 'admin';
 
           if (isAdmin) {
@@ -236,7 +236,7 @@ export default function Auth() {
         });
 
         if (signUpError) throw signUpError;
-        
+
         if (data.user) {
           // Asynchronously upsert profile to ensure all fields are persisted
           try {
@@ -257,7 +257,7 @@ export default function Auth() {
               is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
               underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : null,
-              registration_paid: isFreeAccessGrantee, 
+              registration_paid: isFreeAccessGrantee,
               trial_ends_at: new Date(Date.now() + (isFreeAccessGrantee ? 20 * 365 : 4) * 24 * 60 * 60 * 1000).toISOString(),
               subscription_expires_at: new Date(Date.now() + (isFreeAccessGrantee ? 20 * 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
               is_halted: false,
@@ -320,7 +320,7 @@ export default function Auth() {
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl animate-pulse" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/20 rounded-full -ml-32 -mb-32 blur-3xl animate-pulse" />
-          
+
           <div className="relative z-10">
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 overflow-hidden shadow-xl">
               {ASSETS.LOGO ? (
@@ -475,11 +475,10 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setGender('girl')}
-                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
-                        gender === 'girl'
+                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${gender === 'girl'
                           ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       <span className="text-base">👧</span>
                       <span>Girl / Female</span>
@@ -487,11 +486,10 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setGender('boy')}
-                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
-                        gender === 'boy'
+                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${gender === 'boy'
                           ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       <span className="text-base">👦</span>
                       <span>Boy / Male</span>
@@ -725,7 +723,7 @@ export default function Auth() {
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">Choose Tier</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(['T2','T3','T4','T5','T6'] as const).map((t) => (
+                    {(['T2', 'T3', 'T4', 'T5', 'T6'] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -873,7 +871,7 @@ export default function Auth() {
               <p className="text-slate-600 mb-6">
                 You have been registered as <span className="font-bold text-indigo-600 uppercase">{role === 'mentor' || role === 'admin' ? role : tier}</span>.
               </p>
-              
+
               {!signupHasSession && (
                 <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-5 mb-6">
                   <div className="flex items-center justify-center space-x-2 text-blue-700 font-bold mb-2">
@@ -899,7 +897,7 @@ export default function Auth() {
                   <span>Free Trial Active</span>
                 </div>
                 <p className="text-amber-600 text-sm font-medium">
-                  You have <span className="font-black">4 days</span> of free access to all features. 
+                  You have <span className="font-black">4 days</span> of free access to all features.
                   After this period, you will need to subscribe to continue your journey.
                 </p>
               </div>

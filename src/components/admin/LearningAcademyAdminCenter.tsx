@@ -60,7 +60,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => {
-  const [activeSection, setActiveSection] = useState<'curriculum' | 'coding_courses' | 'capstones' | 'students' | 'kits' | 'certificates' | 'certificate_templates' | 'qa_audit'>('students');
+  const [activeSection, setActiveSection] = useState<'coding_courses' | 'curriculum' | 'students' | 'capstones' | 'kits' | 'certificates' | 'certificate_templates' | 'qa_audit'>('coding_courses');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -265,6 +265,18 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
       {/* Sub-Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
         <button
+          onClick={() => setActiveSection('coding_courses')}
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+            activeSection === 'coding_courses'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>1. Course Creation &amp; Modules Studio</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('students')}
           className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
             activeSection === 'students'
@@ -273,7 +285,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>1. Learner Roster & Progress</span>
+          <span>2. Learner Roster &amp; Progress</span>
         </button>
 
         <button
@@ -285,7 +297,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Award className="w-4 h-4" />
-          <span>2. Capstone Grading Queue</span>
+          <span>3. Capstone Grading Queue</span>
           {pendingCapstonesCount > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-black">
               {pendingCapstonesCount}
@@ -302,19 +314,7 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Award className="w-4 h-4" />
-          <span>3. Certificate Unlocks (Admin Sign-Off)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('coding_courses')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-            activeSection === 'coding_courses'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>4. Centralized Course Management Studio</span>
+          <span>4. Certificate Unlocks (Admin Sign-Off)</span>
         </button>
 
         <button
