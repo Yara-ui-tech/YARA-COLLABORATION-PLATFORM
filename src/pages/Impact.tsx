@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   BarChart3, Rocket, Globe, CheckCircle2, ArrowRight, 
@@ -7,16 +7,28 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Breadcrumbs from '../components/Breadcrumbs';
+import { getLiveTotalModulesCount } from '../services/unifiedCourseService';
 
 export default function Impact() {
   const [activeProvince, setActiveProvince] = useState<string>('Mashonaland West');
+  const [moduleCount, setModuleCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const count = await getLiveTotalModulesCount();
+        setModuleCount(count);
+      } catch {}
+    }
+    loadStats();
+  }, []);
 
   const kpis = [
     { value: '1,200+', label: 'Students Reached', desc: 'Direct hands-on physical computing and hardware lab sessions', icon: Users, color: 'text-cyan-400', border: 'border-cyan-500/30' },
     { value: '14+', label: 'Certified School Clubs', desc: 'Continuous active robotics charters with trained teacher patrons', icon: School, color: 'text-blue-400', border: 'border-blue-500/30' },
     { value: '100%', label: 'Gender Parity Enforced', desc: 'Mandatory 2 Boys + 2 Girls equality rule in every competitive team', icon: ShieldCheck, color: 'text-emerald-400', border: 'border-emerald-500/30' },
     { value: '10', label: 'Provinces Engaged', desc: 'Reaching urban centers, peri-urban zones, and underserved rural schools', icon: Globe, color: 'text-amber-400', border: 'border-amber-500/30' },
-    { value: '42', label: 'Hands-on Micro-Modules', desc: 'From basic Ohm’s law breadboards to autonomous TinyML Edge AI', icon: Cpu, color: 'text-purple-400', border: 'border-purple-500/30' }
+    { value: `${moduleCount}`, label: 'Hands-on Micro-Modules', desc: 'From basic Ohm’s law breadboards to autonomous TinyML Edge AI', icon: Cpu, color: 'text-purple-400', border: 'border-purple-500/30' }
   ];
 
   const provinceData: Record<string, { schools: string; students: string; highlight: string; projects: string[] }> = {

@@ -620,7 +620,7 @@ export const YaraLmsSessionPlayer: React.FC<Props> = ({
               {/* Module Syllabus List */}
               <div className="space-y-1.5">
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1 mb-1">
-                  Foundation Curriculum (42 Sessions)
+                  Foundation Curriculum
                 </div>
 
                 <div className="space-y-1 max-h-[55vh] overflow-y-auto pr-1">

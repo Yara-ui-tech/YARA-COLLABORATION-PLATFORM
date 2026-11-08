@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getLiveTotalModulesCount } from '../services/unifiedCourseService';
 
 export type PortalMode = 'webpage' | 'lms';
 
@@ -47,8 +48,8 @@ const DEFAULT_STATS: PortalStats = {
   },
   lms: {
     title: 'YARA Learning Academy',
-    totalSessions: 42,
-    courseLevels: 4,
+    totalSessions: 0,
+    courseLevels: 0,
     enrolledInnovators: 384,
     certificatesAwarded: 112,
     activeIndustrialMentors: 4,
@@ -112,10 +113,11 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fetchStats = async () => {
       setLoadingStats(true);
       try {
-        const [regCount, profCount, certCount] = await Promise.allSettled([
+        const [regCount, profCount, certCount, liveModules] = await Promise.allSettled([
           supabase.from('event_registrations').select('id', { count: 'exact', head: true }),
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('yara_accredited_certificates').select('id', { count: 'exact', head: true }),
+          getLiveTotalModulesCount()
         ]);
 
         const totalEnrolled = 
@@ -125,13 +127,21 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const totalCerts = 
           certCount.status === 'fulfilled' ? certCount.value.count || 0 : 0;
 
+        const totalSessions = 
+          liveModules.status === 'fulfilled' ? liveModules.value : 0;
+
         if (isMounted) {
           setPortalStats(prev => ({
             ...prev,
             lms: {
-              ...prev.lms,
-              enrolledInnovators: totalEnrolled > 0 ? totalEnrolled : prev.lms.enrolledInnovators,
-              certificatesAwarded: totalCerts > 0 ? totalCerts : prev.lms.certificatesAwarded
+              ...prev?.lms,
+              title: prev?.lms?.title || 'YARA Learning Academy',
+              courseLevels: prev?.lms?.courseLevels || 0,
+              activeIndustrialMentors: prev?.lms?.activeIndustrialMentors || 4,
+              avgStudentRating: prev?.lms?.avgStudentRating || 4.93,
+              totalSessions,
+              enrolledInnovators: totalEnrolled > 0 ? totalEnrolled : prev?.lms?.enrolledInnovators || 0,
+              certificatesAwarded: totalCerts > 0 ? totalCerts : prev?.lms?.certificatesAwarded || 0
             }
           }));
         }

@@ -16,9 +16,11 @@ import {
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
+import { getLiveTotalModulesCount } from '../services/unifiedCourseService';
 
 export default function Home() {
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
+  const [moduleCount, setModuleCount] = useState<number>(0);
 
   useEffect(() => {
     async function loadFeed() {
@@ -29,7 +31,16 @@ export default function Home() {
         }
       } catch {}
     }
+
+    async function loadModuleStats() {
+      try {
+        const count = await getLiveTotalModulesCount();
+        setModuleCount(count);
+      } catch {}
+    }
+
     loadFeed();
+    loadModuleStats();
   }, []);
 
   return (
@@ -102,7 +113,7 @@ export default function Home() {
               <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-0.5">Gender Parity</p>
             </div>
             <div>
-              <p className="text-3xl font-black text-cyan-400 tracking-tight">42</p>
+              <p className="text-3xl font-black text-cyan-400 tracking-tight">{moduleCount}</p>
               <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-0.5">Micro-Modules</p>
             </div>
           </div>

@@ -802,7 +802,7 @@ export default function Auth() {
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-bold">YARA LMS</span>
-                  <span className="text-[10px] text-emerald-600/80 font-medium">42 Course Sessions</span>
+                  <span className="text-[10px] text-emerald-600/80 font-medium">Interactive Courses</span>
                 </button>
               </div>
             </div>

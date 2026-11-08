@@ -166,7 +166,7 @@ export const YaraLmsDashboard: React.FC<Props> = ({
           <div>
             <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Completed Sessions</div>
             <div className="text-sm sm:text-base font-bold text-emerald-400 mt-1">
-              {progressStats?.completedCount || 0} / {progressStats?.totalSessions || 42}
+              {progressStats?.completedCount || 0} / {progressStats?.totalSessions || 0}
             </div>
           </div>
 

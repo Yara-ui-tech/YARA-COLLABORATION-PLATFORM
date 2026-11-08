@@ -110,7 +110,7 @@ export const YaraLmsCertificateModal: React.FC<Props> = ({
                   {eligibility?.requirements.allSessionsCompleted.met ? <CheckCircle size={16} /> : <Lock size={16} />}
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">1. Complete All 42 Sessions</div>
+                  <div className="text-xs font-bold text-white">1. Complete All Course Modules</div>
                   <div className="text-[11px] text-slate-400 mt-0.5">
                     {eligibility?.requirements.allSessionsCompleted.current} / {eligibility?.requirements.allSessionsCompleted.total} completed
                   </div>
@@ -260,7 +260,7 @@ export const YaraLmsCertificateModal: React.FC<Props> = ({
               </h1>
 
               <div className="text-xs text-slate-300 mt-4 max-w-lg mx-auto leading-relaxed">
-                has successfully completed all 42 theoretical, laboratory, and research sessions, passed all examinations, built and stress-tested physical autonomous robotics hardware, and successfully defended an original Capstone Innovation Project in:
+                has successfully completed all theoretical, laboratory, and research sessions, passed all examinations, built and stress-tested physical autonomous robotics hardware, and successfully defended an original Capstone Innovation Project in:
               </div>
 
               <div className="text-base sm:text-lg font-bold text-amber-300 mt-3 max-w-xl mx-auto">

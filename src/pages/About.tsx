@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Info, Target, Eye, Heart, ShieldCheck, Zap, Users, 
@@ -8,8 +8,20 @@ import {
 import { Link } from 'react-router-dom';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import Breadcrumbs from '../components/Breadcrumbs';
+import { getLiveTotalModulesCount } from '../services/unifiedCourseService';
 
 export default function About() {
+  const [moduleCount, setModuleCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const count = await getLiveTotalModulesCount();
+        setModuleCount(count);
+      } catch {}
+    }
+    loadStats();
+  }, []);
   const pillars = [
     {
       title: 'Grassroots Hardware Labs',
@@ -184,9 +196,9 @@ export default function About() {
               </div>
 
               <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <span className="text-3xl font-black text-purple-400 block font-mono">42</span>
+                <span className="text-3xl font-black text-purple-400 block font-mono">{moduleCount}</span>
                 <span className="text-xs font-black text-white uppercase tracking-wider block">LMS Modules</span>
-                <span className="text-[11px] text-slate-400 block">Tiers 1 to 4 mastered</span>
+                <span className="text-[11px] text-slate-400 block">Interactive courses</span>
               </div>
             </div>
           </div>

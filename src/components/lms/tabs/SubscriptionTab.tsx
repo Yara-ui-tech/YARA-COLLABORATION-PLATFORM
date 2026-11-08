@@ -150,7 +150,7 @@ export const SubscriptionTab: React.FC<Props> = ({
             <p className="text-xs text-slate-500 mt-2">Comprehensive membership for individual robotics innovators and aspiring engineers.</p>
 
             <ul className="mt-4 space-y-2 text-xs text-slate-700">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Full access to all 42 sessions & online simulators</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Full access to all courses, modules & online simulators</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Official accredited graduation certificate issuance</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> 20% discount on YARA hardware starter kits</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Physical maker-lab workbench access & tool usage</li>
@@ -188,7 +188,7 @@ export const SubscriptionTab: React.FC<Props> = ({
             <p className="text-xs text-slate-500 mt-2">Discounted tier for primary, secondary, and tertiary students with valid student ID.</p>
 
             <ul className="mt-4 space-y-2 text-xs text-slate-700">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Full access to all 42 sessions & online simulators</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Full access to all courses, modules & online simulators</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Official accredited graduation certificate issuance</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> 10% discount on YARA hardware starter kits</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Group maker-lab sessions & mentor office hours</li>

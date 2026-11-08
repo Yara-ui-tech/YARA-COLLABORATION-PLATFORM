@@ -54,7 +54,7 @@ export const LmsMembershipLockModal: React.FC<Props> = ({
             <strong className="text-slate-900 font-bold">Course 1 is 100% Free to Trial for everyone!</strong> You have reached the end of the free trial course.
           </p>
           <p>
-            To unlock access to all remaining <strong>42+ Robotics Academy Levels</strong>, <strong>Coding & Web Development Tracks</strong>, and <strong>Hardware Simulator Labs</strong>, you must register as a YARA Member by paying the <strong>$15 USD once-off membership fee</strong> and receiving administrator approval.
+            To unlock access to all <strong>Robotics Academy Courses & Levels</strong>, <strong>Coding & Web Development Tracks</strong>, and <strong>Hardware Simulator Labs</strong>, you must register as a YARA Member by paying the <strong>$15 USD once-off membership fee</strong> and receiving administrator approval.
           </p>
         </div>
 

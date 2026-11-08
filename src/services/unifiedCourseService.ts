@@ -724,3 +724,23 @@ export function getLmsReportingOverview(): LmsReportingOverview {
     coursesByTrack
   };
 }
+
+/**
+ * Calculates total active micro-modules across all published courses in the database.
+ * If 0 courses exist, returns 0. When courses are added, dynamically returns the sum of modules.
+ */
+export async function getLiveTotalModulesCount(): Promise<number> {
+  try {
+    const courses = await fetchCoursesFromDatabase();
+    return courses.reduce((sum, c) => {
+      const count = (c.modules && c.modules.length > 0) ? c.modules.length : (c.totalModulesCount || 1);
+      return sum + count;
+    }, 0);
+  } catch {
+    const local = getAllCourses();
+    return local.reduce((sum, c) => {
+      const count = (c.modules && c.modules.length > 0) ? c.modules.length : (c.totalModulesCount || 1);
+      return sum + count;
+    }, 0);
+  }
+}

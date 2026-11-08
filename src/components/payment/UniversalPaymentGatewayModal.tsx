@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { 
-  CreditCard, Smartphone, Building2, CheckCircle2, ShieldCheck, 
-  Lock, X, ArrowRight, Printer, Download, Sparkles, AlertCircle, 
+import {
+  CreditCard, Smartphone, Building2, CheckCircle2, ShieldCheck,
+  Lock, X, ArrowRight, Printer, Download, Sparkles, AlertCircle,
   RefreshCw, DollarSign, Award, Package, Trophy, BookOpen, Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -30,47 +30,47 @@ const PURPOSE_OPTIONS: Array<{
   icon: any;
   color: string;
 }> = [
-  {
-    id: 'subscription',
-    label: 'YARA Annual Membership',
-    amount: 15,
-    description: 'Unlocks all 42+ LMS levels, simulation labs, accredited certificate & live mentoring.',
-    icon: Award,
-    color: 'text-indigo-600 bg-indigo-50 border-indigo-200'
-  },
-  {
-    id: 'kit',
-    label: 'ESP32 Robotics Starter Kit',
-    amount: 45,
-    description: 'Physical components: ESP32 MCU, ultrasonic sensors, motor drivers, chassis & wheels.',
-    icon: Package,
-    color: 'text-cyan-600 bg-cyan-50 border-cyan-200'
-  },
-  {
-    id: 'event',
-    label: 'Continental Championship Team',
-    amount: 25,
-    description: 'Official registration for 4-member team (2 Boys + 2 Girls) in the 2026 Arena.',
-    icon: Trophy,
-    color: 'text-amber-600 bg-amber-50 border-amber-200'
-  },
-  {
-    id: 'bootcamp',
-    label: 'AI & Robotics Bootcamp Seat',
-    amount: 10,
-    description: '5-Day intensive training cohort pass with live room link and accredited syllabus.',
-    icon: BookOpen,
-    color: 'text-emerald-600 bg-emerald-50 border-emerald-200'
-  },
-  {
-    id: 'donation',
-    label: 'Custom Donation / Sponsorship',
-    amount: 20,
-    description: 'Support underserved rural schools and community innovation chapters.',
-    icon: Heart,
-    color: 'text-rose-600 bg-rose-50 border-rose-200'
-  }
-];
+    {
+      id: 'subscription',
+      label: 'YARA Annual Membership',
+      amount: 15,
+      description: 'Unlocks all LMS courses, simulation labs, accredited certificate & live mentoring.',
+      icon: Award,
+      color: 'text-indigo-600 bg-indigo-50 border-indigo-200'
+    },
+    {
+      id: 'kit',
+      label: 'ESP32 Robotics Starter Kit',
+      amount: 45,
+      description: 'Physical components: ESP32 MCU, ultrasonic sensors, motor drivers, chassis & wheels.',
+      icon: Package,
+      color: 'text-cyan-600 bg-cyan-50 border-cyan-200'
+    },
+    {
+      id: 'event',
+      label: 'Continental Championship Team',
+      amount: 25,
+      description: 'Official registration for 4-member team (2 Boys + 2 Girls) in the 2026 Arena.',
+      icon: Trophy,
+      color: 'text-amber-600 bg-amber-50 border-amber-200'
+    },
+    {
+      id: 'bootcamp',
+      label: 'AI & Robotics Bootcamp Seat',
+      amount: 10,
+      description: '5-Day intensive training cohort pass with live room link and accredited syllabus.',
+      icon: BookOpen,
+      color: 'text-emerald-600 bg-emerald-50 border-emerald-200'
+    },
+    {
+      id: 'donation',
+      label: 'Custom Donation / Sponsorship',
+      amount: 20,
+      description: 'Support underserved rural schools and community innovation chapters.',
+      icon: Heart,
+      color: 'text-rose-600 bg-rose-50 border-rose-200'
+    }
+  ];
 
 export default function UniversalPaymentGatewayModal({
   isOpen,
@@ -176,8 +176,8 @@ export default function UniversalPaymentGatewayModal({
       const ref = selectedMethod === 'card'
         ? `CARD-STRIPE-${Date.now().toString().slice(-6)}`
         : selectedMethod === 'ecocash'
-        ? mobileRef.trim()
-        : bankRef.trim();
+          ? mobileRef.trim()
+          : bankRef.trim();
 
       const tx = await processPaymentSubmission({
         payerName,
@@ -298,7 +298,7 @@ export default function UniversalPaymentGatewayModal({
             {purpose === 'subscription' && (
               <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 font-bold flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>All 42+ Robotics Courses and Simulation Labs are now unlocked on your account!</span>
+                <span>All Robotics Courses and Simulation Labs are now unlocked on your account!</span>
               </div>
             )}
 

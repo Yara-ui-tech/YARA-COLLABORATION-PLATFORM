@@ -283,7 +283,7 @@ export default function QuickAuthCard({ onGuestExplore }: QuickAuthCardProps) {
           </h3>
           <p className="text-xs text-slate-400">
             {mode === 'signin' 
-              ? 'Access 42 micro-modules, hardware quizzes, and certificates.' 
+              ? 'Access interactive micro-modules, hardware quizzes, and certificates.' 
               : 'Join over 1,200 African students and teachers in hands-on STEM.'}
           </p>
         </div>
