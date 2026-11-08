@@ -83,54 +83,32 @@ export default function LearnerDashboard() {
     loadMentorshipRequests();
   }, [user?.id, user?.email]);
 
-  // Find next unfinished session in curriculum
-  const nextSession = CURRICULUM.find(s => 
-    !feedbacks[s.id] || 
-    feedbacks[s.id].status === 'struggling' || 
-    feedbacks[s.id].status === 'partially'
-  ) || CURRICULUM[0];
+  const [dbCourses, setDbCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
 
-  const totalSessions = CURRICULUM.length;
-  const progressPercent = Math.min(100, Math.round((completedCount / totalSessions) * 100));
-
-  const courses = [
-    {
-      id: 'rob_beg',
-      title: 'Level 1: Robotics Foundations & Embedded Systems (Beginner)',
-      level: 'Beginner (10 Modules + 2 Capstones)',
-      completedLessons: Math.min(completedCount, 10),
-      totalLessons: 10,
-      progress: Math.min(100, Math.round((Math.min(completedCount, 10) / 10) * 100)),
-      currentLesson: nextSession ? `${nextSession.id}: ${nextSession.topic}` : 'Module 1: Systems Architecture',
-      path: '/learning?tab=courses',
-      icon: Cpu,
-      color: 'from-blue-600 to-indigo-600'
-    },
-    {
-      id: 'rob_int',
-      title: 'Level 2: Autonomous Systems, PID Control & Aquatic Robotics (Intermediate)',
-      level: 'Intermediate (12 Modules + 2 Capstones)',
-      completedLessons: Math.max(0, Math.min(completedCount - 10, 12)),
-      totalLessons: 12,
-      progress: Math.min(100, Math.round((Math.max(0, Math.min(completedCount - 10, 12)) / 12) * 100)),
-      currentLesson: 'Module 1: Advanced Embedded C++ & Interrupts',
-      path: '/learning?tab=courses',
-      icon: Brain,
-      color: 'from-purple-600 to-indigo-600'
-    },
-    {
-      id: 'rob_adv',
-      title: 'Level 3: ROS 2, Computer Vision & Industrial Edge Robotics (Advanced)',
-      level: 'Advanced (15 Modules + 2 Capstones)',
-      completedLessons: Math.max(0, Math.min(completedCount - 22, 15)),
-      totalLessons: 15,
-      progress: Math.min(100, Math.round((Math.max(0, Math.min(completedCount - 22, 15)) / 15) * 100)),
-      currentLesson: 'Module 1: Embedded Linux & Single Board Computers',
-      path: '/learning?tab=courses',
-      icon: Code,
-      color: 'from-emerald-600 to-teal-600'
+  useEffect(() => {
+    async function loadDashboardCourses() {
+      try {
+        setLoadingCourses(true);
+        const { data } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true })
+          .limit(6);
+        setDbCourses(data || []);
+      } catch (err) {
+        console.warn('Error loading dashboard courses:', err);
+      } finally {
+        setLoadingCourses(false);
+      }
     }
-  ];
+    loadDashboardCourses();
+  }, []);
+
+  const totalSessions = dbCourses.reduce((acc, c) => acc + (c.total_modules || 1), 0) || 1;
+  const progressPercent = Math.min(100, Math.round((completedCount / totalSessions) * 100));
+  const nextCourse = dbCourses[0];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16 font-sans">
@@ -182,19 +160,19 @@ export default function LearnerDashboard() {
 
             <div>
               <h3 className="text-sm font-bold text-white line-clamp-2">
-                {nextSession ? `${nextSession.id}: ${nextSession.topic}` : 'Courses Complete!'}
+                {nextCourse ? nextCourse.title : 'Explore Robotics Academy'}
               </h3>
               <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
-                {nextSession ? nextSession.description : 'You have completed all core robotics sessions.'}
+                {nextCourse ? (nextCourse.short_summary || nextCourse.description || 'Continue your dynamic learning path.') : 'Discover our practical robotics engineering and coding curriculum.'}
               </p>
             </div>
 
             <Link
-              to={nextSession ? `/learning?session=${nextSession.id}` : '/learning?tab=courses'}
+              to={nextCourse ? `/learning?course=${nextCourse.id || nextCourse.slug || nextCourse.code}` : '/learning?tab=courses'}
               className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-2xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/40 transition-all flex items-center justify-center gap-2 hover:scale-105"
             >
               <Play className="w-4 h-4 fill-white" />
-              <span>Continue Lesson</span>
+              <span>{nextCourse ? 'Start Course' : 'Browse Courses'}</span>
             </Link>
           </div>
         </div>
@@ -367,54 +345,67 @@ export default function LearnerDashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {courses.map((c) => {
-            const Icon = c.icon;
-            return (
-              <div 
-                key={c.id}
-                className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-5 flex flex-col justify-between"
+        <div className="space-y-4">
+          {loadingCourses ? (
+            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+              <span className="text-xs font-semibold">Loading courses from database...</span>
+            </div>
+          ) : dbCourses.length === 0 ? (
+            <div className="p-8 bg-white rounded-3xl border border-dashed border-slate-200 text-center space-y-3">
+              <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-800">No Active Course Enrollments</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                The Academy course catalog is completely fresh. When new courses are published by the administrator, they will appear here.
+              </p>
+              <Link
+                to="/learning?tab=courses"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition"
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-                      {c.level}
-                    </span>
-                    <span className="text-xs font-bold text-slate-600">
-                      {c.progress}% Completed
-                    </span>
+                <span>Explore Academy</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {dbCourses.map((c) => (
+                <div 
+                  key={c.id}
+                  className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-5 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
+                        {c.level || 'All Levels'}
+                      </span>
+                      <span className="text-xs font-bold text-slate-600">
+                        {c.estimated_duration_hours || 12}h Duration
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-slate-900 leading-snug">{c.title}</h3>
+
+                    <p className="text-xs text-slate-500 line-clamp-2">
+                      {c.short_summary || c.description || 'Hands-on practical robotics and computing module.'}
+                    </p>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 leading-snug">{c.title}</h3>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="bg-blue-600 h-full rounded-full transition-all duration-700" 
-                      style={{ width: `${c.progress}%` }}
-                    />
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-medium">
+                      Track: <strong className="text-slate-700 capitalize">{c.track || 'Robotics'}</strong>
+                    </span>
+                    <Link
+                      to={`/learning?course=${c.id || c.slug || c.code}`}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
+                    >
+                      <span>Start Course</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
-
-                  <p className="text-xs text-slate-500 font-medium">
-                    Current Step: <strong className="text-slate-800">{c.currentLesson}</strong>
-                  </p>
                 </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-medium">
-                    {c.completedLessons} of {c.totalLessons} Sessions Complete
-                  </span>
-                  <Link
-                    to={c.path}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
-                  >
-                    <span>Resume Course</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -430,7 +421,7 @@ export default function LearnerDashboard() {
             <Cpu className="w-5 h-5" />
           </div>
           <h4 className="font-bold text-slate-900 text-sm">Robotics Academy</h4>
-          <p className="text-xs text-slate-500 mt-0.5">Complete 3-Level Pathway (37 Modules)</p>
+          <p className="text-xs text-slate-500 mt-0.5">Accredited STEM &amp; Robotics Curriculum</p>
         </Link>
 
         <Link 
@@ -456,14 +447,14 @@ export default function LearnerDashboard() {
         </Link>
 
         <Link 
-          to="/competitions/yara-2026" 
+          to="/competitions" 
           className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-purple-400 hover:shadow-md transition group"
         >
           <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-3 group-hover:scale-110 transition-transform">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <h4 className="font-bold text-slate-900 text-sm">YARA 2026 Arena</h4>
-          <p className="text-xs text-slate-500 mt-0.5">National team qualifiers</p>
+          <h4 className="font-bold text-slate-900 text-sm">Championship Arena</h4>
+          <p className="text-xs text-slate-500 mt-0.5">Tournaments &amp; League Qualifiers</p>
         </Link>
 
         <Link 

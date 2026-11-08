@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Cpu, Code, Brain, Radio, Wrench, GraduationCap, 
   ShieldCheck, Lightbulb, CheckCircle2, ArrowRight, 
-  Calendar, Users, BookOpen, Clock, Trophy, Sparkles
+  Calendar, Users, BookOpen, Clock, Trophy, Sparkles, Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 
@@ -22,17 +23,6 @@ export interface ProgrammeTrack {
   skillsGained: string[];
   trainingFormat: string;
   duration: string;
-  availableCourses: Array<{
-    title: string;
-    level: string;
-    duration: string;
-    path: string;
-  }>;
-  upcomingSessions: Array<{
-    title: string;
-    date: string;
-    format: string;
-  }>;
   ctaText: string;
   ctaPath: string;
 }
@@ -60,17 +50,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Hands-on Physical Hardware Lab & Wokwi/Tinkercad Virtual Simulation',
     duration: '14-Session Core Programme (8 to 12 Weeks)',
-    availableCourses: [
-      { title: 'Foundations of Robotics & Circuits (Tier 1)', level: 'Beginner', duration: '4 Weeks', path: '/learning?course=robotics-beginner' },
-      { title: 'Embedded C++ & Motor Driver Integration (Tier 2)', level: 'Intermediate', duration: '6 Weeks', path: '/learning?course=robotics-intermediate' },
-      { title: 'Autonomous Micromouse Maze Navigation (Tier 3)', level: 'Advanced', duration: '4 Weeks', path: '/learning?course=robotics-advanced' }
-    ],
-    upcomingSessions: [
-      { title: 'Junior Robotics Saturday Lab Cohort', date: 'Starts Nov 14, 2026', format: 'Provincial Chapter Centers' },
-      { title: 'YARA Continental Arena Preparation Lab', date: 'Nov 28 – 30, 2026', format: 'National Science Arena' }
-    ],
     ctaText: 'Enroll in Robotics Track in LMS',
-    ctaPath: '/learning?course=robotics-beginner'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'coding',
@@ -94,16 +75,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Online Code Workbench + Live Instructor Code-Alongs',
     duration: '8 Weeks (Self-Paced or Guided Cohorts)',
-    availableCourses: [
-      { title: 'Visual Block Coding for Young Minds', level: 'Junior', duration: '3 Weeks', path: '/learning?course=scratch-junior' },
-      { title: 'MicroPython for Hardware & Sensor Interfacing', level: 'Intermediate', duration: '5 Weeks', path: '/learning?course=python-robotics' },
-      { title: 'Real-Time Embedded C++ for Robotics Competitions', level: 'Advanced', duration: '6 Weeks', path: '/learning?course=robotics-intermediate' }
-    ],
-    upcomingSessions: [
-      { title: 'Virtual Firmware Sprint (MicroPython)', date: 'Starts Nov 21, 2026', format: 'Online Live Stream' }
-    ],
     ctaText: 'Start Coding Hardware in LMS',
-    ctaPath: '/learning?course=python-robotics'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'ai-iot',
@@ -127,16 +100,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Blended Masterclass + Real Cloud Sensor Projects',
     duration: '6 Weeks (Intensive Project Track)',
-    availableCourses: [
-      { title: 'AI for Educators: Prompt Engineering & Automation', level: 'All Levels', duration: '1 Week', path: '/learning?course=ai-for-educators' },
-      { title: 'TinyML: Machine Learning on Microcontrollers', level: 'Intermediate', duration: '4 Weeks', path: '/learning?course=python-robotics' },
-      { title: 'IoT Connected Systems for African Agriculture', level: 'Advanced', duration: '5 Weeks', path: '/learning?course=iot-cloud-telemetry' }
-    ],
-    upcomingSessions: [
-      { title: 'AI & IoT Environmental Telemetry Masterclass', date: 'Dec 07 – 11, 2026', format: 'Live Virtual Lab' }
-    ],
     ctaText: 'Explore AI & IoT Courses in LMS',
-    ctaPath: '/learning?course=iot-cloud-telemetry'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'stem',
@@ -160,15 +125,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'In-Person School Visits + Patron Certification Portal',
     duration: 'Year-Round Ongoing Institutional Partnership',
-    availableCourses: [
-      { title: 'School Patron & Coach Certification', level: 'Teacher', duration: '2 Weeks', path: '/learning?course=school-robotics-patron' },
-      { title: 'Differentiated STEM Lesson Planning Workbench', level: 'Teacher', duration: 'Self-Paced', path: '/learning?course=ai-for-educators' }
-    ],
-    upcomingSessions: [
-      { title: 'Provincial STEM Patrons Assembly & Qualifier Briefing', date: 'Dec 05, 2026', format: 'Chinhoyi Provincial Hall' }
-    ],
     ctaText: 'Enrol in Patron Course in LMS',
-    ctaPath: '/learning?course=school-robotics-patron'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'engineering',
@@ -192,15 +150,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Interactive Hardware Masterclasses + Lab Practical Sessions',
     duration: '8 Weeks',
-    availableCourses: [
-      { title: 'PCB Design with KiCad & Altium Basics', level: 'Intermediate', duration: '4 Weeks', path: '/learning?course=cad-pcb-design' },
-      { title: 'CAD 3D Modeling for Robot Mechanisms', level: 'Intermediate', duration: '4 Weeks', path: '/learning?course=cad-pcb-design' }
-    ],
-    upcomingSessions: [
-      { title: 'PCB Fabrication & Soldering Masterclass', date: 'Dec 12, 2026', format: 'Innovation Lab Chinhoyi' }
-    ],
     ctaText: 'Join CAD & PCB Course in LMS',
-    ctaPath: '/learning?course=cad-pcb-design'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'digital-literacy',
@@ -224,15 +175,8 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Community Outreach Workshops & Offline Learning Modules',
     duration: '4 Weeks',
-    availableCourses: [
-      { title: 'Digital Literacy Foundations for African Youth', level: 'Beginner', duration: '4 Weeks', path: '/learning?course=scratch-junior' },
-      { title: 'Web Architecture & Coding for Young Innovators', level: 'Beginner', duration: '2 Weeks', path: '/learning?course=javascript-web-dev' }
-    ],
-    upcomingSessions: [
-      { title: 'Grassroots Community Digital Workshop', date: 'Oct 10, 2026', format: 'Rural Chapter Centers' }
-    ],
     ctaText: 'Explore Coding in LMS',
-    ctaPath: '/learning?course=javascript-web-dev'
+    ctaPath: '/learning?tab=courses'
   },
   {
     id: 'innovation',
@@ -256,13 +200,6 @@ export const YARA_PROGRAMMES: ProgrammeTrack[] = [
     ],
     trainingFormat: 'Mentorship Incubator & Pitch Competitions',
     duration: '8 Weeks Project Sprint',
-    availableCourses: [
-      { title: 'Hardware Capstone Project Incubator', level: 'Advanced', duration: '8 Weeks', path: '/learning?course=industrial-automation-plc' },
-      { title: 'Autonomous Robotics Defense Masterclass', level: 'All Levels', duration: '2 Weeks', path: '/learning?course=robotics-advanced' }
-    ],
-    upcomingSessions: [
-      { title: 'YARA 2026 Innovation Pitch Defense', date: 'Oct 16 – 18, 2026', format: 'National Championship Arena' }
-    ],
     ctaText: 'Explore Capstones in LMS',
     ctaPath: '/learning?tab=projects'
   }
@@ -277,6 +214,36 @@ export default function Programs() {
     return matched ? matched.id : 'robotics';
   });
 
+  const [dbCourses, setDbCourses] = useState<any[]>([]);
+  const [dbEvents, setDbEvents] = useState<any[]>([]);
+  const [loadingTrackData, setLoadingTrackData] = useState(true);
+
+  useEffect(() => {
+    async function fetchTrackData() {
+      try {
+        setLoadingTrackData(true);
+        const { data: coursesData } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('is_published', true)
+          .order('order_index', { ascending: true });
+        setDbCourses(coursesData || []);
+
+        const { data: eventsData } = await supabase
+          .from('events')
+          .select('*')
+          .order('start_time', { ascending: true })
+          .limit(5);
+        setDbEvents(eventsData || []);
+      } catch (err) {
+        console.warn('Error fetching track data from Supabase:', err);
+      } finally {
+        setLoadingTrackData(false);
+      }
+    }
+    fetchTrackData();
+  }, []);
+
   useEffect(() => {
     const param = searchParams.get('track');
     if (param && YARA_PROGRAMMES.some(p => p.id === param)) {
@@ -290,6 +257,13 @@ export default function Programs() {
     setActiveTrackId(id);
     setSearchParams({ track: id }, { replace: true });
   };
+
+  const trackCourses = dbCourses.filter(c => {
+    if (!c.track) return true;
+    const t = c.track.toLowerCase();
+    const id = activeTrackId.toLowerCase();
+    return t.includes(id) || id.includes(t);
+  });
 
   return (
     <div className="space-y-12 pb-24">
@@ -453,23 +427,46 @@ export default function Programs() {
                 <span>Available Courses &amp; Modules</span>
               </div>
               <div className="space-y-2.5">
-                {activeTrack.availableCourses.map((c, idx) => (
-                  <Link
-                    key={idx}
-                    to={c.path}
-                    className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-blue-500/40 transition-all flex items-center justify-between group"
-                  >
-                    <div>
-                      <h4 className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
-                        {c.title}
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Level: <span className="text-slate-300 font-semibold">{c.level}</span> • Duration: {c.duration}
-                      </p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all shrink-0" />
-                  </Link>
-                ))}
+                {loadingTrackData ? (
+                  <div className="p-8 text-center bg-slate-950/60 rounded-xl border border-slate-800 text-slate-400 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                    <span className="text-xs">Loading published courses from database...</span>
+                  </div>
+                ) : trackCourses.length === 0 ? (
+                  <div className="p-6 rounded-xl bg-slate-950/80 border border-slate-800 text-center space-y-2">
+                    <p className="text-xs text-slate-400">
+                      No courses currently published for the <strong>{activeTrack.name}</strong> track.
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      New curriculum modules uploaded by instructors will appear here dynamically.
+                    </p>
+                    <Link
+                      to="/learning?tab=courses"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 pt-2"
+                    >
+                      <span>Explore Academy Catalog</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                ) : (
+                  trackCourses.map((c, idx) => (
+                    <Link
+                      key={c.id || idx}
+                      to={`/learning?course=${c.id || c.slug || c.code}`}
+                      className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-blue-500/40 transition-all flex items-center justify-between group"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
+                          {c.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Level: <span className="text-slate-300 font-semibold">{c.level || 'All Levels'}</span> • Duration: {c.estimated_duration_hours || 12}h
+                        </p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all shrink-0" />
+                    </Link>
+                  ))
+                )}
               </div>
             </div>
 
@@ -480,24 +477,49 @@ export default function Programs() {
                 <span>Upcoming Cohorts &amp; Live Sessions</span>
               </div>
               <div className="space-y-2.5">
-                {activeTrack.upcomingSessions.map((s, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between"
-                  >
-                    <div>
-                      <h4 className="text-xs font-bold text-white">{s.title}</h4>
-                      <p className="text-[11px] text-amber-400 font-medium mt-0.5">{s.date}</p>
-                      <p className="text-[10px] text-slate-500">{s.format}</p>
-                    </div>
+                {loadingTrackData ? (
+                  <div className="p-8 text-center bg-slate-950/60 rounded-xl border border-slate-800 text-slate-400 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    <span className="text-xs">Checking upcoming cohort sessions...</span>
+                  </div>
+                ) : dbEvents.length === 0 ? (
+                  <div className="p-6 rounded-xl bg-slate-950/80 border border-slate-800 text-center space-y-2">
+                    <p className="text-xs text-slate-400">
+                      No live cohort sessions currently scheduled.
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Live virtual workshops and lab schedules will appear here when announced.
+                    </p>
                     <Link
                       to="/training"
-                      className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 text-xs font-bold transition"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 pt-2"
                     >
-                      View
+                      <span>Check Training Calendar</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
-                ))}
+                ) : (
+                  dbEvents.map((s, idx) => (
+                    <div
+                      key={s.id || idx}
+                      className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-white">{s.title}</h4>
+                        <p className="text-[11px] text-amber-400 font-medium mt-0.5">
+                          {s.start_time ? new Date(s.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Upcoming'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">{s.format || s.location || 'Virtual / Hybrid'}</p>
+                      </div>
+                      <Link
+                        to="/training"
+                        className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 text-xs font-bold transition"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

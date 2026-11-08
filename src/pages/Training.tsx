@@ -40,171 +40,10 @@ export interface TrainingProgram {
   status: 'upcoming' | 'open_for_registration' | 'ongoing' | 'completed';
 }
 
-const DEFAULT_TRAINING_PROGRAMS: TrainingProgram[] = [
-  {
-    id: 'tp_01',
-    lms_course_id: 'ai-for-educators',
-    title: 'AI for Educators & Robotics Patrons Masterclass (Cohort 2)',
-    description: 'A dedicated pedagogy certification equipping secondary and primary teachers with practical AI tools for lesson planning, microcontroller lab instruction, and coaching championship robotics teams.',
-    target_audience: 'Teachers / Patrons',
-    category: 'STEM Education',
-    format: 'Blended',
-    level: 'Educators & STEM Coordinators',
-    duration_weeks: 4,
-    total_hours: 16,
-    fee_usd: 10.00,
-    capacity: 150,
-    enrolled_count: 84,
-    venue: 'Interactive Virtual Masterclass + Provincial Hub Centers',
-    start_date: '2026-12-07',
-    end_date: '2026-12-11',
-    registration_deadline: '2026-12-01',
-    instructor_name: 'Simbarashe Manongwa',
-    instructor_title: 'Executive Director, YARA',
-    certification_info: 'Official Accredited YARA STEM Educator Masterclass Certificate (Verified Digital Credential)',
-    membership_requirement: 'Free Enrollment • $5 Accredited Certificate Verification',
-    learning_outcomes: [
-      'Automated differentiated lesson plans for ZIMSEC & Cambridge STEM curricula',
-      'Diagnostic quiz & rubric synthesis with cognitive taxonomies',
-      'Hands-on microcontroller hardware teaching & lab setup',
-      'Rules interpretation & coaching strategies for YARA Arena'
-    ],
-    prerequisites: ['Basic computer literacy', 'Passion for STEM pedagogy'],
-    banner_image: '/assets/academy-classroom.jpg',
-    status: 'open_for_registration'
-  },
-  {
-    id: 'tp_02',
-    lms_course_id: 'robotics-beginner',
-    title: 'Junior Robotics Engineering & Embedded C++ Sprint',
-    description: 'Intensive hands-on robotics hardware sprint for youth. Build an autonomous line-following and obstacle-avoiding rover from scratch using microcontrollers, sensors, and motor drivers.',
-    target_audience: 'Students',
-    category: 'Robotics',
-    format: 'Blended',
-    level: 'Beginner (Tier 1)',
-    duration_weeks: 6,
-    total_hours: 24,
-    fee_usd: 15.00,
-    capacity: 100,
-    enrolled_count: 62,
-    venue: 'YARA Innovation Labs & School Club Hubs',
-    start_date: '2026-11-14',
-    end_date: '2026-12-19',
-    registration_deadline: '2026-11-10',
-    instructor_name: 'YARA Technical Faculty',
-    instructor_title: 'Robotics Engineering Mentors',
-    certification_info: 'YARA Junior Robotics Engineer Certificate upon Capstone Defense',
-    membership_requirement: 'Full Access with Active $15 YARA Annual Membership',
-    learning_outcomes: [
-      'Breadboarding, power distribution, and motor driver H-bridge wiring',
-      'Embedded C++ programming with non-blocking timing',
-      'Sensor calibration (Infrared line arrays & Ultrasonic distance sensors)',
-      'Autonomous PID control algorithms and arena navigation'
-    ],
-    prerequisites: ['Age 10-19', 'Curiosity to build hardware'],
-    banner_image: '/assets/academy-robot-build.jpg',
-    status: 'open_for_registration'
-  },
-  {
-    id: 'tp_03',
-    lms_course_id: 'school-robotics-patron',
-    title: 'School Robotics Club Formation & Patron Coaching',
-    description: 'Designed specifically for school heads, patrons, and STEM coordinators seeking to establish accredited YARA Robotics Clubs within their schools, mobilize kit hardware, and prepare teams.',
-    target_audience: 'Schools',
-    category: 'STEM Education',
-    format: 'In-Person',
-    level: 'Patrons & School Leaders',
-    duration_weeks: 2,
-    total_hours: 12,
-    fee_usd: 0.00,
-    capacity: 50,
-    enrolled_count: 28,
-    venue: 'Provincial Chapter Innovation Arenas',
-    start_date: '2026-11-28',
-    end_date: '2026-12-12',
-    registration_deadline: '2026-11-24',
-    instructor_name: 'T. Chiambiro',
-    instructor_title: 'Regional Operations & Patron Lead',
-    certification_info: 'Official YARA Accredited School Club Patron Certificate',
-    membership_requirement: 'Free Access • Fully Sponsored by YARA Foundation',
-    learning_outcomes: [
-      'Club charter setup and low-cost lab provisioning',
-      '2 Boys + 2 Girls gender-balanced team recruitment',
-      'Kit inventory management and safety protocols',
-      'Competition pathway planning for national qualifiers'
-    ],
-    prerequisites: ['School representative or teacher designation'],
-    banner_image: '/assets/academy-group-yellow.jpg',
-    status: 'open_for_registration'
-  },
-  {
-    id: 'tp_04',
-    lms_course_id: 'robotics-advanced',
-    title: 'ROV Underwater Drone & Thruster Systems Masterclass',
-    description: 'Advanced engineering masterclass diving into aquatic robotics: waterproofing enclosures, magnetic couplings, brushless thruster ESC control, and tethered video telemetry for the 2026 Challenge.',
-    target_audience: 'Enthusiasts',
-    category: 'Engineering',
-    format: 'Blended',
-    level: 'Advanced (Tier 3 / 4)',
-    duration_weeks: 4,
-    total_hours: 20,
-    fee_usd: 25.00,
-    capacity: 60,
-    enrolled_count: 41,
-    venue: 'National Engineering Hub & Aquatic Arena',
-    start_date: '2026-11-06',
-    end_date: '2026-11-20',
-    registration_deadline: '2026-11-04',
-    instructor_name: 'Simbarashe Manongwa',
-    instructor_title: 'Founder & Robotics Systems Lead',
-    certification_info: 'YARA Marine Robotics Specialist Advanced Credential',
-    membership_requirement: 'Tier 3 Prerequisite + Active YARA Membership',
-    learning_outcomes: [
-      'Hydrodynamic chassis design and neutral buoyancy calculation',
-      'Waterproof sealing, O-rings, and pressure hull integrity',
-      'Brushless thruster ESC PWM signaling and 3-axis motion control',
-      'Analog & digital camera telemetry over tether'
-    ],
-    prerequisites: ['Basic electronics or programming foundation'],
-    banner_image: '/assets/academy-electronics.jpg',
-    status: 'open_for_registration'
-  },
-  {
-    id: 'tp_05',
-    lms_course_id: 'robotics-intermediate',
-    title: 'Competition Judge & Technical Inspector Certification',
-    description: 'Official YARA accreditation course for STEM professionals and senior university students wishing to officiate as certified technical judges at YARA robotics competitions.',
-    target_audience: 'Coaches',
-    category: 'Robotics',
-    format: 'Virtual',
-    level: 'Technical Arbitration & Coaching',
-    duration_weeks: 2,
-    total_hours: 8,
-    fee_usd: 0.00,
-    capacity: 40,
-    enrolled_count: 19,
-    venue: 'YARA Virtual Evaluation Hall',
-    start_date: '2026-11-18',
-    end_date: '2026-11-25',
-    registration_deadline: '2026-11-15',
-    instructor_name: 'YARA Executive Arbitration Council',
-    instructor_title: 'Head of Competition Governance',
-    certification_info: 'Official YARA Certified Technical Judge & Inspector Badge',
-    membership_requirement: 'Free Training for Qualified Applicants',
-    learning_outcomes: [
-      'Mastery of YARA scoring rubrics (Maze, Underwater, Pitch)',
-      'Hardware inspection criteria, battery safety, and wire gauge standards',
-      'Fair arbitration, penalty point calculation, and run timer logging',
-      'Evaluation of student innovation pitches with constructive feedback'
-    ],
-    prerequisites: ['Tertiary STEM background or engineering experience'],
-    banner_image: '/assets/academy-laptop-focus.jpg',
-    status: 'open_for_registration'
-  }
-];
-
 export default function Training() {
   const { user, profile } = useAuth();
+  const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedAudience, setSelectedAudience] = useState<string>('All');
   const [selectedProgram, setSelectedProgram] = useState<TrainingProgram | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -218,11 +57,72 @@ export default function Training() {
   const [regSuccess, setRegSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    async function fetchTrainingPrograms() {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('training_programs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setPrograms(data);
+        } else {
+          // Dynamic database fallback: map published courses from Supabase
+          const { data: courseData } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_published', true)
+            .order('order_index');
+
+          if (courseData && courseData.length > 0) {
+            setPrograms(courseData.map((c: any) => ({
+              id: c.id,
+              lms_course_id: c.slug || c.id,
+              title: c.title,
+              description: c.short_summary || c.description || '',
+              target_audience: 'All' as const,
+              category: (c.track || 'Robotics') as any,
+              format: 'Blended' as const,
+              level: c.level || 'All Levels',
+              duration_weeks: Math.max(1, Math.round((c.estimated_duration_hours || 10) / 4)),
+              total_hours: c.estimated_duration_hours || 10,
+              fee_usd: 0,
+              capacity: 50,
+              enrolled_count: 0,
+              venue: 'YARA Virtual & Chapter Centers',
+              start_date: c.created_at || new Date().toISOString(),
+              end_date: new Date(Date.now() + 30 * 86400000).toISOString(),
+              registration_deadline: new Date(Date.now() + 14 * 86400000).toISOString(),
+              instructor_name: 'YARA Engineering Faculty',
+              instructor_title: 'Senior Instructor',
+              certification_info: c.certificate_enabled ? 'Accredited YARA Certificate' : 'Certificate of Completion',
+              membership_requirement: 'Open Enrollment',
+              learning_outcomes: c.learning_outcomes || [],
+              prerequisites: c.prerequisites || [],
+              banner_image: c.thumbnail_url || '/assets/academy-classroom.jpg',
+              status: 'open_for_registration' as const
+            })));
+          } else {
+            setPrograms([]);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching training programs from database:', err);
+        setPrograms([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTrainingPrograms();
+  }, []);
+
   const audiences = ['All', 'Students', 'Teachers / Patrons', 'Schools', 'Coaches', 'Enthusiasts'];
 
   const filteredPrograms = selectedAudience === 'All'
-    ? DEFAULT_TRAINING_PROGRAMS
-    : DEFAULT_TRAINING_PROGRAMS.filter(p => p.target_audience === selectedAudience);
+    ? programs
+    : programs.filter(p => p.target_audience === selectedAudience);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,8 +235,31 @@ export default function Training() {
         </div>
 
         {/* Training Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
-          {filteredPrograms.map((prog) => (
+        {loading ? (
+          <div className="py-20 text-center text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-400" />
+            <p className="font-bold text-sm">Loading training programs from database...</p>
+          </div>
+        ) : filteredPrograms.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center space-y-4 my-8">
+            <GraduationCap className="w-12 h-12 text-slate-600 mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold text-white">No Training Programs Currently Published</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                The training registry is connected to the database. New official bootcamps and training sessions will appear here once published.
+              </p>
+            </div>
+            <Link
+              to="/learning?tab=courses"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-blue-900/30 transition-all cursor-pointer"
+            >
+              <span>Explore Robotics Academy</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
+            {filteredPrograms.map((prog) => (
             <div
               key={prog.id}
               className="group rounded-3xl bg-slate-900 border border-slate-800 hover:border-blue-500/40 transition-all overflow-hidden flex flex-col justify-between shadow-xl"
@@ -458,6 +381,7 @@ export default function Training() {
             </div>
           ))}
         </div>
+        )}
       </section>
 
       {/* Registration Modal */}

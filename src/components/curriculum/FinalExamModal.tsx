@@ -152,7 +152,21 @@ export default function FinalExamModal({ isOpen, onClose, onExamPassed, existing
 
         {/* Exam Body */}
         <div className="p-6 md:p-8 flex-1 overflow-y-auto">
-          {!isSubmitted ? (
+          {totalQuestions === 0 ? (
+            <div className="text-center py-12 space-y-4">
+              <Award className="w-12 h-12 text-slate-300 mx-auto" />
+              <h3 className="text-base font-bold text-slate-800">No Exam Questions Currently Loaded</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                The graduation exam questions will be loaded dynamically based on your completed robotics modules.
+              </p>
+              <button
+                onClick={onClose}
+                className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs"
+              >
+                Close
+              </button>
+            </div>
+          ) : !isSubmitted ? (
             <div className="space-y-6">
               {/* Progress & Navigator Bar */}
               <div>

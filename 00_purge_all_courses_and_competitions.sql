@@ -26,3 +26,4 @@ DELETE FROM public.yara_competition_registrations;
 DELETE FROM public.yara_competition_scores;
 
 COMMIT;
+

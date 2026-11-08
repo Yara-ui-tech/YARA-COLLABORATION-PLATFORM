@@ -26,7 +26,9 @@ import {
   Rocket,
   ShieldCheck,
   Code2,
-  Layers
+  Layers,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { YARALmsSession, LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
@@ -40,7 +42,13 @@ import FinalExamModal from '../../curriculum/FinalExamModal';
 import FinalProjectModal from '../../curriculum/FinalProjectModal';
 import BrainstormingQuizModal from '../../brainstorming/BrainstormingQuizModal';
 import { FinalExamAttempt, FinalProjectSubmission, Certificate } from '../../../types/curriculum';
-import { getAllCourses, getCourseById } from '../../../services/unifiedCourseService';
+import { 
+  getAllCourses, 
+  getCourseById, 
+  fetchCoursesFromDatabase, 
+  deleteCourse, 
+  clearAllCourses 
+} from '../../../services/unifiedCourseService';
 import { UnifiedCourse } from '../../../types/unifiedCourseTypes';
 import { UniversalCoursePlayerModal } from '../UniversalCoursePlayerModal';
 
@@ -173,7 +181,24 @@ export const CoursesTab: React.FC<Props> = ({
     }
   }, [initialCourseId]);
 
-  const allLmsCourses = useMemo(() => getAllCourses(), []);
+  const [allLmsCourses, setAllLmsCourses] = useState<UnifiedCourse[]>(() => getAllCourses());
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
+  const loadCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      const data = await fetchCoursesFromDatabase();
+      setAllLmsCourses(data);
+    } catch (err) {
+      console.warn('Error loading LMS courses:', err);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCourses();
+  }, []);
   
   const filteredUnifiedCourses = useMemo(() => {
     return allLmsCourses.filter(c => {
@@ -300,14 +325,34 @@ export const CoursesTab: React.FC<Props> = ({
 
           {/* Unified Courses Grid */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-indigo-600" />
                 <span>Centralized LMS Course Catalogue ({filteredUnifiedCourses.length} Courses)</span>
               </h3>
+
+              {isAdmin && allLmsCourses.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to delete ALL courses from the database to start completely fresh? This cannot be undone.')) {
+                      await clearAllCourses();
+                      setAllLmsCourses([]);
+                    }
+                  }}
+                  className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer w-fit"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Purge All Database Courses</span>
+                </button>
+              )}
             </div>
 
-            {filteredUnifiedCourses.length === 0 ? (
+            {loadingCourses ? (
+              <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center shadow-xs">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+                <p className="text-xs font-bold text-slate-700">Loading live courses from Supabase database...</p>
+              </div>
+            ) : filteredUnifiedCourses.length === 0 ? (
               <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-12 text-center shadow-xs">
                 <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <h4 className="text-base font-black text-slate-800">No Courses Currently Published</h4>
@@ -342,7 +387,7 @@ export const CoursesTab: React.FC<Props> = ({
                           {course.track.replace('_', ' ').toUpperCase()}
                         </span>
                       </div>
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border backdrop-blur-xs ${
                           course.membershipRequired
                             ? 'bg-amber-500/90 text-slate-950 border-amber-400'
@@ -352,6 +397,21 @@ export const CoursesTab: React.FC<Props> = ({
                         }`}>
                           {course.membershipRequired ? 'YARA Member' : course.certificationFeeUsd > 0 ? `$${course.certificationFeeUsd} Cert` : 'Free Enrol'}
                         </span>
+                        {isAdmin && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm(`Delete course "${course.title}" from database?`)) {
+                                deleteCourse(course.id);
+                                setAllLmsCourses(prev => prev.filter(c => c.id !== course.id));
+                              }
+                            }}
+                            className="p-1 rounded-lg bg-red-600/90 hover:bg-red-700 text-white border border-red-400 transition cursor-pointer"
+                            title="Delete course"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                       <div className="absolute bottom-3 left-3 right-3">
                         <span className="text-[10px] font-mono font-bold text-emerald-400">{course.code}</span>

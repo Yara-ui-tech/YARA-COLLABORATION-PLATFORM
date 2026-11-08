@@ -19,7 +19,9 @@ import {
   toggleCoursePublish, 
   archiveCourse, 
   checkDuplicateCourse, 
-  getLmsReportingOverview 
+  getLmsReportingOverview,
+  fetchCoursesFromDatabase,
+  clearAllCourses
 } from '../../services/unifiedCourseService';
 import { UniversalCoursePlayerModal } from '../lms/UniversalCoursePlayerModal';
 
@@ -72,8 +74,9 @@ export const CourseManagementStudio: React.FC = () => {
   // Duplicate Warning state
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
-  const refreshCourses = () => {
-    setCourses(getAllCourses());
+  const refreshCourses = async () => {
+    const data = await fetchCoursesFromDatabase();
+    setCourses(data);
   };
 
   useEffect(() => {
@@ -330,13 +333,31 @@ export const CourseManagementStudio: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer w-full md:w-auto justify-center"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Course</span>
-        </button>
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          {courses.length > 0 && (
+            <button
+              onClick={async () => {
+                if (confirm('Are you sure you want to delete ALL courses from the database to start completely fresh? This cannot be undone.')) {
+                  await clearAllCourses();
+                  await refreshCourses();
+                  showNotice('success', 'All courses purged from database.');
+                }
+              }}
+              className="bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/40 font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Purge All</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleOpenAdd}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg transition flex items-center gap-1.5 shrink-0 cursor-pointer w-full md:w-auto justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Course</span>
+          </button>
+        </div>
       </div>
 
       {/* Courses Table / Cards Grid */}

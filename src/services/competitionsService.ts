@@ -42,8 +42,8 @@ function saveLocalCustomCompetitions(comps: Competition[]) {
 }
 
 const isDisallowedCompetition = (c: any): boolean => {
-  const id = c?.id || '';
-  const slug = c?.slug || '';
+  const id = (c?.id || '').toLowerCase();
+  const slug = (c?.slug || '').toLowerCase();
   const title = (c?.title || '').toLowerCase();
   const desc = (c?.description || '').toLowerCase();
   if (
@@ -54,10 +54,18 @@ const isDisallowedCompetition = (c: any): boolean => {
   ) {
     return true;
   }
-  if (title.includes('yara educational robotics competition 2026')) {
+  if (
+    title.includes('educational robotics competition') ||
+    title.includes('yara educational robotics')
+  ) {
     return true;
   }
-  if (desc.includes('zimbabwe premier multi-tier') || desc.includes('autonomous maze solving')) {
+  if (
+    desc.includes('zimbabwe premier multi-tier') || 
+    desc.includes('autonomous maze solving') ||
+    desc.includes('underwater drone simulations') ||
+    desc.includes('strict 2 boys + 2 girls')
+  ) {
     return true;
   }
   return false;

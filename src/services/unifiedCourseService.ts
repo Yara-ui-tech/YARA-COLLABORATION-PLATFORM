@@ -27,7 +27,12 @@ const DEPRECATED_COURSE_CODES = [
   'YARA-TECH-PY', 'YARA-TECH-SCR', 'YARA-TECH-JS', 'YARA-STEM-EDU', 'YARA-IND-CAD'
 ];
 
+let inMemoryCourses: UnifiedCourse[] | null = null;
+
 export function getAllCourses(): UnifiedCourse[] {
+  if (inMemoryCourses !== null) {
+    return inMemoryCourses;
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
@@ -37,17 +42,87 @@ export function getAllCourses(): UnifiedCourse[] {
         if (clean.length !== parsed.length) {
           saveCoursesToStorage(clean);
         }
+        inMemoryCourses = clean;
         return clean;
       }
     }
   } catch (err) {
     console.warn('Error reading stored courses:', err);
   }
+  inMemoryCourses = [];
   return [];
+}
+
+export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
+  try {
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*, course_modules(*)')
+      .order('order_index', { ascending: true });
+
+    if (!error && Array.isArray(data)) {
+      const mapped: UnifiedCourse[] = data
+        .filter(c => !DEPRECATED_COURSE_CODES.includes(c?.code) && !c?.id?.startsWith('yara-rob-level'))
+        .map(c => ({
+          id: c.id,
+          code: c.code || `YARA-CRS-${c.id.slice(0, 4)}`,
+          title: c.title,
+          slug: c.slug || c.id,
+          version: '1.0',
+          track: ((c.track || 'robotics').toLowerCase() as CourseTrack),
+          category: 'robotics',
+          level: (c.level as any) || 'Beginner',
+          estimatedDurationHours: c.estimated_duration_hours || 12,
+          shortSummary: c.short_summary || '',
+          description: c.description || '',
+          thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+          instructorName: 'YARA Engineering Faculty',
+          instructorTitle: 'Senior Robotics Instructor',
+          hardwareRequired: Array.isArray(c.hardware_required) ? c.hardware_required : [],
+          learningOutcomes: Array.isArray(c.learning_outcomes) ? c.learning_outcomes : [],
+          prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites : [],
+          accessRule: 'free',
+          membershipRequired: false,
+          certificationEnabled: true,
+          certificationTitle: 'Certificate of Competence',
+          certificationFeeUsd: 0,
+          isPublished: c.is_published ?? true,
+          isDraft: c.is_draft ?? false,
+          isFeatured: c.is_featured ?? false,
+          totalModulesCount: c.course_modules?.length || c.total_modules || 0,
+          modules: (c.course_modules || []).map((m: any) => ({
+            id: m.id,
+            moduleNumber: m.module_number || 1,
+            title: m.title,
+            skillArea: m.coherent_skill_area || 'Core Concepts',
+            description: m.description || '',
+            durationMinutes: m.duration_minutes || 60,
+            theoryOverview: m.theory_overview || '',
+            theoryKeyConcepts: m.theory_key_concepts || [],
+            videoLessonUrl: m.video_lesson_url,
+            videoDurationMinutes: m.video_duration_minutes || 15,
+            videoTranscript: m.video_transcript,
+            resources: m.resources || [],
+            quizQuestions: m.quiz_questions || []
+          }))
+        }));
+
+      inMemoryCourses = mapped;
+      saveCoursesToStorage(mapped);
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Supabase fetch courses error:', err);
+  }
+
+  const stored = getAllCourses();
+  inMemoryCourses = stored;
+  return stored;
 }
 
 function saveCoursesToStorage(courses: UnifiedCourse[]): void {
   try {
+    inMemoryCourses = courses;
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
   } catch (err) {
     console.error('Error saving courses to storage:', err);
@@ -472,6 +547,34 @@ export function saveCourse(course: UnifiedCourse): UnifiedCourse {
 
   saveCoursesToStorage(courses);
 
+  // Asynchronously persist to Supabase database
+  (async () => {
+    try {
+      await supabase.from('courses').upsert({
+        id: updated.id,
+        code: updated.code,
+        title: updated.title,
+        slug: updated.slug || updated.id,
+        track: updated.track,
+        level: updated.level,
+        short_summary: updated.shortSummary,
+        description: updated.description,
+        thumbnail_url: updated.thumbnailUrl,
+        estimated_duration_hours: updated.estimatedDurationHours,
+        hardware_required: updated.hardwareRequired,
+        learning_outcomes: updated.learningOutcomes,
+        prerequisites: updated.prerequisites,
+        is_published: updated.isPublished,
+        is_draft: updated.isDraft,
+        is_featured: updated.isFeatured,
+        total_modules: updated.modules.length,
+        updated_at: now
+      }, { onConflict: 'id' });
+    } catch (err) {
+      console.warn('Supabase course sync error:', err);
+    }
+  })();
+
   // Auto-create matching certificate template
   try {
     autoCreateCertificateTemplateForCourse({
@@ -507,6 +610,15 @@ export function archiveCourse(courseId: string): UnifiedCourse | null {
 export function deleteCourse(courseId: string): void {
   const courses = getAllCourses().filter(c => c.id !== courseId);
   saveCoursesToStorage(courses);
+
+  // Asynchronously delete from Supabase database
+  (async () => {
+    try {
+      await supabase.from('courses').delete().eq('id', courseId);
+    } catch (err) {
+      console.warn('Supabase delete course error:', err);
+    }
+  })();
 }
 
 export async function clearAllCourses(): Promise<void> {
