@@ -12,7 +12,8 @@ import {
   Cpu,
   Layers,
   ArrowUpRight,
-  ShoppingBag
+  ShoppingBag,
+  Users
 } from 'lucide-react';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
@@ -91,11 +92,11 @@ export default function Home() {
             </Link>
 
             <Link
-              to="/competitions"
+              to="/shop"
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 hover:border-slate-700 font-bold text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span>2026 CHAMPIONSHIP</span>
+              <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <span>HARDWARE SHOP</span>
             </Link>
           </div>
 
@@ -172,24 +173,24 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Card 3: Competitions */}
+          {/* Card 3: Mentorship */}
           <Link
-            to="/competitions"
-            className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-amber-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
+            to="/mentorship"
+            className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-purple-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
           >
             <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                <Trophy className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                <Users className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
-                Championships
+              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-purple-400 transition-colors">
+                Expert Mentorship
               </h3>
               <p className="text-xs text-slate-400 font-light leading-relaxed">
-                Flagship tournaments featuring Underwater Drone ROVs, Autonomous Micromouse Maze solving, and Youth Innovation Pitches.
+                Connect directly with experienced robotics engineers, STEM instructors, and academic mentors for technical guidance.
               </p>
             </div>
-            <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-400 group-hover:gap-2.5 transition-all">
-              <span>View Arena</span>
+            <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-purple-400 group-hover:gap-2.5 transition-all">
+              <span>Find Mentors</span>
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </Link>

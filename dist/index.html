@@ -37,10 +37,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Ga2eBdxc.js"></script>
+    <script type="module" crossorigin src="/assets/index-BseFuhPy.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/react-vendor-DumxLTSl.js">
     <link rel="modulepreload" crossorigin href="/assets/supabase-client-BiHzSKx7.js">
-    <link rel="modulepreload" crossorigin href="/assets/lucide-icons-BfLs8fCU.js">
+    <link rel="modulepreload" crossorigin href="/assets/lucide-icons-Dxd_DRuX.js">
     <link rel="stylesheet" crossorigin href="/assets/index-C6icY1iy.css">
   </head>
   <body>
@@ -49,8 +49,21 @@
       if ('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then((reg) => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
+            .then((reg) => {
+              reg.update();
+              if (reg.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+            })
             .catch((err) => console.warn('[PWA] ServiceWorker registration failed:', err));
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
         });
       } else if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
