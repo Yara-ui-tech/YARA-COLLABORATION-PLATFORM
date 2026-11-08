@@ -47,6 +47,7 @@ import FriendlyPlatformGuide from './components/FriendlyPlatformGuide';
 import PublicLayout from './components/public/PublicLayout';
 import Training from './pages/Training';
 import SchoolManagement from './pages/SchoolManagement';
+import Shop from './pages/Shop';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
@@ -199,6 +200,10 @@ const AppContent = () => {
             <Route path="/lms" element={<YaraLearning />} />
             <Route path="/academy" element={<YaraLearning />} />
             <Route path="/courses" element={<YaraLearning />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/kits" element={<Shop />} />
+            <Route path="/hardware" element={<Shop />} />
+            <Route path="/store" element={<Shop />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/reviews" element={<Feedback />} />
             <Route path="/mentorship" element={<Mentorship />} />
@@ -242,6 +247,10 @@ const AppContent = () => {
             <Route path="/ideas" element={<Ideas />} />
             <Route path="/mentorship" element={<Mentorship />} />
             <Route path="/resources" element={<Navigate to="/learn?tab=resources" replace />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/kits" element={<Shop />} />
+            <Route path="/hardware" element={<Shop />} />
+            <Route path="/store" element={<Shop />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/profile" element={<Profile />} />
 

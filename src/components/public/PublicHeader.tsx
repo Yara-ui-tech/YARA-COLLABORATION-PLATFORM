@@ -24,6 +24,7 @@ export default function PublicHeader() {
   const navLinks = [
     { label: 'Home', path: '/' },
     { label: 'Academy', path: '/learn' },
+    { label: 'Shop', path: '/shop' },
     { label: 'Mentorship', path: '/mentorship' },
     { label: 'Competitions', path: '/competitions' },
     { label: 'School Clubs', path: '/chapters' },

@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   Cpu,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  ShoppingBag
 } from 'lucide-react';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
@@ -122,10 +123,10 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          2. THE THREE PILLARS (Clean, Architectural, Minimalist)
+          2. CORE ECOSYSTEM PILLARS (Clean, Architectural, Minimalist)
          ========================================================================= */}
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           
           {/* Card 1: Academy */}
           <Link
@@ -136,10 +137,10 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">
+              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-blue-400 transition-colors">
                 Robotics Academy
               </h3>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
                 Step-by-step curriculum from foundational electronics to embedded MicroPython, C++, and accredited STEM graduation.
               </p>
             </div>
@@ -149,7 +150,29 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Card 2: Competitions */}
+          {/* Card 2: Hardware Shop */}
+          <Link
+            to="/shop"
+            className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-emerald-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
+          >
+            <div className="space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">
+                Hardware Shop
+              </h3>
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Order genuine robotics starter kits, ESP32 boards, ultrasonic sensors, motors, multimeters, and electronic components.
+              </p>
+            </div>
+            <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-400 group-hover:gap-2.5 transition-all">
+              <span>Explore Shop</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </div>
+          </Link>
+
+          {/* Card 3: Competitions */}
           <Link
             to="/competitions"
             className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-amber-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
@@ -158,11 +181,11 @@ export default function Home() {
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                 <Trophy className="w-5 h-5" />
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
-                Championship Arena
+              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-amber-400 transition-colors">
+                Championships
               </h3>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">
-                Annual flagship tournaments featuring Underwater Drone ROVs, Autonomous Micromouse Maze solving, and Youth Innovation Pitches.
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
+                Flagship tournaments featuring Underwater Drone ROVs, Autonomous Micromouse Maze solving, and Youth Innovation Pitches.
               </p>
             </div>
             <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-amber-400 group-hover:gap-2.5 transition-all">
@@ -171,23 +194,23 @@ export default function Home() {
             </div>
           </Link>
 
-          {/* Card 3: School Chapters */}
+          {/* Card 4: School Chapters */}
           <Link
             to="/chapters"
-            className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-emerald-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
+            className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800/80 hover:border-purple-500/60 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between space-y-8"
           >
             <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
                 <GraduationCap className="w-5 h-5" />
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tight group-hover:text-emerald-400 transition-colors">
+              <h3 className="text-xl font-black text-white tracking-tight group-hover:text-purple-400 transition-colors">
                 School Chapters
               </h3>
-              <p className="text-sm text-slate-400 font-light leading-relaxed">
+              <p className="text-xs text-slate-400 font-light leading-relaxed">
                 Charter an official robotics club at your school or university with kits, mentorship, and regional league qualifiers.
               </p>
             </div>
-            <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-400 group-hover:gap-2.5 transition-all">
+            <div className="pt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-purple-400 group-hover:gap-2.5 transition-all">
               <span>Explore Chapters</span>
               <ArrowUpRight className="w-4 h-4" />
             </div>
