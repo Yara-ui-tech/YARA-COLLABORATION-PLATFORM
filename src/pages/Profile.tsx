@@ -14,6 +14,7 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     display_name: '',
+    gender: 'boy' as 'girl' | 'boy',
     bio: '',
     avatar_url: '',
     skills: [] as string[],
@@ -28,8 +29,10 @@ export default function Profile() {
 
   useEffect(() => {
     if (profile) {
+      const resolvedGender = (profile.gender || (profile as any)?.social_links?.gender || (profile as any)?.accessibility_preferences?.gender || 'boy') as 'girl' | 'boy';
       setFormData({
         display_name: profile.display_name || '',
+        gender: resolvedGender,
         bio: profile.bio || '',
         avatar_url: profile.avatar_url || '',
         skills: profile.skills || [],
@@ -119,6 +122,9 @@ Possible causes:
         .from('profiles')
         .update({
           display_name: formData.display_name,
+          gender: formData.gender,
+          social_links: { ...((profile as any)?.social_links || {}), gender: formData.gender },
+          accessibility_preferences: { ...((profile as any)?.accessibility_preferences || {}), gender: formData.gender },
           bio: formData.bio,
           avatar_url: formData.avatar_url,
           skills: formData.skills,
@@ -129,6 +135,17 @@ Possible causes:
           disability_type: formData.disability_type,
         })
         .eq('id', user.id);
+      
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            display_name: formData.display_name,
+            gender: formData.gender
+          }
+        });
+      } catch (authErr) {
+        console.warn('Metadata update note:', authErr);
+      }
       
       if (error) throw error;
       if (refreshProfile) await refreshProfile();
@@ -233,6 +250,17 @@ Possible causes:
             <h3 className="text-2xl font-bold text-slate-900 tracking-tight">{profile?.display_name}</h3>
             <p className="text-indigo-600 font-bold uppercase tracking-widest text-xs mt-1">{profile?.role}</p>
             
+            <div className="flex items-center justify-center gap-2 mt-2.5">
+              <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border shadow-2xs ${
+                formData.gender === 'girl'
+                  ? 'bg-pink-50 text-pink-700 border-pink-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200'
+              }`}>
+                <span>{formData.gender === 'girl' ? '👧' : '👦'}</span>
+                <span>{formData.gender === 'girl' ? 'Girl Innovator (Female)' : 'Boy Innovator (Male)'}</span>
+              </span>
+            </div>
+            
             <div className="mt-8 space-y-4 text-left">
               <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <Mail className="w-5 h-5 text-slate-400" />
@@ -332,6 +360,45 @@ Possible causes:
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                   className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all font-medium disabled:opacity-70"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    Gender / Parity Identification
+                  </label>
+                  <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-200">
+                    50/50 Gender Parity Standard
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={!isEditing}
+                    onClick={() => setFormData({ ...formData, gender: 'girl' })}
+                    className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                      formData.gender === 'girl'
+                        ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 disabled:hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-base">👧</span>
+                    <span>Girl / Female</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!isEditing}
+                    onClick={() => setFormData({ ...formData, gender: 'boy' })}
+                    className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                      formData.gender === 'boy'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 disabled:hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-base">👦</span>
+                    <span>Boy / Male</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

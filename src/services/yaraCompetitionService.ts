@@ -119,7 +119,7 @@ export const saveRegistration = async (registration: YaraCompetitionRegistration
       team_name: registration.team_name,
       recipient_email: registration.team_leader_email,
       subject: `Registration Confirmed: ${registration.team_name} (${registration.registration_id})`,
-      body: `Dear ${registration.team_leader_name},\n\nYour registration for the YARA Educational Robotics Competition 2026 has been successfully received.\n\nTeam: ${registration.team_name}\nRegistration ID: ${registration.registration_id}\nSchool/Org: ${registration.school_organization}\nChallenges: ${registration.selected_categories.join(', ')}\n\nOur technical committee is currently reviewing your application. You will receive further updates as the competition draws near.\n\nBest regards,\nYoung Africans Robotics Association (YARA)`,
+      body: `Dear ${registration.team_leader_name},\n\nYour registration for the YARA Robotics Competition has been successfully received.\n\nTeam: ${registration.team_name}\nRegistration ID: ${registration.registration_id}\nSchool/Org: ${registration.school_organization}\nChallenges: ${registration.selected_categories.join(', ')}\n\nOur technical committee is currently reviewing your application. You will receive further updates as the competition draws near.\n\nBest regards,\nYoung Africans Robotics Association (YARA)`,
       type: 'submission_confirmation',
       sent_at: new Date().toISOString()
     });
@@ -168,8 +168,8 @@ export const updateRegistrationStatus = async (
       registration_id: target.registration_id,
       team_name: target.team_name,
       recipient_email: target.team_leader_email,
-      subject: `Official Entry Approved: ${target.team_name} — YARA 2026`,
-      body: `Congratulations ${target.team_name}!\n\nYour team entry has been officially APPROVED for the YARA Educational Robotics Competition 2026. You are cleared to proceed with technical preparation and arena mission setups.\n\nTeam ID: ${target.registration_id}\nNotes: ${notes || 'All requirements satisfied.'}\n\nWe look forward to seeing your innovation on the arena floor!`,
+      subject: `Official Entry Approved: ${target.team_name} — YARA Championship`,
+      body: `Congratulations ${target.team_name}!\n\nYour team entry has been officially APPROVED for the YARA Robotics Competition. You are cleared to proceed with technical preparation and arena mission setups.\n\nTeam ID: ${target.registration_id}\nNotes: ${notes || 'All requirements satisfied.'}\n\nWe look forward to seeing your innovation on the arena floor!`,
       type: 'approval',
       sent_at: new Date().toISOString()
     });

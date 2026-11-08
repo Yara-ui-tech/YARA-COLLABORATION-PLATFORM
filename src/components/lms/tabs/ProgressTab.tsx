@@ -196,8 +196,13 @@ export const ProgressTab: React.FC<Props> = ({
 
               {/* Sessions List (Clean & Compact) */}
               {isExpanded && (
-                <div className="divide-y divide-slate-100 border-t border-slate-100 bg-slate-50/50">
-                  {levelSessions.map(session => {
+                levelSessions.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400 bg-slate-50/50 border-t border-slate-100">
+                    No curriculum sessions uploaded for Level {level.levelNumber} yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border-t border-slate-100 bg-slate-50/50">
+                    {levelSessions.map(session => {
                     const comp = userCompletions[session.id] || {};
                     const isSessionDone = comp.isFullyCompleted;
                     const { isUnlocked } = checkSessionPrerequisites(userId, session.id, userCompletions);
@@ -249,6 +254,7 @@ export const ProgressTab: React.FC<Props> = ({
                     );
                   })}
                 </div>
+                )
               )}
             </div>
           );

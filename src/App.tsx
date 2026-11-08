@@ -17,7 +17,6 @@ import Feedback from './pages/Feedback';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
 import LiveRoom from './pages/LiveRoom';
-import YaraRoboticsCompetition2026 from './pages/YaraRoboticsCompetition2026';
 import About from './pages/About';
 import Programs from './pages/Programs';
 import Impact from './pages/Impact';
@@ -148,9 +147,9 @@ const AppContent = () => {
             {/* Competitions Ecosystem */}
             <Route path="/competitions" element={<Competitions />} />
             <Route path="/all-competitions" element={<Competitions />} />
-            <Route path="/competitions/yara-2026" element={<YaraRoboticsCompetition2026 />} />
-            <Route path="/yara-competition-2026" element={<YaraRoboticsCompetition2026 />} />
-            <Route path="/competition" element={<YaraRoboticsCompetition2026 />} />
+            <Route path="/competitions/yara-2026" element={<Competitions />} />
+            <Route path="/yara-competition-2026" element={<Competitions />} />
+            <Route path="/competition" element={<Competitions />} />
             <Route path="/competition/participant" element={<ParticipantPortal />} />
             <Route path="/competition/sponsors" element={<SponsorPortal />} />
             <Route path="/sponsors" element={<SponsorPortal />} />

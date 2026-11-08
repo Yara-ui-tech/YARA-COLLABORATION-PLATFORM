@@ -306,81 +306,99 @@ export const CoursesTab: React.FC<Props> = ({
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredUnifiedCourses.map(course => (
-                <div
-                  key={course.id}
-                  className="bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col justify-between group"
-                >
-                  <div className="relative h-44 overflow-hidden bg-slate-950">
-                    <img
-                      src={course.thumbnailUrl}
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-900/90 text-white border border-white/20 backdrop-blur-xs">
-                        {course.track.replace('_', ' ').toUpperCase()}
-                      </span>
+            {filteredUnifiedCourses.length === 0 ? (
+              <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-12 text-center shadow-xs">
+                <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h4 className="text-base font-black text-slate-800">No Courses Currently Published</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                  The Academy course catalog is completely fresh. New robotics and coding courses published by the administrator will appear here.
+                </p>
+                {isAdmin && (
+                  <button
+                    onClick={() => onNavigateTab('admin-center')}
+                    className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <span>Open Admin LMS Studio</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredUnifiedCourses.map(course => (
+                  <div
+                    key={course.id}
+                    className="bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col justify-between group"
+                  >
+                    <div className="relative h-44 overflow-hidden bg-slate-950">
+                      <img
+                        src={course.thumbnailUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-900/90 text-white border border-white/20 backdrop-blur-xs">
+                          {course.track.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border backdrop-blur-xs ${
+                          course.membershipRequired
+                            ? 'bg-amber-500/90 text-slate-950 border-amber-400'
+                            : course.certificationFeeUsd > 0
+                            ? 'bg-blue-600/90 text-white border-blue-400'
+                            : 'bg-emerald-600/90 text-white border-emerald-400'
+                        }`}>
+                          {course.membershipRequired ? 'YARA Member' : course.certificationFeeUsd > 0 ? `$${course.certificationFeeUsd} Cert` : 'Free Enrol'}
+                        </span>
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <span className="text-[10px] font-mono font-bold text-emerald-400">{course.code}</span>
+                        <h4 className="text-sm font-black text-white leading-snug line-clamp-1">{course.title}</h4>
+                      </div>
                     </div>
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border backdrop-blur-xs ${
-                        course.membershipRequired
-                          ? 'bg-amber-500/90 text-slate-950 border-amber-400'
-                          : course.certificationFeeUsd > 0
-                          ? 'bg-blue-600/90 text-white border-blue-400'
-                          : 'bg-emerald-600/90 text-white border-emerald-400'
-                      }`}>
-                        {course.membershipRequired ? 'YARA Member' : course.certificationFeeUsd > 0 ? `$${course.certificationFeeUsd} Cert` : 'Free Enrol'}
-                      </span>
-                    </div>
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <span className="text-[10px] font-mono font-bold text-emerald-400">{course.code}</span>
-                      <h4 className="text-sm font-black text-white leading-snug line-clamp-1">{course.title}</h4>
-                    </div>
-                  </div>
 
-                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                    <div className="space-y-2.5">
-                      <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                        {course.shortSummary}
-                      </p>
+                    <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                          {course.shortSummary}
+                        </p>
 
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-semibold pt-1">
-                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {course.estimatedDurationHours}h</span>
-                        <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5 text-slate-400" /> {course.modules.length} Modules</span>
-                        <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" /> Accredited</span>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 font-semibold pt-1">
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-slate-400" /> {course.estimatedDurationHours}h</span>
+                          <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5 text-slate-400" /> {course.modules.length} Modules</span>
+                          <span className="flex items-center gap-1"><Award className="w-3.5 h-3.5 text-amber-500" /> Accredited</span>
+                        </div>
+
+                        {course.learningOutcomes.length > 0 && (
+                          <div className="space-y-1 pt-1 border-t border-slate-100">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Key Outcomes:</div>
+                            <ul className="text-[11px] text-slate-600 space-y-0.5">
+                              {course.learningOutcomes.slice(0, 2).map((outcome, i) => (
+                                <li key={i} className="flex items-start gap-1.5 line-clamp-1">
+                                  <span className="text-emerald-500 font-bold">✓</span>
+                                  <span className="truncate">{outcome}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
 
-                      {course.learningOutcomes.length > 0 && (
-                        <div className="space-y-1 pt-1 border-t border-slate-100">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Key Outcomes:</div>
-                          <ul className="text-[11px] text-slate-600 space-y-0.5">
-                            {course.learningOutcomes.slice(0, 2).map((outcome, i) => (
-                              <li key={i} className="flex items-start gap-1.5 line-clamp-1">
-                                <span className="text-emerald-500 font-bold">✓</span>
-                                <span className="truncate">{outcome}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => setActivePlayerCourse(course)}
-                        className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm group-hover:bg-indigo-600"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>Start Learning In LMS</span>
-                      </button>
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => setActivePlayerCourse(course)}
+                          className="w-full bg-slate-900 hover:bg-indigo-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm group-hover:bg-indigo-600"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          <span>Start Learning In LMS</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : (

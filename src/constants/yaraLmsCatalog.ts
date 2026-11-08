@@ -4,12 +4,8 @@ import { ALL_YARA_SESSIONS } from './yaraLmsSessionsComplete';
 import { YARA_SESSIONS_LEVELS_4_TO_8 } from './yaraLmsLevels4to8';
 import { YARA_SESSIONS_LEVELS_6_TO_8 } from './yaraLmsLevels6to8';
 
-// Merge all sessions into a single authoritative catalog
-export const COMPLETE_YARA_SESSIONS: YARALmsSession[] = [
-  ...ALL_YARA_SESSIONS,
-  ...YARA_SESSIONS_LEVELS_4_TO_8,
-  ...YARA_SESSIONS_LEVELS_6_TO_8
-];
+// Authoritative catalog - empty by default so user starts completely afresh
+export const COMPLETE_YARA_SESSIONS: YARALmsSession[] = [];
 
 export { YARA_LEARNING_LEVELS, YARA_ROBOTICS_STARTER_KIT };
 

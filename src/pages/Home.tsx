@@ -193,17 +193,17 @@ export default function Home() {
           <div className="max-w-3xl space-y-6">
             <span className="text-xs font-black tracking-widest uppercase text-amber-400">Flagship Season</span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight uppercase text-white">
-              YARA Continental Robotics Championship
+              Robotics Tournaments &amp; Competitions
             </h2>
             <p className="text-slate-400 font-light text-base leading-relaxed">
-              Showcasing practical engineering prowess across Africa: Underwater Drone Navigation (35%), Autonomous Maze Solving (35%), and Community Innovation Pitches (30%).
+              Showcasing hands-on engineering prowess, problem-solving, and African student innovation across regional and continental robotics arenas.
             </p>
             <div className="pt-2">
               <Link
-                to="/competitions/yara-2026"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-amber-400 text-slate-950 hover:bg-amber-300 font-black text-xs uppercase tracking-wider transition-all"
+                to="/competitions"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-amber-400 text-slate-950 hover:bg-amber-300 font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
               >
-                <span>Arena Overview &amp; Guidelines</span>
+                <span>Explore Arena Competitions</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

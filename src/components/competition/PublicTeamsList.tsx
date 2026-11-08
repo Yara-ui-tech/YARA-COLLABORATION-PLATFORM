@@ -31,7 +31,7 @@ export default function PublicTeamsList({ competitionId, onRegisterClick }: Publ
         school_organization: r.school_organization,
         province: r.province,
         district: r.district,
-        competition_title: 'YARA Educational Robotics Competition 2026',
+        competition_title: (r as any).competition_title || 'YARA Robotics Championship',
         competition_category: r.selected_categories.join(', '),
         status: r.status,
         created_at: r.created_at,

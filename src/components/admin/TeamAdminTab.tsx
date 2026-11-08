@@ -66,8 +66,8 @@ export default function TeamAdminTab() {
 
   const handleUpdateStatus = async (team: CompetitionTeam, newStatus: 'approved' | 'rejected') => {
     const members = team.members || [];
-    const isYara2026 = team.competition_id === 'yara_rc_2026' || team.category.toLowerCase().includes('yara educational robotics competition 2026');
-    const check = evaluateTeamEligibility(members, isYara2026);
+    const isYaraCompetition = team.competition_id?.toLowerCase().includes('yara') || team.category?.toLowerCase().includes('yara');
+    const check = evaluateTeamEligibility(members, isYaraCompetition);
 
     if (newStatus === 'approved' && !check.isEligible) {
       alert(`❌ CANNOT APPROVE TEAM: Team "${team.team_name}" is NOT ELIGIBLE.`);
@@ -152,8 +152,8 @@ export default function TeamAdminTab() {
         ) : (
           filteredTeams.map(team => {
             const members = team.members || [];
-            const isYara2026 = team.competition_id === 'yara_rc_2026' || team.category.toLowerCase().includes('yara educational robotics competition 2026');
-            const check = evaluateTeamEligibility(members, isYara2026);
+            const isYaraCompetition = team.competition_id?.toLowerCase().includes('yara') || team.category?.toLowerCase().includes('yara');
+            const check = evaluateTeamEligibility(members, isYaraCompetition);
             const isExpanded = expandedTeamId === team.id;
 
 

@@ -32,9 +32,31 @@ function saveLocalCustomCompetitions(comps: Competition[]) {
   }
 }
 
+const isDisallowedCompetition = (c: any): boolean => {
+  const id = c?.id || '';
+  const slug = c?.slug || '';
+  const title = (c?.title || '').toLowerCase();
+  const desc = (c?.description || '').toLowerCase();
+  if (
+    id === 'c0000000-0000-0000-0000-000000002026' ||
+    id === 'yara-2026-flagship' ||
+    slug === 'yara-competition-2026' ||
+    slug === 'yara-2026'
+  ) {
+    return true;
+  }
+  if (title.includes('yara educational robotics competition 2026')) {
+    return true;
+  }
+  if (desc.includes('zimbabwe premier multi-tier') || desc.includes('autonomous maze solving')) {
+    return true;
+  }
+  return false;
+};
+
 export async function getCompetitions(): Promise<Competition[]> {
   const deletedIds = getDeletedIds();
-  const localCustom = getLocalCustomCompetitions();
+  const localCustom = getLocalCustomCompetitions().filter(c => !isDisallowedCompetition(c));
   const now = new Date();
 
   // Helper to dynamically calculate if competition is expired
@@ -61,7 +83,7 @@ export async function getCompetitions(): Promise<Competition[]> {
     if (!error && data && data.length > 0) {
       // Merge with custom fields and ensure defaults
       const formatted: Competition[] = data
-        .filter(c => !deletedIds.includes(c.id) && !deletedIds.includes(c.slug))
+        .filter(c => !deletedIds.includes(c.id) && !deletedIds.includes(c.slug) && !isDisallowedCompetition(c))
         .map((c: any) => ({
           id: c.id,
           slug: c.slug || c.id,

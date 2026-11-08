@@ -2773,35 +2773,9 @@ ALTER TABLE IF EXISTS public.competitions DROP CONSTRAINT IF EXISTS competitions
 -- Guarantee unique index on competition id for idempotent upserts
 CREATE UNIQUE INDEX IF NOT EXISTS competitions_pkey_idx ON public.competitions (id);
 
-INSERT INTO public.competitions (
-  id, title, slug, year, theme, description, status, venue, prize_pool_summary
-) VALUES (
-  'c0000000-0000-0000-0000-000000002026',
-  'YARA Educational Robotics Competition 2026',
-  'yara-competition-2026',
-  2026,
-  'Engineering Opportunity: Robotics and Innovation for Underserved Youth',
-  'Zimbabwe premier multi-tier robotics championship. Featuring Autonomous Maze Solving, Underwater Drone Simulations, and Community Innovation Pitch Defense. Strict 2 boys + 2 girls gender parity composition required.',
-  'active',
-  'National Championship Arena & Hybrid Regional Centers',
-  '$5,000 in Hardware Grants, STEM Lab Kits & International Travel Sponsorship'
-) ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  theme = EXCLUDED.theme,
-  description = EXCLUDED.description,
-  status = EXCLUDED.status;
-
-ALTER TABLE IF EXISTS public.competition_categories DROP CONSTRAINT IF EXISTS competition_categories_weight_check;
-
-CREATE UNIQUE INDEX IF NOT EXISTS competition_categories_comp_name_idx ON public.competition_categories (competition_id, name);
-INSERT INTO public.competition_categories (competition_id, name, weight_percentage, description, order_index)
-VALUES 
-  ('c0000000-0000-0000-0000-000000002026', 'Underwater Drone Missions', 35, 'Buoyancy control, obstacle traversal, and precision payload retrieval simulated in dynamic aquatic conditions.', 1),
-  ('c0000000-0000-0000-0000-000000002026', 'Autonomous Maze Solving (Micromouse)', 35, 'High-speed autonomous maze mapping, IR/Ultrasonic line tracking, and PID wall following without teleoperation.', 2),
-  ('c0000000-0000-0000-0000-000000002026', 'Innovation Pitch Defense', 30, 'Defense of real community engineering solutions before a panel of industrial engineering judges and investors.', 3)
-ON CONFLICT (competition_id, name) DO UPDATE SET
-  weight_percentage = EXCLUDED.weight_percentage,
-  description = EXCLUDED.description,
+-- Clean up any deprecated hardcoded competitions
+DELETE FROM public.competitions WHERE id = 'c0000000-0000-0000-0000-000000002026' OR slug = 'yara-competition-2026';
+DELETE FROM public.competition_categories WHERE competition_id = 'c0000000-0000-0000-0000-000000002026';
   order_index = EXCLUDED.order_index;
 
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;

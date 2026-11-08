@@ -32,6 +32,7 @@ import { computeTeamCompositionStatus } from '../../lib/teamValidation';
 interface MultiStepRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  competitionTitle?: string;
   initialCategory?: CompetitionCategoryType;
   onSuccess?: (registration: YaraCompetitionRegistration) => void;
 }
@@ -59,6 +60,7 @@ const MEMBER_ROLES = [
 export default function MultiStepRegistrationModal({
   isOpen,
   onClose,
+  competitionTitle = 'YARA Robotics Championship',
   initialCategory,
   onSuccess
 }: MultiStepRegistrationModalProps) {
@@ -282,7 +284,7 @@ export default function MultiStepRegistrationModal({
       }
     } else if (currentStep === 6) {
       if (!consents.competition_rules_agreed) {
-        setValidationError('You must agree to the YARA Educational Robotics Competition 2026 rules.');
+        setValidationError(`You must agree to the ${competitionTitle} rules.`);
         return;
       }
       if (!consents.parent_guardian_consent_minor) {
@@ -308,7 +310,7 @@ export default function MultiStepRegistrationModal({
         id: `reg-${Date.now()}`,
         registration_id: regId,
         event_id: 'yara-competition-2026',
-        event_name: YARA_EVENT_2026_DEFAULT.name,
+        event_name: competitionTitle || YARA_EVENT_2026_DEFAULT.name,
         participant_type: participantType,
         participant_type_other: participantType === 'Other' ? participantTypeOther : undefined,
         team_name: teamName.trim(),
@@ -384,11 +386,11 @@ export default function MultiStepRegistrationModal({
 
             <div className="flex items-center space-x-2 text-amber-400 font-black text-xs uppercase tracking-widest mb-1.5">
               <Trophy className="w-4 h-4" />
-              <span>YARA Official Registration Portal • 2026 Edition</span>
+              <span>YARA Official Registration Portal</span>
             </div>
 
             <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-              YARA Educational Robotics Competition 2026
+              {competitionTitle}
             </h2>
             <p className="text-indigo-200 text-xs md:text-sm mt-1 max-w-2xl font-medium">
               “Engineering Opportunity: Robotics and Innovation for Underserved Youth” — <em>Innovate for Inclusion. Build for Impact.</em>
@@ -451,7 +453,7 @@ export default function MultiStepRegistrationModal({
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">Registration Successfully Submitted!</h3>
                   <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">
-                    Your team is officially registered for the <strong>YARA Educational Robotics Competition 2026</strong>.
+                    Your team is officially registered for <strong>{competitionTitle}</strong>.
                   </p>
                 </div>
 
@@ -1267,7 +1269,7 @@ export default function MultiStepRegistrationModal({
                         <div className="text-xs">
                           <span className="font-bold text-slate-900">Competition Rules & Fair Play Agreement *</span>
                           <p className="text-slate-500 mt-0.5">
-                            “I confirm that the information provided is accurate and that my team agrees to comply with the YARA Educational Robotics Competition 2026 rules and regulations.”
+                            “I confirm that the information provided is accurate and that my team agrees to comply with the {competitionTitle} rules and regulations.”
                           </p>
                         </div>
                       </label>

@@ -22,21 +22,28 @@ const STORAGE_KEYS = {
 // 1. COURSE CATALOGUE & DISCOVERY (Single Source of Truth)
 // ============================================================================
 
+const DEPRECATED_COURSE_CODES = [
+  'YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV', 'YARA-STEM-PAT', 'YARA-IND-PLC',
+  'YARA-TECH-PY', 'YARA-TECH-SCR', 'YARA-TECH-JS', 'YARA-STEM-EDU', 'YARA-IND-CAD'
+];
+
 export function getAllCourses(): UnifiedCourse[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
       const parsed = JSON.parse(stored) as UnifiedCourse[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const clean = parsed.filter(c => !DEPRECATED_COURSE_CODES.includes(c?.code) && !c?.id?.startsWith('yara-rob-level'));
+        if (clean.length !== parsed.length) {
+          saveCoursesToStorage(clean);
+        }
+        return clean;
       }
     }
   } catch (err) {
-    console.warn('Error reading stored courses, falling back to canonical:', err);
+    console.warn('Error reading stored courses:', err);
   }
-  // Initialize canonical seed
-  saveCoursesToStorage(UNIFIED_CANONICAL_COURSES);
-  return UNIFIED_CANONICAL_COURSES;
+  return [];
 }
 
 function saveCoursesToStorage(courses: UnifiedCourse[]): void {

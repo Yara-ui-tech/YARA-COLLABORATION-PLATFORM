@@ -127,6 +127,7 @@ export default function MemberDirectoryAdminTab() {
   const [selectedPositionFilter, setSelectedPositionFilter] = useState('ALL');
   const [selectedProvinceFilter, setSelectedProvinceFilter] = useState('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState<'ALL' | 'girl' | 'boy'>('ALL');
   const [groupBy, setGroupBy] = useState<'flat' | 'chapter' | 'province'>('flat');
 
   // Multi-Selection
@@ -322,6 +323,9 @@ export default function MemberDirectoryAdminTab() {
         (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
       
+      const userGender = (u as any).gender || (u as any).social_links?.gender || (u as any).accessibility_preferences?.gender || 'boy';
+      const matchGender = selectedGenderFilter === 'ALL' || userGender === selectedGenderFilter;
+
       const isTrialExp = !u.registration_paid && u.trial_ends_at && new Date(u.trial_ends_at) < new Date();
       const isPaid = u.registration_paid || (u.subscription_expires_at && new Date(u.subscription_expires_at) > new Date());
 
@@ -334,9 +338,16 @@ export default function MemberDirectoryAdminTab() {
         selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
         true;
 
-      return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus;
+      return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus && matchGender;
     });
-  }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter, selectedStatusFilter]);
+  }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter, selectedStatusFilter, selectedGenderFilter]);
+
+  const genderStats = useMemo(() => {
+    const girls = users.filter(u => ((u as any).gender || (u as any).social_links?.gender || (u as any).accessibility_preferences?.gender) === 'girl').length;
+    const boys = users.length - girls;
+    const parity = users.length > 0 ? Math.round((girls / users.length) * 100) : 50;
+    return { girls, boys, parity };
+  }, [users]);
 
   // Multi-select handlers
   const handleToggleSelect = (id: string) => {
@@ -963,7 +974,21 @@ export default function MemberDirectoryAdminTab() {
               )}
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-slate-900 block truncate">{member.display_name}</span>
+                {(() => {
+                  const resolvedGender = (member as any).gender || (member as any).social_links?.gender || (member as any).accessibility_preferences?.gender || 'boy';
+                  return (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${
+                      resolvedGender === 'girl'
+                        ? 'bg-pink-50 text-pink-700 border-pink-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                      <span>{resolvedGender === 'girl' ? '👧 Girl' : '👦 Boy'}</span>
+                    </span>
+                  );
+                })()}
+              </div>
               <span className="text-[11px] text-slate-400 block truncate">{member.email}</span>
               {phone && (
                 <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
@@ -1625,6 +1650,17 @@ export default function MemberDirectoryAdminTab() {
                 <option value="trial_expired">Trial Expired</option>
                 <option value="suspended">Suspended</option>
                 <option value="leaders">Leaders Only</option>
+              </select>
+
+              {/* Gender Parity Filter */}
+              <select
+                value={selectedGenderFilter}
+                onChange={(e) => setSelectedGenderFilter(e.target.value as any)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value="ALL">All Genders (Parity)</option>
+                <option value="girl">👧 Girls Only ({genderStats.girls})</option>
+                <option value="boy">👦 Boys Only ({genderStats.boys})</option>
               </select>
 
               {/* Group By Toggle */}

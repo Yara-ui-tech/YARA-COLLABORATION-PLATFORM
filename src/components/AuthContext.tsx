@@ -12,6 +12,7 @@ interface UserProfile {
   skills?: string[];
   interests?: string[];
   role: 'innovator' | 'mentor' | 'admin' | 'teacher' | 'national_executive' | 'executive';
+  gender?: 'boy' | 'girl' | string;
   chapter_position?: string;
   is_national_executive?: boolean;
   educational_level?: 'junior' | 'intermediate' | 'senior' | 'tertiary' | 'teacher';
@@ -135,6 +136,7 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
     skills: authUser.user_metadata?.skills || (isTeacher ? ['AI in Education', 'Curriculum Design', 'STEM Pedagogy'] : ['Robotics', 'MicroPython', 'Arduino']),
     interests: authUser.user_metadata?.interests || (isTeacher ? ['Generative AI', 'Classroom Automation', 'EdTech'] : ['Hardware Design', 'Automation']),
     role: resolvedRole,
+    gender: authUser.user_metadata?.gender || 'boy',
     chapter_position: authUser.user_metadata?.chapter_position || authUser.user_metadata?.position,
     is_national_executive: isNatExec,
     educational_level: isTeacher ? 'teacher' : (authUser.user_metadata?.educational_level || (isAdmin ? 'tertiary' : 'junior')),
@@ -372,8 +374,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!error && data) {
           const isAdmin = isUserAdmin(user.email, data.role);
           const isNatExec = isUserNationalExecutive(data);
+          const resolvedGender = data.gender || data.social_links?.gender || data.accessibility_preferences?.gender || user.user_metadata?.gender || 'boy';
           resolvedProfile = {
             ...data,
+            gender: resolvedGender,
             role: isAdmin ? 'admin' : data.role,
             is_national_executive: isNatExec,
             registration_paid: (isAdmin || isNatExec) ? true : !!data.registration_paid

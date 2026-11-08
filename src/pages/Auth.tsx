@@ -24,6 +24,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
+  const [gender, setGender] = useState<'girl' | 'boy'>('girl');
   const [tier, setTier] = useState<'T1'|'T2'|'T3'|'T4'|'T5'|'T6'>('T2');
   const [schoolInstitution, setSchoolInstitution] = useState('');
   const [locationRegion, setLocationRegion] = useState('');
@@ -204,6 +205,7 @@ export default function Auth() {
             data: {
               display_name: displayName.trim(),
               role: finalRole,
+              gender: gender,
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : undefined,
               member_id: generatedMemberId,
@@ -227,6 +229,9 @@ export default function Auth() {
               display_name: displayName.trim(),
               email: cleanEmail,
               role: finalRole,
+              gender: gender,
+              social_links: { gender: gender },
+              accessibility_preferences: { gender: gender },
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
               member_id: generatedMemberId,
@@ -431,6 +436,45 @@ export default function Auth() {
                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium pl-12"
                       placeholder="Enter your name"
                     />
+                  </div>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                      Gender / Equality Identification
+                    </label>
+                    <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-200">
+                      50/50 Gender Parity
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGender('girl')}
+                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                        gender === 'girl'
+                          ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-base">👧</span>
+                      <span>Girl / Female</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGender('boy')}
+                      className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                        gender === 'boy'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-base">👦</span>
+                      <span>Boy / Male</span>
+                    </button>
                   </div>
                 </div>
               )}

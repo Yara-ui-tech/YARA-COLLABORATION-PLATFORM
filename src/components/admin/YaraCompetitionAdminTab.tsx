@@ -182,7 +182,7 @@ export default function YaraCompetitionAdminTab() {
             <span>YARA Technical Administration & Competition Control</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-            YARA Educational Robotics Competition 2026
+            YARA Championship & Competition Control
           </h2>
           <p className="text-slate-300 text-xs md:text-sm mt-1 max-w-xl">
             Manage registrations, 2B+2G mandatory roster verification, judge score entries, event dates & broadcast leaderboards.

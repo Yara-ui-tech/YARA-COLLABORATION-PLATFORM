@@ -2175,7 +2175,21 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
             )}
           </div>
           <div>
-            <p className="font-bold text-slate-900">{user.display_name}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="font-bold text-slate-900">{user.display_name}</p>
+              {(() => {
+                const resolvedGender = (user as any).gender || (user as any).social_links?.gender || (user as any).accessibility_preferences?.gender || 'boy';
+                return (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${
+                    resolvedGender === 'girl'
+                      ? 'bg-pink-50 text-pink-700 border-pink-200'
+                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                  }`}>
+                    <span>{resolvedGender === 'girl' ? '👧 Girl' : '👦 Boy'}</span>
+                  </span>
+                );
+              })()}
+            </div>
             <p className="text-sm text-slate-500 flex items-center">
               <Mail className="w-3 h-3 mr-1" />
               {user.email}
