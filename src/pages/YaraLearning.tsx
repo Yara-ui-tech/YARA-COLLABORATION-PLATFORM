@@ -228,23 +228,15 @@ export default function YaraLearning() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Integrated LMS Web Page Header */}
       <div className="bg-slate-950 text-white px-4 sm:px-6 py-4 border-b border-slate-800 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
             <Breadcrumbs
               items={[
                 { label: 'Home', href: '/' },
-                { label: 'Learning Platform (LMS)', href: '/learn' },
+                { label: 'LMS Academy', href: '/learn' },
                 ...(activeTab !== 'dashboard' ? [{ label: activeTab.replace('-', ' ').toUpperCase() }] : [])
               ]}
             />
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wider">
-                YARA LMS • Online Robotics Academy
-              </span>
-              <span className="text-xs text-slate-400">
-                42 Micro-Modules • Hands-On Labs • Rural Data-Saver Mode
-              </span>
-            </div>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -254,11 +246,11 @@ export default function YaraLearning() {
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider shadow-md transition flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Sign In to Track Progress</span>
+                <span>Sign In</span>
               </Link>
             ) : (
-              <span className="text-xs text-slate-300 font-medium bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
-                Logged in as <strong className="text-white">{studentName}</strong>
+              <span className="text-xs text-slate-400 font-medium bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
+                {studentName}
               </span>
             )}
 

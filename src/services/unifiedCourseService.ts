@@ -22,26 +22,57 @@ const STORAGE_KEYS = {
 // 1. COURSE CATALOGUE & DISCOVERY (Single Source of Truth)
 // ============================================================================
 
-const DEPRECATED_COURSE_CODES = [
-  'YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV', 'YARA-STEM-PAT', 'YARA-IND-PLC',
+const DISALLOWED_COURSE_CODES = [
+  'YARA-TECH-PY101', 'YARA-TECH-SCRATCH', 'YARA-TECH-JS101', 'YARA-TECH-IOT',
+  'YARA-STEM-AI-EDU', 'YARA-STEM-PATRON', 'YARA-ENG-CAD', 'YARA-IND-PLC',
+  'YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV', 'YARA-STEM-PAT',
   'YARA-TECH-PY', 'YARA-TECH-SCR', 'YARA-TECH-JS', 'YARA-STEM-EDU', 'YARA-IND-CAD'
 ];
+
+const DISALLOWED_COURSE_IDS = [
+  'yara-python-robotics', 'yara-scratch-robotics', 'yara-js-iot', 'yara-iot-mqtt',
+  'yara-ai-educators', 'yara-school-patron', 'yara-cad-pcb', 'yara-industrial-plc'
+];
+
+export function isDisallowedCourse(c: any): boolean {
+  if (!c) return true;
+  const code = (c.code || '').toUpperCase().trim();
+  const id = (c.id || '').toLowerCase().trim();
+  const title = (c.title || '').toLowerCase().trim();
+
+  if (DISALLOWED_COURSE_CODES.includes(code)) return true;
+  if (DISALLOWED_COURSE_IDS.includes(id)) return true;
+  if (id.startsWith('yara-rob-level')) return true;
+
+  if (
+    title.includes('python for robotics') ||
+    title.includes('scratch block coding') ||
+    title.includes('javascript & web dashboards') ||
+    title.includes('iot telemetry, mqtt') ||
+    title.includes('ai for educators & robotics patrons') ||
+    title.includes('school robotics club formation') ||
+    title.includes('cad 3d modeling & kicad') ||
+    title.includes('industrial automation, plc')
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 let inMemoryCourses: UnifiedCourse[] | null = null;
 
 export function getAllCourses(): UnifiedCourse[] {
   if (inMemoryCourses !== null) {
-    return inMemoryCourses;
+    return inMemoryCourses.filter(c => !isDisallowedCourse(c));
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
       const parsed = JSON.parse(stored) as UnifiedCourse[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const clean = parsed.filter(c => !DEPRECATED_COURSE_CODES.includes(c?.code) && !c?.id?.startsWith('yara-rob-level'));
-        if (clean.length !== parsed.length) {
-          saveCoursesToStorage(clean);
-        }
+        const clean = parsed.filter(c => !isDisallowedCourse(c));
+        saveCoursesToStorage(clean);
         inMemoryCourses = clean;
         return clean;
       }
@@ -55,6 +86,14 @@ export function getAllCourses(): UnifiedCourse[] {
 
 export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
   try {
+    // Purge deprecated courses from Supabase if they exist
+    try {
+      await supabase.from('courses').delete().in('code', DISALLOWED_COURSE_CODES);
+      await supabase.from('courses').delete().in('id', DISALLOWED_COURSE_IDS);
+    } catch {
+      // best effort
+    }
+
     const { data, error } = await supabase
       .from('courses')
       .select('*, course_modules(*)')
@@ -62,7 +101,7 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
 
     if (!error && Array.isArray(data)) {
       const mapped: UnifiedCourse[] = data
-        .filter(c => !DEPRECATED_COURSE_CODES.includes(c?.code) && !c?.id?.startsWith('yara-rob-level'))
+        .filter(c => !isDisallowedCourse(c))
         .map(c => ({
           id: c.id,
           code: c.code || `YARA-CRS-${c.id.slice(0, 4)}`,

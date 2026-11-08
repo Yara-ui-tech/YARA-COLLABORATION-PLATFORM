@@ -248,74 +248,85 @@ export const CoursesTab: React.FC<Props> = ({
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* 1. Header Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-2xl">
-        <div className="max-w-4xl space-y-4 relative z-10">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-              <Brain className="w-3.5 h-3.5" /> Interactive Learning Management System
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              YARA Learning Academy
-            </span>
-          </div>
-          
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-            Robotics Courses & Labs
-          </h1>
-          
-          <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed max-w-3xl">
-            Step-by-step engineering pathway from electricity fundamentals to embedded C++ programming, sensor fusion, non-blocking state machines, autonomous robotics capstones, and deployed industrial systems across 4 authoritative tiers and 8 comprehensive levels.
-          </p>
+    <div className="space-y-6 pb-12">
+      {/* 1. Clean Simple Header Banner */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          Robotics Courses &amp; Labs
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
+          Official practical robotics, coding, and hardware engineering modules.
+        </p>
+      </div>
+
+      {loadingCourses ? (
+        <div className="bg-white border border-slate-200 rounded-3xl p-16 text-center shadow-xs">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-700">Loading courses from database...</p>
         </div>
-      </div>
-
-      {/* 2. Centralized LMS Track Switcher */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto scrollbar-none">
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 shrink-0">
-          Course Track:
-        </span>
-        {[
-          { id: 'all', label: '🌟 All LMS Courses', count: allLmsCourses.length },
-          { id: 'robotics', label: '🤖 Robotics Academy (L0–L8)', count: allLmsCourses.filter(c => c.track === 'robotics').length },
-          { id: 'technology', label: '💻 Technology & Coding', count: allLmsCourses.filter(c => c.track === 'technology').length },
-          { id: 'stem', label: '🎓 STEM Education & Pedagogy', count: allLmsCourses.filter(c => c.track === 'stem').length },
-          { id: 'specialized', label: '⚡ Specialized & Industrial', count: allLmsCourses.filter(c => c.track === 'specialized').length }
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => {
-              setActiveCatalogTrack(t.id as any);
-              setSelectedTier('all');
-              setSelectedLevel('all');
-            }}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
-              activeCatalogTrack === t.id
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <span>{t.label}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-              activeCatalogTrack === t.id ? 'bg-slate-800 text-emerald-400' : 'bg-slate-200/80 text-slate-500'
-            }`}>
-              {t.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Conditional: Centralized Course Catalogue vs Robotics Sessions Explorer */}
-      {activeCatalogTrack !== 'robotics' || filteredSessions.length === 0 ? (
+      ) : allLmsCourses.length === 0 ? (
+        /* Clean Empty State */
+        <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-16 text-center shadow-xs space-y-4">
+          <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">No Courses Currently Published</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+              The Academy course catalog is completely fresh. When new courses are uploaded by the administrator in the LMS Studio, they will appear here.
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => onNavigateTab('admin-center')}
+              className="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition inline-flex items-center gap-2 cursor-pointer shadow-sm"
+            >
+              <span>Open Admin LMS Studio</span>
+            </button>
+          )}
+        </div>
+      ) : (
         <div className="space-y-6">
+          {/* 2. LMS Track Switcher */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto scrollbar-none">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 shrink-0">
+              Track:
+            </span>
+            {[
+              { id: 'all', label: 'All Courses', count: allLmsCourses.length },
+              { id: 'robotics', label: 'Robotics', count: allLmsCourses.filter(c => c.track === 'robotics').length },
+              { id: 'technology', label: 'Technology & Coding', count: allLmsCourses.filter(c => c.track === 'technology').length },
+              { id: 'stem', label: 'STEM Education', count: allLmsCourses.filter(c => c.track === 'stem').length },
+              { id: 'specialized', label: 'Specialized', count: allLmsCourses.filter(c => c.track === 'specialized').length }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setActiveCatalogTrack(t.id as any);
+                  setSelectedTier('all');
+                  setSelectedLevel('all');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                  activeCatalogTrack === t.id
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <span>{t.label}</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  activeCatalogTrack === t.id ? 'bg-slate-800 text-emerald-400' : 'bg-slate-200/80 text-slate-500'
+                }`}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
           {/* Search Bar for Unified Courses */}
           <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search all courses by title, keywords, hardware required, or learning outcomes..."
+                placeholder="Search courses..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
@@ -328,10 +339,10 @@ export const CoursesTab: React.FC<Props> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-indigo-600" />
-                <span>Centralized LMS Course Catalogue ({filteredUnifiedCourses.length} Courses)</span>
+                <span>Course Catalogue ({filteredUnifiedCourses.length})</span>
               </h3>
 
-              {isAdmin && allLmsCourses.length > 0 && (
+              {isAdmin && (
                 <button
                   onClick={async () => {
                     if (confirm('Are you sure you want to delete ALL courses from the database to start completely fresh? This cannot be undone.')) {
@@ -462,313 +473,7 @@ export const CoursesTab: React.FC<Props> = ({
             )}
           </div>
         </div>
-      ) : (
-        <div className="space-y-8">
-          {/* 4 Official Robotics Learning Tiers */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-emerald-600" />
-            <span>Robotics Learning & Certification Tiers</span>
-          </h3>
-          {selectedTier !== 'all' && (
-            <button
-              onClick={() => setSelectedTier('all')}
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline cursor-pointer"
-            >
-              Show All Tiers
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              setSelectedTier('all');
-              setSelectedLevel('all');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-              selectedTier === 'all'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All Tiers
-          </button>
-          {ROBOTICS_TIER_CATEGORIES.map(tier => {
-            const isSelected = selectedTier === tier.id;
-            return (
-              <button
-                key={tier.id}
-                onClick={() => {
-                  setSelectedTier(prev => (prev === tier.id ? 'all' : tier.id));
-                  setSelectedLevel('all');
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                <span>{tier.badge}</span>
-                <span className="text-[10px] opacity-75">({tier.sessionsSummary})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. Filter & Search Controls */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-4">
-        {/* Search bar & Type pills */}
-        <div className="flex flex-col md:flex-row items-center gap-3">
-          <div className="relative w-full md:flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search sessions (e.g. 'ESP32', 'Ohm's Law', 'Obstacle Avoidance', '5 Whys')..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            {[
-              { id: 'all', label: 'All Types' },
-              { id: 'online', label: 'Online Theory' },
-              { id: 'practical', label: 'Hands-on Labs (P01–P05)' },
-              { id: 'hardware', label: '🧰 Hardware Required' }
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setFilterType(f.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                  filterType === f.id
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Level Selector Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-slate-100 scrollbar-none">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">
-            Levels:
-          </span>
-          <button
-            onClick={() => setSelectedLevel('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-              selectedLevel === 'all'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All Levels (0–8)
-          </button>
-          {YARA_LMS_LEVELS.map(lvl => (
-            <button
-              key={lvl.levelNumber}
-              onClick={() => setSelectedLevel(lvl.levelNumber)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
-                selectedLevel === lvl.levelNumber
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <span>L{lvl.levelNumber}</span>
-              <span className="opacity-80 text-[10px] font-normal">{lvl.title}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Session List */}
-      <div className="space-y-4">
-        {filteredSessions.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-500 text-xs">
-            No course sessions match your current filter. Try resetting search or level filters.
-          </div>
-        ) : (
-          filteredSessions.map((session) => {
-            const completion = userCompletions[session.id] || {};
-            const isCompleted = completion.isFullyCompleted;
-            const { isUnlocked, missingPrerequisites } = checkSessionPrerequisites(userId, session.id, userCompletions);
-            const isExpanded = expandedSessionId === session.id;
-
-            return (
-              <div
-                key={session.id}
-                className={`bg-white border rounded-2xl transition-all duration-200 overflow-hidden shadow-xs ${
-                  isCompleted
-                    ? 'border-emerald-200 bg-emerald-50/20'
-                    : !isUnlocked
-                    ? 'border-slate-200 opacity-80'
-                    : 'border-slate-200 hover:border-emerald-400'
-                }`}
-              >
-                {/* Main Session Bar */}
-                <div className="p-5 sm:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-slate-900 text-white text-[11px] font-mono font-bold">
-                        {session.id}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">
-                        Level {session.levelNumber} • {session.part}
-                      </span>
-                      <span className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-                        <Clock className="w-3 h-3" /> {session.durationMinutes} mins
-                      </span>
-                      {session.hasPhysicalComponents && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold flex items-center gap-1">
-                          🧰 COMPONENTS REQUIRED
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="text-base font-black text-slate-900">{session.title}</h3>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">{session.subtitle}</p>
-                    </div>
-
-                    {/* Progress indicators */}
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] pt-1">
-                      <span className={`flex items-center gap-1 font-semibold ${completion.videoCompleted ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Video
-                      </span>
-                      <span className={`flex items-center gap-1 font-semibold ${completion.quizPassed ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Quiz ({session.quizQuestions?.length || 0} Qs)
-                      </span>
-                      {session.assignment && (
-                        <span className={`flex items-center gap-1 font-semibold ${completion.assignmentSubmitted ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Assignment
-                        </span>
-                      )}
-                      {session.miniProject && (
-                        <span className={`flex items-center gap-1 font-semibold ${completion.miniProjectSubmitted ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Mini-Project
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2.5 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 flex-wrap">
-                    {isAdmin && (
-                      <button
-                        onClick={() => setAdminVideoModalSession({ id: session.id, title: session.title })}
-                        className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 rounded-xl transition"
-                        title="Manage course videos for this session"
-                      >
-                        <Film className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Manage Videos</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => toggleExpand(session.id)}
-                      className="px-3 py-2 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center gap-1 rounded-xl hover:bg-slate-100 transition"
-                    >
-                      <span>{isExpanded ? 'Hide Details' : 'View Syllabus'}</span>
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {isUnlocked ? (
-                      <button
-                        onClick={() => onSelectSession(session.id)}
-                        className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition shadow-xs ${
-                          isCompleted
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                        }`}
-                      >
-                        <Play className={`w-3.5 h-3.5 ${isCompleted ? 'fill-slate-800' : 'fill-white'}`} />
-                        <span>{isCompleted ? 'Review Session' : 'Start Session'}</span>
-                      </button>
-                    ) : (
-                      <div className="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-not-allowed">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Locked</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Expanded Details Panel */}
-                {isExpanded && (
-                  <div className="px-6 pb-6 pt-2 bg-slate-50/70 border-t border-slate-100 space-y-4 text-xs text-slate-700">
-                    {!isUnlocked && missingPrerequisites.length > 0 && (
-                      <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div>
-                          <strong>Prerequisites Needed:</strong> Please complete {missingPrerequisites.join(', ')} before this session unlocks.
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      <div>
-                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
-                          <Target className="w-3.5 h-3.5 text-indigo-600 mr-1.5 shrink-0" />
-                          <span>Learning Objective:</span>
-                        </span>
-                        <p className="text-slate-600 leading-relaxed">{session.learningObjective}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
-                          <Lightbulb className="w-3.5 h-3.5 text-amber-500 mr-1.5 shrink-0" />
-                          <span>Industry Relevance:</span>
-                        </span>
-                        <p className="text-slate-600 leading-relaxed">{session.whyLearnThis}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
-                          <Wrench className="w-3.5 h-3.5 text-slate-700 mr-1.5 shrink-0" />
-                          <span>Practical Implementation:</span>
-                        </span>
-                        <p className="text-slate-600 leading-relaxed">{session.whatYouWillBuild}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-900 flex items-center mb-0.5">
-                          <Award className="w-3.5 h-3.5 text-emerald-600 mr-1.5 shrink-0" />
-                          <span>Professional Outcome:</span>
-                        </span>
-                        <p className="text-slate-600 leading-relaxed">{session.innovatorContribution}</p>
-                      </div>
-                    </div>
-
-                    {/* Component notice if required */}
-                    {session.hasPhysicalComponents && (
-                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-2">
-                        <div className="font-bold flex items-center gap-1.5 text-xs text-emerald-900">
-                          <Package className="w-4 h-4 text-emerald-700" />
-                          <span>Required Hardware for this session:</span>
-                        </div>
-                        <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-800">
-                          {session.componentsRequired?.map((c, i) => (
-                            <li key={i}>{c.name} (Qty: {c.quantity}) — {c.purpose}</li>
-                          ))}
-                        </ul>
-                        <div className="text-[11px] font-medium text-slate-700 pt-1 border-t border-emerald-200/60">
-                          Need the components for this session? Contact YARA on <strong className="text-slate-900">0717468236</strong> to purchase/obtain the required learning components.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-        {/* End of Sessions List */}
-      </div>
-    </div>
-  )}
+      )}
 
       {/* Admin Video Modal */}
       {isAdmin && adminVideoModalSession && (
