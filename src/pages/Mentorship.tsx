@@ -341,7 +341,10 @@ export default function Mentorship() {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) console.error('Error fetching live sessions:', error);
-      else setLiveSessions(data || []);
+      else {
+        const clean = (data || []).filter((s: any) => s.title !== 'Nkan' && s.title !== 'Jakk' && s.title?.trim()?.length > 0);
+        setLiveSessions(clean);
+      }
     };
 
     const fetchStudyMaterials = async () => {
@@ -1006,17 +1009,6 @@ Possible causes:
               )}
             </div>
             <span>Live Sessions</span>
-          </div>
-        </button>
-        <button
-          onClick={() => navigate('/learn?tab=resources')}
-          className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-slate-500 hover:text-slate-800 flex items-center space-x-2 cursor-pointer"
-          title="Open official study materials inside the Academy"
-        >
-          <div className="flex items-center space-x-2">
-            <FileText className="w-4 h-4 text-emerald-600" />
-            <span>Study Materials (In Academy)</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
           </div>
         </button>
       </div>
@@ -1798,68 +1790,6 @@ Possible causes:
         </section>
       )}
 
-      {activeTab === 'materials' && (
-        <section className="space-y-8">
-          <h3 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500">
-              <FileText className="w-6 h-6" />
-            </div>
-            <span>Study Materials</span>
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {studyMaterials.length === 0 ? (
-              <div className="col-span-full bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
-                  <FileText className="w-8 h-8" />
-                </div>
-                <p className="text-slate-400 font-medium italic">No study materials uploaded yet.</p>
-              </div>
-            ) : (
-              studyMaterials.map((material) => (
-                <motion.div
-                  key={material.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-[2.5rem] p-8 border border-slate-100 hover:shadow-xl hover:shadow-indigo-50 transition-all flex flex-col"
-                >
-                  <div className="flex items-start justify-between mb-6">
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center",
-                      material.file_type === 'pdf' ? "bg-red-50 text-red-500" :
-                        material.file_type === 'video' ? "bg-indigo-50 text-indigo-500" : "bg-emerald-50 text-emerald-500"
-                    )}>
-                      {material.file_type === 'pdf' ? <FileText className="w-6 h-6" /> :
-                        material.file_type === 'video' ? <Video className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {new Date(material.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h4 className="text-xl font-bold text-slate-900 mb-2">{material.title}</h4>
-                  <p className="text-slate-500 text-sm mb-6 line-clamp-2">{material.description}</p>
-                  <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
-                        {material.mentor_name[0]}
-                      </div>
-                      <span className="text-xs font-bold text-slate-600">{material.mentor_name}</span>
-                    </div>
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 font-bold text-sm hover:underline"
-                    >
-                      View Resource
-                    </a>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </section>
-      )}
       {activeTab === 'live' && (
         <section className="space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

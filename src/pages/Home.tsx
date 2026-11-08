@@ -220,33 +220,7 @@ export default function Home() {
       </section>
 
       {/* =========================================================================
-          3. SLEEK CINEMATIC SPOTLIGHT: 2026 CHAMPIONSHIP
-         ========================================================================= */}
-      <section className="border-t border-b border-slate-900 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-6">
-            <span className="text-xs font-black tracking-widest uppercase text-amber-400">Flagship Season</span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight uppercase text-white">
-              Robotics Tournaments &amp; Competitions
-            </h2>
-            <p className="text-slate-400 font-light text-base leading-relaxed">
-              Showcasing hands-on engineering prowess, problem-solving, and African student innovation across regional and continental robotics arenas.
-            </p>
-            <div className="pt-2">
-              <Link
-                to="/competitions"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-amber-400 text-slate-950 hover:bg-amber-300 font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
-              >
-                <span>Explore Arena Competitions</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          4. MINIMALIST PRESS / DISPATCH (Only if available)
+          3. MINIMALIST PRESS / DISPATCH (Only if available)
          ========================================================================= */}
       {recentPosts && recentPosts.length > 0 && (
         <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
