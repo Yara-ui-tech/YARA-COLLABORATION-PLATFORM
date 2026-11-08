@@ -227,8 +227,8 @@ export async function evaluateGreatLearningCourseEligibility(
       unmet.push('Submit compulsory Capstone Innovation Project');
     }
 
-    const pct = Math.min(100, Math.round((completedCount / totalSessions) * 100));
-    const isEligible = completedCount >= totalSessions && quizzesPassed >= totalQuizzes && projectSubmitted;
+    const pct = totalSessions > 0 ? Math.min(100, Math.round((completedCount / totalSessions) * 100)) : 0;
+    const isEligible = totalSessions > 0 && completedCount >= totalSessions && quizzesPassed >= totalQuizzes && projectSubmitted;
 
     // Check if certificate was already claimed
     const existing = getAllUnifiedCertificates().find(

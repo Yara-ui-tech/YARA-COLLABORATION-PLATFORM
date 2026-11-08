@@ -350,6 +350,7 @@ export default function YaraLearning() {
             studentName={studentName}
             userEmail={userEmail}
             onNavigateTab={handleSelectTab}
+            isAdmin={isAdmin}
           />
         )}
 
