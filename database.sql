@@ -5005,3 +5005,46 @@ WHERE
     OR EXISTS (SELECT 1 FROM public.underserved_regions r WHERE r.is_active = true AND LOWER(p.location_region) ILIKE '%' || LOWER(r.region_name) || '%')
   );
 
+
+
+-- ==============================================================================
+-- SECTION 41. APPLICATION STORAGE BUCKETS & RLS POLICIES (2026-11-08)
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('shop', 'shop', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
+  ('courses', 'courses', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
+  ('materials', 'materials', true, 104857600, NULL),
+  ('videos', 'videos', true, 524288000, ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']),
+  ('flyers', 'flyers', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
+  ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+  ('certificates', 'certificates', true, 52428800, ARRAY['image/jpeg', 'image/png', 'application/pdf']),
+  ('resources', 'resources', true, 104857600, NULL)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "yara_public_select" ON storage.objects;
+DROP POLICY IF EXISTS "yara_auth_insert" ON storage.objects;
+DROP POLICY IF EXISTS "yara_auth_update" ON storage.objects;
+DROP POLICY IF EXISTS "yara_auth_delete" ON storage.objects;
+
+CREATE POLICY "yara_public_select"
+  ON storage.objects FOR SELECT
+  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
+
+CREATE POLICY "yara_auth_insert"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
+
+CREATE POLICY "yara_auth_update"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'))
+  WITH CHECK (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
+
+CREATE POLICY "yara_auth_delete"
+  ON storage.objects FOR DELETE
+  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));

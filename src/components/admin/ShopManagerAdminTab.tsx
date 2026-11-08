@@ -568,7 +568,12 @@ export default function ShopManagerAdminTab() {
                     className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
-                <ImageUploader onUploadComplete={(url) => setFormImageUrl(url)} />
+                <ImageUploader 
+                  value={formImageUrl}
+                  onChange={(url) => setFormImageUrl(url)}
+                  bucket="shop"
+                  label="Upload Hardware / Component Image"
+                />
               </div>
 
               {/* Description */}

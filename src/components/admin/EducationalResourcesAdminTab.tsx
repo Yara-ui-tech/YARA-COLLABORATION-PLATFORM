@@ -231,7 +231,20 @@ export default function EducationalResourcesAdminTab() {
 
         if (uploadErr) {
           console.warn('Storage upload note:', uploadErr);
-          if (!finalFileUrl) throw uploadErr;
+          if (!finalFileUrl) {
+            // Resilient fallback: read as base64 data URL if file < 4MB
+            if (selectedFile.size <= 4.5 * 1024 * 1024) {
+              const base64Data = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(selectedFile);
+              });
+              finalFileUrl = base64Data;
+              finalSizeBytes = selectedFile.size;
+            } else {
+              throw new Error(`Cloud storage upload failed: ${uploadErr.message}. For files larger than 4MB, please create the 'materials' Supabase storage bucket or provide an external download link.`);
+            }
+          }
         } else {
           const { data: urlData } = supabase.storage
             .from('materials')

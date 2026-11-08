@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase, safeSignOut } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, UserX, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award, ShoppingBag } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, UserX, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award, ShoppingBag, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';

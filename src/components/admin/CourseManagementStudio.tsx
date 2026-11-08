@@ -24,6 +24,8 @@ import {
   clearAllCourses
 } from '../../services/unifiedCourseService';
 import { UniversalCoursePlayerModal } from '../lms/UniversalCoursePlayerModal';
+import ImageUploader from '../ImageUploader';
+import { supabase } from '../../lib/supabase';
 
 export const CourseManagementStudio: React.FC = () => {
   const [courses, setCourses] = useState<UnifiedCourse[]>([]);
@@ -595,6 +597,15 @@ export const CourseManagementStudio: React.FC = () => {
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 resize-none"
                     />
                   </div>
+
+                  <div>
+                    <ImageUploader
+                      value={form.thumbnailUrl}
+                      onChange={(url) => setForm({ ...form, thumbnailUrl: url })}
+                      bucket="courses"
+                      label="Course Thumbnail &amp; View Image"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -676,9 +687,64 @@ export const CourseManagementStudio: React.FC = () => {
                             updated[idx].theoryOverview = e.target.value;
                             setForm({ ...form, modules: updated });
                           }}
-                          placeholder="Theory Overview"
+                          placeholder="Theory / Lesson Overview"
                           className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white resize-none"
                         />
+
+                        {/* Video URL & Video File Uploader */}
+                        <div className="space-y-2 pt-1 border-t border-slate-900">
+                          <label className="block text-[11px] font-bold text-slate-400">
+                            Lesson Video (YouTube, Vimeo, MP4 or Direct File Upload)
+                          </label>
+                          <div className="flex flex-col sm:flex-row items-center gap-2">
+                            <input
+                              type="text"
+                              value={m.videoUrl || ''}
+                              onChange={(e) => {
+                                const updated = [...(form.modules || [])];
+                                updated[idx].videoUrl = e.target.value;
+                                setForm({ ...form, modules: updated });
+                              }}
+                              placeholder="https://www.youtube.com/watch?v=... or MP4 URL"
+                              className="flex-1 w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-[11px]"
+                            />
+                            <label className="w-full sm:w-auto px-3 py-2 bg-slate-900 hover:bg-slate-850 border border-dashed border-slate-700 hover:border-indigo-400 rounded-xl text-[11px] text-slate-300 font-bold flex items-center justify-center gap-1.5 cursor-pointer transition shrink-0">
+                              <Video className="w-3.5 h-3.5 text-indigo-400" />
+                              <span>Upload Video</span>
+                              <input
+                                type="file"
+                                accept="video/mp4,video/webm"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const fileExt = file.name.split('.').pop() || 'mp4';
+                                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+                                    const filePath = `yara_videos/${fileName}`;
+                                    const { data, error } = await supabase.storage
+                                      .from('videos')
+                                      .upload(filePath, file, { upsert: true });
+
+                                    if (!error && data) {
+                                      const { data: publicUrlData } = supabase.storage.from('videos').getPublicUrl(filePath);
+                                      if (publicUrlData?.publicUrl) {
+                                        const updated = [...(form.modules || [])];
+                                        updated[idx].videoUrl = publicUrlData.publicUrl;
+                                        setForm({ ...form, modules: updated });
+                                        return;
+                                      }
+                                    }
+                                  } catch (err) {}
+                                  const localUrl = URL.createObjectURL(file);
+                                  const updated = [...(form.modules || [])];
+                                  updated[idx].videoUrl = localUrl;
+                                  setForm({ ...form, modules: updated });
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -687,16 +753,29 @@ export const CourseManagementStudio: React.FC = () => {
 
               {currentStep === 3 && (
                 <div className="space-y-4">
+                  {/* YARA Pricing Policy Notice */}
+                  <div className="bg-emerald-950/40 border border-emerald-800/60 rounded-2xl p-4 flex items-start gap-3">
+                    <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider block">
+                        YARA Open Course Standard: 100% Free of Charge
+                      </span>
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        All learning videos and labs in this course are free for learners to access. We charge only for physical robotics kits in the Hardware Shop, accredited verified digital certificates, and school club formation workshops.
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Access Rule</label>
+                      <label className="block font-bold text-slate-300 mb-1">Course Access Policy</label>
                       <select
                         value={form.membershipRequired ? 'membership_required' : 'free'}
                         onChange={(e) => setForm({ ...form, membershipRequired: e.target.value === 'membership_required' })}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
                       >
-                        <option value="free">Free Enrolment & Learning</option>
-                        <option value="membership_required">Requires Active $15 YARA Membership</option>
+                        <option value="free">100% Free Access (Recommended)</option>
+                        <option value="membership_required">Requires Active Member Badge</option>
                       </select>
                     </div>
 
