@@ -2792,7 +2792,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS competitions_pkey_idx ON public.competitions (
 -- Clean up any deprecated hardcoded competitions
 DELETE FROM public.competitions WHERE id = 'c0000000-0000-0000-0000-000000002026' OR slug = 'yara-competition-2026';
 DELETE FROM public.competition_categories WHERE competition_id = 'c0000000-0000-0000-0000-000000002026';
-  order_index = EXCLUDED.order_index;
 
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_status_check;
 ALTER TABLE IF EXISTS public.training_programs DROP CONSTRAINT IF EXISTS training_programs_format_check;
