@@ -323,6 +323,8 @@ export default function YaraLearning() {
             userOverall={overallProgress}
             userCompletions={userCompletions}
             onSelectSession={handleStartSession}
+            onNavigateTab={handleSelectTab}
+            isAdmin={isAdmin}
           />
         )}
 
