@@ -1,23 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Trophy, Users, ShieldCheck, Download, Search, Filter, CheckCircle2, 
-  XCircle, Clock, AlertTriangle, Eye, Edit3, Trash2, Calendar, 
-  MapPin, Building2, Mail, Phone, FileText, Settings, Award, 
+import {
+  Trophy, Users, ShieldCheck, Download, Search, Filter, CheckCircle2,
+  XCircle, Clock, AlertTriangle, Eye, Edit3, Trash2, Calendar,
+  MapPin, Building2, Mail, Phone, FileText, Settings, Award,
   RefreshCw, Check, Send, Waves, Compass, Lightbulb, Lock, Unlock
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { 
-  YaraCompetitionRegistration, 
-  CompetitionEventConfig, 
-  CompetitionCategoryType, 
-  CategoryScoreSheet 
+import {
+  YaraCompetitionRegistration,
+  CompetitionEventConfig,
+  CompetitionCategoryType,
+  CategoryScoreSheet
 } from '../../types/yaraCompetition';
 import { DigitalScoreSubmission, JudgeRecord } from '../../types/competitionEcosystem';
-import { 
-  getRegistrations, 
-  updateRegistrationStatus, 
-  getEventConfig, 
+import {
+  getRegistrations,
+  updateRegistrationStatus,
+  getEventConfig,
   updateEventConfig,
   exportRegistrationsToCSV,
   getScoreSheets,
@@ -110,7 +110,7 @@ export default function YaraCompetitionAdminTab() {
   // Filtered List
   const filteredRegistrations = useMemo(() => {
     return registrations.filter(r => {
-      const matchSearch = 
+      const matchSearch =
         r.team_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.school_organization.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.registration_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,15 +155,15 @@ export default function YaraCompetitionAdminTab() {
 
   const filteredDigitalScores = useMemo(() => {
     return digitalScores.filter(s => {
-      const matchSearch = 
+      const matchSearch =
         s.team_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.judge_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.registration_id.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchCat = categoryFilter === 'ALL' || s.category === categoryFilter;
-      const matchLock = 
-        judgeLockFilter === 'ALL' || 
-        (judgeLockFilter === 'locked' && s.is_locked) || 
+      const matchLock =
+        judgeLockFilter === 'ALL' ||
+        (judgeLockFilter === 'locked' && s.is_locked) ||
         (judgeLockFilter === 'unlocked' && !s.is_locked);
 
       return matchSearch && matchCat && matchLock;
@@ -397,8 +397,8 @@ export default function YaraCompetitionAdminTab() {
                         <td className="py-3.5 px-4">
                           <span className={cn(
                             "px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center space-x-1",
-                            team.is_gender_eligible 
-                              ? "bg-emerald-100 text-emerald-800" 
+                            team.is_gender_eligible
+                              ? "bg-emerald-100 text-emerald-800"
                               : "bg-amber-100 text-amber-800"
                           )}>
                             <span>{team.boys_count}B + {team.girls_count}G ({team.total_members} total)</span>
@@ -419,10 +419,10 @@ export default function YaraCompetitionAdminTab() {
                           <span className={cn(
                             "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase",
                             team.status === 'Approved' ? "bg-emerald-100 text-emerald-800" :
-                            team.status === 'Submitted' ? "bg-blue-100 text-blue-800" :
-                            team.status === 'Corrections Required' ? "bg-amber-100 text-amber-800" :
-                            team.status === 'Winner' ? "bg-purple-100 text-purple-800" :
-                            "bg-slate-100 text-slate-700"
+                              team.status === 'Submitted' ? "bg-blue-100 text-blue-800" :
+                                team.status === 'Corrections Required' ? "bg-amber-100 text-amber-800" :
+                                  team.status === 'Winner' ? "bg-purple-100 text-purple-800" :
+                                    "bg-slate-100 text-slate-700"
                           )}>
                             {team.status}
                           </span>
@@ -474,7 +474,7 @@ export default function YaraCompetitionAdminTab() {
             </div>
             <h3 className="text-xl md:text-2xl font-black">Official Judge Scorecards & Lock Controls</h3>
             <p className="text-slate-300 text-xs max-w-3xl leading-relaxed">
-              In accordance with YARA Championship regulations, when judges submit evaluations, the scorecards are locked to prevent unauthorized tampering. 
+              In accordance with YARA Championship regulations, when judges submit evaluations, the scorecards are locked to prevent unauthorized tampering.
               Only authorized National Administrators can unlock a scorecard to permit a judge to re-score or adjust rubric marks in the live portal.
             </p>
           </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Users, Search, Mail, Phone, MapPin, Building2, Shield, 
-  Check, Copy, ExternalLink, MessageCircle, Edit3, CheckCircle2, 
-  XCircle, Filter, ChevronDown, UserCheck, UserX, Clock, 
+import {
+  Users, Search, Mail, Phone, MapPin, Building2, Shield,
+  Check, Copy, ExternalLink, MessageCircle, Edit3, CheckCircle2,
+  XCircle, Filter, ChevronDown, UserCheck, UserX, Clock,
   Send, RefreshCw, AlertCircle, Award, Landmark, UserPlus,
   Layers, Upload, Download, FileSpreadsheet, CheckSquare, Square,
   MessageSquare, Sparkles, ChevronRight, Share2, Info, CreditCard,
@@ -14,9 +14,9 @@ import { cn } from '../../lib/utils';
 import { getChapters } from '../../services/chaptersService';
 import { Chapter } from '../../types/chapters';
 import { yaraV3Service } from '../../services/v3/yaraV3Service';
-import { 
-  getAllSubscriptions, 
-  approveUserSubscription 
+import {
+  getAllSubscriptions,
+  approveUserSubscription
 } from '../../services/partnershipDonationService';
 import { UserSubscription } from '../../types/partnershipsAndDonations';
 
@@ -108,9 +108,9 @@ export const isNationalExecutive = (member?: ExtendedUserProfile | null | { chap
   if (!member || !member.chapter_position) return false;
   const pos = member.chapter_position.toLowerCase();
   return NATIONAL_EXECUTIVE_ROLES.some(r => r.toLowerCase() === pos) ||
-         pos.startsWith('national') ||
-         pos.includes('executive director') ||
-         pos.includes('secretary general');
+    pos.startsWith('national') ||
+    pos.includes('executive director') ||
+    pos.includes('secretary general');
 };
 
 export default function MemberDirectoryAdminTab() {
@@ -306,7 +306,7 @@ export default function MemberDirectoryAdminTab() {
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       const q = searchTerm.toLowerCase();
-      const matchSearch = 
+      const matchSearch =
         !q ||
         u.display_name?.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
@@ -317,26 +317,26 @@ export default function MemberDirectoryAdminTab() {
         u.whatsapp_number?.toLowerCase().includes(q);
 
       const matchChapter = selectedChapterFilter === 'ALL' || u.chapter_id === selectedChapterFilter || u.chapter_name === selectedChapterFilter;
-      const matchPosition = 
+      const matchPosition =
         selectedPositionFilter === 'ALL' ? true :
-        selectedPositionFilter === 'NATIONAL_EXECUTIVE' ? isNationalExecutive(u) :
-        (u.chapter_position || 'Member') === selectedPositionFilter;
+          selectedPositionFilter === 'NATIONAL_EXECUTIVE' ? isNationalExecutive(u) :
+            (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
-      
+
       const userGender = (u as any).gender || (u as any).social_links?.gender || (u as any).accessibility_preferences?.gender || 'boy';
       const matchGender = selectedGenderFilter === 'ALL' || userGender === selectedGenderFilter;
 
       const isTrialExp = !u.registration_paid && u.trial_ends_at && new Date(u.trial_ends_at) < new Date();
       const isPaid = u.registration_paid || (u.subscription_expires_at && new Date(u.subscription_expires_at) > new Date());
 
-      const matchStatus = 
+      const matchStatus =
         selectedStatusFilter === 'ALL' ? true :
-        selectedStatusFilter === 'suspended' ? u.is_halted :
-        selectedStatusFilter === 'paid' ? isPaid :
-        selectedStatusFilter === 'trial_expired' ? isTrialExp :
-        selectedStatusFilter === 'national_exec' ? isNationalExecutive(u) :
-        selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
-        true;
+          selectedStatusFilter === 'suspended' ? u.is_halted :
+            selectedStatusFilter === 'paid' ? isPaid :
+              selectedStatusFilter === 'trial_expired' ? isTrialExp :
+                selectedStatusFilter === 'national_exec' ? isNationalExecutive(u) :
+                  selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
+                    true;
 
       return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus && matchGender;
     });
@@ -369,7 +369,7 @@ export default function MemberDirectoryAdminTab() {
 
   // Export CSV
   const handleExportCSV = () => {
-    const listToExport = selectedMemberIds.size > 0 
+    const listToExport = selectedMemberIds.size > 0
       ? users.filter(u => selectedMemberIds.has(u.id))
       : filteredUsers;
 
@@ -428,7 +428,7 @@ export default function MemberDirectoryAdminTab() {
               position_key: pos || 'Member'
             });
             imported++;
-          } catch {}
+          } catch { }
         }
       }
       showToast('success', `Imported ${imported} members from CSV.`);
@@ -649,7 +649,7 @@ export default function MemberDirectoryAdminTab() {
   const handleApproveSubscription = async (userId: string, userEmail: string, subId?: string) => {
     try {
       const oneYearAhead = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-      
+
       // 1. Update profiles table
       const { error: profErr } = await supabase.from('profiles').update({
         registration_paid: true,
@@ -680,16 +680,16 @@ export default function MemberDirectoryAdminTab() {
     const isNat = forceNationalExec || isNationalExecutive(member);
     setEditLeadershipTier(isNat ? 'national_exec' : (member.chapter_position && member.chapter_position !== 'Member' ? 'chapter_lead' : 'member'));
     setEditChapterId(member.chapter_id || '');
-    
+
     const currentPos = member.chapter_position || 'Member';
     setEditPosition(isNat && currentPos === 'Member' ? NATIONAL_EXECUTIVE_ROLES[0] : currentPos);
-    
+
     if (isNat && !NATIONAL_EXECUTIVE_ROLES.includes(currentPos)) {
       setEditCustomNationalRole(currentPos);
     } else {
       setEditCustomNationalRole('');
     }
-    
+
     setEditGrantAdminAccess(member.role === 'admin');
     setEditMemberId(member.member_id || '');
   };
@@ -711,8 +711,8 @@ export default function MemberDirectoryAdminTab() {
       }
 
       const selectedChapter = chapters.find(c => c.id === editChapterId);
-      const chapterName = selectedChapter 
-        ? selectedChapter.name 
+      const chapterName = selectedChapter
+        ? selectedChapter.name
         : (editLeadershipTier === 'national_exec' ? 'National Executive Secretariat' : null);
 
       await yaraV3Service.setMemberPosition(editingMember.id, finalPosition, editChapterId);
@@ -979,11 +979,10 @@ export default function MemberDirectoryAdminTab() {
                 {(() => {
                   const resolvedGender = (member as any).gender || (member as any).social_links?.gender || (member as any).accessibility_preferences?.gender || 'boy';
                   return (
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${
-                      resolvedGender === 'girl'
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${resolvedGender === 'girl'
                         ? 'bg-pink-50 text-pink-700 border-pink-200'
                         : 'bg-blue-50 text-blue-700 border-blue-200'
-                    }`}>
+                      }`}>
                       <span>{resolvedGender === 'girl' ? '👧 Girl' : '👦 Boy'}</span>
                     </span>
                   );
@@ -1129,8 +1128,8 @@ export default function MemberDirectoryAdminTab() {
               disabled={!hasPhone}
               className={cn(
                 "p-2 rounded-xl transition",
-                hasPhone 
-                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs" 
+                hasPhone
+                  ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 shadow-xs"
                   : "bg-slate-100 text-slate-300 cursor-not-allowed"
               )}
               title={hasPhone ? `WhatsApp: ${phone}` : "No phone provided"}
@@ -1274,8 +1273,8 @@ export default function MemberDirectoryAdminTab() {
             exit={{ opacity: 0, y: -10 }}
             className={cn(
               "p-4 rounded-2xl flex items-center justify-between text-xs font-bold shadow-lg",
-              feedback.type === 'success' 
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200" 
+              feedback.type === 'success'
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                 : "bg-red-50 text-red-800 border border-red-200"
             )}
           >
@@ -1391,8 +1390,8 @@ export default function MemberDirectoryAdminTab() {
             onClick={() => setActiveSubView('directory')}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all",
-              activeSubView === 'directory' 
-                ? "bg-white text-slate-900 shadow-xs" 
+              activeSubView === 'directory'
+                ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
@@ -1407,8 +1406,8 @@ export default function MemberDirectoryAdminTab() {
             }}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
-              selectedPositionFilter === 'NATIONAL_EXECUTIVE' 
-                ? "bg-amber-100 text-amber-950 border border-amber-300 shadow-xs font-black" 
+              selectedPositionFilter === 'NATIONAL_EXECUTIVE'
+                ? "bg-amber-100 text-amber-950 border border-amber-300 shadow-xs font-black"
                 : "text-slate-600 hover:text-slate-900"
             )}
             title="Filter by National Executive Council Members"
@@ -1421,8 +1420,8 @@ export default function MemberDirectoryAdminTab() {
             onClick={() => setActiveSubView('pending_subs')}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
-              activeSubView === 'pending_subs' 
-                ? "bg-white text-slate-900 shadow-xs" 
+              activeSubView === 'pending_subs'
+                ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
@@ -1439,8 +1438,8 @@ export default function MemberDirectoryAdminTab() {
             onClick={() => setActiveSubView('expired_trials')}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
-              activeSubView === 'expired_trials' 
-                ? "bg-white text-slate-900 shadow-xs" 
+              activeSubView === 'expired_trials'
+                ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
@@ -1457,8 +1456,8 @@ export default function MemberDirectoryAdminTab() {
             onClick={() => setActiveSubView('join_requests')}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all relative",
-              activeSubView === 'join_requests' 
-                ? "bg-white text-slate-900 shadow-xs" 
+              activeSubView === 'join_requests'
+                ? "bg-white text-slate-900 shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             )}
           >
@@ -1989,8 +1988,8 @@ export default function MemberDirectoryAdminTab() {
                           <span className={cn(
                             "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
                             req.status === 'approved' ? "bg-emerald-100 text-emerald-800" :
-                            req.status === 'rejected' ? "bg-red-100 text-red-800" :
-                            "bg-amber-100 text-amber-800 animate-pulse"
+                              req.status === 'rejected' ? "bg-red-100 text-red-800" :
+                                "bg-amber-100 text-amber-800 animate-pulse"
                           )}>
                             {req.status}
                           </span>
@@ -2028,7 +2027,7 @@ export default function MemberDirectoryAdminTab() {
       {/* Modal: Edit Chapter Affiliation & Leadership Position */}
       {editingMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5"
@@ -2038,7 +2037,7 @@ export default function MemberDirectoryAdminTab() {
                 <h3 className="font-black text-slate-900 text-base">Assign Chapter &amp; Leadership Position</h3>
                 <p className="text-xs text-slate-500">Updating member: <strong>{editingMember.display_name}</strong></p>
               </div>
-              <button 
+              <button
                 onClick={() => setEditingMember(null)}
                 className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
               >
@@ -2197,8 +2196,8 @@ export default function MemberDirectoryAdminTab() {
               {/* Chapter Selection */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
-                  {editLeadershipTier === 'national_exec' 
-                    ? 'Affiliated Provincial Chapter / Base (Optional)' 
+                  {editLeadershipTier === 'national_exec'
+                    ? 'Affiliated Provincial Chapter / Base (Optional)'
                     : 'Assign to Registered Chapter *'}
                 </label>
                 <select
@@ -2207,8 +2206,8 @@ export default function MemberDirectoryAdminTab() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold"
                 >
                   <option value="">
-                    {editLeadershipTier === 'national_exec' 
-                      ? '-- National Executive Secretariat (Zimbabwe & Continental Base) --' 
+                    {editLeadershipTier === 'national_exec'
+                      ? '-- National Executive Secretariat (Zimbabwe & Continental Base) --'
                       : '-- No Chapter (Independent / Awaiting Placement) --'}
                   </option>
                   {chapters.map(c => (
@@ -2243,7 +2242,7 @@ export default function MemberDirectoryAdminTab() {
       {/* Modal: Multi-Channel Messaging Composer (Email, WhatsApp, In-App, SMS) */}
       {messageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="w-full max-w-2xl bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto"
@@ -2258,7 +2257,7 @@ export default function MemberDirectoryAdminTab() {
                   Send targeted communications to members, chapters, provincial networks, or leaders.
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => { setMessageModalOpen(false); setWhatsappLinksChecklist(null); }}
                 className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
               >
@@ -2397,8 +2396,8 @@ export default function MemberDirectoryAdminTab() {
                         onClick={() => setMessageAudienceType(aud.id as any)}
                         className={cn(
                           "px-3 py-2 rounded-xl text-left border text-xs font-bold transition",
-                          messageAudienceType === aud.id 
-                            ? "bg-slate-900 text-white border-slate-900" 
+                          messageAudienceType === aud.id
+                            ? "bg-slate-900 text-white border-slate-900"
                             : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                         )}
                       >
@@ -2526,7 +2525,7 @@ export default function MemberDirectoryAdminTab() {
       {/* Modal: Add Member Manually */}
       {addMemberModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto"
@@ -2536,7 +2535,7 @@ export default function MemberDirectoryAdminTab() {
                 <h3 className="font-black text-slate-900 text-base">Add Member Manually</h3>
                 <p className="text-xs text-slate-500">Create a new student, innovator, or patron membership.</p>
               </div>
-              <button 
+              <button
                 onClick={() => setAddMemberModalOpen(false)}
                 className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
               >
@@ -2677,7 +2676,7 @@ export default function MemberDirectoryAdminTab() {
       {/* Modal: Email Single Member Native */}
       {emailModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4"
@@ -2687,7 +2686,7 @@ export default function MemberDirectoryAdminTab() {
                 <h3 className="font-black text-slate-900 text-base">Direct Member Communication</h3>
                 <p className="text-xs text-slate-500">Recipient: <strong>{emailModalMember.display_name}</strong> ({emailModalMember.email})</p>
               </div>
-              <button 
+              <button
                 onClick={() => setEmailModalMember(null)}
                 className="p-2 text-slate-400 hover:text-slate-600 rounded-xl"
               >

@@ -22,21 +22,24 @@ const STORAGE_KEYS = {
 // Course CRUD (Admin)
 // ============================================================================
 
+const DEPRECATED_PROGRAMMING_IDS = ['yara-python-101', 'yara-scratch-101', 'yara-js-101', 'yara-prog-py-101'];
+
 export function getAllCourses(): ProgrammingCourse[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
       const parsed = JSON.parse(stored) as ProgrammingCourse[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Normalize: ensure modules is always an array (handles old persisted data)
-        return parsed.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+        const clean = parsed.filter(c => !DEPRECATED_PROGRAMMING_IDS.includes(c?.id));
+        if (clean.length !== parsed.length) {
+          localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(clean));
+        }
+        return clean.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
       }
     }
-    // Initialize with starter courses
-    localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(STARTER_PROGRAMMING_COURSES));
-    return STARTER_PROGRAMMING_COURSES.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+    return [];
   } catch {
-    return STARTER_PROGRAMMING_COURSES.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+    return [];
   }
 }
 

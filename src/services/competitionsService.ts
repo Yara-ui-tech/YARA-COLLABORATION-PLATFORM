@@ -18,7 +18,16 @@ function getDeletedIds(): string[] {
 function getLocalCustomCompetitions(): Competition[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const clean = parsed.filter(c => !isDisallowedCompetition(c));
+      if (clean.length !== parsed.length) {
+        saveLocalCustomCompetitions(clean);
+      }
+      return clean;
+    }
+    return [];
   } catch {
     return [];
   }
@@ -273,5 +282,15 @@ export async function deleteCompetition(id: string): Promise<boolean> {
     console.warn('Supabase delete competition error:', err);
   }
 
+  return true;
+}
+
+export async function clearAllCompetitions(): Promise<boolean> {
+  saveLocalCustomCompetitions([]);
+  try {
+    await supabase.from('competitions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (err) {
+    console.warn('Supabase clear all competitions error:', err);
+  }
   return true;
 }

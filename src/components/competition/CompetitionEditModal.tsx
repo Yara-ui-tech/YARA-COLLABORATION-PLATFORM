@@ -19,22 +19,26 @@ export default function CompetitionEditModal({
 }: CompetitionEditModalProps) {
   const isEditing = Boolean(competition && competition.id);
 
-  const [form, setForm] = useState<Competition>(() => ({
-    id: competition?.id || `comp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    title: competition?.title || '',
-    subtitle: competition?.subtitle || 'Engineering Opportunity & African Tech Innovation',
-    description: competition?.description || '',
-    start_date: competition?.start_date || '2026-10-15',
-    end_date: competition?.end_date || '2026-10-18',
-    location: competition?.location || 'Harare National Arena & Aquatic Centre',
-    registration_link: competition?.registration_link || '/competitions/yara-2026',
-    image_url: competition?.image_url || '',
-    status: competition?.status || 'upcoming',
-    format: competition?.format || 'in_person',
-    category: competition?.category || 'flagship_robotics',
-    is_featured: competition?.is_featured !== undefined ? competition.is_featured : true,
-    slug: competition?.slug || (competition?.title ? competition.title.toLowerCase().replace(/\s+/g, '-') : 'yara-2026')
-  }));
+  const [form, setForm] = useState<Competition>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    return {
+      id: competition?.id || `comp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      title: competition?.title || '',
+      subtitle: competition?.subtitle || '',
+      description: competition?.description || '',
+      start_date: competition?.start_date || today,
+      end_date: competition?.end_date || nextWeek,
+      location: competition?.location || '',
+      registration_link: competition?.registration_link || '',
+      image_url: competition?.image_url || '',
+      status: competition?.status || 'upcoming',
+      format: competition?.format || 'in_person',
+      category: competition?.category || 'robotics_open',
+      is_featured: competition?.is_featured !== undefined ? competition.is_featured : false,
+      slug: competition?.slug || ''
+    };
+  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

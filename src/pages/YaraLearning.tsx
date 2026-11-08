@@ -68,11 +68,11 @@ export default function YaraLearning() {
   // State calculations
   const [overallProgress, setOverallProgress] = useState<any>({
     completedCount: 0,
-    totalSessions: 42,
+    totalSessions: 0,
     percentage: 0,
     currentLevel: 0,
     currentLevelTitle: 'Level 0 — Curious Beginner',
-    nextSession: { id: 'S00', title: 'What Is Robotics?' }
+    nextSession: null
   });
   const [userCompletions, setUserCompletions] = useState<Record<string, any>>({});
   const [subscriptionStatus, setSubscriptionStatus] = useState({

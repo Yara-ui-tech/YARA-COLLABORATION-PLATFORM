@@ -177,6 +177,7 @@ export const CoursesTab: React.FC<Props> = ({
   
   const filteredUnifiedCourses = useMemo(() => {
     return allLmsCourses.filter(c => {
+      if (activeCatalogTrack === 'robotics' && c.track !== 'robotics') return false;
       if (activeCatalogTrack === 'technology' && c.track !== 'technology') return false;
       if (activeCatalogTrack === 'stem' && c.track !== 'stem') return false;
       if (activeCatalogTrack === 'specialized' && c.track !== 'specialized') return false;
@@ -252,7 +253,7 @@ export const CoursesTab: React.FC<Props> = ({
         </span>
         {[
           { id: 'all', label: '🌟 All LMS Courses', count: allLmsCourses.length },
-          { id: 'robotics', label: '🤖 Robotics Academy (L0–L8)', count: 4 },
+          { id: 'robotics', label: '🤖 Robotics Academy (L0–L8)', count: allLmsCourses.filter(c => c.track === 'robotics').length },
           { id: 'technology', label: '💻 Technology & Coding', count: allLmsCourses.filter(c => c.track === 'technology').length },
           { id: 'stem', label: '🎓 STEM Education & Pedagogy', count: allLmsCourses.filter(c => c.track === 'stem').length },
           { id: 'specialized', label: '⚡ Specialized & Industrial', count: allLmsCourses.filter(c => c.track === 'specialized').length }
@@ -281,7 +282,7 @@ export const CoursesTab: React.FC<Props> = ({
       </div>
 
       {/* Conditional: Centralized Course Catalogue vs Robotics Sessions Explorer */}
-      {activeCatalogTrack !== 'robotics' ? (
+      {activeCatalogTrack !== 'robotics' || filteredSessions.length === 0 ? (
         <div className="space-y-6">
           {/* Search Bar for Unified Courses */}
           <div className="bg-white border border-slate-200 rounded-2xl p-3 shadow-xs">

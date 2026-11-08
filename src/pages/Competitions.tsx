@@ -9,10 +9,11 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Competition } from '../types/competition';
-import { getCompetitions, deleteCompetition } from '../services/competitionsService';
+import { getCompetitions, deleteCompetition, createCompetition, updateCompetition } from '../services/competitionsService';
 import { cn } from '../lib/utils';
 import TeamRegistrationModal from '../components/competition/TeamRegistrationModal';
 import ChapterRegistrationModal from '../components/chapters/ChapterRegistrationModal';
+import CompetitionEditModal from '../components/competition/CompetitionEditModal';
 import { useAuth } from '../components/AuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 
@@ -57,6 +58,10 @@ export default function Competitions() {
 
   // Chapter Registration Modal State
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
+
+  // Competition Create/Edit Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingCompForModal, setEditingCompForModal] = useState<Competition | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -151,6 +156,18 @@ export default function Competitions() {
 
             {/* Quick Ecosystem Navigation Badges */}
             <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setEditingCompForModal(null);
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs shadow-md shadow-cyan-900/30 transition-all flex items-center space-x-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Competition</span>
+                </button>
+              )}
               <button
                 onClick={() => setIsChapterModalOpen(true)}
                 className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-900/30 transition-all flex items-center space-x-2 cursor-pointer"
@@ -453,10 +470,26 @@ export default function Competitions() {
             <p className="font-bold text-sm">Loading arena tournaments...</p>
           </div>
         ) : filteredCompetitions.length === 0 ? (
-          <div className="bg-slate-900/80 rounded-3xl p-12 text-center border border-slate-800">
-            <Trophy className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-            <h4 className="text-lg font-bold text-white">No tournaments found</h4>
-            <p className="text-xs text-slate-400 mt-1">Try resetting the category filter or searching different keywords.</p>
+          <div className="bg-slate-900/80 rounded-3xl p-12 text-center border border-slate-800 space-y-4">
+            <Trophy className="w-12 h-12 mx-auto text-slate-600" />
+            <div>
+              <h4 className="text-lg font-bold text-white">No Tournaments Currently Published</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                The competition arena is completely fresh. New championships and tournaments uploaded by the administrator will appear here.
+              </p>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setEditingCompForModal(null);
+                  setIsCreateModalOpen(true);
+                }}
+                className="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-cyan-900/30 transition-all inline-flex items-center space-x-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Upload New Competition</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -582,13 +615,24 @@ export default function Competitions() {
                     </button>
 
                     {isAdmin && (
-                      <button
-                        onClick={() => handleDeleteCompetition(comp.id, comp.title)}
-                        className="w-full py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5 border border-red-500/20 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                        <span>Delete Tournament</span>
-                      </button>
+                      <div className="flex items-center space-x-2 w-full">
+                        <button
+                          onClick={() => {
+                            setEditingCompForModal(comp);
+                            setIsCreateModalOpen(true);
+                          }}
+                          className="flex-1 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5 border border-cyan-500/20 cursor-pointer"
+                        >
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCompetition(comp.id, comp.title)}
+                          className="flex-1 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl font-bold text-xs transition-colors flex items-center justify-center space-x-1.5 border border-red-500/20 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </motion.div>
@@ -807,6 +851,29 @@ export default function Competitions() {
           onClose={() => setIsChapterModalOpen(false)}
           onSuccess={() => {
             setIsChapterModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Competition Create / Edit Modal */}
+      {isCreateModalOpen && (
+        <CompetitionEditModal
+          isOpen={isCreateModalOpen}
+          competition={editingCompForModal}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setEditingCompForModal(null);
+          }}
+          onSave={async (comp) => {
+            if (editingCompForModal && editingCompForModal.id) {
+              await updateCompetition(editingCompForModal.id, comp);
+            } else {
+              await createCompetition(comp);
+            }
+            setIsCreateModalOpen(false);
+            setEditingCompForModal(null);
+            const updated = await getCompetitions();
+            setCompetitions(updated);
           }}
         />
       )}

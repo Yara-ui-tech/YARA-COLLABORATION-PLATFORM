@@ -509,6 +509,15 @@ export function deleteCourse(courseId: string): void {
   saveCoursesToStorage(courses);
 }
 
+export async function clearAllCourses(): Promise<void> {
+  saveCoursesToStorage([]);
+  try {
+    await supabase.from('courses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (err) {
+    console.warn('Supabase clear all courses error:', err);
+  }
+}
+
 // ============================================================================
 // 6. CENTRALIZED LMS REPORTING
 // ============================================================================
