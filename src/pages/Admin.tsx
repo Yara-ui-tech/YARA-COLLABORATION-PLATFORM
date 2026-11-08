@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase, safeSignOut } from '../lib/supabase';
-import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, UserX, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award } from 'lucide-react';
+import { Users, Search, User, Mail, Hash, Save, Loader2, CheckCircle2, AlertCircle, Send, ShieldOff, ShieldCheck, UserPlus, UserX, Trash2, MessageSquare, Star, X as CloseIcon, DollarSign, Video, XCircle, Calendar, Trophy, Plus, Edit2, Link as LinkIcon, MapPin, Clock, ExternalLink, BookOpen, Zap, Brain, CreditCard, RefreshCw, Copy, Check, Building2, Award, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import CurriculumAdminTab from '../components/admin/CurriculumAdminTab';
@@ -32,6 +32,7 @@ import { deleteCompetition as deleteCompetitionService } from '../services/compe
 import MemberDirectoryAdminTab from '../components/admin/MemberDirectoryAdminTab';
 import EducationalResourcesAdminTab from '../components/admin/EducationalResourcesAdminTab';
 import EquityInclusionAdminTab from '../components/admin/EquityInclusionAdminTab';
+import ShopManagerAdminTab from '../components/admin/ShopManagerAdminTab';
 import { Sliders, Heart, Upload, HeartHandshake } from 'lucide-react';
 
 interface UserProfile {
@@ -105,7 +106,8 @@ export default function Admin() {
     profile?.email === 'manongwasimbarashe394@gmail.com' || 
     profile?.email === 'goyaracorp@gmail.com' || 
     authUser?.email === 'manongwasimbarashe394@gmail.com' || 
-    authUser?.email === 'goyaracorp@gmail.com';
+    authUser?.email === 'goyaracorp@gmail.com' ||
+    authUser?.user_metadata?.role === 'admin';
   
   const getHubForTab = (tab: string): AdminHub => {
     if (['event_registrations', 'members', 'admin_management', 'equity_inclusion'].includes(tab)) return 'members';
@@ -1000,6 +1002,7 @@ export default function Admin() {
       { id: 'mentor_req', label: 'Auto Mentor Match Requests', icon: UserPlus },
     ],
     platform: [
+      { id: 'shop_manager', label: 'Hardware Shop & Pricing', icon: ShoppingBag, badge: 'Store' },
       { id: 'data_uploads', label: 'Bulk Data Ingestion (CSV)', icon: Upload, badge: 'Staging' },
       { id: 'finance', label: 'Finance & Payouts', icon: DollarSign },
       { id: 'donations_partners', label: 'Payment Gateways & Donations', icon: CreditCard },
@@ -1734,6 +1737,12 @@ export default function Admin() {
         {activeTab === 'donations_partners' && (
           <div className="p-6 md:p-8">
             <DonationsPartnersAdminTab />
+          </div>
+        )}
+
+        {activeTab === 'shop_manager' && (
+          <div className="p-6 md:p-8">
+            <ShopManagerAdminTab />
           </div>
         )}
 

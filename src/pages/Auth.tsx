@@ -92,11 +92,17 @@ export default function Auth() {
   }, [email, schoolInstitution, locationRegion, isLogin]);
 
   if (isAuthReady && user && !showSuccessModal) {
-    if (profile?.role === 'teacher') {
-      return <Navigate to="/educator-portal" />;
-    }
-    if (profile?.role === 'admin') {
+    const userRole = profile?.role || user.user_metadata?.role;
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const isAdmin = userRole === 'admin' || 
+      userEmail === 'manongwasimbarashe394@gmail.com' || 
+      userEmail === 'goyaracorp@gmail.com';
+
+    if (isAdmin) {
       return <Navigate to="/admin" />;
+    }
+    if (userRole === 'teacher') {
+      return <Navigate to="/educator-portal" />;
     }
     return <Navigate to="/learn" />;
   }
@@ -164,17 +170,27 @@ export default function Auth() {
         if (signInError) throw signInError;
 
         if (signInData.user) {
-          // Check role or navigate immediately to avoid latency
-          const userRole = signInData.user.user_metadata?.role;
-          const userTier = signInData.user.user_metadata?.tier;
-          const userEmail = signInData.user.email?.toLowerCase();
-          const isAdmin = userEmail === 'manongwasimbarashe394@gmail.com' || userEmail === 'goyaracorp@gmail.com' || userRole === 'admin';
+          // Look up user role directly from database to avoid stale JWT metadata latency
+          let resolvedRole = signInData.user.user_metadata?.role;
+          try {
+            const { data: dbProfile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', signInData.user.id)
+              .maybeSingle();
+            if (dbProfile?.role) resolvedRole = dbProfile.role;
+          } catch {}
+
+          const userEmail = (signInData.user.email || '').toLowerCase().trim();
+          const isAdmin = userEmail === 'manongwasimbarashe394@gmail.com' || 
+            userEmail === 'goyaracorp@gmail.com' || 
+            resolvedRole === 'admin';
 
           if (isAdmin) {
             navigate('/admin');
             return;
           }
-          if (userRole === 'teacher' || userTier === 'T1') {
+          if (resolvedRole === 'teacher' || signInData.user.user_metadata?.tier === 'T1') {
             navigate('/educator-portal');
             return;
           }
@@ -184,8 +200,8 @@ export default function Auth() {
       } else {
         // Sign Up Flow
         const cleanEmail = email.trim().toLowerCase();
-        const isAdminEmail = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com';
-        const finalRole = isAdminEmail ? 'admin' : (role === 'admin' ? 'innovator' : role);
+        const isAdminUser = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com' || role === 'admin';
+        const finalRole = isAdminUser ? 'admin' : role;
         const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
         const generatedMemberId = `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -196,7 +212,7 @@ export default function Auth() {
           location: locationRegion
         });
 
-        const isFreeAccessGrantee = eligibilityCheck.isEligible || isAdminEmail || finalRole === 'teacher' || finalRole === 'admin';
+        const isFreeAccessGrantee = eligibilityCheck.isEligible || isAdminUser || finalRole === 'teacher' || finalRole === 'admin';
 
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: cleanEmail,
@@ -207,12 +223,12 @@ export default function Auth() {
               role: finalRole,
               gender: gender,
               tier: resolvedTier,
-              educational_level: finalRole === 'teacher' ? 'teacher' : undefined,
+              educational_level: finalRole === 'teacher' ? 'teacher' : (finalRole === 'admin' ? 'tertiary' : undefined),
               member_id: generatedMemberId,
               school_institution: schoolInstitution.trim() || undefined,
               location_region: locationRegion.trim() || undefined,
               disability_type: disabilityType,
-              is_fee_exempt: eligibilityCheck.isEligible,
+              is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
               underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : undefined,
             },
@@ -233,12 +249,12 @@ export default function Auth() {
               social_links: { gender: gender },
               accessibility_preferences: { gender: gender },
               tier: resolvedTier,
-              educational_level: finalRole === 'teacher' ? 'teacher' : (tier === 'T6' ? 'tertiary' : 'junior'),
+              educational_level: finalRole === 'teacher' ? 'teacher' : (finalRole === 'admin' ? 'tertiary' : (tier === 'T6' ? 'tertiary' : 'junior')),
               member_id: generatedMemberId,
               school_institution: schoolInstitution.trim() || null,
               location_region: locationRegion.trim() || null,
               disability_type: disabilityType,
-              is_fee_exempt: eligibilityCheck.isEligible,
+              is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
               underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : null,
               registration_paid: isFreeAccessGrantee, 
@@ -250,7 +266,12 @@ export default function Auth() {
             console.warn('Profile upsert warning:', e);
           }
 
-          // If we have an immediate session (email confirmation disabled), we can navigate
+          // If session is immediately active (email confirmation off) and user is admin, navigate directly to /admin
+          if (data.session && finalRole === 'admin') {
+            navigate('/admin');
+            return;
+          }
+
           const hasImmediateSession = !!data.session;
           setSignupHasSession(hasImmediateSession);
           setShowSuccessModal(true);
@@ -627,7 +648,7 @@ export default function Auth() {
               {!isLogin && (
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">I am registering as...</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -654,7 +675,7 @@ export default function Auth() {
                       )}
                     >
                       <GraduationCap className="w-4 h-4" />
-                      <span>Teacher / Educator</span>
+                      <span>Teacher</span>
                     </button>
                     <button
                       type="button"
@@ -667,7 +688,27 @@ export default function Auth() {
                       <Users className="w-4 h-4" />
                       <span>Mentor</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('admin')}
+                      className={cn(
+                        "py-3 px-2 rounded-2xl font-bold text-xs transition-all border-2 flex flex-col items-center justify-center text-center gap-1",
+                        role === 'admin' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
+                      )}
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Administrator</span>
+                    </button>
                   </div>
+                </div>
+              )}
+
+              {!isLogin && role === 'admin' && (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-start gap-2.5 text-white">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed text-slate-300">
+                    <strong className="text-white">Admin Console Direct Access:</strong> You will be directed straight to the administrator console to oversee curriculum, manage user registrations, hardware store inventory, finance, and platform settings.
+                  </p>
                 </div>
               )}
 

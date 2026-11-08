@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ShoppingBag, 
   Search, 
@@ -15,20 +15,36 @@ import {
   Package,
   CheckCircle2,
   PhoneCall,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from 'lucide-react';
-import { OFFICIAL_SHOP_PRODUCTS } from '../constants/shopCatalog';
 import { ShopProduct, ShopCategory } from '../types/shop';
 import { ShopOrderModal } from '../components/shop/ShopOrderModal';
 import { getCustomKits } from '../services/resourcesService';
+import { getShopProducts } from '../services/shopService';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState<ShopCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Combine official products with any custom kits added by admin
+  useEffect(() => {
+    let mounted = true;
+    getShopProducts().then(items => {
+      if (mounted) {
+        setProducts(items);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  // Combine official dynamic products with any custom kits added by admin
   const allProducts = useMemo(() => {
     const customKits = getCustomKits().map(k => ({
       id: k.id,
@@ -43,8 +59,8 @@ export default function Shop() {
       inStock: true
     }));
 
-    return [...OFFICIAL_SHOP_PRODUCTS, ...customKits];
-  }, []);
+    return [...products, ...customKits];
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter(item => {
@@ -159,7 +175,42 @@ export default function Shop() {
         </div>
 
         {/* Product Catalog Grid */}
-        {filteredProducts.length === 0 ? (
+        {loading ? (
+          <div className="py-24 flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+            <p className="text-xs text-slate-400 font-medium">Checking hardware inventory...</p>
+          </div>
+        ) : allProducts.length === 0 ? (
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-12 sm:p-16 text-center space-y-5 max-w-2xl mx-auto shadow-xl">
+            <div className="w-16 h-16 bg-slate-800/90 rounded-2xl flex items-center justify-center mx-auto text-emerald-400 border border-slate-700">
+              <Package className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-xl font-black text-white uppercase tracking-tight">Hardware Catalog Empty</h4>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+                No products are currently published in the hardware shop. The administrator will be uploading real components, robotics kits, and pricing shortly.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="https://wa.me/263717468236?text=Hello%20YARA%20Logistics,%20I%20would%20like%20to%20inquire%20about%20hardware%20kits%20and%20pricing."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition shadow-md"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Inquire on WhatsApp</span>
+              </a>
+              <a
+                href="tel:+263788953986"
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 border border-slate-700 transition"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
+                <span>Call Hotline</span>
+              </a>
+            </div>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="bg-slate-900 border border-dashed border-slate-800 rounded-3xl p-16 text-center space-y-3">
             <Package className="w-10 h-10 text-slate-600 mx-auto" />
             <h4 className="text-base font-bold text-white">No hardware products match your search</h4>
