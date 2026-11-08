@@ -129,6 +129,14 @@ BEGIN
   PERFORM public.relax_legacy_not_null('executive_auditors', ARRAY['email', 'name']);
   PERFORM public.relax_legacy_not_null('sponsors', ARRAY['organization_name']);
   PERFORM public.relax_legacy_not_null('testimonials', ARRAY['author_name', 'content']);
+
+  -- Safely harmonize profiles educational_level check constraint to include professional
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profiles') THEN
+    ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_educational_level_check;
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_educational_level_check CHECK (
+      educational_level IS NULL OR educational_level IN ('junior', 'intermediate', 'senior', 'tertiary', 'teacher', 'professional', 'general')
+    );
+  END IF;
 END $$;
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -699,9 +707,12 @@ DECLARE
   v_completed_labs INTEGER;
   v_total_assignments INTEGER;
   v_completed_assignments INTEGER;
-  v_research_passed BOOLEAN;
-  v_final_passed BOOLEAN;
-  v_exam_passed BOOLEAN;
+  v_research_passed BOOLEAN := FALSE;
+  v_final_passed BOOLEAN := FALSE;
+  v_exam_passed BOOLEAN := FALSE;
+  v_req_research BOOLEAN := TRUE;
+  v_req_final BOOLEAN := TRUE;
+  v_req_exam BOOLEAN := TRUE;
   v_pct INTEGER := 0;
   v_is_all_done BOOLEAN := FALSE;
 BEGIN
@@ -709,6 +720,16 @@ BEGIN
   IF NOT public.is_backend_caller() AND auth.uid() IS DISTINCT FROM p_user_id AND NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Cannot refresh course progress for another user.';
   END IF;
+
+  -- 0. Read course completion requirements
+  SELECT 
+    COALESCE(requires_research_project, FALSE),
+    COALESCE(requires_final_design_project, FALSE),
+    COALESCE(requires_level_exam, FALSE)
+  INTO 
+    v_req_research, v_req_final, v_req_exam
+  FROM public.courses
+  WHERE id = p_course_id;
 
   -- 1. Dynamically count total published modules defined for this course
   SELECT COUNT(*) INTO v_total_modules
@@ -719,23 +740,23 @@ BEGIN
     v_total_modules := 1;
   END IF;
 
-  -- 2. Count completed modules
+  -- 2. Count completed published modules
   SELECT COUNT(*) INTO v_completed_modules
   FROM public.module_progress mp
   JOIN public.course_modules cm ON mp.module_id = cm.id
-  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND mp.is_fully_completed = TRUE;
+  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND cm.is_published = TRUE AND mp.is_fully_completed = TRUE;
 
   -- 3. Count completed guided practical labs
   SELECT COUNT(*) INTO v_completed_labs
   FROM public.module_progress mp
   JOIN public.course_modules cm ON mp.module_id = cm.id
-  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND mp.guided_lab_completed = TRUE;
+  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND cm.is_published = TRUE AND mp.guided_lab_completed = TRUE;
 
   -- 4. Count completed practical assignments
   SELECT COUNT(*) INTO v_completed_assignments
   FROM public.module_progress mp
   JOIN public.course_modules cm ON mp.module_id = cm.id
-  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND mp.assignment_submitted = TRUE;
+  WHERE mp.user_id = p_user_id AND cm.course_id = p_course_id AND cm.is_published = TRUE AND mp.assignment_submitted = TRUE;
 
   -- 5. Check Research & Design Project approval
   SELECT EXISTS(
@@ -760,8 +781,7 @@ BEGIN
     WHERE qs.user_id = p_user_id AND q.course_id = p_course_id AND qs.passed = TRUE
   ) INTO v_exam_passed;
 
-  -- 8. Compute weighted progress percentage
-  -- Theory Modules: 60%, Research Project: 15%, Final Design Project: 15%, Level Exam: 10%
+  -- 8. Compute weighted progress percentage respecting course requirements
   v_pct := ROUND(
     (LEAST(v_completed_modules, v_total_modules)::DECIMAL / v_total_modules::DECIMAL * 60.0) +
     (CASE WHEN v_research_passed THEN 15.0 ELSE 0.0 END) +
@@ -771,8 +791,11 @@ BEGIN
 
   IF v_pct > 100 THEN v_pct := 100; END IF;
 
-  -- Course is completed ONLY when ALL modules, BOTH projects, and exam are completed
-  v_is_all_done := (v_completed_modules >= v_total_modules) AND v_research_passed AND v_final_passed AND v_exam_passed;
+  -- Course is completed ONLY when ALL published modules and required projects/exams are completed
+  v_is_all_done := (v_completed_modules >= v_total_modules)
+    AND (NOT v_req_research OR v_research_passed)
+    AND (NOT v_req_final OR v_final_passed)
+    AND (NOT v_req_exam OR v_exam_passed);
 
   -- 9. Upsert into enrollments table
   INSERT INTO public.course_enrollments (
@@ -799,7 +822,7 @@ BEGIN
     completed_at = CASE WHEN EXCLUDED.status = 'completed' AND public.course_enrollments.completed_at IS NULL THEN now() ELSE public.course_enrollments.completed_at END,
     last_accessed_at = now();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- ==============================================================================
 -- 10. ADMIN & INSTRUCTOR CURRICULUM CONTROL
@@ -852,7 +875,7 @@ BEGIN
 
   RETURN v_new_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- ==============================================================================
 -- 11. TEACHER & ROBOTICS PATRON HUB
@@ -1582,7 +1605,7 @@ BEGIN
       AND role IN ('admin', 'super_admin')
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 -- Privileged profile fields guard.
 -- The "Users update own profile" policy lets a user update their whole row, which
@@ -1601,7 +1624,8 @@ DECLARE
     'is_executive_auditor', 'is_verified_educator', 'approval_status',
     'registration_paid', 'amount_paid', 'total_dues', 'trial_ends_at',
     'subscription_expires_at', 'rating', 'mentored_count',
-    'total_commission', 'commission_rate', 'commission_due'
+    'total_commission', 'commission_rate', 'commission_due',
+    'is_fee_exempt', 'is_underserved_scholarship', 'underserved_scholarship_reason'
   ];
 BEGIN
   IF public.is_backend_caller() OR public.is_admin() THEN
@@ -1625,7 +1649,7 @@ BEGIN
   END LOOP;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_guard_profile_privileged_fields ON public.profiles;
 CREATE TRIGGER trg_guard_profile_privileged_fields
@@ -1644,7 +1668,7 @@ DO $$ BEGIN
   CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin());
 
   DROP POLICY IF EXISTS "Users insert own profile" ON public.profiles;
-  CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id OR true);
+  CREATE POLICY "Users insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id OR public.is_admin());
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
@@ -1652,7 +1676,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public
+SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
 BEGIN
   INSERT INTO public.profiles (
@@ -1682,15 +1706,19 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'member_id', 'YARA-' || to_char(CURRENT_DATE, 'YYYY') || '-' || lpad((floor(random() * 9000 + 1000))::text, 4, '0')),
     COALESCE(NEW.raw_user_meta_data->>'role', 'innovator'),
     COALESCE(NEW.raw_user_meta_data->>'gender', 'boy'),
-    COALESCE(NEW.raw_user_meta_data->>'educational_level', 'junior'),
+    CASE 
+      WHEN NEW.raw_user_meta_data->>'educational_level' IN ('junior', 'intermediate', 'senior', 'tertiary', 'teacher', 'professional', 'general')
+      THEN NEW.raw_user_meta_data->>'educational_level'
+      ELSE 'junior'
+    END,
     NEW.raw_user_meta_data->>'tier',
     NEW.raw_user_meta_data->>'school_institution',
     NEW.raw_user_meta_data->>'location_region',
     COALESCE(NEW.raw_user_meta_data->>'disability_type', 'none'),
-    COALESCE((NEW.raw_user_meta_data->>'is_fee_exempt')::boolean, FALSE),
-    COALESCE((NEW.raw_user_meta_data->>'is_fee_exempt')::boolean, FALSE),
-    COALESCE((NEW.raw_user_meta_data->>'is_underserved_scholarship')::boolean, FALSE),
-    NEW.raw_user_meta_data->>'underserved_scholarship_reason',
+    FALSE,
+    FALSE,
+    FALSE,
+    NULL,
     NOW() + INTERVAL '30 days',
     NOW() + INTERVAL '365 days',
     jsonb_build_object('gender', COALESCE(NEW.raw_user_meta_data->>'gender', 'boy')),
@@ -1929,11 +1957,61 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active
 -- ------------------------------------------------------------------------------
 CREATE UNIQUE INDEX IF NOT EXISTS courses_pkey_idx ON public.courses (id);
 
--- Clean Slate: purge courses and modules so new ones can be uploaded fresh
-DELETE FROM public.course_modules;
-DELETE FROM public.course_lessons;
-DELETE FROM public.course_resources;
-DELETE FROM public.courses;
+-- Safe idempotent seeding: Ensure flagship courses exist with strict FK preservation (No destructive wipes)
+INSERT INTO public.courses (
+  id, code, title, slug, track, tier, level, min_theory_modules, total_modules, short_summary, description, requires_research_project, requires_final_design_project, requires_level_exam, is_published
+) VALUES
+  (
+    '00000000-0000-0000-0000-000000000001',
+    'YARA-ROB-BEG',
+    'Robotics & Embedded Systems — Tier 1: Beginner Foundations',
+    'robotics-beginner-foundations',
+    'Robotics',
+    1,
+    'Beginner',
+    6,
+    10,
+    'Fundamental circuits, Ohm''s law, electronic breadboarding, sensors and basic actuators.',
+    'Master core engineering fundamentals, electronic components, circuit schematics, hands-on lab experiments, and complete beginner capstone projects.',
+    TRUE, TRUE, TRUE, TRUE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000002',
+    'YARA-ROB-INT',
+    'Robotics & Embedded Systems — Tier 2: Intermediate Systems',
+    'robotics-intermediate-systems',
+    'Robotics',
+    2,
+    'Intermediate',
+    6,
+    12,
+    'Microcontroller programming with C++ and MicroPython, PWM motor drivers, state machines, and telemetry.',
+    'Build and program autonomous mobile robots, integrate ultrasonic and infrared navigation, calibrate PID loops, and deploy sensor telemetry.',
+    TRUE, TRUE, TRUE, TRUE
+  ),
+  (
+    '00000000-0000-0000-0000-000000000003',
+    'YARA-ROB-ADV',
+    'Robotics & Embedded Systems — Tier 3: Advanced Robotics & Edge AI',
+    'robotics-advanced-systems',
+    'Robotics',
+    3,
+    'Advanced',
+    6,
+    15,
+    'ROS 2 kinematics, Edge AI computer vision, LiDAR SLAM, real-time telemetry, and FMEA safety engineering.',
+    'Design commercial-grade autonomous robots, write ROS 2 microservices, train neural network vision models on edge compute, and defend engineering capstone projects.',
+    TRUE, TRUE, TRUE, TRUE
+  )
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  slug = EXCLUDED.slug,
+  code = EXCLUDED.code,
+  level = EXCLUDED.level,
+  short_summary = EXCLUDED.short_summary,
+  description = EXCLUDED.description,
+  total_modules = EXCLUDED.total_modules,
+  is_published = EXCLUDED.is_published;
 
 -- ------------------------------------------------------------------------------
 -- B. SEED BEGINNER LEVEL MODULES (10 FULL COMPREHENSIVE MODULES)
@@ -4076,7 +4154,7 @@ CALL public.safely_apply_policy('Users manage own notifications', 'notifications
 -- 33. SUPABASE STORAGE BUCKETS & STORAGE OBJECT POLICIES
 -- ==============================================================================
 
--- Create public storage buckets if missing
+-- Create storage buckets if missing (data-uploads stays private on conflict rerun)
 INSERT INTO storage.buckets (id, name, public)
 VALUES 
   ('avatars', 'avatars', true),
@@ -4084,7 +4162,7 @@ VALUES
   ('resources', 'resources', true),
   ('certificates', 'certificates', true),
   ('data-uploads', 'data-uploads', false)
-ON CONFLICT (id) DO UPDATE SET public = true;
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
 
 -- Storage RLS Policies (Hardened with strict owner/admin authorization)
 DO $$ BEGIN
@@ -4396,7 +4474,7 @@ CREATE OR REPLACE FUNCTION public.assign_national_executive_role(
 )
 RETURNS JSONB
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_profile RECORD;
@@ -4625,6 +4703,17 @@ CREATE TABLE IF NOT EXISTS public.study_materials (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Reconcile legacy mentor_id if it exists as UUID
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema='public' AND table_name='study_materials' AND column_name='mentor_id' AND data_type='uuid'
+  ) THEN
+    ALTER TABLE public.study_materials ALTER COLUMN mentor_id TYPE TEXT USING mentor_id::text;
+  END IF;
+END $$;
+
 -- Ensure thumbnail_url and cover_image_url columns exist
 DO $$ 
 BEGIN
@@ -4639,25 +4728,25 @@ END $$;
 -- Enable Row Level Security
 ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access to all study materials
+-- Allow public read access to all published study materials
 DROP POLICY IF EXISTS "Public can view study materials" ON public.study_materials;
 CREATE POLICY "Public can view study materials" ON public.study_materials
-  FOR SELECT USING (true);
+  FOR SELECT USING (is_published = true OR public.is_admin());
 
 -- Allow authenticated mentors/admins to insert study materials
 DROP POLICY IF EXISTS "Authenticated users can insert study materials" ON public.study_materials;
 CREATE POLICY "Authenticated users can insert study materials" ON public.study_materials
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  FOR INSERT TO authenticated WITH CHECK (auth.role() = 'authenticated');
 
 -- Allow authenticated users to update their materials or admins
 DROP POLICY IF EXISTS "Mentors and admins can update study materials" ON public.study_materials;
 CREATE POLICY "Mentors and admins can update study materials" ON public.study_materials
-  FOR UPDATE USING (auth.role() = 'authenticated');
+  FOR UPDATE TO authenticated USING (mentor_id = auth.uid()::text OR public.is_admin());
 
 -- Allow authenticated users to delete their materials or admins
 DROP POLICY IF EXISTS "Mentors and admins can delete study materials" ON public.study_materials;
 CREATE POLICY "Mentors and admins can delete study materials" ON public.study_materials
-  FOR DELETE USING (auth.role() = 'authenticated');
+  FOR DELETE TO authenticated USING (mentor_id = auth.uid()::text OR public.is_admin());
 
 -- ============================================================================
 -- SECTION 39: MENTORSHIP REQUESTS, DIRECT RESPONSES & VIRTUAL MEETING ROOMS
@@ -4682,21 +4771,21 @@ CREATE TABLE IF NOT EXISTS public.mentorship_requests (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Ensure all needed columns exist if table was partially created
+-- Ensure all needed columns exist if table was partially created in legacy databases
 DO $$ 
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='meeting_link') THEN
-    ALTER TABLE public.mentorship_requests ADD COLUMN meeting_link TEXT;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='mentor_response') THEN
-    ALTER TABLE public.mentorship_requests ADD COLUMN mentor_response TEXT;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='whatsapp_number') THEN
-    ALTER TABLE public.mentorship_requests ADD COLUMN whatsapp_number TEXT;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='mentorship_requests' AND column_name='mentor_name') THEN
-    ALTER TABLE public.mentorship_requests ADD COLUMN mentor_name TEXT;
-  END IF;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS meeting_link TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS mentor_response TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS mentor_name TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS email TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS phone TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS preferred_time TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS requester_name TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS notes TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS topic TEXT;
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS message TEXT DEFAULT '';
+  ALTER TABLE public.mentorship_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
 END $$;
 
 -- Indices for rapid lookup
@@ -4708,18 +4797,18 @@ CREATE INDEX IF NOT EXISTS idx_mentorship_requests_created ON public.mentorship_
 -- Enable RLS
 ALTER TABLE public.mentorship_requests ENABLE ROW LEVEL SECURITY;
 
--- Policies for mentorship_requests
+-- Policies for mentorship_requests: restricted to participants & admins (no public leaks)
 DROP POLICY IF EXISTS "Public and authenticated can insert mentorship requests" ON public.mentorship_requests;
 CREATE POLICY "Public and authenticated can insert mentorship requests" ON public.mentorship_requests
   FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Participants and admins can read mentorship requests" ON public.mentorship_requests;
 CREATE POLICY "Participants and admins can read mentorship requests" ON public.mentorship_requests
-  FOR SELECT USING (true);
+  FOR SELECT USING (auth.uid() IS NOT NULL AND (auth.uid() = requester_id OR auth.uid()::text = mentor_id OR public.is_admin()));
 
 DROP POLICY IF EXISTS "Participants and admins can update mentorship requests" ON public.mentorship_requests;
 CREATE POLICY "Participants and admins can update mentorship requests" ON public.mentorship_requests
-  FOR UPDATE USING (true);
+  FOR UPDATE USING (auth.uid() IS NOT NULL AND (auth.uid() = requester_id OR auth.uid()::text = mentor_id OR public.is_admin()));
 
 -- ----------------------------------------------------------------------------
 -- Two-Way Mentorship Messages (Direct Mentor & Mentee Thread)
@@ -4740,12 +4829,32 @@ CREATE INDEX IF NOT EXISTS idx_mentorship_messages_created ON public.mentorship_
 ALTER TABLE public.mentorship_messages ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Anyone can read mentorship messages" ON public.mentorship_messages;
-CREATE POLICY "Anyone can read mentorship messages" ON public.mentorship_messages
-  FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Participants and admins read mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Participants and admins read mentorship messages" ON public.mentorship_messages
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL AND (
+      auth.uid() = sender_id 
+      OR EXISTS (
+        SELECT 1 FROM public.mentorship_requests mr 
+        WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()::text)
+      ) 
+      OR public.is_admin()
+    )
+  );
 
 DROP POLICY IF EXISTS "Anyone can insert mentorship messages" ON public.mentorship_messages;
-CREATE POLICY "Anyone can insert mentorship messages" ON public.mentorship_messages
-  FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Participants and admins insert mentorship messages" ON public.mentorship_messages;
+CREATE POLICY "Participants and admins insert mentorship messages" ON public.mentorship_messages
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL AND (
+      auth.uid() = sender_id 
+      OR EXISTS (
+        SELECT 1 FROM public.mentorship_requests mr 
+        WHERE mr.id = request_id AND (mr.requester_id = auth.uid() OR mr.mentor_id = auth.uid()::text)
+      ) 
+      OR public.is_admin()
+    )
+  );
 
 -- Add to Supabase Realtime publication if available
 DO $$
@@ -5031,19 +5140,35 @@ DROP POLICY IF EXISTS "yara_auth_insert" ON storage.objects;
 DROP POLICY IF EXISTS "yara_auth_update" ON storage.objects;
 DROP POLICY IF EXISTS "yara_auth_delete" ON storage.objects;
 
+-- 4. Public Read Access
 CREATE POLICY "yara_public_select"
   ON storage.objects FOR SELECT
   USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
 
+-- 5. Authenticated Upload Access (restricted to authenticated role)
 CREATE POLICY "yara_auth_insert"
   ON storage.objects FOR INSERT
+  TO authenticated
   WITH CHECK (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
 
+-- 6. Authenticated Update Access (owner or admin only)
 CREATE POLICY "yara_auth_update"
   ON storage.objects FOR UPDATE
-  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'))
-  WITH CHECK (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
+  TO authenticated
+  USING (
+    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
+  )
+  WITH CHECK (
+    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
+  );
 
+-- 7. Authenticated Delete Access (owner or admin only)
 CREATE POLICY "yara_auth_delete"
   ON storage.objects FOR DELETE
-  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
+  TO authenticated
+  USING (
+    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
+  );

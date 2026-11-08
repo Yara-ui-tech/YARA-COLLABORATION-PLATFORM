@@ -52,31 +52,37 @@ CREATE POLICY "yara_public_select"
     bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
   );
 
--- 6. Insert Access: Authenticated users & admin upload
+-- 6. Insert Access: Authenticated users & admins upload
 CREATE POLICY "yara_auth_insert"
   ON storage.objects
   FOR INSERT
+  TO authenticated
   WITH CHECK (
     bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
   );
 
--- 7. Update Access: Allowed for objects in YARA buckets
+-- 7. Update Access: Restricted to owners or administrators
 CREATE POLICY "yara_auth_update"
   ON storage.objects
   FOR UPDATE
+  TO authenticated
   USING (
     bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
   )
   WITH CHECK (
     bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
   );
 
--- 8. Delete Access: Allowed for objects in YARA buckets
+-- 8. Delete Access: Restricted to owners or administrators
 CREATE POLICY "yara_auth_delete"
   ON storage.objects
   FOR DELETE
+  TO authenticated
   USING (
     bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
+    AND (owner = auth.uid() OR public.is_admin())
   );
 
 -- Output confirmation
