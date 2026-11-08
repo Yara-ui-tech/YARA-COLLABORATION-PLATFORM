@@ -33,7 +33,7 @@ import MemberDirectoryAdminTab from '../components/admin/MemberDirectoryAdminTab
 import EducationalResourcesAdminTab from '../components/admin/EducationalResourcesAdminTab';
 import EquityInclusionAdminTab from '../components/admin/EquityInclusionAdminTab';
 import ShopManagerAdminTab from '../components/admin/ShopManagerAdminTab';
-import { Sliders, Heart, Upload, HeartHandshake } from 'lucide-react';
+import { Sliders, Heart, Upload, HeartHandshake, Layers } from 'lucide-react';
 
 interface UserProfile {
   id: string;
