@@ -16,8 +16,10 @@ import {
   AlertCircle,
   Zap,
   ShieldCheck,
-  Film
+  Film,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { SessionVideoClip } from '../../types/yaraLms';
 import { 
   getSessionVideos, 
@@ -59,6 +61,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
   const [previewClip, setPreviewClip] = useState<SessionVideoClip | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState('');
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,14 +84,60 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
     setTimeout(() => setFeedbackMsg(null), 3500);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFileName(file.name);
-    // Create a local object URL for preview and session playback
-    const objectUrl = URL.createObjectURL(file);
-    setVideoUrl(objectUrl);
-    showToast(`Video file "${file.name}" loaded successfully.`);
+    setIsUploadingVideo(true);
+    showToast(`Uploading video "${file.name}" to cloud storage...`);
+
+    try {
+      const fileExt = file.name.split('.').pop() || 'mp4';
+      const cleanSessionId = sessionId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const fileName = `${cleanSessionId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
+      const filePath = `session_videos/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage.from('videos').getPublicUrl(filePath);
+        if (publicUrlData?.publicUrl) {
+          setVideoUrl(publicUrlData.publicUrl);
+          showToast(`Video uploaded successfully and ready for all learners!`);
+          setIsUploadingVideo(false);
+          return;
+        }
+      }
+      
+      // Fallback: try materials bucket if videos bucket differs
+      const { data: matData, error: matErr } = await supabase.storage
+        .from('materials')
+        .upload(filePath, file, { upsert: true, cacheControl: '3600' });
+
+      if (!matErr && matData) {
+        const { data: pubData } = supabase.storage.from('materials').getPublicUrl(filePath);
+        if (pubData?.publicUrl) {
+          setVideoUrl(pubData.publicUrl);
+          showToast(`Video hosted successfully!`);
+          setIsUploadingVideo(false);
+          return;
+        }
+      }
+
+      // Local fallback with notice
+      const objectUrl = URL.createObjectURL(file);
+      setVideoUrl(objectUrl);
+      showToast(`Video loaded locally. For permanent multi-user streaming, provide an MP4 or YouTube URL.`, 'error');
+    } catch (err: any) {
+      console.warn('Video cloud upload notice:', err);
+      const objectUrl = URL.createObjectURL(file);
+      setVideoUrl(objectUrl);
+      showToast(`Video loaded. Consider using a YouTube or hosted video link.`, 'error');
+    } finally {
+      setIsUploadingVideo(false);
+    }
   };
 
   const handleResetForm = () => {
@@ -510,10 +559,20 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20"
+                  disabled={isUploadingVideo}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-black flex items-center gap-1.5 transition shadow-lg shadow-emerald-500/20"
                 >
-                  <Check className="w-3.5 h-3.5" />
-                  {editingClipId ? 'Save Changes' : 'Add to Course Videos'}
+                  {isUploadingVideo ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Uploading to Cloud...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      {editingClipId ? 'Save Changes' : 'Add to Course Videos'}
+                    </>
+                  )}
                 </button>
               </div>
             </form>

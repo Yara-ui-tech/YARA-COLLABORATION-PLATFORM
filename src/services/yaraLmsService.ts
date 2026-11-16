@@ -25,6 +25,47 @@ const STORAGE_KEYS = {
   KIT_PRICING: 'yara_lms_kit_pricing'
 };
 
+let inMemoryVideosMap: Record<string, SessionVideoClip[]> | null = null;
+
+/**
+ * Hydrate custom session videos from Supabase system_settings so all learners load admin uploaded videos.
+ */
+export async function fetchSessionVideosFromDatabase(): Promise<Record<string, SessionVideoClip[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', STORAGE_KEYS.SESSION_VIDEOS)
+      .maybeSingle();
+
+    if (!error && data?.value && typeof data.value === 'object') {
+      const map = (data.value.videosMap || data.value) as Record<string, SessionVideoClip[]>;
+      if (map && typeof map === 'object') {
+        inMemoryVideosMap = map;
+        try {
+          localStorage.setItem(STORAGE_KEYS.SESSION_VIDEOS, JSON.stringify(map));
+        } catch {}
+        return map;
+      }
+    }
+  } catch (err) {
+    console.warn('[yaraLmsService] Notice fetching session videos from DB:', err);
+  }
+
+  if (inMemoryVideosMap !== null) return inMemoryVideosMap;
+  try {
+    const local = localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS);
+    if (local) {
+      inMemoryVideosMap = JSON.parse(local);
+      return inMemoryVideosMap || {};
+    }
+  } catch {}
+  return {};
+}
+
+// Background auto-hydration on service import
+fetchSessionVideosFromDatabase().catch(() => {});
+
 // ============================================================================
 // 1. VIDEO WATCH & ANTI-CHEAT PROGRESSION
 // ============================================================================
@@ -159,7 +200,7 @@ function generateDefaultModularVideos(session: any): SessionVideoClip[] {
  */
 export function getSessionVideos(sessionId: string): SessionVideoClip[] {
   try {
-    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+    const customVideosMap: Record<string, SessionVideoClip[]> = inMemoryVideosMap || JSON.parse(
       localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
     );
 
@@ -178,14 +219,29 @@ export function getSessionVideos(sessionId: string): SessionVideoClip[] {
 
 /**
  * Save custom video clips list for a specific course session (Admin action).
+ * Persists locally and synchronizes to Supabase system_settings so all users receive the updates.
  */
 export function saveSessionVideos(sessionId: string, clips: SessionVideoClip[]): void {
   try {
-    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+    const customVideosMap: Record<string, SessionVideoClip[]> = inMemoryVideosMap || JSON.parse(
       localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
     );
     customVideosMap[sessionId] = clips.map((c, i) => ({ ...c, order: i + 1 }));
+    inMemoryVideosMap = customVideosMap;
     localStorage.setItem(STORAGE_KEYS.SESSION_VIDEOS, JSON.stringify(customVideosMap));
+
+    // Async sync to Supabase system_settings
+    supabase
+      .from('system_settings')
+      .upsert({
+        key: STORAGE_KEYS.SESSION_VIDEOS,
+        value: { videosMap: customVideosMap, updated_at: new Date().toISOString() },
+        description: 'Dynamic YARA LMS Modular Session Videos Catalog'
+      }, { onConflict: 'key' })
+      .then(({ error }) => {
+        if (error) console.warn('[yaraLmsService] Notice syncing session videos to DB:', error.message);
+      })
+      .catch(e => console.warn('[yaraLmsService] DB sync exception:', e));
   } catch (e) {
     console.error('Error saving session videos:', e);
   }
@@ -281,11 +337,21 @@ export function reorderSessionVideoClips(sessionId: string, orderedClipIds: stri
  */
 export function resetSessionVideosToDefault(sessionId: string): void {
   try {
-    const customVideosMap: Record<string, SessionVideoClip[]> = JSON.parse(
+    const customVideosMap: Record<string, SessionVideoClip[]> = inMemoryVideosMap || JSON.parse(
       localStorage.getItem(STORAGE_KEYS.SESSION_VIDEOS) || '{}'
     );
     delete customVideosMap[sessionId];
+    inMemoryVideosMap = customVideosMap;
     localStorage.setItem(STORAGE_KEYS.SESSION_VIDEOS, JSON.stringify(customVideosMap));
+
+    supabase
+      .from('system_settings')
+      .upsert({
+        key: STORAGE_KEYS.SESSION_VIDEOS,
+        value: { videosMap: customVideosMap, updated_at: new Date().toISOString() },
+        description: 'Dynamic YARA LMS Modular Session Videos Catalog'
+      }, { onConflict: 'key' })
+      .catch(() => {});
   } catch (e) {
     console.error('Error resetting session videos:', e);
   }

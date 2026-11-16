@@ -7,6 +7,7 @@ import {
   CourseDifficulty,
 } from '../types/lmsCourseTypes';
 import { autoCreateCertificateTemplateForCourse } from './certificateTemplateService';
+import { supabase } from '../lib/supabase';
 
 // ============================================================================
 // Storage Keys
@@ -18,13 +19,62 @@ const STORAGE_KEYS = {
   CERTIFICATES: 'yara_prog_certificates',
 };
 
+let inMemoryProgCourses: ProgrammingCourse[] | null = null;
+
 // ============================================================================
 // Course CRUD (Admin)
 // ============================================================================
 
 const DEPRECATED_PROGRAMMING_IDS = ['yara-python-101', 'yara-scratch-101', 'yara-js-101', 'yara-prog-py-101'];
 
+/**
+ * Hydrate programming courses from Supabase system_settings so all learners receive admin courses.
+ */
+export async function fetchProgrammingCoursesFromDatabase(): Promise<ProgrammingCourse[]> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', STORAGE_KEYS.COURSES)
+      .maybeSingle();
+
+    if (!error && data?.value) {
+      const items = Array.isArray(data.value) ? data.value : data.value.courses;
+      if (Array.isArray(items)) {
+        const clean = items.filter(c => !DEPRECATED_PROGRAMMING_IDS.includes(c?.id));
+        inMemoryProgCourses = clean;
+        try {
+          localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(clean));
+        } catch {}
+        return clean;
+      }
+    }
+  } catch (err) {
+    console.warn('[programmingCoursesService] Notice fetching courses from DB:', err);
+  }
+
+  if (inMemoryProgCourses !== null) return inMemoryProgCourses;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
+    if (stored) {
+      const parsed = JSON.parse(stored) as ProgrammingCourse[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const clean = parsed.filter(c => !DEPRECATED_PROGRAMMING_IDS.includes(c?.id));
+        inMemoryProgCourses = clean;
+        return clean;
+      }
+    }
+  } catch {}
+  return [];
+}
+
+// Background auto-hydration on service load
+fetchProgrammingCoursesFromDatabase().catch(() => {});
+
 export function getAllCourses(): ProgrammingCourse[] {
+  if (inMemoryProgCourses !== null) {
+    return inMemoryProgCourses;
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.COURSES);
     if (stored) {
@@ -34,7 +84,8 @@ export function getAllCourses(): ProgrammingCourse[] {
         if (clean.length !== parsed.length) {
           localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(clean));
         }
-        return clean.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+        inMemoryProgCourses = clean.map(c => ({ ...c, modules: Array.isArray(c.modules) ? c.modules : [] }));
+        return inMemoryProgCourses;
       }
     }
     return [];
@@ -64,7 +115,20 @@ export function saveCourse(course: ProgrammingCourse): ProgrammingCourse {
     courses.push(updated);
   }
 
-  localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+  inMemoryProgCourses = courses;
+  try {
+    localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+  } catch {}
+
+  // Sync to Supabase system_settings so all learners across all devices immediately see this course
+  supabase
+    .from('system_settings')
+    .upsert({
+      key: STORAGE_KEYS.COURSES,
+      value: { courses, updated_at: now },
+      description: 'Dynamic YARA Programming & Coding Courses Catalog'
+    }, { onConflict: 'key' })
+    .catch(err => console.warn('[programmingCoursesService] DB sync note:', err));
 
   // Automatically create a matching corporate certificate template for the new course
   try {
@@ -84,7 +148,19 @@ export function saveCourse(course: ProgrammingCourse): ProgrammingCourse {
 
 export function deleteCourse(courseId: string): void {
   const courses = getAllCourses().filter((c) => c.id !== courseId);
-  localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+  inMemoryProgCourses = courses;
+  try {
+    localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
+  } catch {}
+
+  supabase
+    .from('system_settings')
+    .upsert({
+      key: STORAGE_KEYS.COURSES,
+      value: { courses, updated_at: new Date().toISOString() },
+      description: 'Dynamic YARA Programming & Coding Courses Catalog'
+    }, { onConflict: 'key' })
+    .catch(err => console.warn('[programmingCoursesService] DB delete sync note:', err));
 }
 
 export function generateCourseId(): string {

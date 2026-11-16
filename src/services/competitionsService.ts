@@ -134,6 +134,25 @@ export async function getCompetitions(): Promise<Competition[]> {
 
       // Merge with any extra local ones not in DB
       const dbIds = new Set(formatted.map(f => f.id));
+
+      // Also merge any from system_settings catalog
+      try {
+        const { data: setVal } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'yara_competitions_catalog')
+          .maybeSingle();
+
+        if (setVal?.value?.competitions && Array.isArray(setVal.value.competitions)) {
+          setVal.value.competitions.forEach((c: any) => {
+            if (!dbIds.has(c.id) && !deletedIds.includes(c.id) && !isDisallowedCompetition(c)) {
+              formatted.push({ ...c, status: computeStatus(c) });
+              dbIds.add(c.id);
+            }
+          });
+        }
+      } catch {}
+
       const extras = localCustom
         .filter(lc => !dbIds.has(lc.id) && !deletedIds.includes(lc.id))
         .map(c => ({ ...c, status: computeStatus(c) }));
@@ -142,6 +161,22 @@ export async function getCompetitions(): Promise<Competition[]> {
   } catch (err) {
     console.warn('Competitions DB fetch fallback:', err);
   }
+
+  // Also query system_settings catalog if main table fetch failed
+  try {
+    const { data: setVal } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'yara_competitions_catalog')
+      .maybeSingle();
+
+    if (setVal?.value?.competitions && Array.isArray(setVal.value.competitions)) {
+      const dbComps = setVal.value.competitions
+        .filter((c: any) => !deletedIds.includes(c.id) && !isDisallowedCompetition(c))
+        .map((c: any) => ({ ...c, status: computeStatus(c) }));
+      if (dbComps.length > 0) return dbComps;
+    }
+  } catch {}
 
   // Combine default with custom and exclude deleted
   const baseMap = new Map<string, Competition>();
@@ -200,6 +235,9 @@ export async function createCompetition(compData: Partial<Competition>): Promise
       id: newComp.id,
       slug: newComp.slug,
       title: newComp.title,
+      theme: newComp.title,
+      venue: newComp.location || 'YARA National Arena',
+      year: new Date().getFullYear(),
       subtitle: newComp.subtitle,
       description: newComp.description,
       category: newComp.category,
@@ -207,6 +245,7 @@ export async function createCompetition(compData: Partial<Competition>): Promise
       status: newComp.status,
       start_date: newComp.start_date,
       end_date: newComp.end_date,
+      competition_date: newComp.start_date,
       registration_deadline: newComp.registration_deadline,
       location: newComp.location,
       image_url: newComp.image_url,
@@ -221,6 +260,7 @@ export async function createCompetition(compData: Partial<Competition>): Promise
       eligibility: newComp.eligibility,
       rules_summary: newComp.rules_summary,
       is_featured: newComp.is_featured,
+      is_published: true,
       display_order: newComp.display_order,
       tags: newComp.tags
     });
@@ -231,7 +271,17 @@ export async function createCompetition(compData: Partial<Competition>): Promise
 
   // Update local storage
   const locals = getLocalCustomCompetitions();
-  saveLocalCustomCompetitions([newComp, ...locals]);
+  const allComps = [newComp, ...locals];
+  saveLocalCustomCompetitions(allComps);
+
+  // Sync to system_settings catalog
+  try {
+    await supabase.from('system_settings').upsert({
+      key: 'yara_competitions_catalog',
+      value: { competitions: allComps, updated_at: new Date().toISOString() },
+      description: 'YARA Robotics Competitions Catalog'
+    }, { onConflict: 'key' });
+  } catch {}
 
   return newComp;
 }

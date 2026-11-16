@@ -30,6 +30,7 @@ import {
   generateModuleId,
   getUserCourseStats,
   getAllUserProgrammingCertificates,
+  fetchProgrammingCoursesFromDatabase
 } from '../../../services/programmingCoursesService';
 import { checkLmsCourseAccess } from '../../../services/yaraLmsService';
 import { LmsMembershipLockModal } from '../LmsMembershipLockModal';
@@ -750,7 +751,10 @@ export const ProgrammingCoursesTab: React.FC<Props> = ({ userId, studentName, us
   const [lockedCourseTitle, setLockedCourseTitle] = useState('');
   const [isPendingApproval, setIsPendingApproval] = useState(false);
 
-  const loadData = () => {
+  const loadData = async () => {
+    try {
+      await fetchProgrammingCoursesFromDatabase();
+    } catch {}
     const allCourses = isAdmin ? getAllCourses() : getPublishedCourses();
     setCourses(allCourses);
     setEnrollments(getUserEnrollments(userId));

@@ -2,7 +2,16 @@
 -- YOUNG AFRICANS ROBOTICS ASSOCIATION (YARA)
 -- ENTERPRISE PRODUCTION DATABASE SCHEMA & MASTER MIGRATION SPECIFICATION
 -- Motto: "Innovate Local, Build Global"
--- Version: 3.2.2-PROD (Dynamic Admin Course Publishing, Module RLS, Storage Upload & Font Contrast)
+-- Version: 3.2.3-PROD (Universal Multi-Device Admin Console Sync & Public RLS)
+--
+-- v3.2.3:
+--  * Universal multi-user synchronization: all admin console uploads (session videos, custom hardware starter kits,
+--    learning materials, programming courses, events, competitions) immediately sync to Supabase system_settings
+--    and PostgreSQL tables, ensuring all learners and guests see them across all devices and browsers.
+--  * Hardened public SELECT policies to USING (true) for events, study_materials, competitions, and system_settings.
+--  * Added backward compatibility columns to events (date, location) and competitions (start_date, end_date, image_url, etc.).
+--  * Dropped NOT NULL constraints on competitions.theme, competitions.venue, and competitions.slug.
+--  * Added admin email fallback to system_settings ALL policy so authorized admins can persist dynamic catalogs seamlessly.
 --
 -- v3.2.2:
 --  * Hardened public.courses and public.course_modules RLS policies to allow public read access for all learners.
@@ -976,6 +985,9 @@ CREATE TABLE IF NOT EXISTS public.competitions (
 );
 
 -- Idempotent Column Existence Guards for competitions
+ALTER TABLE IF EXISTS public.competitions ALTER COLUMN theme DROP NOT NULL;
+ALTER TABLE IF EXISTS public.competitions ALTER COLUMN venue DROP NOT NULL;
+ALTER TABLE IF EXISTS public.competitions ALTER COLUMN slug DROP NOT NULL;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS year INTEGER DEFAULT 2026;
@@ -983,6 +995,24 @@ ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS theme TEXT;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS venue TEXT;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS registration_link TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS subtitle TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'flagship_robotics';
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'hybrid';
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS prize_pool TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS entry_fee NUMERIC(10,2) DEFAULT 0;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS max_teams INTEGER DEFAULT 50;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS registered_teams_count INTEGER DEFAULT 0;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS eligibility TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS rules_summary TEXT;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS registration_deadline TIMESTAMPTZ;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS competition_date TIMESTAMPTZ;
 ALTER TABLE public.competitions ADD COLUMN IF NOT EXISTS prize_pool_summary TEXT;
@@ -1157,11 +1187,14 @@ CREATE TABLE IF NOT EXISTS public.events (
 );
 
 -- Upgrades for backward compatibility with existing databases
+ALTER TABLE IF EXISTS public.events ALTER COLUMN event_date DROP NOT NULL;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS slug TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'workshop';
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_date TIMESTAMPTZ;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS date TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS location TEXT;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS start_time TIME;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS end_time TIME;
@@ -4178,7 +4211,7 @@ CALL public.safely_apply_policy('Users create mentorship requests', 'mentorship_
 CALL public.safely_apply_policy('Participants update mentorship requests', 'mentorship_requests', 'CREATE POLICY "Participants update mentorship requests" ON public.mentorship_requests FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = mentor_id OR public.is_admin())');
 CALL public.safely_apply_policy('Participants read mentorship messages', 'mentorship_messages', 'CREATE POLICY "Participants read mentorship messages" ON public.mentorship_messages FOR SELECT USING (auth.uid() = sender_id OR public.is_admin())');
 CALL public.safely_apply_policy('Authenticated users send mentorship messages', 'mentorship_messages', 'CREATE POLICY "Authenticated users send mentorship messages" ON public.mentorship_messages FOR INSERT TO authenticated WITH CHECK (true)');
-CALL public.safely_apply_policy('Public can view study materials', 'study_materials', 'CREATE POLICY "Public can view study materials" ON public.study_materials FOR SELECT USING (auth.uid() IS NOT NULL OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view study materials', 'study_materials', 'CREATE POLICY "Public can view study materials" ON public.study_materials FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Mentors upload study materials', 'study_materials', 'CREATE POLICY "Mentors upload study materials" ON public.study_materials FOR ALL USING (auth.uid() = mentor_id OR public.is_admin())');
 CALL public.safely_apply_policy('Public can submit chapter registration', 'chapter_registration_requests', 'CREATE POLICY "Public can submit chapter registration" ON public.chapter_registration_requests FOR INSERT WITH CHECK (true)');
 CALL public.safely_apply_policy('Admins review chapter registrations', 'chapter_registration_requests', 'CREATE POLICY "Admins review chapter registrations" ON public.chapter_registration_requests FOR ALL USING (public.is_admin())');
@@ -4203,7 +4236,7 @@ CALL public.safely_apply_policy('Users submit feedback', 'feedback', 'CREATE POL
 CALL public.safely_apply_policy('Admins view feedback', 'feedback', 'CREATE POLICY "Admins view feedback" ON public.feedback FOR ALL USING (public.is_admin())');
 CALL public.safely_apply_policy('Public can view impact galleries', 'impact_galleries', 'CREATE POLICY "Public can view impact galleries" ON public.impact_galleries FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Admins manage impact galleries', 'impact_galleries', 'CREATE POLICY "Admins manage impact galleries" ON public.impact_galleries FOR ALL USING (public.is_admin())');
-CALL public.safely_apply_policy('Public can view events', 'events', 'CREATE POLICY "Public can view events" ON public.events FOR SELECT USING (is_published = true OR public.is_admin())');
+CALL public.safely_apply_policy('Public can view events', 'events', 'CREATE POLICY "Public can view events" ON public.events FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Admins manage events', 'events', 'CREATE POLICY "Admins manage events" ON public.events FOR ALL USING (public.is_admin())');
 CALL public.safely_apply_policy('Attendees manage own event registrations', 'event_registrations', 'CREATE POLICY "Attendees manage own event registrations" ON public.event_registrations FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
 CALL public.safely_apply_policy('Public can submit contact messages', 'contact_messages', 'CREATE POLICY "Public can submit contact messages" ON public.contact_messages FOR INSERT WITH CHECK (true)');
@@ -4220,7 +4253,7 @@ CALL public.safely_apply_policy('Users view own subscriptions', 'subscriptions',
 CALL public.safely_apply_policy('Users create subscriptions', 'subscriptions', 'CREATE POLICY "Users create subscriptions" ON public.subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin())');
 CALL public.safely_apply_policy('Admins manage subscriptions', 'subscriptions', 'CREATE POLICY "Admins manage subscriptions" ON public.subscriptions FOR ALL USING (public.is_admin())');
 CALL public.safely_apply_policy('Public can read system settings', 'system_settings', 'CREATE POLICY "Public can read system settings" ON public.system_settings FOR SELECT USING (true)');
-CALL public.safely_apply_policy('Admins manage system settings', 'system_settings', 'CREATE POLICY "Admins manage system settings" ON public.system_settings FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Admins manage system settings', 'system_settings', 'CREATE POLICY "Admins manage system settings" ON public.system_settings FOR ALL USING (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com'')) WITH CHECK (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com''))');
 CALL public.safely_apply_policy('Public can read site settings', 'site_settings', 'CREATE POLICY "Public can read site settings" ON public.site_settings FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Admins manage site settings', 'site_settings', 'CREATE POLICY "Admins manage site settings" ON public.site_settings FOR ALL USING (public.is_admin())');
 CALL public.safely_apply_policy('Users manage own sessions', 'user_sessions', 'CREATE POLICY "Users manage own sessions" ON public.user_sessions FOR ALL USING (auth.uid() = user_id OR public.is_admin())');

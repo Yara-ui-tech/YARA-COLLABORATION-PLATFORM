@@ -90,7 +90,50 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
   useEffect(() => {
     loadSubmissions();
     loadStudents();
+    loadKitPricing();
   }, []);
+
+  const loadKitPricing = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'yara_lms_kit_pricing')
+        .maybeSingle();
+
+      if (!error && data?.value && Array.isArray(data.value.kits)) {
+        setKits(data.value.kits);
+      } else {
+        const cached = localStorage.getItem('yara_lms_kit_pricing');
+        if (cached) setKits(JSON.parse(cached));
+      }
+    } catch (err) {
+      console.warn('Error loading kit pricing:', err);
+    }
+  };
+
+  const handleSaveStoreChanges = async () => {
+    try {
+      setKitSavedNotice(true);
+      try {
+        localStorage.setItem('yara_lms_kit_pricing', JSON.stringify(kits));
+      } catch {}
+
+      await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'yara_lms_kit_pricing',
+          value: { kits, updated_at: new Date().toISOString() },
+          description: 'Official YARA LMS Starter Hardware Kits & Component Pricing'
+        }, { onConflict: 'key' });
+
+      showNotification('success', 'Starter kit prices and inventory saved & synced live to all users!');
+      setTimeout(() => setKitSavedNotice(false), 3000);
+    } catch (err: any) {
+      showNotification('error', 'Failed to sync store changes: ' + (err?.message || 'Unknown error'));
+      setKitSavedNotice(false);
+    }
+  };
 
   const loadSubmissions = () => {
     const list = getAllCapstoneSubmissions();
@@ -932,12 +975,8 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
 
             <div className="flex justify-end pt-4">
               <button
-                onClick={() => {
-                  setKitSavedNotice(true);
-                  showNotification('success', 'Starter kit prices and inventory updated successfully!');
-                  setTimeout(() => setKitSavedNotice(false), 3000);
-                }}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm"
+                onClick={handleSaveStoreChanges}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>{kitSavedNotice ? 'Saved!' : 'Save Store Changes'}</span>

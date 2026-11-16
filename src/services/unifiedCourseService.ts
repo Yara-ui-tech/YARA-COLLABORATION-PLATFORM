@@ -152,13 +152,30 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
           };
         });
 
+      // Merge with any courses stored in system_settings catalog
+      try {
+        const { data: catData } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'yara_courses_catalog')
+          .maybeSingle();
+
+        if (catData?.value?.courses && Array.isArray(catData.value.courses)) {
+          for (const cc of catData.value.courses) {
+            if (!dbIds.has(cc.id) && !isDisallowedCourse(cc)) {
+              merged.push(cc);
+              dbIds.add(cc.id);
+            }
+          }
+        }
+      } catch {}
+
       // Merge with any local storage courses that have not yet synced or were created locally
       const stored = getAllCourses();
-      const dbIds = new Set(mapped.map(c => c.id));
-      const merged = [...mapped];
       for (const sc of stored) {
         if (!dbIds.has(sc.id) && !isDisallowedCourse(sc)) {
           merged.push(sc);
+          dbIds.add(sc.id);
         }
       }
 
@@ -169,6 +186,24 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
   } catch (err) {
     console.warn('Supabase fetch courses error:', err);
   }
+
+  // Fallback: try fetching from system_settings directly if relational table query failed
+  try {
+    const { data: catData } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'yara_courses_catalog')
+      .maybeSingle();
+
+    if (catData?.value?.courses && Array.isArray(catData.value.courses)) {
+      const clean = catData.value.courses.filter(c => !isDisallowedCourse(c));
+      if (clean.length > 0) {
+        inMemoryCourses = clean;
+        saveCoursesToStorage(clean);
+        return clean;
+      }
+    }
+  } catch {}
 
   const stored = getAllCourses();
   inMemoryCourses = stored;
@@ -684,6 +719,19 @@ export async function saveCourse(course: UnifiedCourse): Promise<UnifiedCourse> 
     }
   } catch (err) {
     console.warn('Supabase course sync error:', err);
+  }
+
+  // Persist complete courses snapshot to system_settings for universal multi-device availability
+  try {
+    await supabase
+      .from('system_settings')
+      .upsert({
+        key: 'yara_courses_catalog',
+        value: { courses, updated_at: now },
+        description: 'Dynamic YARA Robotics & Technology Courses Catalog'
+      }, { onConflict: 'key' });
+  } catch (err) {
+    console.warn('Supabase course catalog backup sync error:', err);
   }
 
   // Auto-create matching certificate template

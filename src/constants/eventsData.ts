@@ -80,8 +80,7 @@ export async function fetchAllEvents(): Promise<EventItem[]> {
   try {
     const { data, error } = await supabase
       .from('events')
-      .select('*')
-      .order('date', { ascending: true });
+      .select('*');
 
     if (!error && data && data.length > 0) {
       data.forEach((item: any) => {
@@ -90,8 +89,8 @@ export async function fetchAllEvents(): Promise<EventItem[]> {
             id: item.id,
             title: item.title,
             description: item.description || '',
-            date: item.date || 'Upcoming 2026',
-            location: item.location || 'YARA Arena',
+            date: item.date || (item.event_date ? new Date(item.event_date).toLocaleDateString() : 'Upcoming 2026'),
+            location: item.location || item.venue || 'YARA Arena',
             image_url: item.image_url || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
             registration_link: item.registration_link || '/events',
             is_upcoming: item.is_upcoming !== undefined ? item.is_upcoming : true,
@@ -103,6 +102,33 @@ export async function fetchAllEvents(): Promise<EventItem[]> {
   } catch (err) {
     console.warn('Supabase fetch events notice:', err);
   }
+
+  // Also query system_settings catalog for events
+  try {
+    const { data: setVal } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'yara_events_catalog')
+      .maybeSingle();
+
+    if (setVal?.value?.events && Array.isArray(setVal.value.events)) {
+      setVal.value.events.forEach((item: any) => {
+        if (!deleted.includes(item.id) && !expiredOrMockIds.includes(item.id)) {
+          eventMap.set(item.id, {
+            id: item.id,
+            title: item.title,
+            description: item.description || '',
+            date: item.date || 'Upcoming 2026',
+            location: item.location || item.venue || 'YARA Arena',
+            image_url: item.image_url || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+            registration_link: item.registration_link || '/events',
+            is_upcoming: item.is_upcoming !== undefined ? item.is_upcoming : true,
+            category: item.category || 'Physical Tournament'
+          });
+        }
+      });
+    }
+  } catch {}
 
   return Array.from(eventMap.values());
 }
@@ -117,21 +143,35 @@ export async function saveEventItem(eventData: EventItem): Promise<EventItem> {
   }
   saveLocalEvents(localList);
 
+  const nowIso = new Date().toISOString();
   try {
     await supabase.from('events').upsert({
       id: eventData.id,
       title: eventData.title,
       description: eventData.description,
       date: eventData.date,
+      event_date: eventData.date && !isNaN(Date.parse(eventData.date)) ? new Date(eventData.date).toISOString() : nowIso,
       location: eventData.location,
+      venue: eventData.location,
       image_url: eventData.image_url,
       registration_link: eventData.registration_link,
-      is_upcoming: eventData.is_upcoming,
-      category: eventData.category
+      is_upcoming: eventData.is_upcoming ?? true,
+      is_published: true,
+      category: eventData.category || 'Physical Tournament'
     }, { onConflict: 'id' });
   } catch (err) {
     console.warn('Supabase save event notice:', err);
   }
+
+  // Sync to system_settings catalog
+  try {
+    const all = Array.from((await getPublicEvents()));
+    await supabase.from('system_settings').upsert({
+      key: 'yara_events_catalog',
+      value: { events: all, updated_at: nowIso },
+      description: 'YARA Public Events Catalog'
+    }, { onConflict: 'key' });
+  } catch {}
 
   return eventData;
 }

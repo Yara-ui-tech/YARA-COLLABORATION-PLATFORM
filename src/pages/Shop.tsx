@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { ShopProduct, ShopCategory } from '../types/shop';
 import { ShopOrderModal } from '../components/shop/ShopOrderModal';
-import { getCustomKits } from '../services/resourcesService';
+import { getCustomKits, fetchCustomKitsFromDatabase } from '../services/resourcesService';
 import { getShopProducts } from '../services/shopService';
 import Breadcrumbs from '../components/Breadcrumbs';
 
@@ -29,13 +29,18 @@ export default function Shop() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [customKitsList, setCustomKitsList] = useState<any[]>(() => getCustomKits());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    getShopProducts().then(items => {
+    Promise.all([
+      getShopProducts(),
+      fetchCustomKitsFromDatabase()
+    ]).then(([items, kits]) => {
       if (mounted) {
         setProducts(items);
+        setCustomKitsList(kits);
         setLoading(false);
       }
     }).catch(() => {
@@ -46,7 +51,7 @@ export default function Shop() {
 
   // Combine official dynamic products with any custom kits added by admin
   const allProducts = useMemo(() => {
-    const customKits = getCustomKits().map(k => ({
+    const customKits = (customKitsList || []).map(k => ({
       id: k.id,
       title: k.title,
       subtitle: k.subtitle || 'Custom Assembled Hardware Kit',
@@ -60,7 +65,7 @@ export default function Shop() {
     }));
 
     return [...products, ...customKits];
-  }, [products]);
+  }, [products, customKitsList]);
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter(item => {

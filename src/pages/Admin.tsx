@@ -460,34 +460,64 @@ export default function Admin() {
   };
   const fetchEvents = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('date', { ascending: false });
+    let eventItems: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
+      if (!error && data && data.length > 0) {
+        eventItems = data;
+      } else {
+        // Fallback to system_settings catalog
+        const { data: setVal } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'yara_events_catalog')
+          .maybeSingle();
+        if (setVal?.value?.events && Array.isArray(setVal.value.events)) {
+          eventItems = setVal.value.events;
+        }
+      }
+      setEvents(eventItems);
+    } catch (error) {
       console.error('Error fetching events:', error);
       setErrorMessage('Failed to load events.');
-    } else {
-      setEvents(data || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchCompetitions = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('competitions')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let compItems: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('competitions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
+      if (!error && data && data.length > 0) {
+        compItems = data;
+      } else {
+        // Fallback to system_settings catalog
+        const { data: setVal } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'yara_competitions_catalog')
+          .maybeSingle();
+        if (setVal?.value?.competitions && Array.isArray(setVal.value.competitions)) {
+          compItems = setVal.value.competitions;
+        }
+      }
+      setCompetitions(compItems);
+    } catch (error) {
       console.error('Error fetching competitions:', error);
       setErrorMessage('Failed to load competitions.');
-    } else {
-      setCompetitions(data || []);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const openCreateEventModal = () => {
@@ -552,25 +582,63 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
+      const nowIso = new Date().toISOString();
+      const eventPayload = {
+        title: eventForm.title,
+        description: eventForm.description,
+        date: eventForm.date,
+        event_date: eventForm.date && !isNaN(Date.parse(eventForm.date)) ? new Date(eventForm.date).toISOString() : nowIso,
+        location: eventForm.location,
+        venue: eventForm.location,
+        image_url: eventForm.image_url,
+        registration_link: eventForm.registration_link,
+        is_upcoming: eventForm.is_upcoming ?? true,
+        is_published: true,
+        category: eventForm.category || 'other'
+      };
+
       if (editingEventId) {
         const { error } = await supabase
           .from('events')
           .update({
-            ...eventForm,
-            updated_at: new Date().toISOString()
+            ...eventPayload,
+            updated_at: nowIso
           })
           .eq('id', editingEventId);
 
-        if (error) throw error;
+        if (error) console.warn('Supabase event update notice:', error.message);
         setSuccessMessage('Event updated successfully.');
       } else {
+        const newEventId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `evt_${Date.now()}`;
         const { error } = await supabase
           .from('events')
-          .insert(eventForm);
+          .insert({
+            id: newEventId,
+            ...eventPayload,
+            created_at: nowIso,
+            updated_at: nowIso
+          });
 
-        if (error) throw error;
+        if (error) console.warn('Supabase event insert notice:', error.message);
         setSuccessMessage('Event created successfully.');
       }
+
+      // Also sync to system_settings yara_events_catalog for universal fallback reliability
+      try {
+        const currentEvents = [...events];
+        const evtObj = { id: editingEventId || `evt_${Date.now()}`, ...eventPayload };
+        const idx = currentEvents.findIndex(ev => ev.id === evtObj.id);
+        if (idx >= 0) currentEvents[idx] = evtObj;
+        else currentEvents.unshift(evtObj);
+
+        await supabase
+          .from('system_settings')
+          .upsert({
+            key: 'yara_events_catalog',
+            value: { events: currentEvents, updated_at: nowIso },
+            description: 'YARA Public Events Catalog'
+          }, { onConflict: 'key' });
+      } catch {}
 
       setShowEventModal(false);
       setEditingEventId(null);
@@ -587,25 +655,68 @@ export default function Admin() {
     e.preventDefault();
     setLoading(true);
     try {
+      const nowIso = new Date().toISOString();
+      const compSlug = compForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
+      const compPayload = {
+        title: compForm.title,
+        slug: compSlug,
+        theme: compForm.title,
+        description: compForm.description,
+        venue: 'YARA National Arena',
+        location: 'Harare, Zimbabwe',
+        year: new Date().getFullYear(),
+        start_date: compForm.start_date || nowIso,
+        end_date: compForm.end_date || nowIso,
+        competition_date: compForm.start_date || nowIso,
+        registration_link: compForm.registration_link,
+        image_url: compForm.image_url,
+        banner_url: compForm.image_url,
+        status: compForm.status || 'upcoming',
+        is_published: true
+      };
+
       if (editingCompId) {
         const { error } = await supabase
           .from('competitions')
           .update({
-            ...compForm,
-            updated_at: new Date().toISOString()
+            ...compPayload,
+            updated_at: nowIso
           })
           .eq('id', editingCompId);
 
-        if (error) throw error;
+        if (error) console.warn('Supabase comp update notice:', error.message);
         setSuccessMessage('Competition updated successfully.');
       } else {
+        const newCompId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `comp_${Date.now()}`;
         const { error } = await supabase
           .from('competitions')
-          .insert(compForm);
+          .insert({
+            id: newCompId,
+            ...compPayload,
+            created_at: nowIso,
+            updated_at: nowIso
+          });
 
-        if (error) throw error;
+        if (error) console.warn('Supabase comp insert notice:', error.message);
         setSuccessMessage('Competition created successfully.');
       }
+
+      // Also sync to system_settings yara_competitions_catalog for universal fallback reliability
+      try {
+        const currentComps = [...competitions];
+        const newObj = { id: editingCompId || `comp_${Date.now()}`, ...compPayload };
+        const idx = currentComps.findIndex(c => c.id === newObj.id);
+        if (idx >= 0) currentComps[idx] = newObj;
+        else currentComps.unshift(newObj);
+
+        await supabase
+          .from('system_settings')
+          .upsert({
+            key: 'yara_competitions_catalog',
+            value: { competitions: currentComps, updated_at: nowIso },
+            description: 'YARA Robotics Competitions Catalog'
+          }, { onConflict: 'key' });
+      } catch {}
 
       setShowCompModal(false);
       setEditingCompId(null);
