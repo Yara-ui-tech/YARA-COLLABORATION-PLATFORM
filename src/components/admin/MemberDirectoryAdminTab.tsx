@@ -33,6 +33,11 @@ export interface ExtendedUserProfile {
   country?: string;
   province?: string;
   district?: string;
+  city?: string;
+  ward?: string;
+  community?: string;
+  school_institution?: string;
+  location_region?: string;
   institution?: string;
   chapter_id?: string;
   chapter_name?: string;
@@ -123,12 +128,16 @@ export default function MemberDirectoryAdminTab() {
 
   // Filters & Display
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState('ALL');
   const [selectedChapterFilter, setSelectedChapterFilter] = useState('ALL');
   const [selectedPositionFilter, setSelectedPositionFilter] = useState('ALL');
   const [selectedProvinceFilter, setSelectedProvinceFilter] = useState('ALL');
+  const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('ALL');
+  const [selectedCityFilter, setSelectedCityFilter] = useState('ALL');
+  const [selectedSchoolFilter, setSelectedSchoolFilter] = useState('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('ALL');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<'ALL' | 'girl' | 'boy'>('ALL');
-  const [groupBy, setGroupBy] = useState<'flat' | 'chapter' | 'province'>('flat');
+  const [groupBy, setGroupBy] = useState<'flat' | 'country' | 'province' | 'district' | 'city' | 'school' | 'chapter'>('flat');
 
   // Multi-Selection
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
@@ -204,10 +213,15 @@ export default function MemberDirectoryAdminTab() {
           member_id: d.yara_member_id || d.member_id || null,
           role: d.role || 'student',
           avatar_url: d.avatar_url,
-          province: d.province,
-          district: d.district,
-          country: d.country_iso2 || 'ZW',
-          institution: d.institution,
+          country: d.country || d.country_iso2 || 'Zimbabwe',
+          province: d.province || '',
+          district: d.district || '',
+          city: d.city || '',
+          ward: d.ward || d.community || '',
+          community: d.community || d.ward || '',
+          school_institution: d.school_institution || d.institution || '',
+          location_region: d.location_region || '',
+          institution: d.school_institution || d.institution || '',
           chapter_id: d.chapter_id,
           chapter_name: d.chapter_name,
           chapter_position: d.position || d.chapter_position || 'Member',
@@ -221,7 +235,12 @@ export default function MemberDirectoryAdminTab() {
         setUsers(mappedUsers);
       } else {
         const { data: userData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-        setUsers(userData || []);
+        setUsers((userData || []).map((u: any) => ({
+          ...u,
+          country: u.country || 'Zimbabwe',
+          institution: u.school_institution || u.institution || '',
+          school_institution: u.school_institution || u.institution || '',
+        })));
       }
 
       // 2. Fetch Chapters
@@ -262,9 +281,36 @@ export default function MemberDirectoryAdminTab() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const uniqueCountries = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach(u => { if (u.country) set.add(u.country); });
+    return Array.from(set).sort();
+  }, [users]);
+
   const uniqueProvinces = useMemo(() => {
     const set = new Set<string>();
     users.forEach(u => { if (u.province) set.add(u.province); });
+    return Array.from(set).sort();
+  }, [users]);
+
+  const uniqueDistricts = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach(u => { if (u.district) set.add(u.district); });
+    return Array.from(set).sort();
+  }, [users]);
+
+  const uniqueCities = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach(u => { if (u.city) set.add(u.city); });
+    return Array.from(set).sort();
+  }, [users]);
+
+  const uniqueSchools = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach(u => {
+      const s = u.school_institution || u.institution;
+      if (s) set.add(s);
+    });
     return Array.from(set).sort();
   }, [users]);
 
@@ -313,15 +359,25 @@ export default function MemberDirectoryAdminTab() {
         u.member_id?.toLowerCase().includes(q) ||
         u.chapter_name?.toLowerCase().includes(q) ||
         u.institution?.toLowerCase().includes(q) ||
+        u.school_institution?.toLowerCase().includes(q) ||
         u.phone?.toLowerCase().includes(q) ||
-        u.whatsapp_number?.toLowerCase().includes(q);
+        u.whatsapp_number?.toLowerCase().includes(q) ||
+        u.country?.toLowerCase().includes(q) ||
+        u.province?.toLowerCase().includes(q) ||
+        u.district?.toLowerCase().includes(q) ||
+        u.city?.toLowerCase().includes(q) ||
+        u.ward?.toLowerCase().includes(q);
 
+      const matchCountry = selectedCountryFilter === 'ALL' || u.country === selectedCountryFilter;
       const matchChapter = selectedChapterFilter === 'ALL' || u.chapter_id === selectedChapterFilter || u.chapter_name === selectedChapterFilter;
       const matchPosition =
         selectedPositionFilter === 'ALL' ? true :
           selectedPositionFilter === 'NATIONAL_EXECUTIVE' ? isNationalExecutive(u) :
             (u.chapter_position || 'Member') === selectedPositionFilter;
       const matchProvince = selectedProvinceFilter === 'ALL' || u.province === selectedProvinceFilter;
+      const matchDistrict = selectedDistrictFilter === 'ALL' || u.district === selectedDistrictFilter;
+      const matchCity = selectedCityFilter === 'ALL' || u.city === selectedCityFilter;
+      const matchSchool = selectedSchoolFilter === 'ALL' || (u.school_institution || u.institution) === selectedSchoolFilter;
 
       const userGender = (u as any).gender || (u as any).social_links?.gender || (u as any).accessibility_preferences?.gender || 'boy';
       const matchGender = selectedGenderFilter === 'ALL' || userGender === selectedGenderFilter;
@@ -338,9 +394,21 @@ export default function MemberDirectoryAdminTab() {
                   selectedStatusFilter === 'leaders' ? (u.chapter_position && u.chapter_position !== 'Member') :
                     true;
 
-      return matchSearch && matchChapter && matchPosition && matchProvince && matchStatus && matchGender;
+      return matchSearch && matchCountry && matchChapter && matchPosition && matchProvince && matchDistrict && matchCity && matchSchool && matchStatus && matchGender;
     });
-  }, [users, searchTerm, selectedChapterFilter, selectedPositionFilter, selectedProvinceFilter, selectedStatusFilter, selectedGenderFilter]);
+  }, [
+    users,
+    searchTerm,
+    selectedCountryFilter,
+    selectedChapterFilter,
+    selectedPositionFilter,
+    selectedProvinceFilter,
+    selectedDistrictFilter,
+    selectedCityFilter,
+    selectedSchoolFilter,
+    selectedStatusFilter,
+    selectedGenderFilter
+  ]);
 
   const genderStats = useMemo(() => {
     const girls = users.filter(u => ((u as any).gender || (u as any).social_links?.gender || (u as any).accessibility_preferences?.gender) === 'girl').length;
@@ -373,17 +441,37 @@ export default function MemberDirectoryAdminTab() {
       ? users.filter(u => selectedMemberIds.has(u.id))
       : filteredUsers;
 
-    const headers = ['YARA Member ID', 'Full Name', 'Email', 'Phone', 'WhatsApp', 'Chapter', 'Position', 'Province', 'District', 'Status', 'Trial End Date'];
+    const headers = [
+      'YARA Member ID',
+      'Full Name',
+      'Email',
+      'Phone',
+      'WhatsApp',
+      'Country',
+      'Province',
+      'District',
+      'City / Town',
+      'Ward / Community',
+      'School / Institution',
+      'Chapter',
+      'Position',
+      'Status',
+      'Trial End Date'
+    ];
     const rows = listToExport.map(u => [
       `"${u.member_id || ''}"`,
       `"${u.display_name || ''}"`,
       `"${u.email || ''}"`,
       `"${u.phone || ''}"`,
       `"${u.whatsapp_number || ''}"`,
-      `"${u.chapter_name || 'No chapter'}"`,
-      `"${u.chapter_position || 'Member'}"`,
+      `"${u.country || 'Zimbabwe'}"`,
       `"${u.province || ''}"`,
       `"${u.district || ''}"`,
+      `"${u.city || ''}"`,
+      `"${u.ward || u.community || ''}"`,
+      `"${u.school_institution || u.institution || ''}"`,
+      `"${u.chapter_name || 'No chapter'}"`,
+      `"${u.chapter_position || 'Member'}"`,
       `"${u.is_halted ? 'Suspended' : u.registration_paid ? 'Active (Paid)' : 'Trial'}"`,
       `"${u.trial_ends_at ? new Date(u.trial_ends_at).toLocaleDateString() : 'N/A'}"`
     ]);
@@ -923,10 +1011,10 @@ export default function MemberDirectoryAdminTab() {
 
   // Grouped members for grouped display mode
   const groupedData = useMemo(() => {
-    if (groupBy === 'chapter') {
+    if (groupBy === 'country') {
       const map: Record<string, ExtendedUserProfile[]> = {};
       filteredUsers.forEach(u => {
-        const key = u.chapter_name || 'No Chapter (Awaiting Placement)';
+        const key = u.country || 'Unspecified Country';
         if (!map[key]) map[key] = [];
         map[key].push(u);
       });
@@ -935,7 +1023,43 @@ export default function MemberDirectoryAdminTab() {
     if (groupBy === 'province') {
       const map: Record<string, ExtendedUserProfile[]> = {};
       filteredUsers.forEach(u => {
-        const key = u.province || 'National / Other';
+        const key = u.province || 'Unassigned Province';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    if (groupBy === 'district') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.district || 'Unassigned District';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    if (groupBy === 'city') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.city || 'Unassigned City / Town';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    if (groupBy === 'school') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.school_institution || u.institution || 'Individual / Independent Innovator';
+        if (!map[key]) map[key] = [];
+        map[key].push(u);
+      });
+      return map;
+    }
+    if (groupBy === 'chapter') {
+      const map: Record<string, ExtendedUserProfile[]> = {};
+      filteredUsers.forEach(u => {
+        const key = u.chapter_name || 'No Chapter (Awaiting Placement)';
         if (!map[key]) map[key] = [];
         map[key].push(u);
       });
@@ -1065,12 +1189,19 @@ export default function MemberDirectoryAdminTab() {
 
         {/* Location & Institution */}
         <td className="px-4 py-4">
-          <span className="text-[11px] font-semibold text-slate-700 block truncate">
-            {member.institution || 'Individual Innovator'}
-          </span>
-          <span className="text-[10px] text-slate-400 block truncate">
-            {member.district ? `${member.district}, ` : ''}{member.province || 'Zimbabwe'}
-          </span>
+          <div className="space-y-0.5">
+            <span className="text-[11px] font-bold text-slate-800 block truncate flex items-center gap-1">
+              <Building2 className="w-3 h-3 text-indigo-500 shrink-0" />
+              <span>{member.school_institution || member.institution || 'Individual Innovator'}</span>
+            </span>
+            <div className="flex items-center gap-1 flex-wrap text-[10px] text-slate-500">
+              <span className="font-semibold text-slate-700">{member.country || 'Zimbabwe'}</span>
+              {member.province && <span>• {member.province}</span>}
+              {member.district && <span>• {member.district}</span>}
+              {member.city && <span>• {member.city}</span>}
+              {member.ward && <span className="text-amber-700 font-medium">({member.ward})</span>}
+            </div>
+          </div>
         </td>
 
         {/* Status: Active / Trial Expired / Suspended / Scholarship */}
@@ -1602,6 +1733,72 @@ export default function MemberDirectoryAdminTab() {
                 />
               </div>
 
+              {/* Country Filter */}
+              <select
+                value={selectedCountryFilter}
+                onChange={(e) => setSelectedCountryFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value="ALL">All Countries ({uniqueCountries.length})</option>
+                {uniqueCountries.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+
+              {/* Province Filter */}
+              <select
+                value={selectedProvinceFilter}
+                onChange={(e) => setSelectedProvinceFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+              >
+                <option value="ALL">All Provinces ({uniqueProvinces.length})</option>
+                {uniqueProvinces.map(prov => (
+                  <option key={prov} value={prov}>{prov}</option>
+                ))}
+              </select>
+
+              {/* District Filter */}
+              {uniqueDistricts.length > 0 && (
+                <select
+                  value={selectedDistrictFilter}
+                  onChange={(e) => setSelectedDistrictFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+                >
+                  <option value="ALL">All Districts ({uniqueDistricts.length})</option>
+                  {uniqueDistricts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* City Filter */}
+              {uniqueCities.length > 0 && (
+                <select
+                  value={selectedCityFilter}
+                  onChange={(e) => setSelectedCityFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
+                >
+                  <option value="ALL">All Cities/Towns ({uniqueCities.length})</option>
+                  {uniqueCities.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* School Filter */}
+              {uniqueSchools.length > 0 && (
+                <select
+                  value={selectedSchoolFilter}
+                  onChange={(e) => setSelectedSchoolFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden max-w-[200px]"
+                >
+                  <option value="ALL">All Schools ({uniqueSchools.length})</option>
+                  {uniqueSchools.map(sch => (
+                    <option key={sch} value={sch}>{sch}</option>
+                  ))}
+                </select>
+              )}
+
               {/* Chapter Filter */}
               <select
                 value={selectedChapterFilter}
@@ -1623,18 +1820,6 @@ export default function MemberDirectoryAdminTab() {
                 <option value="ALL">All Positions</option>
                 {LEADERSHIP_POSITIONS.map(p => (
                   <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-
-              {/* Province Filter */}
-              <select
-                value={selectedProvinceFilter}
-                onChange={(e) => setSelectedProvinceFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-hidden"
-              >
-                <option value="ALL">All Provinces</option>
-                {uniqueProvinces.map(prov => (
-                  <option key={prov} value={prov}>{prov}</option>
                 ))}
               </select>
 
@@ -1662,8 +1847,39 @@ export default function MemberDirectoryAdminTab() {
                 <option value="boy">👦 Boys Only ({genderStats.boys})</option>
               </select>
 
+              <button
+                onClick={fetchData}
+                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition"
+                title="Refresh Records"
+              >
+                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+              </button>
+            </div>
+
+            {/* Geographical Categorisation & Grouping Sub-Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              <div className="flex items-center gap-2 flex-wrap text-slate-500 font-medium">
+                <span className="font-bold text-slate-700 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Geographical Scope:</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[11px]">
+                  🌍 {uniqueCountries.length || 1} Countries
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-bold text-[11px]">
+                  📍 {uniqueProvinces.length} Provinces
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px]">
+                  🏘️ {uniqueDistricts.length} Districts
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[11px]">
+                  🏫 {uniqueSchools.length} Schools/Colleges
+                </span>
+              </div>
+
               {/* Group By Toggle */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 flex-wrap">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">Group By:</span>
                 <button
                   onClick={() => setGroupBy('flat')}
                   className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'flat' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
@@ -1672,11 +1888,11 @@ export default function MemberDirectoryAdminTab() {
                   Flat
                 </button>
                 <button
-                  onClick={() => setGroupBy('chapter')}
-                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'chapter' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
-                  title="Group members by chapter"
+                  onClick={() => setGroupBy('country')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'country' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by country"
                 >
-                  By Chapter
+                  By Country
                 </button>
                 <button
                   onClick={() => setGroupBy('province')}
@@ -1685,15 +1901,35 @@ export default function MemberDirectoryAdminTab() {
                 >
                   By Province
                 </button>
+                <button
+                  onClick={() => setGroupBy('district')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'district' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by district"
+                >
+                  By District
+                </button>
+                <button
+                  onClick={() => setGroupBy('city')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'city' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by city/town"
+                >
+                  By City
+                </button>
+                <button
+                  onClick={() => setGroupBy('school')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'school' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by school/institution"
+                >
+                  By School
+                </button>
+                <button
+                  onClick={() => setGroupBy('chapter')}
+                  className={cn("px-2.5 py-1 text-xs font-bold rounded-lg transition", groupBy === 'chapter' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500")}
+                  title="Group members by chapter"
+                >
+                  By Chapter
+                </button>
               </div>
-
-              <button
-                onClick={fetchData}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-600 transition"
-                title="Refresh Records"
-              >
-                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
-              </button>
             </div>
           </div>
 

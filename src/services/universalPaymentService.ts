@@ -6,7 +6,7 @@ export interface PaymentTransaction {
   payerName: string;
   payerEmail: string;
   payerPhone?: string;
-  purpose: 'donation' | 'subscription' | 'course_fee' | 'general';
+  purpose: 'donation' | 'subscription' | 'course_fee' | 'kit' | 'certificate' | 'workshop' | 'bootcamp' | 'event' | 'general';
   purposeTitle: string;
   amount: number;
   currency: 'USD' | 'ZiG' | 'ZAR';
@@ -71,7 +71,7 @@ export async function processPaymentSubmission(params: {
   payerName: string;
   payerEmail: string;
   payerPhone?: string;
-  purpose: 'donation' | 'subscription' | 'course_fee' | 'general';
+  purpose: 'donation' | 'subscription' | 'course_fee' | 'kit' | 'certificate' | 'workshop' | 'bootcamp' | 'event' | 'general';
   purposeTitle: string;
   amount: number;
   currency: 'USD' | 'ZiG' | 'ZAR';

@@ -208,11 +208,23 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_verified_educator BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS educator_institution TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'Zimbabwe';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS province TEXT DEFAULT 'National';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS district TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ward TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS community TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS school_institution TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS location_region TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS institution TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_id UUID;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_name TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS chapter_position TEXT DEFAULT 'Member';
+
+CREATE INDEX IF NOT EXISTS idx_profiles_country ON public.profiles(country);
+CREATE INDEX IF NOT EXISTS idx_profiles_province ON public.profiles(province);
+CREATE INDEX IF NOT EXISTS idx_profiles_district ON public.profiles(district);
+CREATE INDEX IF NOT EXISTS idx_profiles_city ON public.profiles(city);
+CREATE INDEX IF NOT EXISTS idx_profiles_school_institution ON public.profiles(school_institution);
 
 -- ==============================================================================
 -- 02. INSTITUTIONS & SCHOOL MANAGEMENT
@@ -1678,7 +1690,28 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public, pg_temp
 AS $$
+DECLARE
+  v_country TEXT;
+  v_province TEXT;
+  v_district TEXT;
+  v_city TEXT;
+  v_ward TEXT;
+  v_community TEXT;
+  v_school TEXT;
+  v_loc_region TEXT;
 BEGIN
+  v_country := COALESCE(NEW.raw_user_meta_data->>'country', 'Zimbabwe');
+  v_province := COALESCE(NEW.raw_user_meta_data->>'province', 'National');
+  v_district := NEW.raw_user_meta_data->>'district';
+  v_city := NEW.raw_user_meta_data->>'city';
+  v_ward := COALESCE(NEW.raw_user_meta_data->>'ward', NEW.raw_user_meta_data->>'community');
+  v_community := COALESCE(NEW.raw_user_meta_data->>'community', NEW.raw_user_meta_data->>'ward');
+  v_school := NEW.raw_user_meta_data->>'school_institution';
+  v_loc_region := COALESCE(
+    NEW.raw_user_meta_data->>'location_region',
+    NULLIF(TRIM(CONCAT_WS(', ', v_city, v_district, v_province, v_country)), '')
+  );
+
   INSERT INTO public.profiles (
     id,
     display_name,
@@ -1688,6 +1721,12 @@ BEGIN
     gender,
     educational_level,
     tier,
+    country,
+    province,
+    district,
+    city,
+    ward,
+    community,
     school_institution,
     location_region,
     disability_type,
@@ -1712,8 +1751,14 @@ BEGIN
       ELSE 'junior'
     END,
     NEW.raw_user_meta_data->>'tier',
-    NEW.raw_user_meta_data->>'school_institution',
-    NEW.raw_user_meta_data->>'location_region',
+    v_country,
+    v_province,
+    v_district,
+    v_city,
+    v_ward,
+    v_community,
+    v_school,
+    v_loc_region,
     COALESCE(NEW.raw_user_meta_data->>'disability_type', 'none'),
     FALSE,
     FALSE,
@@ -1728,6 +1773,14 @@ BEGIN
     display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name),
     email = COALESCE(EXCLUDED.email, public.profiles.email),
     gender = COALESCE(EXCLUDED.gender, public.profiles.gender),
+    country = COALESCE(EXCLUDED.country, public.profiles.country),
+    province = COALESCE(EXCLUDED.province, public.profiles.province),
+    district = COALESCE(EXCLUDED.district, public.profiles.district),
+    city = COALESCE(EXCLUDED.city, public.profiles.city),
+    ward = COALESCE(EXCLUDED.ward, public.profiles.ward),
+    community = COALESCE(EXCLUDED.community, public.profiles.community),
+    school_institution = COALESCE(EXCLUDED.school_institution, public.profiles.school_institution),
+    location_region = COALESCE(EXCLUDED.location_region, public.profiles.location_region),
     updated_at = NOW();
 
   RETURN NEW;

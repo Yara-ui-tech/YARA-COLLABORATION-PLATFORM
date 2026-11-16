@@ -27,7 +27,7 @@ import {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  defaultPurpose?: 'donation' | 'subscription' | 'course_fee' | 'general';
+  defaultPurpose?: 'donation' | 'subscription' | 'course_fee' | 'kit' | 'certificate' | 'workshop' | 'bootcamp' | 'event' | 'general';
   defaultTitle?: string;
   defaultAmount?: number;
   defaultCurrency?: 'USD' | 'ZiG' | 'ZAR';
@@ -50,6 +50,7 @@ export const UniversalPaymentModal: React.FC<Props> = ({
   onPaymentComplete
 }) => {
   const [gateway, setGateway] = useState<'ecocash' | 'bank_transfer' | 'card' | 'paypal'>('ecocash');
+  const [purposeTitle, setPurposeTitle] = useState(defaultTitle);
   const [amount, setAmount] = useState(defaultAmount.toString());
   const [currency, setCurrency] = useState<'USD' | 'ZiG' | 'ZAR'>(defaultCurrency);
   const [name, setName] = useState(payerName);
@@ -89,7 +90,7 @@ export const UniversalPaymentModal: React.FC<Props> = ({
         payerEmail: email || 'supporter@yara.org',
         payerPhone: phone,
         purpose: defaultPurpose,
-        purposeTitle: defaultTitle,
+        purposeTitle: purposeTitle || defaultTitle,
         amount: Number(amount) || 15,
         currency,
         paymentGateway: gateway,
@@ -218,6 +219,20 @@ export const UniversalPaymentModal: React.FC<Props> = ({
 
             <form onSubmit={handleProcessPayment} className="space-y-4">
               
+              {/* Payment Purpose / Description */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 uppercase">
+                  Payment Purpose / Item Description
+                </label>
+                <input
+                  type="text"
+                  value={purposeTitle}
+                  onChange={e => setPurposeTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. YARA Robotics Starter Kit, Accredited Certificate..."
+                />
+              </div>
+
               {/* Amount & Currency */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1">

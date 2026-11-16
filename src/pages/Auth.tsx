@@ -13,6 +13,7 @@ import {
   UnderservedSchool,
   UnderservedRegion
 } from '../services/equityService';
+import { AFRICAN_COUNTRIES, ZIMBABWE_PROVINCES, POPULAR_ZIM_SCHOOLS } from '../constants/locationsData';
 
 import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
 
@@ -26,6 +27,13 @@ export default function Auth() {
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [gender, setGender] = useState<'girl' | 'boy'>('girl');
   const [tier, setTier] = useState<'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6'>('T2');
+  
+  // Categorisation & Geographical Details
+  const [country, setCountry] = useState('Zimbabwe');
+  const [province, setProvince] = useState('Mashonaland West');
+  const [district, setDistrict] = useState('');
+  const [city, setCity] = useState('');
+  const [ward, setWard] = useState('');
   const [schoolInstitution, setSchoolInstitution] = useState('');
   const [locationRegion, setLocationRegion] = useState('');
   const [disabilityType, setDisabilityType] = useState<'none' | 'visual' | 'hearing' | 'motor' | 'cognitive_dyslexia' | 'other'>('none');
@@ -205,11 +213,13 @@ export default function Auth() {
         const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
         const generatedMemberId = `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+        const effectiveLoc = [ward, city, district, province, country].filter(Boolean).join(', ');
+
         // Verify Equity Scholarship Eligibility
         const eligibilityCheck = await checkEquityScholarshipEligibility({
           email: cleanEmail,
           school: schoolInstitution,
-          location: locationRegion
+          location: effectiveLoc || locationRegion
         });
 
         const isFreeAccessGrantee = eligibilityCheck.isEligible || isAdminUser || finalRole === 'teacher' || finalRole === 'admin';
@@ -225,8 +235,14 @@ export default function Auth() {
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : (finalRole === 'admin' ? 'tertiary' : undefined),
               member_id: generatedMemberId,
+              country: country.trim() || 'Zimbabwe',
+              province: province.trim() || 'National',
+              district: district.trim() || undefined,
+              city: city.trim() || undefined,
+              ward: ward.trim() || undefined,
+              community: ward.trim() || undefined,
               school_institution: schoolInstitution.trim() || undefined,
-              location_region: locationRegion.trim() || undefined,
+              location_region: effectiveLoc || locationRegion.trim() || undefined,
               disability_type: disabilityType,
               is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
@@ -251,8 +267,14 @@ export default function Auth() {
               tier: resolvedTier,
               educational_level: finalRole === 'teacher' ? 'teacher' : (finalRole === 'admin' ? 'tertiary' : (tier === 'T6' ? 'tertiary' : 'junior')),
               member_id: generatedMemberId,
+              country: country.trim() || 'Zimbabwe',
+              province: province.trim() || 'National',
+              district: district.trim() || null,
+              city: city.trim() || null,
+              ward: ward.trim() || null,
+              community: ward.trim() || null,
               school_institution: schoolInstitution.trim() || null,
-              location_region: locationRegion.trim() || null,
+              location_region: effectiveLoc || locationRegion.trim() || null,
               disability_type: disabilityType,
               is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
@@ -565,59 +587,145 @@ export default function Auth() {
                     </motion.div>
                   )}
 
-                  {/* School / Institution Field */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between ml-1">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>School or Institution</span>
-                      </label>
-                      <span className="text-[10px] text-indigo-600 font-semibold">
-                        Underserved schools qualify for free access
+                  {/* GEOGRAPHICAL & INSTITUTIONAL CATEGORISATION */}
+                  <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-purple-600" />
+                        <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          Geographical Location &amp; School Categorisation
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-purple-700 font-bold bg-purple-100 px-2 py-0.5 rounded-full">
+                        Continental Directory
                       </span>
                     </div>
-                    <div className="relative group">
-                      <input
-                        type="text"
-                        list="underserved-schools-list"
-                        value={schoolInstitution}
-                        onChange={(e) => setSchoolInstitution(e.target.value)}
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-medium text-xs"
-                        placeholder="e.g. Binga High School, Nemakonde High..."
-                      />
-                      <datalist id="underserved-schools-list">
-                        {underservedSchools.map(s => (
-                          <option key={s.id} value={s.name}>{s.district ? `${s.district}, ${s.province}` : s.province}</option>
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
 
-                  {/* Location / District / Region */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between ml-1">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-purple-600" />
-                        <span>Location / District / Town</span>
-                      </label>
-                      <span className="text-[10px] text-purple-600 font-semibold">
-                        Priority districts qualify for $0 access
-                      </span>
+                    {/* Country & Province */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                          Country *
+                        </label>
+                        <select
+                          value={country}
+                          onChange={(e) => setCountry(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                        >
+                          {AFRICAN_COUNTRIES.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                          Province / State *
+                        </label>
+                        {country === 'Zimbabwe' ? (
+                          <select
+                            value={province}
+                            onChange={(e) => {
+                              setProvince(e.target.value);
+                              setDistrict('');
+                              setCity('');
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                          >
+                            {Object.keys(ZIMBABWE_PROVINCES).map(p => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={province}
+                            onChange={(e) => setProvince(e.target.value)}
+                            placeholder="State / Province / Region"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="relative group">
-                      <input
-                        type="text"
-                        list="underserved-regions-list"
-                        value={locationRegion}
-                        onChange={(e) => setLocationRegion(e.target.value)}
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-purple-600 focus:bg-white transition-all text-slate-900 font-medium text-xs"
-                        placeholder="e.g. Binga, Mwenezi, Mudzi, Epworth..."
-                      />
-                      <datalist id="underserved-regions-list">
-                        {underservedRegions.map(r => (
-                          <option key={r.id} value={r.region_name}>{r.province_state || r.country}</option>
-                        ))}
-                      </datalist>
+
+                    {/* District & City / Town */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                          District *
+                        </label>
+                        <input
+                          type="text"
+                          list="district-options"
+                          value={district}
+                          onChange={(e) => setDistrict(e.target.value)}
+                          placeholder="e.g. Makonde, Binga, Mwenezi, Goromonzi..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                        />
+                        <datalist id="district-options">
+                          {ZIMBABWE_PROVINCES[province]?.districts.map(d => (
+                            <option key={d} value={d} />
+                          ))}
+                        </datalist>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                          City / Town *
+                        </label>
+                        <input
+                          type="text"
+                          list="city-options"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="e.g. Chinhoyi, Harare, Bulawayo, Gweru..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                        />
+                        <datalist id="city-options">
+                          {ZIMBABWE_PROVINCES[province]?.cities.map(c => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
+                      </div>
+                    </div>
+
+                    {/* Community / Ward & School */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                          Community / Ward (if applicable)
+                        </label>
+                        <input
+                          type="text"
+                          value={ward}
+                          onChange={(e) => setWard(e.target.value)}
+                          placeholder="e.g. Ward 4, Alaska, Epworth, Mucheke..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1 flex items-center justify-between">
+                          <span>School / Institution *</span>
+                          <span className="text-[9px] text-indigo-600 font-semibold">Priority free access</span>
+                        </label>
+                        <input
+                          type="text"
+                          list="schools-datalist"
+                          value={schoolInstitution}
+                          onChange={(e) => setSchoolInstitution(e.target.value)}
+                          placeholder="e.g. Nemakonde High, Kutama College..."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-hidden focus:border-indigo-600"
+                        />
+                        <datalist id="schools-datalist">
+                          {POPULAR_ZIM_SCHOOLS.map(s => (
+                            <option key={s} value={s} />
+                          ))}
+                          {underservedSchools.map(s => (
+                            <option key={s.id} value={s.name}>{s.district}, {s.province}</option>
+                          ))}
+                        </datalist>
+                      </div>
                     </div>
                   </div>
 

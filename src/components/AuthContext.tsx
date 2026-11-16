@@ -30,8 +30,16 @@ interface UserProfile {
   amount_paid?: number;
   total_dues?: number | string;
   phone_number?: string;
+  contact_phone?: string;
+  phone?: string;
   school_institution?: string;
   location_region?: string;
+  country?: string;
+  province?: string;
+  district?: string;
+  city?: string;
+  ward?: string;
+  community?: string;
   disability_type?: string;
   accessibility_preferences?: any;
   is_fee_exempt?: boolean;

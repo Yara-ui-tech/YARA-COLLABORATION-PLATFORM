@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut, Building2, MapPin, HeartHandshake } from 'lucide-react';
+import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut, Building2, MapPin, HeartHandshake, Globe } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+import { AFRICAN_COUNTRIES, ZIMBABWE_PROVINCES, ZIMBABWE_PROVINCES_LIST, POPULAR_ZIMBABWE_SCHOOLS } from '../constants/locationsData';
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -20,6 +21,11 @@ export default function Profile() {
     skills: [] as string[],
     interests: [] as string[],
     role: 'innovator',
+    country: 'Zimbabwe',
+    province: '',
+    district: '',
+    city: '',
+    ward: '',
     school_institution: '',
     location_region: '',
     disability_type: 'none',
@@ -38,6 +44,11 @@ export default function Profile() {
         skills: profile.skills || [],
         interests: profile.interests || [],
         role: profile.role || 'innovator',
+        country: profile.country || 'Zimbabwe',
+        province: profile.province || '',
+        district: profile.district || '',
+        city: profile.city || '',
+        ward: profile.ward || profile.community || '',
         school_institution: profile.school_institution || '',
         location_region: profile.location_region || '',
         disability_type: profile.disability_type || 'none',
@@ -118,6 +129,14 @@ Possible causes:
     if (!user) return;
     setLoading(true);
     try {
+      const fullLocation = [
+        formData.ward.trim(),
+        formData.city.trim(),
+        formData.district.trim(),
+        formData.province.trim(),
+        formData.country.trim()
+      ].filter(Boolean).join(', ');
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -130,8 +149,14 @@ Possible causes:
           skills: formData.skills,
           interests: formData.interests,
           role: formData.role,
+          country: formData.country.trim() || 'Zimbabwe',
+          province: formData.province.trim() || null,
+          district: formData.district.trim() || null,
+          city: formData.city.trim() || null,
+          ward: formData.ward.trim() || null,
+          community: formData.ward.trim() || null,
           school_institution: formData.school_institution.trim() || null,
-          location_region: formData.location_region.trim() || null,
+          location_region: fullLocation || formData.location_region.trim() || null,
           disability_type: formData.disability_type,
         })
         .eq('id', user.id);
@@ -140,7 +165,13 @@ Possible causes:
         await supabase.auth.updateUser({
           data: {
             display_name: formData.display_name,
-            gender: formData.gender
+            gender: formData.gender,
+            country: formData.country.trim() || 'Zimbabwe',
+            province: formData.province.trim() || null,
+            district: formData.district.trim() || null,
+            city: formData.city.trim() || null,
+            ward: formData.ward.trim() || null,
+            school_institution: formData.school_institution.trim() || null,
           }
         });
       } catch (authErr) {
@@ -188,6 +219,8 @@ Possible causes:
   };
 
   const daysLeft = getTrialDaysLeft();
+
+  const selectedProvinceData = formData.province ? ZIMBABWE_PROVINCES[formData.province] : null;
 
   return (
     <div className="space-y-8 pb-12">
@@ -401,37 +434,166 @@ Possible causes:
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>School / Institution</span>
-                  </label>
-                  <input
-                    type="text"
-                    disabled={!isEditing}
-                    value={formData.school_institution}
-                    onChange={(e) => setFormData({ ...formData, school_institution: e.target.value })}
-                    placeholder="e.g. Binga High School"
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-xs font-medium disabled:opacity-70"
-                  />
+              {/* Geographical Location & School Categorisation */}
+              <div className="p-6 bg-slate-50/80 rounded-3xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-indigo-600" />
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                        Geographical Location &amp; School Categorisation
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Used for province/district robotics tournament divisions, club mentorship, and equity tracking.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Location / District</span>
-                  </label>
-                  <input
-                    type="text"
-                    disabled={!isEditing}
-                    value={formData.location_region}
-                    onChange={(e) => setFormData({ ...formData, location_region: e.target.value })}
-                    placeholder="e.g. Binga, Mwenezi, Chiredzi"
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-purple-600 focus:bg-white transition-all text-xs font-medium disabled:opacity-70"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {/* Country */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Country</span>
+                    </label>
+                    <select
+                      disabled={!isEditing}
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-bold text-slate-800 disabled:opacity-70"
+                    >
+                      {AFRICAN_COUNTRIES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
 
+                  {/* Province */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Province / Region</span>
+                    </label>
+                    {formData.country === 'Zimbabwe' ? (
+                      <select
+                        disabled={!isEditing}
+                        value={formData.province}
+                        onChange={(e) => setFormData({ ...formData, province: e.target.value, district: '', city: '' })}
+                        className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-bold text-slate-800 disabled:opacity-70"
+                      >
+                        <option value="">Select Province...</option>
+                        {ZIMBABWE_PROVINCES_LIST.map(p => (
+                          <option key={p.name} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={formData.province}
+                        onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+                        placeholder="e.g. Gauteng, Copperbelt"
+                        className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 disabled:opacity-70"
+                      />
+                    )}
+                  </div>
+
+                  {/* District */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                      <span>District</span>
+                    </label>
+                    {selectedProvinceData ? (
+                      <select
+                        disabled={!isEditing}
+                        value={formData.district}
+                        onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                        className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-bold text-slate-800 disabled:opacity-70"
+                      >
+                        <option value="">Select District...</option>
+                        {selectedProvinceData.districts.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={formData.district}
+                        onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                        placeholder="e.g. Makonde, Harare Urban, Binga"
+                        className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 disabled:opacity-70"
+                      />
+                    )}
+                  </div>
+
+                  {/* City / Town */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>City / Town</span>
+                    </label>
+                    <input
+                      type="text"
+                      list="profile-city-suggestions"
+                      disabled={!isEditing}
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="e.g. Harare, Bulawayo, Chinhoyi"
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 disabled:opacity-70"
+                    />
+                    {selectedProvinceData && (
+                      <datalist id="profile-city-suggestions">
+                        {selectedProvinceData.cities.map(c => (
+                          <option key={c} value={c} />
+                        ))}
+                      </datalist>
+                    )}
+                  </div>
+
+                  {/* Community / Ward */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Community / Ward</span>
+                    </label>
+                    <input
+                      type="text"
+                      disabled={!isEditing}
+                      value={formData.ward}
+                      onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+                      placeholder="e.g. Ward 4, Highfield, Chikangwe"
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 disabled:opacity-70"
+                    />
+                  </div>
+
+                  {/* School / Institution */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>School / Institution</span>
+                    </label>
+                    <input
+                      type="text"
+                      list="profile-school-suggestions"
+                      disabled={!isEditing}
+                      value={formData.school_institution}
+                      onChange={(e) => setFormData({ ...formData, school_institution: e.target.value })}
+                      placeholder="e.g. Nemakonde High School"
+                      className="w-full bg-white border-2 border-slate-200 rounded-2xl py-2.5 px-3 focus:outline-none focus:border-indigo-600 transition-all text-xs font-medium text-slate-800 disabled:opacity-70"
+                    />
+                    <datalist id="profile-school-suggestions">
+                      {POPULAR_ZIMBABWE_SCHOOLS.map(s => (
+                        <option key={s} value={s} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1 flex items-center gap-1">
                     <span>♿</span>

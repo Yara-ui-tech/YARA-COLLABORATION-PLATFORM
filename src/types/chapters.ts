@@ -1,4 +1,4 @@
-export type ChapterCategory = 
+export type ChapterCategory =
   | 'university'
   | 'high_school'
   | 'primary_school'
@@ -13,7 +13,7 @@ export type ChapterCategory =
 
 export type ChapterStatus = 'active' | 'chartered' | 'forming' | 'probation' | 'archived';
 
-export type ChapterLeaderRole = 
+export type ChapterLeaderRole =
   | 'chairperson'
   | 'vice_chair'
   | 'secretary'
@@ -38,7 +38,7 @@ export interface ChapterLeader {
   avatar_url?: string;
   department_or_grade?: string;
   is_public_contact: boolean;
-  
+
   // Admin Approval & Role-Based Access Control (Assigned by Admins in Dashboard)
   is_approved_by_admin?: boolean;
   approved_by_admin_at?: string;
@@ -114,7 +114,7 @@ export interface Chapter {
   status: ChapterStatus;
   approval_status?: 'pending' | 'approved' | 'rejected';
   registration_request_id?: string;
-  
+
   // Provincial University Lead Hierarchy
   is_provincial_lead_university?: boolean;
   assigned_provincial_university_id?: string;
@@ -169,7 +169,7 @@ export interface ChapterRegistrationRequest {
   focus_areas: string[];
   public_email: string;
   public_phone: string;
-  
+
   // Member & Leadership structure
   total_members_count: number;
   number_of_members?: number; // alias
@@ -185,11 +185,11 @@ export interface ChapterRegistrationRequest {
     email?: string;
     phone?: string;
   };
-  
+
   // Provincial University Lead Reference
   assigned_provincial_university_id?: string;
   assigned_provincial_university_name?: string;
-  
+
   // Applicant details
   applicant_name?: string;
   applicant_email?: string;
@@ -206,7 +206,7 @@ export interface ChapterRegistrationRequest {
   updated_at: string;
 }
 
-export type ReportPeriodType = 
+export type ReportPeriodType =
   | 'monthly'
   | 'quarterly'
   | 'annual'
@@ -214,7 +214,7 @@ export type ReportPeriodType =
   | 'project_milestone'
   | 'financial';
 
-export type ReportStatus = 
+export type ReportStatus =
   | 'submitted'
   | 'under_review'
   | 'assessed'
@@ -284,7 +284,7 @@ export interface ChapterReport {
   supporting_images?: string[];
   status: ReportStatus;
   executive_assessment?: NationalExecutiveAssessment;
-  
+
   // Security & National Locking
   is_locked?: boolean;
   locked_at?: string;
@@ -312,7 +312,7 @@ export interface ChapterJoinRequest {
   chapter_code: string;
   province: string;
   chapter_category: ChapterCategory;
-  
+
   // Applicant personal info
   full_name: string;
   email: string;
@@ -324,14 +324,14 @@ export interface ChapterJoinRequest {
   motivation: string;           // Why they want to join
   student_id?: string;          // Optional student number
   id_document_url?: string;     // Optional URL to uploaded ID/student card
-  
+
   // Status & Review
   status: ChapterJoinRequestStatus;
   user_id?: string;             // If logged in
   reviewed_by?: string;         // Name of reviewer (leadership/admin)
   reviewed_at?: string;
   review_notes?: string;        // Feedback on approval/rejection
-  
+
   submitted_at: string;
   created_at: string;
   updated_at: string;
