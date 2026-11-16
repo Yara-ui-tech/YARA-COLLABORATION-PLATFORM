@@ -21,7 +21,7 @@ interface UserProfile {
   is_halted: boolean;
   trial_ends_at: string;
   created_at: string;
-  
+
   // Mentor Stats
   rating: number;
   mentored_count: number;
@@ -70,9 +70,9 @@ const AuthContext = createContext<AuthContextType>({
   isSubscriptionExpired: false,
   isTrialExpired: false,
   isHalted: false,
-  refreshProfile: async () => {},
-  signOut: async () => {},
-  loginAsGuest: () => {},
+  refreshProfile: async () => { },
+  signOut: async () => { },
+  loginAsGuest: () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -113,16 +113,16 @@ const buildFallbackProfile = (authUser: User): UserProfile => {
   const isTeacher = rawRole === 'teacher' || authUser.user_metadata?.tier === 'T1' || authUser.user_metadata?.educational_level === 'teacher';
   const pos = String(authUser.user_metadata?.chapter_position || authUser.user_metadata?.position || '').toLowerCase();
   const isNatExec = rawRole === 'national_executive' || rawRole === 'executive' || pos.includes('national') || pos.includes('executive director') || pos.includes('secretary general');
-  
+
   const resolvedRole: 'innovator' | 'mentor' | 'admin' | 'teacher' | 'national_executive' | 'executive' = isAdmin
     ? 'admin'
     : isNatExec
-    ? 'national_executive'
-    : rawRole === 'mentor'
-    ? 'mentor'
-    : isTeacher
-    ? 'teacher'
-    : 'innovator';
+      ? 'national_executive'
+      : rawRole === 'mentor'
+        ? 'mentor'
+        : isTeacher
+          ? 'teacher'
+          : 'innovator';
 
   const defaultMemberId =
     authUser.user_metadata?.member_id ||
@@ -175,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       let id = localStorage.getItem('yaria_device_id');
       if (!id) {
-        id = typeof crypto !== 'undefined' && crypto.randomUUID 
-          ? crypto.randomUUID() 
+        id = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
           : Math.random().toString(36).substring(2) + Date.now().toString(36);
         localStorage.setItem('yaria_device_id', id);
       }
@@ -291,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   setUser(guest.user);
                   setProfile(guest.profile);
                 }
-              } catch {}
+              } catch { }
             }
           }
           setIsAuthReady(true);
@@ -355,13 +355,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchProfile = async () => {
       const deviceId = getDeviceId();
-      
+
       // Attempt to register session quietly in background without blocking
       Promise.resolve(supabase.from('user_sessions').upsert({
         user_id: user.id,
         device_id: deviceId,
         last_active: new Date().toISOString()
-      }, { onConflict: 'user_id,device_id' })).then(() => {}).catch(() => {});
+      }, { onConflict: 'user_id,device_id' })).then(() => { }).catch(() => { });
 
       let resolvedProfile: UserProfile | null = null;
 
@@ -372,7 +372,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('*')
           .eq('id', user.id)
           .single();
-        
+
         const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
           setTimeout(() => resolve({ data: null, error: { message: 'Profile fetch timeout', code: 'TIMEOUT' } }), 6000)
         );
@@ -399,7 +399,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .upsert(fallback, { onConflict: 'id' })
               .select()
               .single();
-            
+
             if (newProfile) {
               resolvedProfile = newProfile as UserProfile;
             } else {
@@ -441,11 +441,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       profileChannel = supabase
         .channel(`profile:${user.id}`)
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'profiles', 
-          filter: `id=eq.${user.id}` 
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
         }, (payload) => {
           if (payload.new && isSubscribed) {
             const isAdmin = isUserAdmin(user.email, (payload.new as any).role);
@@ -484,7 +484,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', user.id)
         .single();
-      
+
       let currentProfile: UserProfile | null = data ? (data as UserProfile) : null;
 
       if (!currentProfile) {

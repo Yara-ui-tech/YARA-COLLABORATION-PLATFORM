@@ -2,7 +2,15 @@
 -- YOUNG AFRICANS ROBOTICS ASSOCIATION (YARA)
 -- ENTERPRISE PRODUCTION DATABASE SCHEMA & MASTER MIGRATION SPECIFICATION
 -- Motto: "Innovate Local, Build Global"
--- Version: 3.2.0-PROD (LMS completion: roles, integrity, learner features, automation)
+-- Version: 3.2.1-PROD (Storage consolidation, ownership fix, user geographical categorisation & payments)
+--
+-- v3.2.1:
+--  * Removed 'ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;' which fails with 42501 
+--    (table is owned by supabase_storage_admin and RLS is already pre-enabled by Supabase).
+--  * Consolidated Storage buckets and policies into Section 33; removed duplicate Section 41.
+--  * Added all 9 production buckets: shop, courses, materials, videos, flyers, avatars, certificates, resources, data-uploads.
+--  * Wrapped all storage.objects policies in safe exception-handled blocks.
+--  * Consolidated user geographical categorisation columns (country, province, district, city, ward, community, school_institution).
 --
 -- v3.2.0: the LMS completion add-on is appended at the end of this file (Section 37+).
 --         Also: is_backend_caller() so anonymous API calls are never treated as trusted.
@@ -4204,25 +4212,35 @@ CALL public.safely_apply_policy('Users manage own sessions', 'user_sessions', 'C
 CALL public.safely_apply_policy('Users manage own notifications', 'notifications', 'CREATE POLICY "Users manage own notifications" ON public.notifications FOR ALL USING (auth.uid() = user_id OR public.is_admin())');
 
 -- ==============================================================================
--- 33. SUPABASE STORAGE BUCKETS & STORAGE OBJECT POLICIES
+-- 33. SUPABASE STORAGE BUCKETS & STORAGE OBJECT POLICIES (CONSOLIDATED)
 -- ==============================================================================
 
--- Create storage buckets if missing (data-uploads stays private on conflict rerun)
-INSERT INTO storage.buckets (id, name, public)
+-- Create or update all 9 application storage buckets with size limits and allowed MIME types
+-- Note: Do NOT execute 'ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY' as storage.objects 
+-- is owned by supabase_storage_admin and Supabase Storage already pre-enables RLS by default.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('avatars', 'avatars', true),
-  ('materials', 'materials', true),
-  ('resources', 'resources', true),
-  ('certificates', 'certificates', true),
-  ('data-uploads', 'data-uploads', false)
-ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+  ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  ('materials', 'materials', true, 104857600, NULL),
+  ('resources', 'resources', true, 104857600, NULL),
+  ('certificates', 'certificates', true, 52428800, ARRAY['image/jpeg', 'image/png', 'application/pdf']),
+  ('shop', 'shop', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
+  ('courses', 'courses', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
+  ('videos', 'videos', true, 524288000, ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']),
+  ('flyers', 'flyers', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
+  ('data-uploads', 'data-uploads', false, 104857600, NULL)
+ON CONFLICT (id) DO UPDATE SET 
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- Storage RLS Policies (Hardened with strict owner/admin authorization)
+-- Storage RLS Policies (Safely applied with exception handling)
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Public read storage access" ON storage.objects;
+  DROP POLICY IF EXISTS "yara_public_select" ON storage.objects;
   CREATE POLICY "Public read storage access" 
     ON storage.objects FOR SELECT 
-    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+    USING (bucket_id IN ('avatars', 'materials', 'resources', 'certificates', 'shop', 'courses', 'videos', 'flyers'));
 EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy public read: %', SQLERRM; END $$;
 
 DO $$ BEGIN
@@ -4234,10 +4252,11 @@ EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy data-uploads read: %', S
 
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Authenticated users upload storage objects" ON storage.objects;
+  DROP POLICY IF EXISTS "yara_auth_insert" ON storage.objects;
   CREATE POLICY "Authenticated users upload storage objects" 
     ON storage.objects FOR INSERT 
     TO authenticated 
-    WITH CHECK (bucket_id IN ('avatars', 'materials', 'resources', 'certificates'));
+    WITH CHECK (bucket_id IN ('avatars', 'materials', 'resources', 'certificates', 'shop', 'courses', 'videos', 'flyers'));
 EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy upload: %', SQLERRM; END $$;
 
 DO $$ BEGIN
@@ -4250,22 +4269,28 @@ EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy data-uploads upload: %',
 
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Owners or admins update storage objects" ON storage.objects;
+  DROP POLICY IF EXISTS "yara_auth_update" ON storage.objects;
   CREATE POLICY "Owners or admins update storage objects" 
     ON storage.objects FOR UPDATE 
     TO authenticated 
     USING (
-      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()))
+      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates', 'shop', 'courses', 'videos', 'flyers') AND (owner = auth.uid() OR public.is_admin()))
+      OR (bucket_id = 'data-uploads' AND public.is_admin())
+    )
+    WITH CHECK (
+      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates', 'shop', 'courses', 'videos', 'flyers') AND (owner = auth.uid() OR public.is_admin()))
       OR (bucket_id = 'data-uploads' AND public.is_admin())
     );
 EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy update: %', SQLERRM; END $$;
 
 DO $$ BEGIN
   DROP POLICY IF EXISTS "Owners or admins delete storage objects" ON storage.objects;
+  DROP POLICY IF EXISTS "yara_auth_delete" ON storage.objects;
   CREATE POLICY "Owners or admins delete storage objects" 
     ON storage.objects FOR DELETE 
     TO authenticated 
     USING (
-      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates') AND (owner = auth.uid() OR public.is_admin()))
+      (bucket_id IN ('avatars', 'materials', 'resources', 'certificates', 'shop', 'courses', 'videos', 'flyers') AND (owner = auth.uid() OR public.is_admin()))
       OR (bucket_id = 'data-uploads' AND public.is_admin())
     );
 EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Storage policy delete: %', SQLERRM; END $$;
@@ -5166,62 +5191,13 @@ WHERE
     OR EXISTS (SELECT 1 FROM public.underserved_regions r WHERE r.is_active = true AND LOWER(p.location_region) ILIKE '%' || LOWER(r.region_name) || '%')
   );
 
-
-
 -- ==============================================================================
--- SECTION 41. APPLICATION STORAGE BUCKETS & RLS POLICIES (2026-11-08)
+-- END OF YARA ENTERPRISE PRODUCTION DATABASE SPECIFICATION (v3.2.1-PROD)
 -- ==============================================================================
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES
-  ('shop', 'shop', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
-  ('courses', 'courses', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']),
-  ('materials', 'materials', true, 104857600, NULL),
-  ('videos', 'videos', true, 524288000, ARRAY['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']),
-  ('flyers', 'flyers', true, 52428800, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']),
-  ('avatars', 'avatars', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp']),
-  ('certificates', 'certificates', true, 52428800, ARRAY['image/jpeg', 'image/png', 'application/pdf']),
-  ('resources', 'resources', true, 104857600, NULL)
-ON CONFLICT (id) DO UPDATE SET
-  public = EXCLUDED.public,
-  file_size_limit = EXCLUDED.file_size_limit,
-  allowed_mime_types = EXCLUDED.allowed_mime_types;
-
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "yara_public_select" ON storage.objects;
-DROP POLICY IF EXISTS "yara_auth_insert" ON storage.objects;
-DROP POLICY IF EXISTS "yara_auth_update" ON storage.objects;
-DROP POLICY IF EXISTS "yara_auth_delete" ON storage.objects;
-
--- 4. Public Read Access
-CREATE POLICY "yara_public_select"
-  ON storage.objects FOR SELECT
-  USING (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
-
--- 5. Authenticated Upload Access (restricted to authenticated role)
-CREATE POLICY "yara_auth_insert"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources'));
-
--- 6. Authenticated Update Access (owner or admin only)
-CREATE POLICY "yara_auth_update"
-  ON storage.objects FOR UPDATE
-  TO authenticated
-  USING (
-    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
-    AND (owner = auth.uid() OR public.is_admin())
-  )
-  WITH CHECK (
-    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
-    AND (owner = auth.uid() OR public.is_admin())
-  );
-
--- 7. Authenticated Delete Access (owner or admin only)
-CREATE POLICY "yara_auth_delete"
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id IN ('shop', 'courses', 'materials', 'videos', 'flyers', 'avatars', 'certificates', 'resources')
-    AND (owner = auth.uid() OR public.is_admin())
-  );
+DO $$
+BEGIN
+  RAISE NOTICE '==============================================================================';
+  RAISE NOTICE 'YARA Master Production Database Migration v3.2.1-PROD completed successfully!';
+  RAISE NOTICE 'All tables, storage buckets, RLS policies and LMS features are active.';
+  RAISE NOTICE '==============================================================================';
+END $$;

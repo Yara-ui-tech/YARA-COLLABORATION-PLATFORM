@@ -138,3 +138,4 @@ DO $$
 BEGIN
   RAISE NOTICE 'YARA User Categorisation & Location schema applied successfully!';
 END $$;
+
