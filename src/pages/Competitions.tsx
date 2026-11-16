@@ -819,7 +819,7 @@ export default function Competitions() {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed text-left bg-slate-950 p-4 rounded-2xl border border-slate-800">
-              Your 14-day free trial has expired. You are free to browse all tournament guidelines, mission challenge rules, public scoring rubrics, and updates! However, official team registration (2 Boys + 2 Girls) and arena qualifiers require an active YARA membership ($15 USD once-off).
+              Your 14-day free trial has expired. You are free to browse all tournament guidelines, mission challenge rules, public scoring rubrics, and updates! However, official team registration (2 Boys + 2 Girls) and arena qualifiers require an active YARA membership (amount updated by administrators or confirmed upon inquiry).
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -828,7 +828,7 @@ export default function Competitions() {
                 onClick={() => setTrialLockModalOpen(false)}
                 className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30 transition"
               >
-                <span>Activate Membership ($15 USD)</span>
+                <span>Activate Membership (Pay Online)</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a

@@ -42,7 +42,7 @@ export const UniversalPaymentModal: React.FC<Props> = ({
   onClose,
   defaultPurpose = 'donation',
   defaultTitle = 'YARA STEM & Robotics Contribution',
-  defaultAmount = 15,
+  defaultAmount,
   defaultCurrency = 'USD',
   payerName = '',
   payerEmail = '',
@@ -51,7 +51,7 @@ export const UniversalPaymentModal: React.FC<Props> = ({
 }) => {
   const [gateway, setGateway] = useState<'ecocash' | 'bank_transfer' | 'card' | 'paypal'>('ecocash');
   const [purposeTitle, setPurposeTitle] = useState(defaultTitle);
-  const [amount, setAmount] = useState(defaultAmount.toString());
+  const [amount, setAmount] = useState(defaultAmount !== undefined ? defaultAmount.toString() : '');
   const [currency, setCurrency] = useState<'USD' | 'ZiG' | 'ZAR'>(defaultCurrency);
   const [name, setName] = useState(payerName);
   const [email, setEmail] = useState(payerEmail);
@@ -82,6 +82,12 @@ export const UniversalPaymentModal: React.FC<Props> = ({
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0) {
+      alert('Please enter the payment amount quoted by the administrator or confirmed upon inquiry.');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -91,7 +97,7 @@ export const UniversalPaymentModal: React.FC<Props> = ({
         payerPhone: phone,
         purpose: defaultPurpose,
         purposeTitle: purposeTitle || defaultTitle,
-        amount: Number(amount) || 15,
+        amount: numericAmount,
         currency,
         paymentGateway: gateway,
         transactionReference: reference || (gateway === 'card' ? `CARD-AUTH-${Date.now().toString().slice(-6)}` : undefined),
@@ -245,8 +251,12 @@ export const UniversalPaymentModal: React.FC<Props> = ({
                     min={1}
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
+                    placeholder="Enter quoted amount..."
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                    Amounts are updated by administrators or confirmed upon inquiry.
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-slate-600 uppercase">

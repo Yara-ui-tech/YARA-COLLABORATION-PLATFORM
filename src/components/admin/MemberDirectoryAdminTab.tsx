@@ -661,7 +661,7 @@ export default function MemberDirectoryAdminTab() {
       if (selectedPlanType === 'pro_annual') {
         isPaid = true;
         expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-        planTitle = 'Annual Pro Membership ($15 USD / 1 Year)';
+        planTitle = 'Annual Pro Membership (1 Year)';
       } else if (selectedPlanType === 'lifetime') {
         isPaid = true;
         expiresAt = new Date(now.getTime() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString();
@@ -698,7 +698,7 @@ export default function MemberDirectoryAdminTab() {
           user_email: planModalMember.email,
           user_name: planModalMember.display_name,
           plan_type: selectedPlanType,
-          amount: isPaid ? 15 : 0,
+          amount: isPaid ? 0 : 0,
           currency: 'USD',
           payment_method: 'admin_manual_grant',
           payment_reference: 'ADMIN-' + Date.now().toString(36).toUpperCase(),
@@ -2052,7 +2052,7 @@ export default function MemberDirectoryAdminTab() {
                           </span>
                         </td>
                         <td className="px-4 py-4 font-bold text-slate-800">
-                          {sub.amount ? `$${sub.amount}` : '$15'} ({sub.payment_method || 'EcoCash / Cash'})
+                          {sub.amount ? `$${sub.amount}` : 'As Quoted / Free'} ({sub.payment_method || 'EcoCash / Cash'})
                         </td>
                         <td className="px-4 py-4 font-mono font-bold text-indigo-700">
                           {sub.payment_reference || 'Ref Pending'}
@@ -3013,7 +3013,7 @@ export default function MemberDirectoryAdminTab() {
             <div className="space-y-3 text-xs">
               <label className="block font-bold text-slate-700">Select Target Plan:</label>
               {[
-                { id: 'pro_annual', label: 'Annual Pro Member ($15 USD / 1 Year)', desc: 'Unlocks all 42+ LMS levels, robotics simulator, and certification.' },
+                { id: 'pro_annual', label: 'Annual Pro Member (1 Year)', desc: 'Unlocks all 42+ LMS levels, robotics simulator, and certification.' },
                 { id: 'lifetime', label: 'Lifetime Innovator Access (10 Years)', desc: 'Permanent unrestricted access for chapter executives & core contributors.' },
                 { id: 'institutional', label: 'Institutional / School Partner Pass', desc: 'Covered under school or donor sponsorship.' },
                 { id: 'free_trial', label: 'Reset to Free Trial (14 Days)', desc: 'Grants standard 14-day trial period.' }

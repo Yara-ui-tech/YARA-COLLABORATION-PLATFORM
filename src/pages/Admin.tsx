@@ -160,7 +160,7 @@ export default function Admin() {
   const [showCompModal, setShowCompModal] = useState(false);
   
   // Settings State
-  const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
+  const [courseFee, setCourseFee] = useState({ amount: 0, currency: 'USD', message: 'Platform fees and subscription amounts are updated by administrators or confirmed upon inquiry.' });
   const [launchConfig, setLaunchConfig] = useState({
     duration_hours: 72,
     launch_date: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString().slice(0, 16),
@@ -1903,7 +1903,7 @@ export default function Admin() {
                         value={courseFee.amount}
                         onChange={(e) => setCourseFee({ ...courseFee, amount: Number(e.target.value) })}
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all text-slate-900 font-bold pl-12"
-                        placeholder="15"
+                        placeholder="Enter amount (or leave 0 for upon inquiry)"
                       />
                     </div>
                   </div>

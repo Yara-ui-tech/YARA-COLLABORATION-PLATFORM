@@ -45,7 +45,7 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [signupHasSession, setSignupHasSession] = useState(false);
   const [error, setError] = useState('');
-  const [courseFee, setCourseFee] = useState({ amount: 15, currency: 'USD', message: 'To continue after your trial, the platform subscription and Virtual Training sessions cost USD$15.' });
+  const [courseFee, setCourseFee] = useState({ amount: 0, currency: 'USD', message: 'Platform access and premium training fees are updated by administrators or confirmed upon inquiry.' });
   const navigate = useNavigate();
   const { user, profile, isAuthReady, loginAsGuest } = useAuth();
 
@@ -998,7 +998,9 @@ export default function Auth() {
                   <span>Platform Access &amp; Training</span>
                 </div>
                 <p className="text-amber-600 text-sm font-medium mb-4">
-                  {courseFee.message.includes(courseFee.amount.toString()) ? courseFee.message : `${courseFee.message} (Amount: ${courseFee.currency}$${courseFee.amount})`}
+                  {courseFee.amount > 0 
+                    ? (courseFee.message.includes(courseFee.amount.toString()) ? courseFee.message : `${courseFee.message} (Amount: ${courseFee.currency}$${courseFee.amount})`)
+                    : courseFee.message}
                 </p>
                 <div className="flex items-center justify-center space-x-2 text-amber-700 font-bold mb-2">
                   <Lightbulb className="w-5 h-5" />

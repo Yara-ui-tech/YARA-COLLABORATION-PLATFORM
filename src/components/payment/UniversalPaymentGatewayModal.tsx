@@ -27,7 +27,6 @@ interface PurposeOption {
   id: PaymentPurpose;
   label: string;
   defaultTitle: string;
-  suggestedAmount: number;
   description: string;
   icon: any;
   color: string;
@@ -39,7 +38,6 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
     id: 'kit',
     label: 'Robotics Kit / Components',
     defaultTitle: 'YARA Robotics Hardware Kit & Electronic Components',
-    suggestedAmount: 45,
     description: 'Physical components: ESP32/Arduino MCU, ultrasonic sensors, chassis, motors & breadboards.',
     icon: Package,
     color: 'text-cyan-600 bg-cyan-50 border-cyan-200',
@@ -47,19 +45,17 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
   },
   {
     id: 'certificate',
-    label: 'Accredited Certificate ($5)',
+    label: 'Accredited Digital Certificate',
     defaultTitle: 'YARA Verified Accredited Competency Certificate',
-    suggestedAmount: 5,
     description: 'Co-signed by YARA Directorate & academic partners, downloadable in high-res with 1-click LinkedIn badge.',
     icon: Award,
     color: 'text-amber-600 bg-amber-50 border-amber-200',
-    badge: '$5 Verified'
+    badge: 'Accreditation'
   },
   {
     id: 'workshop',
     label: 'Club Formation Workshop',
     defaultTitle: 'School Robotics Club Formation & Patron Launch Workshop',
-    suggestedAmount: 20,
     description: 'School robotics charter, teacher lesson plans, club start kit & competition coaching orientation.',
     icon: School,
     color: 'text-indigo-600 bg-indigo-50 border-indigo-200',
@@ -69,7 +65,6 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
     id: 'bootcamp',
     label: 'AI & Robotics Bootcamp',
     defaultTitle: 'AI for Educators & Student Robotics Bootcamp Cohort Seat',
-    suggestedAmount: 10,
     description: 'Intensive 5-day training cohort with live lab streaming, debugging clinics & certified syllabus.',
     icon: BookOpen,
     color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
@@ -79,7 +74,6 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
     id: 'event',
     label: 'Championship Team Entry',
     defaultTitle: 'Continental Championship Team Registration (4 Members: 2B + 2G)',
-    suggestedAmount: 25,
     description: 'Official tournament arena registration for a full school or community robotics squad.',
     icon: Trophy,
     color: 'text-purple-600 bg-purple-50 border-purple-200',
@@ -89,7 +83,6 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
     id: 'donation',
     label: 'STEM Sponsorship / Donation',
     defaultTitle: 'Philanthropic Support for Underserved Rural School Clubs',
-    suggestedAmount: 15,
     description: 'Sponsor robotics kits and internet data for students in marginalized and rural communities.',
     icon: Heart,
     color: 'text-rose-600 bg-rose-50 border-rose-200',
@@ -99,15 +92,12 @@ const PURPOSE_OPTIONS: PurposeOption[] = [
     id: 'general',
     label: 'Custom Item / Other Fee',
     defaultTitle: 'YARA Custom Technical Contribution',
-    suggestedAmount: 10,
-    description: 'Enter your custom item name, project fee, or specialized electronics order.',
+    description: 'Enter your custom item name, project fee, or specialized electronics order as quoted by admins or upon inquiry.',
     icon: Sliders,
     color: 'text-slate-600 bg-slate-50 border-slate-200',
     badge: 'Custom'
   }
 ];
-
-const PRESET_AMOUNTS = [5, 10, 15, 20, 25, 45, 100];
 
 export default function UniversalPaymentGatewayModal({
   isOpen,
@@ -122,12 +112,12 @@ export default function UniversalPaymentGatewayModal({
   const [purpose, setPurpose] = useState<PaymentPurpose>(defaultPurpose);
   const selectedOption = PURPOSE_OPTIONS.find(p => p.id === purpose) || PURPOSE_OPTIONS[0];
 
-  // User-customizable Title & Amount (NOT hardcoded!)
+  // User-customizable Title & Amount (Set by user based on admin quote or upon inquiry)
   const [customTitle, setCustomTitle] = useState<string>(
     itemTitle || selectedOption.defaultTitle
   );
-  const [amount, setAmount] = useState<number>(
-    defaultAmount || selectedOption.suggestedAmount
+  const [amount, setAmount] = useState<number | ''>(
+    defaultAmount !== undefined ? defaultAmount : ''
   );
   const [currency, setCurrency] = useState<'USD' | 'ZiG' | 'ZAR'>('USD');
 
@@ -476,8 +466,8 @@ export default function UniversalPaymentGatewayModal({
                       min="1"
                       step="any"
                       value={amount || ''}
-                      onChange={(e) => setAmount(Number(e.target.value))}
-                      placeholder="0.00"
+                      onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="Enter quoted amount..."
                       className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm font-black text-slate-900 focus:outline-hidden focus:border-indigo-500"
                     />
                   </div>
@@ -499,28 +489,12 @@ export default function UniversalPaymentGatewayModal({
                 </div>
               </div>
 
-              {/* Quick Amount Suggestion Chips */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                  Quick Amount Presets (Click to set):
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {PRESET_AMOUNTS.map(p => (
-                    <button
-                      type="button"
-                      key={p}
-                      onClick={() => setAmount(p)}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer border",
-                        amount === p
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      ${p}
-                    </button>
-                  ))}
-                </div>
+              {/* Notice that amounts are updated by admins or upon inquiry */}
+              <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-start gap-2.5 text-amber-950">
+                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed">
+                  <strong>Pricing / Amount Notice:</strong> Amounts and fees are updated by administrators or confirmed upon inquiry. Please enter the exact amount quoted to you by administration or stated on your official YARA invoice.
+                </p>
               </div>
             </div>
 
@@ -801,20 +775,25 @@ export default function UniversalPaymentGatewayModal({
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isProcessing}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-600/20 cursor-pointer"
+                disabled={isProcessing || !amount || Number(amount) <= 0}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 px-6 rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-600/20 cursor-pointer"
               >
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Authorizing Payment...</span>
                   </>
+                ) : !amount || Number(amount) <= 0 ? (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Enter Quoted Amount to Proceed</span>
+                  </>
                 ) : (
                   <>
                     <Lock className="w-4 h-4" />
                     <span>
                       Confirm &amp; Pay {currency === 'USD' ? '$' : currency === 'ZiG' ? 'ZiG ' : 'R '}
-                      {Number(amount || 0).toFixed(2)} {currency}
+                      {Number(amount).toFixed(2)} {currency}
                     </span>
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </>

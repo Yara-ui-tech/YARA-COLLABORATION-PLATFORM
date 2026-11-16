@@ -544,7 +544,7 @@ export default function Events() {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed text-left bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              Your 14-day free trial has expired. You are welcome to continue browsing all public webpages, reading articles, exploring chapters, and checking updates freely! However, registration for intensive bootcamps, physical tournaments, and virtual simulation challenges is reserved for active YARA members ($15 USD once-off).
+              Your 14-day free trial has expired. You are welcome to continue browsing all public webpages, reading articles, exploring chapters, and checking updates freely! However, registration for intensive bootcamps, physical tournaments, and virtual simulation challenges is reserved for active YARA members (amount updated by administrators or confirmed upon inquiry).
             </p>
 
             <div className="space-y-2.5 pt-2">
@@ -553,7 +553,7 @@ export default function Events() {
                 onClick={() => setTrialLockModalOpen(false)}
                 className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition"
               >
-                <span>Activate Membership ($15 USD)</span>
+                <span>Activate Membership (Pay Online)</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
