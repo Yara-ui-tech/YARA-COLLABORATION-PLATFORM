@@ -45,7 +45,7 @@ export async function fetchProgrammingCoursesFromDatabase(): Promise<Programming
         inMemoryProgCourses = clean;
         try {
           localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(clean));
-        } catch {}
+        } catch { }
         return clean;
       }
     }
@@ -64,12 +64,12 @@ export async function fetchProgrammingCoursesFromDatabase(): Promise<Programming
         return clean;
       }
     }
-  } catch {}
+  } catch { }
   return [];
 }
 
 // Background auto-hydration on service load
-fetchProgrammingCoursesFromDatabase().catch(() => {});
+fetchProgrammingCoursesFromDatabase().catch(() => { });
 
 export function getAllCourses(): ProgrammingCourse[] {
   if (inMemoryProgCourses !== null) {
@@ -118,7 +118,7 @@ export function saveCourse(course: ProgrammingCourse): ProgrammingCourse {
   inMemoryProgCourses = courses;
   try {
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
-  } catch {}
+  } catch { }
 
   // Sync to Supabase system_settings so all learners across all devices immediately see this course
   supabase
@@ -151,7 +151,7 @@ export function deleteCourse(courseId: string): void {
   inMemoryProgCourses = courses;
   try {
     localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
-  } catch {}
+  } catch { }
 
   supabase
     .from('system_settings')

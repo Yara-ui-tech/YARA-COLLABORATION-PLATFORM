@@ -4,7 +4,7 @@ import {
   Play, BookOpen, CheckCircle2, Clock, Trophy, Award, 
   ArrowRight, Brain, Cpu, Code, DollarSign, Bell, Star, 
   Sparkles, ShieldCheck, FileText, Check, AlertCircle, Users, CreditCard, MessageSquare,
-  Video, Calendar, ExternalLink
+  Video, Calendar, ExternalLink, Loader2
 } from 'lucide-react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';

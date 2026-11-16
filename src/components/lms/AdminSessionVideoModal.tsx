@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Plus, 
-  Trash2, 
-  Edit2, 
-  ArrowUp, 
-  ArrowDown, 
-  Play, 
-  Video, 
-  Upload, 
-  Link as LinkIcon, 
-  Clock, 
-  Check, 
-  RotateCcw, 
+import {
+  X,
+  Plus,
+  Trash2,
+  Edit2,
+  ArrowUp,
+  ArrowDown,
+  Play,
+  Video,
+  Upload,
+  Link as LinkIcon,
+  Clock,
+  Check,
+  RotateCcw,
   AlertCircle,
   Zap,
   ShieldCheck,
@@ -21,13 +21,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { SessionVideoClip } from '../../types/yaraLms';
-import { 
-  getSessionVideos, 
-  saveSessionVideos, 
-  addSessionVideoClip, 
-  updateSessionVideoClip, 
-  removeSessionVideoClip, 
-  resetSessionVideosToDefault 
+import {
+  getSessionVideos,
+  saveSessionVideos,
+  addSessionVideoClip,
+  updateSessionVideoClip,
+  removeSessionVideoClip,
+  resetSessionVideosToDefault
 } from '../../services/yaraLmsService';
 
 interface Props {
@@ -47,7 +47,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
 }) => {
   const [clips, setClips] = useState<SessionVideoClip[]>([]);
   const [editingClipId, setEditingClipId] = useState<string | null>(null);
-  
+
   // Form State
   const [title, setTitle] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -56,7 +56,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
   const [clipType, setClipType] = useState<SessionVideoClip['clipType']>('concept');
   const [description, setDescription] = useState('');
   const [inputMode, setInputMode] = useState<'url' | 'upload'>('url');
-  
+
   // UI states
   const [previewClip, setPreviewClip] = useState<SessionVideoClip | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -110,7 +110,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
           return;
         }
       }
-      
+
       // Fallback: try materials bucket if videos bucket differs
       const { data: matData, error: matErr } = await supabase.storage
         .from('materials')
@@ -247,7 +247,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-100 animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Modal Header */}
         <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-3">
@@ -289,16 +289,15 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
 
         {/* Feedback Alert */}
         {feedbackMsg && (
-          <div className={`px-6 py-2.5 text-xs font-bold flex items-center gap-2 ${
-            feedbackMsg.type === 'success' ? 'bg-emerald-500/20 text-emerald-300 border-b border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-b border-red-500/30'
-          }`}>
+          <div className={`px-6 py-2.5 text-xs font-bold flex items-center gap-2 ${feedbackMsg.type === 'success' ? 'bg-emerald-500/20 text-emerald-300 border-b border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-b border-red-500/30'
+            }`}>
             <Zap className="w-4 h-4" /> {feedbackMsg.text}
           </div>
         )}
 
         {/* Modal Body */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-y-auto flex-1">
-          
+
           {/* Left Column: Clips List (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center justify-between">
@@ -318,13 +317,12 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
               {clips.map((clip, idx) => (
                 <div
                   key={clip.id}
-                  className={`p-3.5 rounded-2xl border transition ${
-                    editingClipId === clip.id 
-                      ? 'bg-indigo-950/40 border-indigo-500' 
+                  className={`p-3.5 rounded-2xl border transition ${editingClipId === clip.id
+                      ? 'bg-indigo-950/40 border-indigo-500'
                       : previewClip?.id === clip.id
-                      ? 'bg-slate-800/80 border-emerald-500/50'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                  }`}
+                        ? 'bg-slate-800/80 border-emerald-500/50'
+                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 cursor-pointer" onClick={() => setPreviewClip(clip)}>
@@ -336,7 +334,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
                           {clip.title}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-[10px] text-slate-400">
                         <span className="px-1.5 py-0.5 rounded bg-slate-800 font-mono text-emerald-400 flex items-center gap-1">
                           <Clock className="w-2.5 h-2.5" /> {formatSecs(clip.durationSeconds)}
@@ -397,7 +395,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
 
           {/* Right Column: Editor & Preview (7 cols) */}
           <div className="lg:col-span-7 space-y-6">
-            
+
             {/* Form */}
             <form onSubmit={handleSaveClip} className="p-5 rounded-3xl bg-slate-950/70 border border-slate-800 space-y-4">
               <div className="flex items-center justify-between">
@@ -441,18 +439,16 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
                     <button
                       type="button"
                       onClick={() => setInputMode('url')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${
-                        inputMode === 'url' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${inputMode === 'url' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                        }`}
                     >
                       <LinkIcon className="w-2.5 h-2.5" /> Web Link / YouTube
                     </button>
                     <button
                       type="button"
                       onClick={() => setInputMode('upload')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${
-                        inputMode === 'upload' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                      }`}
+                      className={`px-2.5 py-1 rounded-md font-bold transition flex items-center gap-1 ${inputMode === 'upload' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                        }`}
                     >
                       <Upload className="w-2.5 h-2.5" /> Upload File
                     </button>
@@ -588,7 +584,7 @@ export const AdminSessionVideoModal: React.FC<Props> = ({
                     {formatSecs(previewClip.durationSeconds)}
                   </span>
                 </div>
-                
+
                 <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-slate-800 relative">
                   {previewClip.videoUrl.includes('youtube.com') || previewClip.videoUrl.includes('youtu.be') ? (
                     <iframe

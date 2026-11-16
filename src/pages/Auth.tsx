@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { supabase, clearStaleSupabaseAuth, safeSignOut } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award, Globe, Building2, MapPin, HeartHandshake, CheckCircle2 } from 'lucide-react';
+import { LogIn, UserPlus, Github, Mail, Lock, User, ArrowRight, Loader2, Lightbulb, Users, DollarSign, School, GraduationCap, Award, Globe, Building2, MapPin, HeartHandshake, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';

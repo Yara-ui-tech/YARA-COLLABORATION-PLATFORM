@@ -4,7 +4,7 @@ import {
   CreditCard, Smartphone, Building2, CheckCircle2, ShieldCheck,
   Lock, X, ArrowRight, Printer, Download, Sparkles, AlertCircle,
   RefreshCw, DollarSign, Award, Package, Trophy, BookOpen, Heart,
-  Copy, Check, HelpCircle, School, Sliders
+  Copy, Check, HelpCircle, School, Sliders, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';

@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabase';
-import { 
-  UnifiedCourse, 
-  UnifiedEnrollment, 
-  CourseTrack, 
-  CourseCategory, 
+import {
+  UnifiedCourse,
+  UnifiedEnrollment,
+  CourseTrack,
+  CourseCategory,
   MentorHelpRequest,
   LmsReportingOverview,
   CourseQuizQuestion
@@ -99,10 +99,10 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
           const normalizedTrack: CourseTrack = rawTrack.includes('tech') || rawTrack.includes('coding')
             ? 'technology'
             : rawTrack.includes('stem')
-            ? 'stem'
-            : rawTrack.includes('spec')
-            ? 'specialized'
-            : 'robotics';
+              ? 'stem'
+              : rawTrack.includes('spec')
+                ? 'specialized'
+                : 'robotics';
 
           return {
             id: c.id,
@@ -168,7 +168,7 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
             }
           }
         }
-      } catch {}
+      } catch { }
 
       // Merge with any local storage courses that have not yet synced or were created locally
       const stored = getAllCourses();
@@ -203,7 +203,7 @@ export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
         return clean;
       }
     }
-  } catch {}
+  } catch { }
 
   const stored = getAllCourses();
   inMemoryCourses = stored;

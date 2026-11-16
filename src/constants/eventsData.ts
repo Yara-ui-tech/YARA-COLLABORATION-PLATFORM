@@ -128,7 +128,7 @@ export async function fetchAllEvents(): Promise<EventItem[]> {
         }
       });
     }
-  } catch {}
+  } catch { }
 
   return Array.from(eventMap.values());
 }
@@ -171,7 +171,7 @@ export async function saveEventItem(eventData: EventItem): Promise<EventItem> {
       value: { events: all, updated_at: nowIso },
       description: 'YARA Public Events Catalog'
     }, { onConflict: 'key' });
-  } catch {}
+  } catch { }
 
   return eventData;
 }
