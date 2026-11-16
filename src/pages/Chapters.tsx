@@ -647,6 +647,10 @@ export default function Chapters() {
             currentUserEmail={profile?.email}
             onClose={() => setSelectedChapter(null)}
             onOpenReportModal={(chap) => handleOpenReportModal(chap)}
+            onChapterUpdated={(updatedChap) => {
+              setSelectedChapter(updatedChap);
+              fetchChapterData();
+            }}
           />
         )}
       </AnimatePresence>

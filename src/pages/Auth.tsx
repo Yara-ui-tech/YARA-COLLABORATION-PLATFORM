@@ -45,6 +45,7 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [signupHasSession, setSignupHasSession] = useState(false);
   const [error, setError] = useState('');
+  const [publicConsent, setPublicConsent] = useState(true);
   const [courseFee, setCourseFee] = useState({ amount: 0, currency: 'USD', message: 'Platform access and premium training fees are updated by administrators or confirmed upon inquiry.' });
   const navigate = useNavigate();
   const { user, profile, isAuthReady, loginAsGuest } = useAuth();
@@ -207,6 +208,12 @@ export default function Auth() {
         }
       } else {
         // Sign Up Flow - Restricted Admin Access
+        if (!publicConsent) {
+          setError('You must consent to your name/username and chapter directory visibility to register.');
+          setLoading(false);
+          return;
+        }
+
         const cleanEmail = email.trim().toLowerCase();
         const ASSIGNED_ADMIN_EMAILS = [
           'manongwasimbarashe394@gmail.com',
@@ -248,6 +255,9 @@ export default function Auth() {
               school_institution: schoolInstitution.trim() || undefined,
               location_region: effectiveLoc || locationRegion.trim() || undefined,
               disability_type: disabilityType,
+              public_consent: publicConsent,
+              public_directory_consent: publicConsent,
+              display_name_public_consent: publicConsent,
               is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
               underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : undefined,
@@ -280,6 +290,7 @@ export default function Auth() {
               school_institution: schoolInstitution.trim() || null,
               location_region: effectiveLoc || locationRegion.trim() || null,
               disability_type: disabilityType,
+              public_consent: publicConsent,
               is_fee_exempt: isFreeAccessGrantee,
               is_underserved_scholarship: eligibilityCheck.isEligible,
               underserved_scholarship_reason: eligibilityCheck.isEligible ? eligibilityCheck.reason : null,
@@ -829,6 +840,28 @@ export default function Auth() {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={publicConsent}
+                      onChange={e => setPublicConsent(e.target.checked)}
+                      className="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                    />
+                    <div className="text-xs text-slate-700 leading-snug">
+                      <span className="font-bold text-slate-900 block">
+                        Public Chapter & Directory Visibility Consent *
+                      </span>
+                      <span>
+                        I consent and agree that my full name / username, school/institution, and chapter membership will be publicly visible to the community and chapter rosters.
+                      </span>
+                    </div>
+                  </label>
                 </div>
               )}
 

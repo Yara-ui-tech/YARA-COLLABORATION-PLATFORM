@@ -27,7 +27,7 @@ export type ChapterLeaderRole =
   | 'faculty_advisor'
   | 'advisor';
 
-export type ChapterReportCategory = 'general' | 'financial' | 'project_milestone';
+export type ChapterReportCategory = 'general' | 'financial' | 'project_milestone' | 'meeting_minutes' | 'meeting_agenda';
 
 export interface ChapterLeader {
   id: string;
@@ -83,6 +83,7 @@ export interface ChapterMember {
   avatar_url?: string;
   skills?: string[];
   status?: 'active' | 'core_member' | 'alumni' | 'cadet';
+  public_consent?: boolean; // User agreed to public roster visibility
 }
 
 export interface ConfidentialChapterData {
@@ -265,7 +266,7 @@ export interface ChapterReport {
   chapter_name: string;
   chapter_category: ChapterCategory;
   report_title: string;
-  report_category?: 'general' | 'financial' | 'project_milestone';
+  report_category?: ChapterReportCategory;
   period_type: ReportPeriodType;
   period_date: string; // e.g. "2026-03" or "Q1 2026"
   submitted_by_name: string;
@@ -279,6 +280,12 @@ export interface ChapterReport {
   hardware_projects_update?: string;
   challenges_and_needs?: string;
   report_document_url: string; // Google Drive / PDF / Doc link
+  meeting_agenda?: string;     // Agenda topics for club meeting
+  meeting_minutes?: string;    // Recorded discussion & decisions
+  meeting_date?: string;       // Date of club meeting
+  next_meeting_date?: string;  // Upcoming scheduled club meeting
+  meeting_location?: string;   // Lab / venue where club meets
+  website_url?: string;        // Chapter or club website URL
   financial_statement_url?: string;
   financial_data?: ChapterFinancialData;
   supporting_images?: string[];
@@ -324,6 +331,7 @@ export interface ChapterJoinRequest {
   motivation: string;           // Why they want to join
   student_id?: string;          // Optional student number
   id_document_url?: string;     // Optional URL to uploaded ID/student card
+  public_consent?: boolean;     // Applicant agreed to public roster visibility
 
   // Status & Review
   status: ChapterJoinRequestStatus;

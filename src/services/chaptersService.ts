@@ -673,7 +673,7 @@ export function verifyLeadershipAuthorization(
   submitterName?: string,
   accessPin?: string,
   isAdmin: boolean = false,
-  reportCategory: 'general' | 'financial' | 'project_milestone' = 'general',
+  reportCategory: ChapterReportCategory = 'general',
   authenticatedUserEmail?: string
 ): LeadershipVerificationResult {
   if (isAdmin) {
@@ -1090,6 +1090,12 @@ export async function submitChapterReport(
     financial_statement_url: reportData.financial_statement_url,
     financial_data: reportData.financial_data,
     supporting_images: reportData.supporting_images,
+    meeting_agenda: reportData.meeting_agenda,
+    meeting_minutes: reportData.meeting_minutes,
+    meeting_date: reportData.meeting_date,
+    next_meeting_date: reportData.next_meeting_date,
+    meeting_location: reportData.meeting_location,
+    website_url: reportData.website_url,
     id: 'rep-' + Date.now().toString(36),
     submitted_at: now,
     status: 'submitted',
@@ -1108,6 +1114,14 @@ export async function submitChapterReport(
   const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
   const updated = [newReport, ...reports];
   setLocal('yara_chapter_reports', updated);
+
+  if (reportData.website_url) {
+    try {
+      await updateChapter(reportData.chapter_id, { website_url: reportData.website_url });
+    } catch {
+      // fallback
+    }
+  }
 
   try {
     await supabase.from('chapter_reports').insert(newReport);
@@ -1294,6 +1308,7 @@ export async function approveJoinRequest(
       student_or_staff_id: r.student_id,
       joined_date: new Date().toISOString().split('T')[0],
       status: 'active',
+      public_consent: r.public_consent !== false,
       skills: r.skills
     };
     chapters[chIdx].members = [...(chapters[chIdx].members || []), newMember];

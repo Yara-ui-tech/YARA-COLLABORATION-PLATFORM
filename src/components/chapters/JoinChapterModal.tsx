@@ -48,6 +48,7 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [publicConsent, setPublicConsent] = useState(true);
   const [error, setError] = useState('');
 
   // Step 1 — Province
@@ -133,6 +134,10 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
       setError('Please write a motivation statement of at least 30 characters.');
       return;
     }
+    if (!publicConsent) {
+      setError('You must agree to public member roster visibility consent to join this chapter.');
+      return;
+    }
     setError('');
     setSubmitting(true);
     try {
@@ -151,6 +156,7 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
         motivation: form.motivation.trim(),
         student_id: form.student_id || undefined,
         id_document_url: form.id_document_url || undefined,
+        public_consent: publicConsent,
         skills: form.skills,
         user_id: user?.id
       });
@@ -589,6 +595,25 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
                           className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                         />
                       </div>
+                    </div>
+
+                    {/* Public Visibility Consent */}
+                    <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2">
+                      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          required
+                          checked={publicConsent}
+                          onChange={e => setPublicConsent(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                        />
+                        <div className="text-xs text-indigo-950 font-medium leading-snug">
+                          <strong className="block font-bold text-indigo-900">
+                            Public Chapter Member Visibility Agreement *
+                          </strong>
+                          I consent that upon approval, my name / username, role, and student status will be publicly visible to everyone on this chapter's public member roster.
+                        </div>
+                      </label>
                     </div>
 
                     {/* Consent */}

@@ -3,7 +3,8 @@ import {
   FileText, Send, Loader2, AlertCircle, CheckCircle2, 
   Link as LinkIcon, Calendar, Users, Building2, HelpCircle, X,
   Lock, ShieldCheck, ShieldAlert, Key, UserCheck, Check,
-  DollarSign, PieChart, Landmark, Layers, FileSpreadsheet
+  DollarSign, PieChart, Landmark, Layers, FileSpreadsheet,
+  Globe, Clock, MapPin, CheckSquare, ListChecks
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Chapter, ReportPeriodType, ChapterReportCategory, ChapterLeader } from '../../types/chapters';
@@ -47,7 +48,7 @@ export default function SecretaryReportModal({
       if (reportCategory === 'financial') {
         return l.can_submit_financial_reports !== false && ['treasurer', 'chairperson', 'secretary', 'vice_chair', 'vice_secretary'].includes(l.role);
       }
-      return l.can_submit_general_reports !== false && ['secretary', 'vice_secretary', 'chairperson', 'vice_chair'].includes(l.role);
+      return true;
     });
   }, [selectedChapter, reportCategory]);
 
@@ -67,6 +68,13 @@ export default function SecretaryReportModal({
     challenges_and_needs: '',
     report_document_url: '',
     financial_statement_url: '',
+    // Meeting Minutes & Agendas
+    meeting_agenda: '',
+    meeting_minutes: '',
+    meeting_date: new Date().toISOString().split('T')[0],
+    next_meeting_date: '',
+    meeting_location: selectedChapter?.physical_location || '',
+    website_url: selectedChapter?.website_url || '',
     // Financial Data fields
     opening_balance_usd: 0,
     total_inflow_usd: 0,
@@ -81,6 +89,16 @@ export default function SecretaryReportModal({
     tools_and_equipment_usd: 0,
     miscellaneous_usd: 0
   });
+
+  useEffect(() => {
+    if (selectedChapter) {
+      setFormData(prev => ({
+        ...prev,
+        website_url: prev.website_url || selectedChapter.website_url || '',
+        meeting_location: prev.meeting_location || selectedChapter.physical_location || ''
+      }));
+    }
+  }, [selectedChapter]);
 
   const [accessPin, setAccessPin] = useState('');
   const [lockSubmission, setLockSubmission] = useState(true);
@@ -196,7 +214,13 @@ export default function SecretaryReportModal({
           challenges_and_needs: formData.challenges_and_needs,
           report_document_url: formData.report_document_url,
           financial_statement_url: formData.financial_statement_url || formData.report_document_url,
-          financial_data: financialData
+          financial_data: financialData,
+          meeting_agenda: formData.meeting_agenda,
+          meeting_minutes: formData.meeting_minutes,
+          meeting_date: formData.meeting_date,
+          next_meeting_date: formData.next_meeting_date,
+          meeting_location: formData.meeting_location,
+          website_url: formData.website_url
         },
         {
           secretarialAccessPin: accessPin,
@@ -271,25 +295,71 @@ export default function SecretaryReportModal({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
               Select Submission Type *
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setReportCategory('general')}
-                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 ${
-                  reportCategory === 'general'
+                onClick={() => setReportCategory('meeting_minutes')}
+                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 cursor-pointer ${
+                  reportCategory === 'meeting_minutes'
                     ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className={`p-2.5 rounded-xl ${reportCategory === 'general' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                <div className={`p-2.5 rounded-xl ${reportCategory === 'meeting_minutes' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-900">General Progress & Lab Report</h4>
+                  <h4 className="text-xs font-black text-slate-900">Club Meeting Minutes</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Activities, prototypes, hardware updates, learner attendance & needs.
+                    Official minutes, attendance, topics discussed, and action resolutions.
                   </p>
                   <span className="inline-block mt-1 text-[10px] font-bold text-indigo-700">
+                    Roles: Secretary, President / Chairperson
+                  </span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setReportCategory('meeting_agenda')}
+                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 cursor-pointer ${
+                  reportCategory === 'meeting_agenda'
+                    ? 'border-purple-600 bg-purple-50/50 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className={`p-2.5 rounded-xl ${reportCategory === 'meeting_agenda' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  <ListChecks className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-900">Club Meeting Agenda</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Upcoming meeting schedule, items for discussion, and venue notices.
+                  </p>
+                  <span className="inline-block mt-1 text-[10px] font-bold text-purple-700">
+                    Roles: Chapter Leaders &amp; Executives
+                  </span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setReportCategory('general')}
+                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 cursor-pointer ${
+                  reportCategory === 'general'
+                    ? 'border-blue-600 bg-blue-50/50 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className={`p-2.5 rounded-xl ${reportCategory === 'general' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  <CheckSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-900">General Progress &amp; Lab Report</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Prototypes, activities, hardware updates, learner needs &amp; quarterly audits.
+                  </p>
+                  <span className="inline-block mt-1 text-[10px] font-bold text-blue-700">
                     Roles: Secretary, President / Chair
                   </span>
                 </div>
@@ -298,7 +368,7 @@ export default function SecretaryReportModal({
               <button
                 type="button"
                 onClick={() => setReportCategory('financial')}
-                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 ${
+                className={`p-4 rounded-2xl border-2 text-left transition-all flex items-start space-x-3 cursor-pointer ${
                   reportCategory === 'financial'
                     ? 'border-emerald-600 bg-emerald-50/50 shadow-xs'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
@@ -308,9 +378,9 @@ export default function SecretaryReportModal({
                   <Landmark className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-900">Financial Report & Treasury Acquittal</h4>
+                  <h4 className="text-xs font-black text-slate-900">Financial Report &amp; Acquittal</h4>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Budget accounting, national grant acquittal, component procurement & balance sheets.
+                    Treasury accounting, grant acquittal, component purchases &amp; balances.
                   </p>
                   <span className="inline-block mt-1 text-[10px] font-bold text-emerald-700">
                     Roles: Treasurer, President, Secretary
@@ -689,6 +759,176 @@ export default function SecretaryReportModal({
               </div>
             </div>
           )}
+
+          {/* MEETING MINUTES SECTION */}
+          {reportCategory === 'meeting_minutes' && (
+            <div className="p-5 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-4">
+              <div className="flex items-center space-x-2 text-indigo-950">
+                <FileText className="w-5 h-5 text-indigo-700" />
+                <h4 className="text-xs font-black uppercase tracking-wider">Club Meeting Minutes &amp; Resolutions</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Meeting Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.meeting_date}
+                    onChange={e => setFormData({ ...formData, meeting_date: e.target.value })}
+                    className="w-full bg-white border border-indigo-200 rounded-xl py-2 px-3 text-xs font-medium text-black focus:border-indigo-600 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Venue / Meeting Location *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Innovation Lab 2 / STEM Room"
+                    value={formData.meeting_location}
+                    onChange={e => setFormData({ ...formData, meeting_location: e.target.value })}
+                    className="w-full bg-white border border-indigo-200 rounded-xl py-2 px-3 text-xs font-medium text-black focus:border-indigo-600 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Members in Attendance *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={formData.attendance_count}
+                    onChange={e => setFormData({ ...formData, attendance_count: Number(e.target.value) })}
+                    className="w-full bg-white border border-indigo-200 rounded-xl py-2 px-3 text-xs font-bold text-black focus:border-indigo-600 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">Agenda Topics Addressed *</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="1. Welcome & member roll call&#10;2. Hardware rover assembly progress&#10;3. Upcoming regional competition preparation"
+                  value={formData.meeting_agenda}
+                  onChange={e => setFormData({ ...formData, meeting_agenda: e.target.value })}
+                  className="w-full bg-white border border-indigo-200 rounded-xl p-3 text-xs font-medium text-black focus:border-indigo-600 outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">Meeting Minutes &amp; Discussions *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Record discussions held, motions voted upon, key decisions agreed, and prototype demonstrations presented..."
+                  value={formData.meeting_minutes}
+                  onChange={e => setFormData({ ...formData, meeting_minutes: e.target.value })}
+                  className="w-full bg-white border border-indigo-200 rounded-xl p-3 text-xs font-medium text-black focus:border-indigo-600 outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">Action Items &amp; Next Steps</label>
+                <textarea
+                  rows={2}
+                  placeholder="1. Sarah to finalize chassis wiring by Friday&#10;2. Lead to submit team registration&#10;3. Next meeting on Wednesday 3pm"
+                  value={formData.activities_undertaken}
+                  onChange={e => setFormData({ ...formData, activities_undertaken: e.target.value })}
+                  className="w-full bg-white border border-indigo-200 rounded-xl p-3 text-xs font-medium text-black focus:border-indigo-600 outline-none resize-none leading-relaxed"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* MEETING AGENDA SECTION */}
+          {reportCategory === 'meeting_agenda' && (
+            <div className="p-5 bg-purple-50/70 rounded-2xl border border-purple-200 space-y-4">
+              <div className="flex items-center space-x-2 text-purple-950">
+                <ListChecks className="w-5 h-5 text-purple-700" />
+                <h4 className="text-xs font-black uppercase tracking-wider">Upcoming Club Meeting Notice &amp; Agenda</h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Meeting Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.meeting_date}
+                    onChange={e => setFormData({ ...formData, meeting_date: e.target.value })}
+                    className="w-full bg-white border border-purple-200 rounded-xl py-2 px-3 text-xs font-medium text-black focus:border-purple-600 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Meeting Venue / Lab *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Physics Lab 1, CUT Innovation Center"
+                    value={formData.meeting_location}
+                    onChange={e => setFormData({ ...formData, meeting_location: e.target.value })}
+                    className="w-full bg-white border border-purple-200 rounded-xl py-2 px-3 text-xs font-medium text-black focus:border-purple-600 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-700 uppercase">Next Follow-Up Date</label>
+                  <input
+                    type="date"
+                    value={formData.next_meeting_date}
+                    onChange={e => setFormData({ ...formData, next_meeting_date: e.target.value })}
+                    className="w-full bg-white border border-purple-200 rounded-xl py-2 px-3 text-xs font-medium text-black focus:border-purple-600 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">Agenda Topics &amp; Schedule of Business *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="1. Call to order and approval of previous minutes&#10;2. Hardware rover sensor testing&#10;3. National competition hackathon roster&#10;4. Any Other Business (AOB)"
+                  value={formData.meeting_agenda}
+                  onChange={e => setFormData({ ...formData, meeting_agenda: e.target.value })}
+                  className="w-full bg-white border border-purple-200 rounded-xl p-3 text-xs font-medium text-black focus:border-purple-600 outline-none resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase">Preparation / Requirements for Members</label>
+                <textarea
+                  rows={2}
+                  placeholder="Members are requested to bring their laptops with Arduino IDE installed and bring safety goggles..."
+                  value={formData.challenges_and_needs}
+                  onChange={e => setFormData({ ...formData, challenges_and_needs: e.target.value })}
+                  className="w-full bg-white border border-purple-200 rounded-xl p-3 text-xs font-medium text-black focus:border-purple-600 outline-none resize-none leading-relaxed"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Chapter Website URL Attachment */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center space-x-2">
+              <Globe className="w-4 h-4 text-indigo-600" />
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Attach / Update Chapter Website URL (Optional)
+              </label>
+            </div>
+            <input
+              type="url"
+              placeholder="https://yara-cut.ac.zw or https://cut-robotics-club.org"
+              value={formData.website_url}
+              onChange={e => setFormData({ ...formData, website_url: e.target.value })}
+              className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-xs font-mono font-medium text-black focus:border-indigo-600 outline-none"
+            />
+            <p className="text-[10px] text-slate-500">
+              Chapter leaders can attach their official club webpage, university portal, or GitHub repository. This link is publicly displayed on the chapter directory card.
+            </p>
+          </div>
 
           {/* Cloud Document Link */}
           <div className="space-y-2 p-5 bg-indigo-50/60 rounded-2xl border border-indigo-100">
