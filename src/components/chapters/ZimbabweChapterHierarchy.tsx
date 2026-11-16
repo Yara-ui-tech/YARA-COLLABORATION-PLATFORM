@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { 
   Building2, School, Users, Cpu, MapPin, ChevronRight, 
   ArrowLeft, Landmark, BookOpen, Layers, CheckCircle2, UserPlus, 
-  Globe, Shield, Sparkles, Compass
+  Globe, Shield, Sparkles, Compass, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ZIMBABWE_PROVINCES, ProvinceHierarchy, DistrictHierarchy } from '../../constants/zimbabweHierarchy';
+import { 
+  ZIMBABWE_PROVINCES, ProvinceHierarchy, DistrictHierarchy,
+  ZIMBABWE_GOVERNMENT_MINISTRIES, getProvincialMinistries, MinistryPartner
+} from '../../constants/zimbabweHierarchy';
 import { Chapter } from '../../types/chapters';
 import { cn } from '../../lib/utils';
 
@@ -177,6 +180,60 @@ export default function ZimbabweChapterHierarchy({ chapters, onRequestJoin, onVi
               );
             })}
           </div>
+
+          {/* National Ministry & Youth Authority Partners Section */}
+          <div className="mt-8 pt-8 border-t border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                  <Landmark className="w-5 h-5 text-indigo-600" />
+                  <span>Zimbabwe Ministries & Youth Authority Partners</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Government ministries and statutory bodies coordinating youth STEM curricula, robotics competitions, Education 5.0, and youth empowerment grants.
+                </p>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">Official Government Portals</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ZIMBABWE_GOVERNMENT_MINISTRIES.map(m => (
+                <div 
+                  key={m.id}
+                  className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border", m.badgeColor)}>
+                        {m.abbreviation}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">{m.focus}</span>
+                    </div>
+
+                    <h4 className="font-bold text-slate-900 text-sm leading-snug">{m.name}</h4>
+                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                      {m.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-mono truncate max-w-[150px]">
+                      {m.websiteUrl.replace('https://', '')}
+                    </span>
+                    <a
+                      href={m.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs transition-colors shadow-xs"
+                    >
+                      <span>Visit Portal</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -238,6 +295,64 @@ export default function ZimbabweChapterHierarchy({ chapters, onRequestJoin, onVi
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Provincial Ministries & Youth Directorates in Selected Province */}
+          <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="font-black text-slate-900 text-base flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-indigo-600" />
+                  <span>Provincial Ministries & Youth Directorates: {selectedProvince.name}</span>
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Government ministry directorates, education offices, and statutory youth agencies operating in {selectedProvince.name}. Follow their portals for syllabus updates, youth grants, and university incubation news.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-slate-400">Provincial Directory</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {getProvincialMinistries(selectedProvince.name).map(min => (
+                <div 
+                  key={min.id}
+                  className="p-5 bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border", min.badgeColor)}>
+                        {min.abbreviation}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">{min.focus}</span>
+                    </div>
+
+                    <div>
+                      <h5 className="font-black text-slate-900 text-sm leading-snug">{min.provincialOffice}</h5>
+                      <p className="text-[10px] text-indigo-600 font-semibold">{min.name}</p>
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                      {min.role}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">
+                      {min.websiteUrl.replace('https://', '')}
+                    </span>
+                    <a
+                      href={min.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs transition-colors shadow-xs"
+                    >
+                      <span>Updates & Portal</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

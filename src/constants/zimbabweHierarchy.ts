@@ -9,6 +9,111 @@ export interface DistrictHierarchy {
   }>;
 }
 
+export interface MinistryPartner {
+  id: string;
+  name: string;
+  abbreviation: string;
+  websiteUrl: string;
+  portalUrl?: string;
+  role: string;
+  focus: string;
+  badgeColor?: string;
+  description: string;
+}
+
+export const ZIMBABWE_GOVERNMENT_MINISTRIES: MinistryPartner[] = [
+  {
+    id: 'mopse',
+    name: 'Ministry of Primary and Secondary Education',
+    abbreviation: 'MoPSE',
+    websiteUrl: 'https://mopse.co.zw',
+    portalUrl: 'https://mopse.co.zw',
+    role: 'Primary & Secondary STEM Curriculum, Science Exhibitions & School Robotics Clubs',
+    focus: 'School STEM & Robotics',
+    badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    description: 'Directs national primary and secondary education, school innovation curricula, national science competitions, and high school STEM clubs.'
+  },
+  {
+    id: 'mhtestd',
+    name: 'Ministry of Higher and Tertiary Education, Innovation, Science and Technology Development',
+    abbreviation: 'MHTESTD',
+    websiteUrl: 'https://www.mhtestd.gov.zw',
+    portalUrl: 'https://www.mhtestd.gov.zw',
+    role: 'Education 5.0, Universities, Polytechnics, Industrial Parks & AI Research Hubs',
+    focus: 'Higher Ed & Innovation 5.0',
+    badgeColor: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+    description: 'Drives Zimbabwe’s Education 5.0 doctrine, university innovation hubs, industrial technology parks, polytechnic colleges, and national robotics research.'
+  },
+  {
+    id: 'zyc',
+    name: 'Zimbabwe Youth Council',
+    abbreviation: 'ZYC',
+    websiteUrl: 'https://zyc.org.zw',
+    portalUrl: 'https://www.youth.gov.zw',
+    role: 'National Youth Registration, Empowerment Funds, Provincial Youth Centers & Hubs',
+    focus: 'Youth Empowerment & Hubs',
+    badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
+    description: 'Statutory body coordinating youth organizations, national youth innovation grants, provincial youth hubs, and tech entrepreneurship.'
+  },
+  {
+    id: 'myedvt',
+    name: 'Ministry of Youth Empowerment, Development and Vocational Training',
+    abbreviation: 'MYEDVT',
+    websiteUrl: 'https://www.youth.gov.zw',
+    portalUrl: 'https://www.youth.gov.zw',
+    role: 'Vocational Training Centers (VTCs), Youth Incubation & Provincial Youth Officers',
+    focus: 'Vocational Training & Skills',
+    badgeColor: 'bg-purple-50 text-purple-800 border-purple-200',
+    description: 'Manages national vocational training centers (VTCs), youth development funds, apprenticeship schemes, and provincial youth administrative desks.'
+  },
+  {
+    id: 'mictpcs',
+    name: 'Ministry of Information Communication Technology, Postal and Courier Services',
+    abbreviation: 'MICTPCS',
+    websiteUrl: 'https://www.ictministry.gov.zw',
+    portalUrl: 'https://www.ictministry.gov.zw',
+    role: 'National Digital Economy, Smart Zimbabwe 2030, Community Information Centres (CICs)',
+    focus: 'Digital Economy & Tech Policy',
+    badgeColor: 'bg-blue-50 text-blue-800 border-blue-200',
+    description: 'Formulates national ICT policies, Smart Zimbabwe 2030 digital masterplan, digital literacy drives, and provincial tech hubs.'
+  },
+  {
+    id: 'potraz',
+    name: 'Postal and Telecommunications Regulatory Authority of Zimbabwe',
+    abbreviation: 'POTRAZ',
+    websiteUrl: 'https://www.potraz.gov.zw',
+    portalUrl: 'https://www.potraz.gov.zw',
+    role: 'Universal Services Fund (USF), School Robotics & Computer Labs, Provincial Hackathons',
+    focus: 'Connectivity & Tech Grants',
+    badgeColor: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+    description: 'Administers the Universal Services Fund, equipping rural and urban schools with computer/robotics labs, Community Information Centres, and annual youth hackathons.'
+  }
+];
+
+export function getProvincialMinistries(provinceName: string): (MinistryPartner & { provincialOffice: string })[] {
+  const cleanProvince = provinceName.replace(' Province', '').replace(' Metropolitan', '');
+  return ZIMBABWE_GOVERNMENT_MINISTRIES.map(m => {
+    let office = `${m.abbreviation} ${cleanProvince} Provincial Office`;
+    if (m.id === 'mopse') {
+      office = `MoPSE Provincial Education Directorate (${cleanProvince})`;
+    } else if (m.id === 'mhtestd') {
+      office = `MHTESTD Innovation & Tertiary Directorate (${cleanProvince})`;
+    } else if (m.id === 'zyc') {
+      office = `ZYC Provincial Youth Empowerment Hub (${cleanProvince})`;
+    } else if (m.id === 'myedvt') {
+      office = `MYEDVT Vocational Training & Youth Desk (${cleanProvince})`;
+    } else if (m.id === 'mictpcs') {
+      office = `Ministry of ICT Community Information Centre (${cleanProvince})`;
+    } else if (m.id === 'potraz') {
+      office = `POTRAZ Universal Service Fund Lab (${cleanProvince})`;
+    }
+    return {
+      ...m,
+      provincialOffice: office
+    };
+  });
+}
+
 export interface ProvinceHierarchy {
   id: string;
   name: string;

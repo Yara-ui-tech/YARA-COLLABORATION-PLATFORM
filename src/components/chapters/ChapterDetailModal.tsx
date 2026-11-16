@@ -11,6 +11,7 @@ import { motion } from 'motion/react';
 import { Chapter, ChapterMember, ChapterReport, ChapterClub } from '../../types/chapters';
 import { cn } from '../../lib/utils';
 import { getChapterReports, updateChapter } from '../../services/chaptersService';
+import { getProvincialMinistries } from '../../constants/zimbabweHierarchy';
 import ClubFormationModal from './ClubFormationModal';
 
 interface ChapterDetailModalProps {
@@ -394,6 +395,54 @@ export default function ChapterDetailModal({
                   </a>
                 </div>
               )}
+
+              {/* Provincial Ministry & Youth Partners (User requirement: Ministries for each province and website links e.g. mopse, mhtest, zyc) */}
+              <div className="p-5 bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Landmark className="w-4 h-4 text-indigo-600" />
+                    <span className="font-bold text-slate-900 text-xs">
+                      Provincial Government Ministries & Youth Authorities ({currentChapter.province})
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold">Official Portals</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Official ministries overseeing primary/secondary STEM curricula (MoPSE), university research & Education 5.0 (MHTESTD), youth empowerment & grants (ZYC), and community digital labs (POTRAZ):
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                  {getProvincialMinistries(currentChapter.province).slice(0, 6).map(m => (
+                    <a
+                      key={m.id}
+                      href={m.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-white hover:bg-indigo-50/50 rounded-xl border border-slate-200/80 hover:border-indigo-300 transition-all flex flex-col justify-between group shadow-2xs"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className={cn("px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border", m.badgeColor)}>
+                            {m.abbreviation}
+                          </span>
+                          <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                        </div>
+                        <h6 className="font-bold text-slate-900 text-[11px] leading-tight group-hover:text-indigo-700 transition-colors">
+                          {m.provincialOffice}
+                        </h6>
+                        <p className="text-[10px] text-slate-500 line-clamp-2 mt-1">
+                          {m.role}
+                        </p>
+                      </div>
+
+                      <span className="text-[10px] text-indigo-600 font-bold mt-2 flex items-center space-x-1">
+                        <span>Visit Website</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
 
               {/* Description */}
               <div className="space-y-2">

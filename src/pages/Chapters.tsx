@@ -15,6 +15,7 @@ import ChapterRegistrationModal from '../components/chapters/ChapterRegistration
 import ChapterAutoSuggestCard from '../components/chapters/ChapterAutoSuggestCard';
 import JoinChapterModal from '../components/chapters/JoinChapterModal';
 import ZimbabweChapterHierarchy from '../components/chapters/ZimbabweChapterHierarchy';
+import { ZIMBABWE_GOVERNMENT_MINISTRIES, getProvincialMinistries } from '../constants/zimbabweHierarchy';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { cn } from '../lib/utils';
 
@@ -319,6 +320,49 @@ export default function Chapters() {
               <Landmark className="w-3.5 h-3.5" />
               <span>Provincial Lead Hubs</span>
             </button>
+          </div>
+        </div>
+
+        {/* Ministries & Youth Authorities Government Updates Bar (User requirement: Ministries for each province e.g. mopse, mhtest, zyc) */}
+        <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Landmark className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-black text-slate-900 text-xs block">
+                  {selectedProvince !== 'ALL'
+                    ? `Provincial Ministries & Youth Authorities (${selectedProvince})`
+                    : 'Zimbabwe Government Ministries & Youth Authority Partners'}
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Follow official portals for school robotics curricula, Education 5.0, youth funds, and community tech hubs.
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Official Portals</span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {(selectedProvince !== 'ALL' 
+              ? getProvincialMinistries(selectedProvince)
+              : ZIMBABWE_GOVERNMENT_MINISTRIES
+            ).map(m => (
+              <a
+                key={m.id}
+                href={m.websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-slate-700 hover:text-indigo-900 font-bold text-xs transition-all shrink-0"
+              >
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-white border border-slate-200">
+                  {m.abbreviation}
+                </span>
+                <span className="truncate max-w-[170px]">{('provincialOffice' in m ? (m as any).provincialOffice : m.name).replace('Ministry of ', '')}</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            ))}
           </div>
         </div>
 
