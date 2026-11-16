@@ -1428,6 +1428,7 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS leaders JSONB DEFAULT '[]';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS members JSONB DEFAULT '[]';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS projects JSONB DEFAULT '[]';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS activities JSONB DEFAULT '[]';
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS clubs JSONB DEFAULT '[]';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS patron_advisor JSONB DEFAULT '{}';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS confidential_info JSONB DEFAULT '{}';
 ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
@@ -4537,6 +4538,8 @@ CALL public.safely_apply_policy('Hosts manage live rooms', 'live_rooms', 'CREATE
 
 CALL public.safely_apply_policy('Chapters viewable by all', 'chapters', 'CREATE POLICY "Chapters viewable by all" ON public.chapters FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Admins manage chapters', 'chapters', 'CREATE POLICY "Admins manage chapters" ON public.chapters FOR ALL USING (public.is_admin())');
+CALL public.safely_apply_policy('Users can insert chapters', 'chapters', 'CREATE POLICY "Users can insert chapters" ON public.chapters FOR INSERT WITH CHECK (true)');
+CALL public.safely_apply_policy('Users can update chapters', 'chapters', 'CREATE POLICY "Users can update chapters" ON public.chapters FOR UPDATE USING (true) WITH CHECK (true)');
 
 CALL public.safely_apply_policy('Partners viewable by all', 'partners', 'CREATE POLICY "Partners viewable by all" ON public.partners FOR SELECT USING (true)');
 CALL public.safely_apply_policy('Admins manage partners', 'partners', 'CREATE POLICY "Admins manage partners" ON public.partners FOR ALL USING (public.is_admin())');

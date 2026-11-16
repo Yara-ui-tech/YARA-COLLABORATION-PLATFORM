@@ -100,6 +100,28 @@ export interface ConfidentialChapterData {
   }[];
 }
 
+export interface ChapterClub {
+  id: string;
+  chapter_id: string; // parent university/hub chapter id
+  chapter_name: string;
+  club_name: string;
+  specialization: string; // e.g. 'Autonomous Rovers', 'Drone & Aerospace', 'AgriTech Robotics', 'AI & Mechatronics'
+  description: string;
+  meeting_schedule?: string;
+  lab_location?: string;
+  chairperson_name: string;
+  chairperson_email: string;
+  chairperson_phone?: string;
+  secretary_name?: string;
+  secretary_email?: string;
+  patron_name?: string;
+  patron_email?: string;
+  status: 'active' | 'forming' | 'chartered';
+  founding_member_names: string[];
+  members_count?: number;
+  created_at: string;
+}
+
 export interface Chapter {
   id: string;
   name: string; // e.g. "YARA Chinhoyi University of Technology (CUT) Chapter"
@@ -141,6 +163,7 @@ export interface Chapter {
   focus_areas: string[];
   leaders: ChapterLeader[];
   members?: ChapterMember[];
+  clubs?: ChapterClub[];
   projects: ChapterProject[];
   activities: ChapterActivity[];
   patron_advisor?: {
@@ -190,6 +213,11 @@ export interface ChapterRegistrationRequest {
   // Provincial University Lead Reference
   assigned_provincial_university_id?: string;
   assigned_provincial_university_name?: string;
+
+  // Club / Sub-Chapter Formation Reference
+  is_club_request?: boolean;
+  parent_chapter_id?: string;
+  parent_chapter_name?: string;
 
   // Applicant details
   applicant_name?: string;

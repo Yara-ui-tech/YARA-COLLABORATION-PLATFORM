@@ -3,11 +3,11 @@ import {
   X, ChevronRight, ChevronLeft, MapPin, Building2, School, Users, Cpu,
   BookOpen, CheckCircle2, Clock, AlertCircle, User, Mail, Phone,
   GraduationCap, Star, FileText, Send, Globe, Layers, Heart,
-  UserPlus, Landmark, Shield
+  UserPlus, Landmark, Shield, Search, Plus, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Chapter, ChapterJoinRequest } from '../../types/chapters';
-import { getChapters, submitJoinRequest, PROVINCIAL_LEAD_UNIVERSITIES } from '../../services/chaptersService';
+import { Chapter, ChapterJoinRequest, ChapterCategory } from '../../types/chapters';
+import { getChapters, submitJoinRequest, createChapter, PROVINCIAL_LEAD_UNIVERSITIES } from '../../services/chaptersService';
 import { useAuth } from '../AuthContext';
 import { cn } from '../../lib/utils';
 
@@ -55,6 +55,15 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
   const [selectedProvince, setSelectedProvince] = useState('');
   // Step 2 — Chapter
   const [selectedChapterId, setSelectedChapterId] = useState(preselectedChapterId || '');
+  // Step 2 — Search & Custom Section Creation (User requirement: leave room to add school, university, community)
+  const [chapterSearch, setChapterSearch] = useState('');
+  const [isAddingSection, setIsAddingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [newSectionCategory, setNewSectionCategory] = useState<ChapterCategory>('high_school');
+  const [newSectionDistrict, setNewSectionDistrict] = useState('');
+  const [newSectionDescription, setNewSectionDescription] = useState('');
+  const [isCreatingSection, setIsCreatingSection] = useState(false);
+
   // Step 3 — Application form
   const [form, setForm] = useState({
     full_name: profile?.display_name || '',
@@ -99,8 +108,66 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
 
   const chaptersByProvince = useMemo(() => {
     if (!selectedProvince) return [];
-    return chapters.filter(c => c.province === selectedProvince);
-  }, [chapters, selectedProvince]);
+    let list = chapters.filter(c => 
+      c.province.toLowerCase() === selectedProvince.toLowerCase() || 
+      c.province.includes(selectedProvince)
+    );
+    if (chapterSearch.trim()) {
+      const q = chapterSearch.toLowerCase();
+      list = list.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.institution_or_community.toLowerCase().includes(q) ||
+        (c.code && c.code.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [chapters, selectedProvince, chapterSearch]);
+
+  const handleCreateNewSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSectionName.trim()) {
+      setError('Please enter your school, university, or community hub name.');
+      return;
+    }
+    setError('');
+    setIsCreatingSection(true);
+    try {
+      const provinceAbbr = (selectedProvince || 'ZW').replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+      const instAbbr = newSectionName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase();
+      const code = `YARA-${provinceAbbr}-${instAbbr}-${Math.floor(10 + Math.random() * 90)}`;
+
+      const newChap = await createChapter({
+        name: `YARA ${newSectionName.trim()} Chapter`,
+        code,
+        category: newSectionCategory,
+        institution_or_community: newSectionName.trim(),
+        province: selectedProvince || 'Harare',
+        district_or_city: newSectionDistrict.trim() || `${selectedProvince || 'Harare'} District`,
+        description: newSectionDescription.trim() || `Official YARA robotics innovation section for ${newSectionName.trim()}.`,
+        established_date: new Date().toISOString().split('T')[0],
+        status: 'active',
+        approval_status: 'approved',
+        focus_areas: ['Robotics Hardware', 'STEM Education', 'Community Tech'],
+        total_members_count: 0,
+        active_projects_count: 0,
+        leaders: [],
+        members: [],
+        clubs: [],
+        projects: [],
+        activities: []
+      });
+
+      setChapters(prev => [newChap, ...prev]);
+      setSelectedChapterId(newChap.id);
+      setForm(f => ({ ...f, institution: newChap.institution_or_community }));
+      setIsAddingSection(false);
+      setStep(3);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create section. Please try again.');
+    } finally {
+      setIsCreatingSection(false);
+    }
+  };
 
   const selectedChapter = useMemo(() =>
     chapters.find(c => c.id === selectedChapterId) || null
@@ -338,9 +405,128 @@ export default function JoinChapterModal({ isOpen, onClose, preselectedChapterId
                       </p>
                     </div>
 
+                    {/* Search and Section Creator Bar */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search university, school, or community..."
+                          value={chapterSearch}
+                          onChange={e => setChapterSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-white text-black font-medium text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingSection(!isAddingSection)}
+                        className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center justify-center space-x-1.5 transition-all shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{isAddingSection ? 'Close Form' : '+ Add Your Section'}</span>
+                      </button>
+                    </div>
+
+                    {/* Inline Form to add a new University, School, or Community Section */}
+                    {isAddingSection && (
+                      <div className="p-4 bg-gradient-to-r from-amber-50 via-indigo-50 to-amber-50 rounded-2xl border-2 border-amber-300 space-y-3">
+                        <div className="flex items-center space-x-2 text-amber-900 font-bold text-xs">
+                          <Sparkles className="w-4 h-4 text-amber-600" />
+                          <span>Register Your Institution or Community Section</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Enter your school, university, or community hub name. It will be immediately registered in {selectedProvince} so that you and all other members from your institution can join this section!
+                        </p>
+
+                        <div className="space-y-3 pt-1">
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                              School / University / Community Hub Name *
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. St. George's College, or Mabvuku Tech Hub"
+                              value={newSectionName}
+                              onChange={e => setNewSectionName(e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-black text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 block mb-1">Category *</label>
+                              <select
+                                value={newSectionCategory}
+                                onChange={e => setNewSectionCategory(e.target.value as ChapterCategory)}
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-black text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                              >
+                                <option value="university">University / Higher Ed</option>
+                                <option value="polytechnic">Polytechnic / College</option>
+                                <option value="high_school">High School</option>
+                                <option value="primary_school">Primary School</option>
+                                <option value="community_youth">Community Youth Hub</option>
+                                <option value="stem_club">Makerspace / Independent Club</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-[11px] font-bold text-slate-700 block mb-1">District or City</label>
+                              <input
+                                type="text"
+                                placeholder={`e.g. ${selectedProvince} Urban`}
+                                value={newSectionDistrict}
+                                onChange={e => setNewSectionDistrict(e.target.value)}
+                                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-black text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-700 block mb-1">Brief Description (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. High school student robotics lab and electronics team"
+                              value={newSectionDescription}
+                              onChange={e => setNewSectionDescription(e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-black text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingSection(false)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-300 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCreateNewSection}
+                              disabled={isCreatingSection}
+                              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all disabled:opacity-50 flex items-center space-x-1.5"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>{isCreatingSection ? 'Registering...' : 'Save & Select Section'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {chaptersByProvince.length === 0 ? (
-                      <div className="text-center py-10 text-slate-500 text-sm">
-                        No active chapters found in {selectedProvince} yet.
+                      <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-3">
+                        <p className="text-slate-600 text-sm font-medium">
+                          No chapters matched your search in {selectedProvince}.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingSection(true)}
+                          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs inline-flex items-center space-x-1.5"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Your School or Community Section Now</span>
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-3">

@@ -148,7 +148,7 @@ export default function Chapters() {
             </h1>
 
             <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-              Explore hands-on robotics chapters across Zimbabwean universities (CUT, UZ), polytechnics, high schools, primary schools, and community centers. In every province, the designated Provincial University heads and mentors regional junior chapters.
+              Explore hands-on robotics chapters across all Zimbabwean universities (UZ, NUST, CUT, MSU, HIT, GZU, BUSE, MSUAS, MUAST, LSU, GSU, Africa University, Solusi, CUZ, WUA, ZEGU, RCU, AJU, ZOU, ZNDU, Harare & Bulawayo Polytechnics), high schools, and community centers. Members can join their university section, form specialized clubs with their university peers, or register their own school, college, or community hub.
             </p>
 
             {/* Quick Action Buttons */}
@@ -166,7 +166,15 @@ export default function Chapters() {
                 className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center space-x-2 transition-all"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>Join a Chapter</span>
+                <span>Join a Chapter / University</span>
+              </button>
+
+              <button
+                onClick={() => { setJoinPreselectedId(undefined); setJoinModalOpen(true); }}
+                className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold text-xs flex items-center space-x-2 transition-all"
+              >
+                <Plus className="w-4 h-4 text-amber-400" />
+                <span>+ Add Your School or Community Section</span>
               </button>
 
               <button

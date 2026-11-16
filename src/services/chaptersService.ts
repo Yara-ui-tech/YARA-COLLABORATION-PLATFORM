@@ -1,8 +1,10 @@
 import { 
   Chapter, ChapterReport, NationalExecutiveAssessment, ChapterLeader, 
-  ChapterLeaderRole, ChapterFinancialData, ChapterMember, ChapterRegistrationRequest 
+  ChapterLeaderRole, ChapterFinancialData, ChapterMember, ChapterRegistrationRequest,
+  ChapterClub
 } from '../types/chapters';
 import { supabase } from '../lib/supabase';
+import { ZIMBABWE_UNIVERSITIES } from '../constants/locationsData';
 
 export const PROVINCIAL_LEAD_UNIVERSITIES: Record<string, { universityName: string; chapterCode: string; defaultChapterName: string }> = {
   'Mashonaland West': {
@@ -80,7 +82,61 @@ export function formatRoleName(role: ChapterLeaderRole | string): string {
   }
 }
 
-const INITIAL_CHAPTERS: Chapter[] = [];
+export function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export const STANDARD_ZIMBABWE_UNIVERSITIES: Chapter[] = ZIMBABWE_UNIVERSITIES.map(u => ({
+  id: `univ-${u.code.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+  name: `YARA ${u.name} Chapter`,
+  code: u.code,
+  category: u.category,
+  institution_or_community: u.name,
+  province: u.province,
+  district_or_city: `${u.city}, ${u.province}`,
+  description: u.description,
+  established_date: '2024-01-15',
+  status: 'active' as const,
+  approval_status: 'approved' as const,
+  is_provincial_lead_university: Boolean(u.isProvincialLead),
+  assigned_provincial_university_name: u.isProvincialLead ? undefined : PROVINCIAL_LEAD_UNIVERSITIES[u.province]?.universityName,
+  website_url: u.websiteUrl,
+  motto: u.isProvincialLead ? 'Provincial Robotics & Technology Anchor' : 'Innovate. Build. Lead.',
+  total_members_count: 0,
+  active_projects_count: 0,
+  meeting_schedule: 'Wednesdays & Fridays 15:00 - 17:30',
+  physical_location: 'Main Campus Innovation & Mechatronics Hub',
+  focus_areas: ['Robotics Hardware', 'Embedded Systems', 'IoT & Telemetry', 'Autonomous Systems', 'Artificial Intelligence'],
+  leaders: [],
+  members: [],
+  clubs: [],
+  projects: [],
+  activities: [],
+  created_at: '2024-01-15T08:00:00.000Z',
+  updated_at: new Date().toISOString()
+}));
+
+export const INITIAL_CHAPTERS: Chapter[] = [...STANDARD_ZIMBABWE_UNIVERSITIES];
+
+export function mergeWithStandardUniversities(existing: Chapter[]): Chapter[] {
+  const existingCodes = new Set(existing.map(c => c.code?.toUpperCase()));
+  const existingNames = new Set(existing.map(c => c.name?.toLowerCase().trim()));
+  const existingInst = new Set(existing.map(c => (c.institution_or_community || '').toLowerCase().trim()));
+
+  const missingStandards = STANDARD_ZIMBABWE_UNIVERSITIES.filter(std => 
+    !existingCodes.has(std.code.toUpperCase()) &&
+    !existingNames.has(std.name.toLowerCase().trim()) &&
+    !existingInst.has(std.institution_or_community.toLowerCase().trim())
+  );
+
+  return [...existing, ...missingStandards];
+}
 
 const INITIAL_REGISTRATION_REQUESTS: ChapterRegistrationRequest[] = [];
 
@@ -550,11 +606,15 @@ export async function getChapters(includeConfidential: boolean = false): Promise
   const applyDeleteFilter = (chs: Chapter[]) => 
     deletedIds.length > 0 ? chs.filter(c => !deletedIds.includes(c.id)) : chs;
 
-  const local = applyDeleteFilter(getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS));
+  const rawLocal = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const localMerged = mergeWithStandardUniversities(rawLocal);
+  const local = applyDeleteFilter(localMerged);
+
   try {
     const { data, error } = await supabase.from('chapters').select('*').order('created_at', { ascending: false });
-    if (!error && data && data.length > 0) {
-      const filtered = applyDeleteFilter(data);
+    if (!error && data) {
+      const merged = mergeWithStandardUniversities(data);
+      const filtered = applyDeleteFilter(merged);
       // Also update local cache with latest Supabase data
       setLocal('yara_chapters_data', filtered);
       if (!includeConfidential) {
@@ -583,10 +643,19 @@ export async function getChapterById(id: string, includeConfidential: boolean = 
   return chapters.find(c => c.id === id) || null;
 }
 
-export async function createChapter(chapter: Omit<Chapter, 'id' | 'created_at' | 'updated_at'>): Promise<Chapter> {
+export async function createChapter(chapter: Omit<Chapter, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Promise<Chapter> {
   const newChapter: Chapter = {
     ...chapter,
-    id: 'ch-' + Date.now().toString(36),
+    id: chapter.id || generateUUID(),
+    total_members_count: chapter.total_members_count || 0,
+    active_projects_count: chapter.active_projects_count || 0,
+    leaders: chapter.leaders || [],
+    members: chapter.members || [],
+    clubs: chapter.clubs || [],
+    projects: chapter.projects || [],
+    activities: chapter.activities || [],
+    status: chapter.status || 'active',
+    approval_status: chapter.approval_status || 'approved',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -597,11 +666,119 @@ export async function createChapter(chapter: Omit<Chapter, 'id' | 'created_at' |
 
   try {
     await supabase.from('chapters').insert(newChapter);
+  } catch (err) {
+    console.warn('Failed to insert chapter into Supabase, local cache preserved:', err);
+  }
+
+  return newChapter;
+}
+
+export async function submitClubFormationRequest(data: {
+  parent_chapter_id: string;
+  parent_chapter_name: string;
+  club_name: string;
+  specialization: string;
+  description: string;
+  meeting_schedule?: string;
+  lab_location?: string;
+  chairperson_name: string;
+  chairperson_email: string;
+  chairperson_phone?: string;
+  secretary_name?: string;
+  secretary_email?: string;
+  patron_name?: string;
+  patron_email?: string;
+  founding_member_names: string[];
+}): Promise<{ club: ChapterClub; request: ChapterRegistrationRequest }> {
+  const clubId = generateUUID();
+  const newClub: ChapterClub = {
+    id: clubId,
+    chapter_id: data.parent_chapter_id,
+    chapter_name: data.parent_chapter_name,
+    club_name: data.club_name,
+    specialization: data.specialization,
+    description: data.description,
+    meeting_schedule: data.meeting_schedule,
+    lab_location: data.lab_location,
+    chairperson_name: data.chairperson_name,
+    chairperson_email: data.chairperson_email,
+    chairperson_phone: data.chairperson_phone,
+    secretary_name: data.secretary_name,
+    secretary_email: data.secretary_email,
+    patron_name: data.patron_name,
+    patron_email: data.patron_email,
+    status: 'active',
+    founding_member_names: data.founding_member_names,
+    members_count: data.founding_member_names.length,
+    created_at: new Date().toISOString()
+  };
+
+  // Add club to parent chapter in local storage and supabase
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === data.parent_chapter_id);
+  if (chIdx >= 0) {
+    const existingClubs = chapters[chIdx].clubs || [];
+    chapters[chIdx].clubs = [newClub, ...existingClubs.filter(c => c.id !== newClub.id)];
+    chapters[chIdx].updated_at = new Date().toISOString();
+    setLocal('yara_chapters_data', chapters);
+
+    try {
+      await supabase.from('chapters').update({
+        clubs: chapters[chIdx].clubs,
+        updated_at: chapters[chIdx].updated_at
+      }).eq('id', data.parent_chapter_id);
+    } catch {
+      // fallback
+    }
+  }
+
+  // Also submit administrative registration record for executive oversight
+  const requestId = generateUUID();
+  const parentProvince = chIdx >= 0 ? chapters[chIdx].province : 'Harare';
+  const parentCity = chIdx >= 0 ? chapters[chIdx].district_or_city : '';
+  const newReq: ChapterRegistrationRequest = {
+    id: requestId,
+    proposed_name: `YARA ${data.parent_chapter_name} - ${data.club_name}`,
+    category: 'stem_club',
+    institution_or_community: data.parent_chapter_name,
+    province: parentProvince,
+    district_or_city: parentCity,
+    description: data.description,
+    physical_location: data.lab_location || 'Campus Innovation Lab',
+    meeting_schedule: data.meeting_schedule || 'Weekly Sessions',
+    focus_areas: [data.specialization, 'Robotics', 'Mechatronics'],
+    public_email: data.chairperson_email,
+    public_phone: data.chairperson_phone || '',
+    total_members_count: data.founding_member_names.length,
+    is_club_request: true,
+    parent_chapter_id: data.parent_chapter_id,
+    parent_chapter_name: data.parent_chapter_name,
+    patron_advisor: data.patron_name ? {
+      name: data.patron_name,
+      title: 'Faculty Club Advisor',
+      organization: data.parent_chapter_name,
+      email: data.patron_email
+    } : undefined,
+    applicant_name: data.chairperson_name,
+    applicant_email: data.chairperson_email,
+    applicant_phone: data.chairperson_phone,
+    applicant_role: 'Club Chairperson / Founder',
+    status: 'approved',
+    admin_notes: 'University Robotics Club chartered under parent university chapter.',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  const requests = getLocal<ChapterRegistrationRequest[]>('yara_chapter_registration_requests', INITIAL_REGISTRATION_REQUESTS);
+  setLocal('yara_chapter_registration_requests', [newReq, ...requests]);
+
+  try {
+    await supabase.from('chapter_registration_requests').insert(newReq);
   } catch {
     // fallback
   }
 
-  return newChapter;
+  return { club: newClub, request: newReq };
 }
 
 export async function updateChapter(id: string, updates: Partial<Chapter>): Promise<Chapter | null> {

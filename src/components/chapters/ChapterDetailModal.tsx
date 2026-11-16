@@ -5,12 +5,13 @@ import {
   CheckCircle2, AlertCircle, X, ChevronRight,
   Share2, Award, Clock, ArrowRight, Landmark, Search,
   GraduationCap, UserCheck, Shield, Globe, Edit2, Plus,
-  ListChecks, CheckSquare
+  ListChecks, CheckSquare, Rocket
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Chapter, ChapterMember, ChapterReport } from '../../types/chapters';
+import { Chapter, ChapterMember, ChapterReport, ChapterClub } from '../../types/chapters';
 import { cn } from '../../lib/utils';
 import { getChapterReports, updateChapter } from '../../services/chaptersService';
+import ClubFormationModal from './ClubFormationModal';
 
 interface ChapterDetailModalProps {
   chapter: Chapter;
@@ -30,9 +31,10 @@ export default function ChapterDetailModal({
   onChapterUpdated
 }: ChapterDetailModalProps) {
   const [currentChapter, setCurrentChapter] = useState<Chapter>(chapter);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'minutes_agendas' | 'projects' | 'activities' | 'leadership' | 'confidential'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'clubs' | 'minutes_agendas' | 'projects' | 'activities' | 'leadership' | 'confidential'>('overview');
   const [memberSearch, setMemberSearch] = useState('');
   const [memberRoleFilter, setMemberRoleFilter] = useState('ALL');
+  const [isClubModalOpen, setIsClubModalOpen] = useState(false);
 
   // Website editing
   const [isEditingWebsite, setIsEditingWebsite] = useState(false);
@@ -269,6 +271,14 @@ export default function ChapterDetailModal({
                         <span>{currentChapter.website_url ? 'Edit Website' : 'Attach Website'}</span>
                       </button>
                     )}
+                    <button
+                      onClick={() => setIsClubModalOpen(true)}
+                      className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-sm transition-all"
+                      title="Form a specialized robotics club using members in this university section"
+                    >
+                      <Rocket className="w-3.5 h-3.5" />
+                      <span>Form a Club</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -295,6 +305,7 @@ export default function ChapterDetailModal({
             {[
               { id: 'overview', label: 'Chapter Overview' },
               { id: 'members', label: `👥 Members Roster (${currentChapter.members?.length || currentChapter.total_members_count || 0})` },
+              { id: 'clubs', label: `🏛️ Clubs & Societies (${(currentChapter.clubs || []).length})` },
               { id: 'minutes_agendas', label: `📜 Meetings & Minutes (${meetingReports.length})` },
               { id: 'projects', label: `Projects (${currentChapter.projects?.length || 0})` },
               { id: 'activities', label: `Activities & Workshops (${currentChapter.activities?.length || 0})` },
@@ -562,6 +573,111 @@ export default function ChapterDetailModal({
                           )}
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: CLUBS & SOCIETIES (User requirement: Form a club using all those members in their university section) */}
+          {activeTab === 'clubs' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-indigo-50/80 via-slate-50 to-amber-50/50 p-4 rounded-2xl border border-indigo-100">
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
+                    <Rocket className="w-4 h-4 text-indigo-600" />
+                    <span>University Robotics Clubs & Societies</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Specialized clubs formed by members of {currentChapter.name} for competitions, research, and lab projects.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsClubModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-200 flex items-center space-x-1.5 transition-all self-start sm:self-center shrink-0"
+                >
+                  <Rocket className="w-3.5 h-3.5" />
+                  <span>Form a Club in this Section</span>
+                </button>
+              </div>
+
+              {(!currentChapter.clubs || currentChapter.clubs.length === 0) ? (
+                <div className="p-10 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+                    <Rocket className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">No Specialized Clubs Formed Yet</h5>
+                    <p className="text-slate-500 text-xs mt-1 max-w-md mx-auto">
+                      Members of this university can assemble teams and submit a request to charter an autonomous rover squad, drone society, or AI hardware club using the registered members in this section!
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsClubModalOpen(true)}
+                    className="mt-2 inline-flex items-center space-x-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Propose the First Club</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {currentChapter.clubs.map(club => (
+                    <div
+                      key={club.id}
+                      className="p-5 bg-white rounded-2xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700">
+                            {club.specialization}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            {club.status}
+                          </span>
+                        </div>
+
+                        <h5 className="font-black text-slate-900 text-sm">{club.club_name}</h5>
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                          {club.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span className="flex items-center space-x-1">
+                            <Users className="w-3 h-3 text-indigo-500" />
+                            <span>{club.founding_member_names?.length || 0} Founding Members</span>
+                          </span>
+                          <span className="font-bold text-slate-800">
+                            Lead: {club.chairperson_name}
+                          </span>
+                        </div>
+
+                        {club.lab_location && (
+                          <div className="text-[10px] text-slate-500 flex items-center space-x-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span>{club.lab_location}</span>
+                          </div>
+                        )}
+
+                        {club.founding_member_names && club.founding_member_names.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {club.founding_member_names.slice(0, 5).map(m => (
+                              <span key={m} className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 text-[9px] font-medium border border-slate-100">
+                                {m}
+                              </span>
+                            ))}
+                            {club.founding_member_names.length > 5 && (
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold">
+                                +{club.founding_member_names.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1035,6 +1151,22 @@ export default function ChapterDetailModal({
           </div>
         </div>
       </motion.div>
+
+      {/* Club Formation Request Modal */}
+      {isClubModalOpen && (
+        <ClubFormationModal
+          isOpen={isClubModalOpen}
+          chapter={currentChapter}
+          currentUserEmail={currentUserEmail}
+          onClose={() => setIsClubModalOpen(false)}
+          onSuccess={(newClub) => {
+            const updatedClubs = [newClub, ...(currentChapter.clubs || []).filter(c => c.id !== newClub.id)];
+            const next = { ...currentChapter, clubs: updatedClubs };
+            setCurrentChapter(next);
+            onChapterUpdated?.(next);
+          }}
+        />
+      )}
     </div>
   );
 }
