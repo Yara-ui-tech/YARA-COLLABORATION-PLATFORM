@@ -21,7 +21,8 @@ import {
   checkDuplicateCourse, 
   getLmsReportingOverview,
   fetchCoursesFromDatabase,
-  clearAllCourses
+  clearAllCourses,
+  ensureUuid
 } from '../../services/unifiedCourseService';
 import { UniversalCoursePlayerModal } from '../lms/UniversalCoursePlayerModal';
 import ImageUploader from '../ImageUploader';
@@ -96,14 +97,15 @@ export const CourseManagementStudio: React.FC = () => {
     setEditingCourse(null);
     setCurrentStep(1);
     setDuplicateWarning(null);
+    const newCourseId = ensureUuid();
     setForm({
-      id: `yara-crs-${Date.now()}`,
+      id: newCourseId,
       code: `YARA-CRS-${Math.floor(100 + Math.random() * 900)}`,
       title: '',
       slug: '',
       version: '1.0',
-      track: 'technology',
-      category: 'python',
+      track: 'robotics',
+      category: 'robotics',
       level: 'Beginner',
       estimatedDurationHours: 14,
       shortSummary: '',
@@ -118,7 +120,7 @@ export const CourseManagementStudio: React.FC = () => {
       membershipRequired: false,
       certificationEnabled: true,
       certificationTitle: 'YARA Certificate of Technical Competence',
-      certificationFeeUsd: 5,
+      certificationFeeUsd: 0,
       isPublished: true,
       isDraft: false,
       isFeatured: false,
@@ -126,8 +128,8 @@ export const CourseManagementStudio: React.FC = () => {
       rating: 4.9,
       modules: [
         {
-          id: `mod-${Date.now()}-1`,
-          courseId: '',
+          id: ensureUuid(),
+          courseId: newCourseId,
           moduleNumber: 1,
           order: 1,
           title: 'Module 1: Foundations & Systems Overview',
@@ -139,7 +141,7 @@ export const CourseManagementStudio: React.FC = () => {
           videoUrl: 'https://www.youtube.com/watch?v=0hYg4q6MvdE',
           resources: [],
           guidedLab: {
-            id: `lab-${Date.now()}-1`,
+            id: ensureUuid(),
             title: 'Lab 1: Hands-on Setup & Validation',
             objective: 'Validate bench hardware and setup development toolchain.',
             equipment: ['Computer', 'Breadboard starter components'],
@@ -149,7 +151,7 @@ export const CourseManagementStudio: React.FC = () => {
             troubleshootingTips: ['Check loose cables and power connectors.']
           },
           assignment: {
-            id: `asg-${Date.now()}-1`,
+            id: ensureUuid(),
             title: 'Assignment 1: Technical Documentation & Build Test',
             instructions: 'Submit your calculated readings or source code.',
             rubric: [
@@ -161,7 +163,7 @@ export const CourseManagementStudio: React.FC = () => {
           },
           quizQuestions: [
             {
-              id: `q-${Date.now()}-1`,
+              id: ensureUuid(),
               question: 'Which component provides logic processing in an embedded robot?',
               options: ['Battery', 'Microcontroller / CPU', 'Chassis', 'Wheel'],
               correctIndex: 1,
@@ -195,31 +197,31 @@ export const CourseManagementStudio: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.title?.trim() || !form.code?.trim()) {
       showNotice('error', 'Course title and course code are required.');
       return;
     }
 
     const courseToSave: UnifiedCourse = {
-      id: form.id || `yara-crs-${Date.now()}`,
+      id: form.id ? ensureUuid(form.id) : ensureUuid(),
       code: form.code.trim().toUpperCase(),
       title: form.title.trim(),
       slug: form.slug || form.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       version: form.version || '1.0',
-      track: form.track || 'technology',
-      category: form.category || 'python',
+      track: form.track || 'robotics',
+      category: form.category || 'robotics',
       level: form.level || 'Beginner',
-      estimatedDurationHours: Number(form.estimatedDurationHours) || 10,
-      shortSummary: form.shortSummary || form.description?.substring(0, 120) || '',
-      description: form.description || '',
+      estimatedDurationHours: Number(form.estimatedDurationHours) || 12,
+      shortSummary: (form.shortSummary || form.description?.substring(0, 120) || '').trim(),
+      description: (form.description || '').trim(),
       thumbnailUrl: form.thumbnailUrl || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
       instructorName: form.instructorName || 'YARA Engineering Faculty',
       instructorTitle: form.instructorTitle || 'Senior Robotics Instructor',
       hardwareRequired: form.hardwareRequired || [],
       learningOutcomes: form.learningOutcomes || [],
       prerequisites: form.prerequisites || [],
-      accessRule: form.accessRule || 'free',
+      accessRule: 'free',
       membershipRequired: form.membershipRequired || false,
       certificationEnabled: form.certificationEnabled ?? true,
       certificationTitle: form.certificationTitle || `${form.title} Certificate`,
@@ -229,20 +231,33 @@ export const CourseManagementStudio: React.FC = () => {
       isFeatured: form.isFeatured ?? false,
       enrolledCount: form.enrolledCount || 0,
       rating: form.rating || 4.9,
-      modules: form.modules || [],
+      modules: (form.modules || []).map((m, i) => ({
+        ...m,
+        id: ensureUuid(m.id),
+        moduleNumber: m.moduleNumber || (i + 1),
+        order: m.order || (i + 1)
+      })),
       totalModulesCount: form.modules?.length || 0,
       createdAt: form.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    saveCourse(courseToSave);
-    refreshCourses();
+    await saveCourse(courseToSave);
+    await refreshCourses();
     setIsModalOpen(false);
-    showNotice('success', `Course "${courseToSave.title}" saved successfully to LMS!`);
+    showNotice('success', `Course "${courseToSave.title}" published successfully to LMS!`);
   };
 
   const filteredCourses = courses.filter(c => {
-    if (selectedTrack !== 'all' && c.track !== selectedTrack) return false;
+    if (selectedTrack !== 'all') {
+      const ct = (c.track || '').toLowerCase();
+      const st = selectedTrack.toLowerCase();
+      if (st === 'robotics' && !(ct === 'robotics' || ct === 'robotics_academy')) return false;
+      if (st === 'technology' && !(ct === 'technology' || ct.includes('tech') || ct.includes('coding'))) return false;
+      if (st === 'stem' && !(ct === 'stem' || ct.includes('stem'))) return false;
+      if (st === 'specialized' && !(ct === 'specialized' || ct.includes('spec'))) return false;
+      if (st !== 'robotics' && st !== 'technology' && st !== 'stem' && st !== 'specialized' && ct !== st) return false;
+    }
     if (selectedStatus === 'published' && (!c.isPublished || c.isDraft)) return false;
     if (selectedStatus === 'draft' && (c.isPublished && !c.isDraft)) return false;
     if (searchQuery.trim()) {
@@ -315,7 +330,7 @@ export const CourseManagementStudio: React.FC = () => {
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none">
             {[
               { id: 'all', label: 'All Tracks' },
-              { id: 'robotics_academy', label: 'Robotics' },
+              { id: 'robotics', label: 'Robotics' },
               { id: 'technology', label: 'Technology' },
               { id: 'stem', label: 'STEM' },
               { id: 'specialized', label: 'Specialized' }
@@ -540,11 +555,11 @@ export const CourseManagementStudio: React.FC = () => {
                     <div>
                       <label className="block font-bold text-slate-300 mb-1">Track</label>
                       <select
-                        value={form.track}
+                        value={form.track === 'robotics_academy' ? 'robotics' : (form.track || 'robotics')}
                         onChange={(e) => setForm({ ...form, track: e.target.value as any })}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="robotics_academy">YARA Robotics Academy</option>
+                        <option value="robotics">YARA Robotics Academy</option>
                         <option value="technology">Technology & Programming</option>
                         <option value="stem">STEM Education & Pedagogy</option>
                         <option value="specialized">Specialized & Industrial</option>
@@ -620,7 +635,7 @@ export const CourseManagementStudio: React.FC = () => {
                       onClick={() => {
                         const newModNumber = (form.modules?.length || 0) + 1;
                         const newMod: CourseModule = {
-                          id: `mod-${Date.now()}-${newModNumber}`,
+                          id: ensureUuid(),
                           courseId: form.id || '',
                           moduleNumber: newModNumber,
                           order: newModNumber,
@@ -633,7 +648,7 @@ export const CourseManagementStudio: React.FC = () => {
                           videoUrl: '',
                           resources: [],
                           guidedLab: {
-                            id: `lab-${Date.now()}-${newModNumber}`,
+                            id: ensureUuid(),
                             title: `Lab ${newModNumber}: Practical Exercise`,
                             objective: 'Execute bench procedure.',
                             equipment: ['Standard Kit'],

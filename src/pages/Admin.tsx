@@ -1346,7 +1346,7 @@ export default function Admin() {
                       required
                       value={eventForm.title}
                       onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                       placeholder="e.g. Robotics Workshop"
                     />
                   </div>
@@ -1355,7 +1355,7 @@ export default function Admin() {
                     <select
                       value={eventForm.category}
                       onChange={(e) => setEventForm({ ...eventForm, category: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                     >
                       <option value="competition">Competition</option>
                       <option value="workshop">Workshop</option>
@@ -1371,7 +1371,7 @@ export default function Admin() {
                     required
                     value={eventForm.description}
                     onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px]"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px] text-slate-900 placeholder:text-slate-400"
                     placeholder="Tell us about the event..."
                   />
                 </div>
@@ -1384,7 +1384,7 @@ export default function Admin() {
                       required
                       value={eventForm.date}
                       onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                     />
                   </div>
                   <div>
@@ -1394,7 +1394,7 @@ export default function Admin() {
                       required
                       value={eventForm.location}
                       onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                       placeholder="e.g. Harare, Zimbabwe"
                     />
                   </div>
@@ -1415,9 +1415,8 @@ export default function Admin() {
                       type="url"
                       value={eventForm.registration_link}
                       onChange={(e) => setEventForm({ ...eventForm, registration_link: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                       placeholder="Google Form or Website link"
-
                     />
                   </div>
                 </div>
@@ -1480,7 +1479,7 @@ export default function Admin() {
                     required
                     value={compForm.title}
                     onChange={(e) => setCompForm({ ...compForm, title: e.target.value })}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                     placeholder="e.g. Micromouse 2026"
                   />
                 </div>
@@ -1491,7 +1490,7 @@ export default function Admin() {
                     required
                     value={compForm.description}
                     onChange={(e) => setCompForm({ ...compForm, description: e.target.value })}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px]"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium min-h-[100px] text-slate-900 placeholder:text-slate-400"
                     placeholder="Details about the competition..."
                   />
                 </div>
@@ -1504,7 +1503,7 @@ export default function Admin() {
                       required
                       value={compForm.start_date}
                       onChange={(e) => setCompForm({ ...compForm, start_date: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                     />
                   </div>
                   <div>
@@ -1514,7 +1513,7 @@ export default function Admin() {
                       required
                       value={compForm.end_date}
                       onChange={(e) => setCompForm({ ...compForm, end_date: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                     />
                   </div>
                   <div>
@@ -1522,7 +1521,7 @@ export default function Admin() {
                     <select
                       value={compForm.status}
                       onChange={(e) => setCompForm({ ...compForm, status: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                     >
                       <option value="upcoming">Upcoming</option>
                       <option value="active">Active (Ongoing)</option>
@@ -1546,7 +1545,7 @@ export default function Admin() {
                       type="url"
                       value={compForm.registration_link}
                       onChange={(e) => setCompForm({ ...compForm, registration_link: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                       placeholder="Google Form link"
                     />
                   </div>
@@ -1591,7 +1590,7 @@ export default function Admin() {
                     required
                     value={newMemberEmail}
                     onChange={(e) => setNewMemberEmail(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900 placeholder:text-slate-400"
                     placeholder="member@example.com"
                   />
                 </div>
@@ -1601,7 +1600,7 @@ export default function Admin() {
                   <select
                     value={newMemberRole}
                     onChange={(e) => setNewMemberRole(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-medium text-slate-900"
                   >
                     <option value="innovator">Innovator</option>
                     <option value="mentor">Mentor</option>
@@ -1615,7 +1614,7 @@ export default function Admin() {
                     type="text"
                     value={newMemberId}
                     onChange={(e) => setNewMemberId(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-mono"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 focus:outline-none focus:border-indigo-600 transition-all font-mono text-slate-900 placeholder:text-slate-400"
                     placeholder="YARA-2026-XXXX"
                   />
                 </div>

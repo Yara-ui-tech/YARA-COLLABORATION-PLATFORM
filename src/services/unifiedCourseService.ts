@@ -22,40 +22,40 @@ const STORAGE_KEYS = {
 // 1. COURSE CATALOGUE & DISCOVERY (Single Source of Truth)
 // ============================================================================
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(str?: string): boolean {
+  return typeof str === 'string' && UUID_REGEX.test(str.trim());
+}
+
+export function ensureUuid(str?: string): string {
+  if (str && isValidUuid(str)) return str.trim();
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 const DISALLOWED_COURSE_CODES = [
-  'YARA-TECH-PY101', 'YARA-TECH-SCRATCH', 'YARA-TECH-JS101', 'YARA-TECH-IOT',
-  'YARA-STEM-AI-EDU', 'YARA-STEM-PATRON', 'YARA-ENG-CAD', 'YARA-IND-PLC',
-  'YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV', 'YARA-STEM-PAT',
-  'YARA-TECH-PY', 'YARA-TECH-SCR', 'YARA-TECH-JS', 'YARA-STEM-EDU', 'YARA-IND-CAD'
+  'YARA-TECH-PY101-LEGACY', 'YARA-TECH-SCRATCH-LEGACY'
 ];
 
 const DISALLOWED_COURSE_IDS = [
-  'yara-python-robotics', 'yara-scratch-robotics', 'yara-js-iot', 'yara-iot-mqtt',
-  'yara-ai-educators', 'yara-school-patron', 'yara-cad-pcb', 'yara-industrial-plc'
+  'legacy-dummy-placeholder-01'
 ];
 
 export function isDisallowedCourse(c: any): boolean {
   if (!c) return true;
   const code = (c.code || '').toUpperCase().trim();
   const id = (c.id || '').toLowerCase().trim();
-  const title = (c.title || '').toLowerCase().trim();
 
+  // Only filter deprecated legacy IDs if strictly specified. NEVER block dynamic admin courses!
   if (DISALLOWED_COURSE_CODES.includes(code)) return true;
   if (DISALLOWED_COURSE_IDS.includes(id)) return true;
-  if (id.startsWith('yara-rob-level')) return true;
-
-  if (
-    title.includes('python for robotics') ||
-    title.includes('scratch block coding') ||
-    title.includes('javascript & web dashboards') ||
-    title.includes('iot telemetry, mqtt') ||
-    title.includes('ai for educators & robotics patrons') ||
-    title.includes('school robotics club formation') ||
-    title.includes('cad 3d modeling & kicad') ||
-    title.includes('industrial automation, plc')
-  ) {
-    return true;
-  }
 
   return false;
 }
@@ -86,69 +86,85 @@ export function getAllCourses(): UnifiedCourse[] {
 
 export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
   try {
-    // Purge deprecated courses from Supabase if they exist
-    try {
-      await supabase.from('courses').delete().in('code', DISALLOWED_COURSE_CODES);
-      await supabase.from('courses').delete().in('id', DISALLOWED_COURSE_IDS);
-    } catch {
-      // best effort
-    }
-
     const { data, error } = await supabase
       .from('courses')
       .select('*, course_modules(*)')
-      .order('order_index', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (!error && Array.isArray(data)) {
       const mapped: UnifiedCourse[] = data
         .filter(c => !isDisallowedCourse(c))
-        .map(c => ({
-          id: c.id,
-          code: c.code || `YARA-CRS-${c.id.slice(0, 4)}`,
-          title: c.title,
-          slug: c.slug || c.id,
-          version: '1.0',
-          track: ((c.track || 'robotics').toLowerCase() as CourseTrack),
-          category: 'robotics',
-          level: (c.level as any) || 'Beginner',
-          estimatedDurationHours: c.estimated_duration_hours || 12,
-          shortSummary: c.short_summary || '',
-          description: c.description || '',
-          thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
-          instructorName: 'YARA Engineering Faculty',
-          instructorTitle: 'Senior Robotics Instructor',
-          hardwareRequired: Array.isArray(c.hardware_required) ? c.hardware_required : [],
-          learningOutcomes: Array.isArray(c.learning_outcomes) ? c.learning_outcomes : [],
-          prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites : [],
-          accessRule: 'free',
-          membershipRequired: false,
-          certificationEnabled: true,
-          certificationTitle: 'Certificate of Competence',
-          certificationFeeUsd: 0,
-          isPublished: c.is_published ?? true,
-          isDraft: c.is_draft ?? false,
-          isFeatured: c.is_featured ?? false,
-          totalModulesCount: c.course_modules?.length || c.total_modules || 0,
-          modules: (c.course_modules || []).map((m: any) => ({
-            id: m.id,
-            moduleNumber: m.module_number || 1,
-            title: m.title,
-            skillArea: m.coherent_skill_area || 'Core Concepts',
-            description: m.description || '',
-            durationMinutes: m.duration_minutes || 60,
-            theoryOverview: m.theory_overview || '',
-            theoryKeyConcepts: m.theory_key_concepts || [],
-            videoLessonUrl: m.video_lesson_url,
-            videoDurationMinutes: m.video_duration_minutes || 15,
-            videoTranscript: m.video_transcript,
-            resources: m.resources || [],
-            quizQuestions: m.quiz_questions || []
-          }))
-        }));
+        .map(c => {
+          const rawTrack = (c.track || 'robotics').toLowerCase();
+          const normalizedTrack: CourseTrack = rawTrack.includes('tech') || rawTrack.includes('coding')
+            ? 'technology'
+            : rawTrack.includes('stem')
+            ? 'stem'
+            : rawTrack.includes('spec')
+            ? 'specialized'
+            : 'robotics';
 
-      inMemoryCourses = mapped;
-      saveCoursesToStorage(mapped);
-      return mapped;
+          return {
+            id: c.id,
+            code: c.code || `YARA-CRS-${c.id.slice(0, 4)}`,
+            title: c.title,
+            slug: c.slug || c.id,
+            version: '1.0',
+            track: normalizedTrack,
+            category: 'robotics',
+            level: (c.level as any) || 'Beginner',
+            estimatedDurationHours: c.estimated_duration_hours || 12,
+            shortSummary: c.short_summary || '',
+            description: c.description || '',
+            thumbnailUrl: c.thumbnail_url || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
+            instructorName: 'YARA Engineering Faculty',
+            instructorTitle: 'Senior Robotics Instructor',
+            hardwareRequired: Array.isArray(c.hardware_required) ? c.hardware_required : [],
+            learningOutcomes: Array.isArray(c.learning_outcomes) ? c.learning_outcomes : [],
+            prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites : [],
+            accessRule: 'free',
+            membershipRequired: false,
+            certificationEnabled: true,
+            certificationTitle: 'Certificate of Competence',
+            certificationFeeUsd: 0,
+            isPublished: c.is_published ?? true,
+            isDraft: c.is_draft ?? false,
+            isFeatured: c.is_featured ?? false,
+            totalModulesCount: c.course_modules?.length || c.total_modules || 0,
+            modules: (c.course_modules || []).map((m: any) => ({
+              id: m.id,
+              courseId: c.id,
+              moduleNumber: m.module_number || 1,
+              title: m.title,
+              skillArea: m.coherent_skill_area || 'Core Concepts',
+              coherentSkillArea: m.coherent_skill_area || 'Core Concepts',
+              description: m.description || '',
+              durationMinutes: m.duration_minutes || 60,
+              theoryOverview: m.theory_overview || '',
+              theoryKeyConcepts: m.theory_key_concepts || [],
+              videoUrl: m.video_url || m.video_lesson_url,
+              videoLessonUrl: m.video_url || m.video_lesson_url,
+              videoDurationMinutes: m.video_duration_minutes || Math.round((m.video_duration_seconds || 360) / 60) || 15,
+              videoTranscript: m.video_transcript,
+              resources: m.resources || [],
+              quizQuestions: m.quiz_questions || []
+            }))
+          };
+        });
+
+      // Merge with any local storage courses that have not yet synced or were created locally
+      const stored = getAllCourses();
+      const dbIds = new Set(mapped.map(c => c.id));
+      const merged = [...mapped];
+      for (const sc of stored) {
+        if (!dbIds.has(sc.id) && !isDisallowedCourse(sc)) {
+          merged.push(sc);
+        }
+      }
+
+      inMemoryCourses = merged;
+      saveCoursesToStorage(merged);
+      return merged;
     }
   } catch (err) {
     console.warn('Supabase fetch courses error:', err);
@@ -567,52 +583,108 @@ export function checkDuplicateCourse(title: string, code: string, existingId?: s
   };
 }
 
-export function saveCourse(course: UnifiedCourse): UnifiedCourse {
+export async function saveCourse(course: UnifiedCourse): Promise<UnifiedCourse> {
   const courses = getAllCourses();
-  const existingIdx = courses.findIndex(c => c.id === course.id);
+  const validCourseId = ensureUuid(course.id);
   const now = new Date().toISOString();
+
+  // Normalize track for DB constraint & UI display
+  const rawTrack = (course.track || 'robotics').toLowerCase();
+  let dbTrack = 'Robotics';
+  if (rawTrack.includes('tech') || rawTrack.includes('coding') || rawTrack.includes('prog')) {
+    dbTrack = 'Technology';
+  } else if (rawTrack.includes('stem') || rawTrack.includes('edu')) {
+    dbTrack = 'STEM';
+  } else if (rawTrack.includes('spec') || rawTrack.includes('ind')) {
+    dbTrack = 'Specialized';
+  }
+
+  // Ensure modules have valid UUIDs and properties
+  const processedModules = (course.modules || []).map((m, idx) => ({
+    ...m,
+    id: ensureUuid(m.id),
+    courseId: validCourseId,
+    moduleNumber: m.moduleNumber || (idx + 1),
+    order: m.order || (idx + 1),
+    videoUrl: m.videoUrl || (m as any).videoLessonUrl || '',
+    videoLessonUrl: m.videoLessonUrl || m.videoUrl || ''
+  }));
+
   const updated: UnifiedCourse = {
     ...course,
-    totalModulesCount: course.modules.length,
+    id: validCourseId,
+    slug: course.slug || course.id || validCourseId,
+    track: ((rawTrack === 'robotics_academy' ? 'robotics' : rawTrack) as CourseTrack),
+    modules: processedModules,
+    totalModulesCount: processedModules.length,
     updatedAt: now
   };
 
+  const existingIdx = courses.findIndex(c => c.id === updated.id || (course.id && c.id === course.id));
   if (existingIdx >= 0) {
     courses[existingIdx] = updated;
   } else {
-    updated.createdAt = now;
+    updated.createdAt = course.createdAt || now;
     courses.unshift(updated);
   }
 
+  // Immediately persist to local storage for instant responsiveness
   saveCoursesToStorage(courses);
 
-  // Asynchronously persist to Supabase database
-  (async () => {
-    try {
-      await supabase.from('courses').upsert({
-        id: updated.id,
-        code: updated.code,
-        title: updated.title,
-        slug: updated.slug || updated.id,
-        track: updated.track,
-        level: updated.level,
-        short_summary: updated.shortSummary,
-        description: updated.description,
-        thumbnail_url: updated.thumbnailUrl,
-        estimated_duration_hours: updated.estimatedDurationHours,
-        hardware_required: updated.hardwareRequired,
-        learning_outcomes: updated.learningOutcomes,
-        prerequisites: updated.prerequisites,
-        is_published: updated.isPublished,
-        is_draft: updated.isDraft,
-        is_featured: updated.isFeatured,
-        total_modules: updated.modules.length,
+  // Persist course to Supabase database
+  try {
+    const { error: courseErr } = await supabase.from('courses').upsert({
+      id: updated.id,
+      code: updated.code,
+      title: updated.title,
+      slug: updated.slug || updated.id,
+      track: dbTrack,
+      level: updated.level || 'Beginner',
+      short_summary: updated.shortSummary,
+      description: updated.description,
+      thumbnail_url: updated.thumbnailUrl,
+      estimated_duration_hours: updated.estimatedDurationHours,
+      hardware_required: updated.hardwareRequired,
+      learning_outcomes: updated.learningOutcomes,
+      prerequisites: updated.prerequisites,
+      is_published: updated.isPublished ?? true,
+      is_draft: updated.isDraft ?? false,
+      is_featured: updated.isFeatured ?? false,
+      total_modules: processedModules.length,
+      updated_at: now
+    }, { onConflict: 'id' });
+
+    if (courseErr) {
+      console.warn('Supabase course upsert warning:', courseErr);
+    }
+
+    // Persist modules to course_modules table
+    for (let i = 0; i < processedModules.length; i++) {
+      const mod = processedModules[i];
+      const { error: modErr } = await supabase.from('course_modules').upsert({
+        id: mod.id,
+        course_id: updated.id,
+        module_number: mod.moduleNumber,
+        order_index: i + 1,
+        title: mod.title,
+        coherent_skill_area: mod.skillArea || (mod as any).coherentSkillArea || 'Core Systems Knowledge',
+        description: mod.description || '',
+        duration_minutes: mod.durationMinutes || 45,
+        theory_overview: mod.theoryOverview || '',
+        theory_key_concepts: mod.theoryKeyConcepts || [],
+        video_url: mod.videoUrl || mod.videoLessonUrl || null,
+        is_published: true,
+        is_draft: false,
         updated_at: now
       }, { onConflict: 'id' });
-    } catch (err) {
-      console.warn('Supabase course sync error:', err);
+
+      if (modErr) {
+        console.warn('Supabase module upsert warning:', modErr);
+      }
     }
-  })();
+  } catch (err) {
+    console.warn('Supabase course sync error:', err);
+  }
 
   // Auto-create matching certificate template
   try {

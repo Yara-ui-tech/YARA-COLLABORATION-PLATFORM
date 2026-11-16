@@ -200,12 +200,27 @@ export const CoursesTab: React.FC<Props> = ({
     loadCourses();
   }, []);
   
+  const isCourseInTrack = (courseTrack: string = '', targetTrack: string) => {
+    if (targetTrack === 'all') return true;
+    const ct = (courseTrack || '').toLowerCase();
+    if (targetTrack === 'robotics') return ct === 'robotics' || ct === 'robotics_academy' || ct.includes('robot');
+    if (targetTrack === 'technology') return ct === 'technology' || ct.includes('tech') || ct.includes('coding') || ct.includes('prog');
+    if (targetTrack === 'stem') return ct === 'stem' || ct.includes('stem') || ct.includes('edu');
+    if (targetTrack === 'specialized') return ct === 'specialized' || ct.includes('spec') || ct.includes('ind');
+    return ct === targetTrack;
+  };
+
+  const trackCounts = useMemo(() => ({
+    all: allLmsCourses.length,
+    robotics: allLmsCourses.filter(c => isCourseInTrack(c.track, 'robotics')).length,
+    technology: allLmsCourses.filter(c => isCourseInTrack(c.track, 'technology')).length,
+    stem: allLmsCourses.filter(c => isCourseInTrack(c.track, 'stem')).length,
+    specialized: allLmsCourses.filter(c => isCourseInTrack(c.track, 'specialized')).length,
+  }), [allLmsCourses]);
+
   const filteredUnifiedCourses = useMemo(() => {
     return allLmsCourses.filter(c => {
-      if (activeCatalogTrack === 'robotics' && c.track !== 'robotics') return false;
-      if (activeCatalogTrack === 'technology' && c.track !== 'technology') return false;
-      if (activeCatalogTrack === 'stem' && c.track !== 'stem') return false;
-      if (activeCatalogTrack === 'specialized' && c.track !== 'specialized') return false;
+      if (!isCourseInTrack(c.track, activeCatalogTrack)) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const match = c.title.toLowerCase().includes(q) || c.code.toLowerCase().includes(q) || c.shortSummary.toLowerCase().includes(q);
@@ -291,11 +306,11 @@ export const CoursesTab: React.FC<Props> = ({
               Track:
             </span>
             {[
-              { id: 'all', label: 'All Courses', count: allLmsCourses.length },
-              { id: 'robotics', label: 'Robotics', count: allLmsCourses.filter(c => c.track === 'robotics').length },
-              { id: 'technology', label: 'Technology & Coding', count: allLmsCourses.filter(c => c.track === 'technology').length },
-              { id: 'stem', label: 'STEM Education', count: allLmsCourses.filter(c => c.track === 'stem').length },
-              { id: 'specialized', label: 'Specialized', count: allLmsCourses.filter(c => c.track === 'specialized').length }
+              { id: 'all', label: 'All Courses', count: trackCounts.all },
+              { id: 'robotics', label: 'Robotics', count: trackCounts.robotics },
+              { id: 'technology', label: 'Technology & Coding', count: trackCounts.technology },
+              { id: 'stem', label: 'STEM Education', count: trackCounts.stem },
+              { id: 'specialized', label: 'Specialized', count: trackCounts.specialized }
             ].map(t => (
               <button
                 key={t.id}
