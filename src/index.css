@@ -71,51 +71,42 @@ a svg *,
   pointer-events: none;
 }
 
-/* ============================================================
-   Global Input & Contrast Fix – Guaranteed Legible Typography
-   Never allow dark text on dark backgrounds or light text on light backgrounds.
-   ============================================================ */
-input,
+/* Global Form Controls: High contrast typing with black font on white background */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]),
 textarea,
-select {
-  color: #0f172a;
+select,
+[contenteditable="true"] {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000 !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
-/* 1. Dark-themed input surfaces -> Crisp bright white text & legible placeholder */
-input:is([class*="bg-slate-9"], [class*="bg-slate-8"], [class*="bg-slate-950"], [class*="bg-black"], [class*="bg-gray-9"], [class*="bg-zinc-9"], [class*="bg-neutral-9"]),
-textarea:is([class*="bg-slate-9"], [class*="bg-slate-8"], [class*="bg-slate-950"], [class*="bg-black"], [class*="bg-gray-9"], [class*="bg-zinc-9"], [class*="bg-neutral-9"]),
-select:is([class*="bg-slate-9"], [class*="bg-slate-8"], [class*="bg-slate-950"], [class*="bg-black"], [class*="bg-gray-9"], [class*="bg-zinc-9"], [class*="bg-neutral-9"]) {
-  color: #f8fafc !important;
-  caret-color: #38bdf8;
-}
-
-input:is([class*="bg-slate-9"], [class*="bg-slate-8"], [class*="bg-slate-950"], [class*="bg-black"], [class*="bg-gray-9"], [class*="bg-zinc-9"], [class*="bg-neutral-9"])::placeholder,
-textarea:is([class*="bg-slate-9"], [class*="bg-slate-8"], [class*="bg-slate-950"], [class*="bg-black"], [class*="bg-gray-9"], [class*="bg-zinc-9"], [class*="bg-neutral-9"])::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* 2. Light-themed input surfaces -> Crisp dark charcoal text */
-input:is([class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"]),
-textarea:is([class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"]),
-select:is([class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"]) {
-  color: #0f172a !important;
-  caret-color: #4f46e5;
-}
-
-input:is([class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"])::placeholder,
-textarea:is([class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"])::placeholder {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"])::placeholder,
+textarea::placeholder {
   color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
 }
 
-/* 3. Inputs inside dark containers default to white text */
-.dark input:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-.dark textarea:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-.dark select:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-[class*="bg-slate-950"] input:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-[class*="bg-slate-950"] textarea:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-[class*="bg-slate-900"] input:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]),
-[class*="bg-slate-900"] textarea:not([class*="bg-white"]):not([class*="bg-slate-50"]):not([class*="bg-slate-100"]):not([class*="bg-gray-50"]):not([class*="bg-gray-100"]) {
-  color: #f8fafc;
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]):focus,
+textarea:focus,
+select:focus,
+[contenteditable="true"]:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  border-color: #2563eb !important;
+  outline: 2px solid rgba(37, 99, 235, 0.25) !important;
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #000000 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  box-shadow: 0 0 0px 1000px #ffffff inset !important;
 }
 
 .input-premium {

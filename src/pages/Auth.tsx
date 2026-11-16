@@ -206,10 +206,14 @@ export default function Auth() {
           return;
         }
       } else {
-        // Sign Up Flow
+        // Sign Up Flow - Restricted Admin Access
         const cleanEmail = email.trim().toLowerCase();
-        const isAdminUser = cleanEmail === 'manongwasimbarashe394@gmail.com' || cleanEmail === 'goyaracorp@gmail.com' || role === 'admin';
-        const finalRole = isAdminUser ? 'admin' : role;
+        const ASSIGNED_ADMIN_EMAILS = [
+          'manongwasimbarashe394@gmail.com',
+          'goyaracorp@gmail.com'
+        ];
+        const isAdminUser = ASSIGNED_ADMIN_EMAILS.includes(cleanEmail);
+        const finalRole = isAdminUser ? 'admin' : (role === 'admin' ? 'innovator' : role);
         const resolvedTier = finalRole === 'teacher' ? 'T1' : (finalRole === 'mentor' || finalRole === 'admin' ? null : tier);
         const generatedMemberId = `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -754,7 +758,7 @@ export default function Auth() {
               {!isLogin && (
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-bold text-slate-700 ml-1 uppercase tracking-wider">I am registering as...</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -794,27 +798,7 @@ export default function Auth() {
                       <Users className="w-4 h-4" />
                       <span>Mentor</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('admin')}
-                      className={cn(
-                        "py-3 px-2 rounded-2xl font-bold text-xs transition-all border-2 flex flex-col items-center justify-center text-center gap-1",
-                        role === 'admin' ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-200"
-                      )}
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Administrator</span>
-                    </button>
                   </div>
-                </div>
-              )}
-
-              {!isLogin && role === 'admin' && (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-start gap-2.5 text-white">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <p className="text-xs leading-relaxed text-slate-300">
-                    <strong className="text-white">Admin Console Direct Access:</strong> You will be directed straight to the administrator console to oversee curriculum, manage user registrations, hardware store inventory, finance, and platform settings.
-                  </p>
                 </div>
               )}
 
