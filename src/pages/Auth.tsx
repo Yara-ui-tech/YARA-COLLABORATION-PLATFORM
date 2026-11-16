@@ -27,7 +27,7 @@ export default function Auth() {
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [gender, setGender] = useState<'girl' | 'boy'>('girl');
   const [tier, setTier] = useState<'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6'>('T2');
-  
+
   // Categorisation & Geographical Details
   const [country, setCountry] = useState('Zimbabwe');
   const [province, setProvince] = useState('Mashonaland West');
@@ -502,8 +502,8 @@ export default function Auth() {
                       type="button"
                       onClick={() => setGender('girl')}
                       className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${gender === 'girl'
-                          ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                     >
                       <span className="text-base">👧</span>
@@ -513,8 +513,8 @@ export default function Auth() {
                       type="button"
                       onClick={() => setGender('boy')}
                       className={`py-3.5 px-4 rounded-2xl border-2 flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${gender === 'boy'
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
                     >
                       <span className="text-base">👦</span>
@@ -982,7 +982,7 @@ export default function Auth() {
                   <span>Platform Access &amp; Training</span>
                 </div>
                 <p className="text-amber-600 text-sm font-medium mb-4">
-                  {courseFee.amount > 0 
+                  {courseFee.amount > 0
                     ? (courseFee.message.includes(courseFee.amount.toString()) ? courseFee.message : `${courseFee.message} (Amount: ${courseFee.currency}$${courseFee.amount})`)
                     : courseFee.message}
                 </p>

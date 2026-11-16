@@ -83,6 +83,19 @@ select,
   border: 1px solid #cbd5e1 !important;
 }
 
+/* Ensure inputs inside white modals/cards always have crisp black font */
+.bg-white input,
+.bg-white textarea,
+.bg-white select,
+[class*="bg-white"] input,
+[class*="bg-white"] textarea,
+[class*="bg-white"] select {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000 !important;
+}
+
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"])::placeholder,
 textarea::placeholder {
   color: #64748b !important;

@@ -317,7 +317,8 @@ export default function ShopManagerAdminTab() {
             placeholder="Search catalog..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
           />
         </div>
       </div>
@@ -476,7 +477,8 @@ export default function ShopManagerAdminTab() {
                     placeholder="e.g. ESP32 NodeMCU WiFi + Bluetooth Dev Board"
                     value={formTitle}
                     onChange={e => setFormTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                   />
                 </div>
 
@@ -487,7 +489,8 @@ export default function ShopManagerAdminTab() {
                     placeholder="e.g. 30-Pin Dual-Core Microcontroller"
                     value={formSubtitle}
                     onChange={e => setFormSubtitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                   />
                 </div>
 
@@ -496,10 +499,11 @@ export default function ShopManagerAdminTab() {
                   <select
                     value={formCategory}
                     onChange={e => setFormCategory(e.target.value as ShopCategory)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000' }}
                   >
                     {CATEGORIES.map(c => (
-                      <option key={c.id} value={c.id}>{c.label}</option>
+                      <option key={c.id} value={c.id} className="text-black bg-white">{c.label}</option>
                     ))}
                   </select>
                 </div>
@@ -516,7 +520,8 @@ export default function ShopManagerAdminTab() {
                       placeholder="15.00"
                       value={formPriceUsd}
                       onChange={e => setFormPriceUsd(Number(e.target.value))}
-                      className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                     />
                   </div>
                 </div>
@@ -526,10 +531,11 @@ export default function ShopManagerAdminTab() {
                   <select
                     value={formInStock ? 'true' : 'false'}
                     onChange={e => setFormInStock(e.target.value === 'true')}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000' }}
                   >
-                    <option value="true">In Stock</option>
-                    <option value="false">Out of Stock</option>
+                    <option value="true" className="text-black bg-white">In Stock</option>
+                    <option value="false" className="text-black bg-white">Out of Stock</option>
                   </select>
                 </div>
 
@@ -540,7 +546,8 @@ export default function ShopManagerAdminTab() {
                     placeholder="e.g. Best Seller, Essential, New"
                     value={formBadge}
                     onChange={e => setFormBadge(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                   />
                 </div>
 
@@ -551,7 +558,8 @@ export default function ShopManagerAdminTab() {
                     placeholder="e.g. Levels 0 to 8"
                     value={formSuitableLevels}
                     onChange={e => setFormSuitableLevels(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                   />
                 </div>
               </div>
@@ -565,7 +573,8 @@ export default function ShopManagerAdminTab() {
                     placeholder="https://..."
                     value={formImageUrl}
                     onChange={e => setFormImageUrl(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                   />
                 </div>
                 <ImageUploader 
@@ -584,7 +593,8 @@ export default function ShopManagerAdminTab() {
                   placeholder="Detailed description of hardware capabilities, specifications, and lab use cases..."
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                 />
               </div>
 
@@ -598,7 +608,8 @@ export default function ShopManagerAdminTab() {
                   placeholder="e.g.&#10;1x ESP32 Dev Board&#10;1x Micro-USB Cable&#10;1x Antistatic Pouch"
                   value={formComponentsText}
                   onChange={e => setFormComponentsText(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-black bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  style={{ color: '#000000', backgroundColor: '#ffffff', WebkitTextFillColor: '#000000', caretColor: '#000000' }}
                 />
               </div>
 
