@@ -781,6 +781,83 @@ export async function submitClubFormationRequest(data: {
   return { club: newClub, request: newReq };
 }
 
+export async function updateChapterClub(
+  chapterId: string,
+  clubId: string,
+  updates: Partial<ChapterClub>
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const currentClubs = chapters[chIdx].clubs || [];
+  const clubIdx = currentClubs.findIndex(cl => cl.id === clubId);
+  if (clubIdx < 0) return null;
+
+  currentClubs[clubIdx] = {
+    ...currentClubs[clubIdx],
+    ...updates
+  };
+  chapters[chIdx].clubs = currentClubs;
+  chapters[chIdx].updated_at = new Date().toISOString();
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      clubs: chapters[chIdx].clubs,
+      updated_at: chapters[chIdx].updated_at
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+export async function deleteChapterClub(
+  chapterId: string,
+  clubId: string
+): Promise<Chapter | null> {
+  const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
+  const chIdx = chapters.findIndex(c => c.id === chapterId);
+  if (chIdx < 0) return null;
+
+  const currentClubs = chapters[chIdx].clubs || [];
+  chapters[chIdx].clubs = currentClubs.filter(cl => cl.id !== clubId);
+  chapters[chIdx].updated_at = new Date().toISOString();
+
+  setLocal('yara_chapters_data', chapters);
+
+  try {
+    await supabase.from('chapters').update({
+      clubs: chapters[chIdx].clubs,
+      updated_at: chapters[chIdx].updated_at
+    }).eq('id', chapterId);
+  } catch {
+    // fallback
+  }
+
+  return chapters[chIdx];
+}
+
+export async function getAllChapterClubs(): Promise<ChapterClub[]> {
+  const chapters = await getChapters();
+  const allClubs: ChapterClub[] = [];
+  chapters.forEach(ch => {
+    if (ch.clubs && Array.isArray(ch.clubs)) {
+      ch.clubs.forEach(cl => {
+        allClubs.push({
+          ...cl,
+          chapter_id: ch.id,
+          chapter_name: ch.name
+        });
+      });
+    }
+  });
+  return allClubs;
+}
+
 export async function updateChapter(id: string, updates: Partial<Chapter>): Promise<Chapter | null> {
   const chapters = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
   const idx = chapters.findIndex(c => c.id === id);

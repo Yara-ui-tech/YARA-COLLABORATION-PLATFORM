@@ -703,6 +703,10 @@ export default function Chapters() {
               setSelectedChapter(updatedChap);
               fetchChapterData();
             }}
+            onChapterDeleted={() => {
+              setSelectedChapter(null);
+              fetchChapterData();
+            }}
           />
         )}
       </AnimatePresence>

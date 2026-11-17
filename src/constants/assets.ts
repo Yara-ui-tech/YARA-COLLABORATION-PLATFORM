@@ -5,7 +5,9 @@
 
 export const ASSETS = {
   // Brand Assets
-  LOGO: '/assets/logo-yara-official.jpg',
+  LOGO: '/assets/yara-circular-logo.png',
+  CIRCULAR_LOGO: '/assets/yara-circular-logo.png',
+  OFFICIAL_LOGO: '/assets/yara-circular-logo.png',
   LOGO_PLACEHOLDER: '/assets/placeholders/logo.svg',
   OFFICIAL_GOLD_SEAL: '/assets/yara-official-gold-seal.png',
   EDUCATOR_SEAL: '/assets/yara-official-gold-seal.png',

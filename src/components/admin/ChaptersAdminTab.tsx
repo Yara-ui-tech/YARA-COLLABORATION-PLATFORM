@@ -6,12 +6,12 @@ import {
   Lock, Unlock, Award, Clock, DollarSign, Send, ChevronDown, 
   ChevronUp, Check, X, AlertTriangle, Key, Copy, CheckCheck,
   UserCheck, UserX, Eye, EyeOff, ShieldCheck, ShieldAlert, RefreshCw,
-  Landmark, Layers, Briefcase, Zap, MapPin
+  Landmark, Layers, Briefcase, Zap, MapPin, Rocket
 } from 'lucide-react';
 import { 
   Chapter, ChapterReport, ChapterCategory, ChapterStatus, 
   NationalExecutiveAssessment, ReportStatus, ChapterLeader, ChapterLeaderRole,
-  ChapterRegistrationRequest, ChapterJoinRequest
+  ChapterRegistrationRequest, ChapterJoinRequest, ChapterClub
 } from '../../types/chapters';
 import { 
   getChapters, createChapter, updateChapter, deleteChapter,
@@ -20,9 +20,12 @@ import {
   approveChapterSecretary, revokeChapterSecretary,
   addChapterLeader, updateChapterLeader, deleteChapterLeader,
   getChapterRegistrationRequests, approveChapterRegistration, rejectChapterRegistration,
-  getJoinRequests, approveJoinRequest, rejectJoinRequest
+  getJoinRequests, approveJoinRequest, rejectJoinRequest,
+  updateChapterClub, deleteChapterClub
 } from '../../services/chaptersService';
 import { cn } from '../../lib/utils';
+import AdminClubEditModal from '../chapters/AdminClubEditModal';
+import AdminDeleteConfirmModal from '../chapters/AdminDeleteConfirmModal';
 
 export default function ChaptersAdminTab() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -32,7 +35,15 @@ export default function ChaptersAdminTab() {
   const [loading, setLoading] = useState(true);
 
   // Sub-tabs
-  const [activeSubTab, setActiveSubTab] = useState<'chapters' | 'secretaries' | 'reports' | 'requests' | 'join_requests'>('chapters');
+  const [activeSubTab, setActiveSubTab] = useState<'chapters' | 'clubs' | 'secretaries' | 'reports' | 'requests' | 'join_requests'>('chapters');
+
+  // Club Management States
+  const [clubSearch, setClubSearch] = useState('');
+  const [clubStatusFilter, setClubStatusFilter] = useState<'ALL' | 'active' | 'forming' | 'chartered'>('ALL');
+  const [clubChapterFilter, setClubChapterFilter] = useState<string>('ALL');
+  const [editingAdminClub, setEditingAdminClub] = useState<ChapterClub | null>(null);
+  const [isCharteringNewClub, setIsCharteringNewClub] = useState(false);
+  const [deletingAdminClub, setDeletingAdminClub] = useState<ChapterClub | null>(null);
 
   // Chapter Registration Requests State
   const [requestFilterStatus, setRequestFilterStatus] = useState<'ALL' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -670,6 +681,109 @@ export default function ChaptersAdminTab() {
     });
   }, [registrationRequests, searchQuery, requestFilterStatus]);
 
+  const allClubsList = useMemo(() => {
+    const list: (ChapterClub & { parentChapterName: string; parentChapterCode: string })[] = [];
+    chapters.forEach(ch => {
+      (ch.clubs || []).forEach(cl => {
+        list.push({
+          ...cl,
+          chapter_id: ch.id,
+          chapter_name: ch.name,
+          parentChapterName: ch.name,
+          parentChapterCode: ch.code
+        });
+      });
+    });
+    return list;
+  }, [chapters]);
+
+  const filteredClubs = useMemo(() => {
+    return allClubsList.filter(cl => {
+      const matchSearch =
+        cl.club_name.toLowerCase().includes(clubSearch.toLowerCase()) ||
+        cl.specialization.toLowerCase().includes(clubSearch.toLowerCase()) ||
+        cl.chairperson_name.toLowerCase().includes(clubSearch.toLowerCase()) ||
+        cl.parentChapterName.toLowerCase().includes(clubSearch.toLowerCase());
+
+      const matchStatus = clubStatusFilter === 'ALL' || cl.status === clubStatusFilter;
+      const matchChapter = clubChapterFilter === 'ALL' || cl.chapter_id === clubChapterFilter;
+
+      return matchSearch && matchStatus && matchChapter;
+    });
+  }, [allClubsList, clubSearch, clubStatusFilter, clubChapterFilter]);
+
+  const handleSaveAdminClub = async (clubData: Partial<ChapterClub>, selectedChapterId?: string) => {
+    const targetChapterId = selectedChapterId || editingAdminClub?.chapter_id || (chapters[0] ? chapters[0].id : '');
+    if (!targetChapterId) return;
+
+    if (editingAdminClub) {
+      await updateChapterClub(targetChapterId, editingAdminClub.id, clubData);
+      setChapters(prev => prev.map(ch => {
+        if (ch.id === targetChapterId) {
+          const updatedClubs = (ch.clubs || []).map(c => c.id === editingAdminClub.id ? { ...c, ...clubData } : c);
+          return { ...ch, clubs: updatedClubs };
+        }
+        return ch;
+      }));
+      showNotification('success', `Club "${clubData.club_name || editingAdminClub.club_name}" updated successfully.`);
+    } else {
+      const newClub: ChapterClub = {
+        id: 'club-' + Date.now().toString(36),
+        chapter_id: targetChapterId,
+        chapter_name: chapters.find(c => c.id === targetChapterId)?.name || 'Chapter',
+        club_name: clubData.club_name || 'Robotics Club',
+        specialization: clubData.specialization || 'Autonomous Systems',
+        description: clubData.description || '',
+        chairperson_name: clubData.chairperson_name || 'Club Lead',
+        chairperson_email: clubData.chairperson_email || '',
+        chairperson_phone: clubData.chairperson_phone,
+        secretary_name: clubData.secretary_name,
+        secretary_email: clubData.secretary_email,
+        patron_name: clubData.patron_name,
+        patron_email: clubData.patron_email,
+        lab_location: clubData.lab_location,
+        meeting_schedule: clubData.meeting_schedule,
+        status: clubData.status || 'chartered',
+        founding_member_names: clubData.founding_member_names || [],
+        created_at: new Date().toISOString()
+      };
+      const targetChap = chapters.find(c => c.id === targetChapterId);
+      const updatedClubs = [...(targetChap?.clubs || []), newClub];
+      await updateChapter(targetChapterId, { clubs: updatedClubs });
+      setChapters(prev => prev.map(ch => ch.id === targetChapterId ? { ...ch, clubs: updatedClubs } : ch));
+      showNotification('success', `Club "${newClub.club_name}" chartered successfully under ${newClub.chapter_name}.`);
+    }
+    setEditingAdminClub(null);
+    setIsCharteringNewClub(false);
+  };
+
+  const handleConfirmDeleteAdminClub = async () => {
+    if (!deletingAdminClub) return;
+    await deleteChapterClub(deletingAdminClub.chapter_id, deletingAdminClub.id);
+    setChapters(prev => prev.map(ch => {
+      if (ch.id === deletingAdminClub.chapter_id) {
+        return { ...ch, clubs: (ch.clubs || []).filter(c => c.id !== deletingAdminClub.id) };
+      }
+      return ch;
+    }));
+    showNotification('success', `Club "${deletingAdminClub.club_name}" permanently removed.`);
+    setDeletingAdminClub(null);
+  };
+
+  const handleToggleClubStatus = async (club: ChapterClub, newStatus: 'chartered' | 'active' | 'forming') => {
+    await updateChapterClub(club.chapter_id, club.id, { status: newStatus });
+    setChapters(prev => prev.map(ch => {
+      if (ch.id === club.chapter_id) {
+        return {
+          ...ch,
+          clubs: (ch.clubs || []).map(c => c.id === club.id ? { ...c, status: newStatus } : c)
+        };
+      }
+      return ch;
+    }));
+    showNotification('success', `Club status updated to ${newStatus}.`);
+  };
+
   return (
     <div className="space-y-8">
       {/* Top Banner */}
@@ -731,6 +845,19 @@ export default function ChaptersAdminTab() {
           >
             <Building2 className="w-4 h-4" />
             <span>Chapter Registry ({chapters.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('clubs')}
+            className={cn(
+              "px-5 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center space-x-2",
+              activeSubTab === 'clubs'
+                ? "bg-purple-700 text-white shadow-md font-black"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+            )}
+          >
+            <Rocket className="w-4 h-4" />
+            <span>Clubs & Societies ({allClubsList.length})</span>
           </button>
 
           <button
@@ -914,6 +1041,249 @@ export default function ChaptersAdminTab() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUB-TAB: CLUBS & SOCIETIES MANAGEMENT */}
+      {activeSubTab === 'clubs' && (
+        <div className="space-y-6">
+          {/* Top Filter and Action Row */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800">
+                  National Clubs Console
+                </span>
+                <span className="text-xs font-bold text-slate-400">
+                  {filteredClubs.length} of {allClubsList.length} Clubs Shown
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-slate-900">
+                Robotics Clubs & Societies Directory
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Full administrative authority to edit, charter, re-assign, or permanently remove any club across all chapters.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => setIsCharteringNewClub(true)}
+                className="px-5 py-2.5 rounded-2xl bg-purple-700 hover:bg-purple-800 text-white font-black text-xs shadow-md shadow-purple-200 flex items-center space-x-2 transition-all shrink-0"
+              >
+                <Plus className="w-4 h-4 text-amber-400" />
+                <span>+ Charter New Club</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search club, domain, lead, or chapter..."
+                  value={clubSearch}
+                  onChange={e => setClubSearch(e.target.value)}
+                  className="pl-8 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 bg-white w-56 sm:w-72 focus:outline-none focus:ring-2 focus:ring-purple-600"
+                />
+              </div>
+
+              <select
+                value={clubChapterFilter}
+                onChange={e => setClubChapterFilter(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-600 max-w-xs"
+              >
+                <option value="ALL">All Parent Chapters ({chapters.length})</option>
+                {chapters.map(ch => (
+                  <option key={ch.id} value={ch.id}>
+                    {ch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex rounded-xl bg-white p-1 border border-slate-200 text-xs font-bold">
+              {[
+                { id: 'ALL', label: `All (${allClubsList.length})` },
+                { id: 'chartered', label: `Chartered (${allClubsList.filter(c => c.status === 'chartered').length})` },
+                { id: 'active', label: `Active (${allClubsList.filter(c => c.status === 'active').length})` },
+                { id: 'forming', label: `Forming (${allClubsList.filter(c => c.status === 'forming').length})` }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setClubStatusFilter(tab.id as any)}
+                  className={cn(
+                    "px-3 py-1 rounded-lg transition-all",
+                    clubStatusFilter === tab.id
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "text-slate-600 hover:bg-slate-100"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clubs Grid */}
+          {filteredClubs.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-slate-200 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+                <Rocket className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-slate-900 text-sm">No Clubs Found</h4>
+              <p className="text-slate-500 text-xs max-w-md mx-auto">
+                {clubSearch || clubChapterFilter !== 'ALL' || clubStatusFilter !== 'ALL'
+                  ? 'No clubs match your current search and filter criteria.'
+                  : 'No robotics clubs or societies have been created yet. You can charter the first university or community club as an administrator.'}
+              </p>
+              <button
+                onClick={() => setIsCharteringNewClub(true)}
+                className="mt-2 inline-flex items-center space-x-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-md transition-all"
+              >
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span>Charter First Club</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredClubs.map(club => (
+                <div
+                  key={club.id}
+                  className="p-6 bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between hover:border-slate-300 transition-all"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700">
+                        {club.parentChapterName}
+                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-indigo-50 text-indigo-700">
+                          {club.specialization}
+                        </span>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase",
+                          club.status === 'chartered' ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+                          club.status === 'active' ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                          "bg-amber-50 text-amber-700 border border-amber-100"
+                        )}>
+                          {club.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-base">{club.club_name}</h4>
+                      <p className="text-xs text-slate-600 font-medium leading-relaxed mt-1">
+                        {club.description || 'No description provided.'}
+                      </p>
+                    </div>
+
+                    {/* Leadership & Location summary */}
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-slate-700">
+                        <span className="font-bold flex items-center space-x-1">
+                          <Users className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Chairperson:</span>
+                        </span>
+                        <span className="font-bold text-slate-900">{club.chairperson_name}</span>
+                      </div>
+                      {(club.chairperson_email || club.chairperson_phone) && (
+                        <div className="text-[11px] text-slate-500 font-mono truncate">
+                          {club.chairperson_email} {club.chairperson_phone && `• ${club.chairperson_phone}`}
+                        </div>
+                      )}
+
+                      {club.secretary_name && (
+                        <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-slate-200/60">
+                          <span>Secretary:</span>
+                          <span className="font-medium text-slate-800">{club.secretary_name}</span>
+                        </div>
+                      )}
+
+                      {club.patron_name && (
+                        <div className="flex items-center justify-between text-[11px] text-slate-600">
+                          <span>Faculty Patron:</span>
+                          <span className="font-medium text-slate-800">{club.patron_name}</span>
+                        </div>
+                      )}
+
+                      {club.lab_location && (
+                        <div className="flex items-center space-x-1 text-[11px] text-slate-500 pt-1">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          <span className="truncate">{club.lab_location}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Founding Members */}
+                    {club.founding_member_names && club.founding_member_names.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Founding Members ({club.founding_member_names.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {club.founding_member_names.slice(0, 6).map(m => (
+                            <span key={m} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-medium">
+                              {m}
+                            </span>
+                          ))}
+                          {club.founding_member_names.length > 6 && (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-600 text-[10px] font-bold">
+                              +{club.founding_member_names.length - 6} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Admin Action Buttons */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center space-x-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Status:</span>
+                      {(['chartered', 'active', 'forming'] as const).map(st => (
+                        <button
+                          key={st}
+                          onClick={() => handleToggleClubStatus(club, st)}
+                          className={cn(
+                            "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all",
+                            club.status === st
+                              ? "bg-slate-900 text-white"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                          )}
+                          title={`Set status to ${st}`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setEditingAdminClub(club)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center space-x-1 transition-colors"
+                        title="Edit Club"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => setDeletingAdminClub(club)}
+                        className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                        title="Delete Club"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -2438,6 +2808,30 @@ export default function ChaptersAdminTab() {
           }}
         />
       )}
+
+      {/* Admin Club Edit / Add Modal */}
+      {(editingAdminClub || isCharteringNewClub) && (
+        <AdminClubEditModal
+          isOpen={Boolean(editingAdminClub || isCharteringNewClub)}
+          club={editingAdminClub}
+          availableChapters={chapters}
+          onClose={() => {
+            setEditingAdminClub(null);
+            setIsCharteringNewClub(false);
+          }}
+          onSave={handleSaveAdminClub}
+        />
+      )}
+
+      {/* Admin Delete Club Confirmation Modal */}
+      <AdminDeleteConfirmModal
+        isOpen={Boolean(deletingAdminClub)}
+        title="Permanently Remove Club / Society"
+        itemName={deletingAdminClub ? `${deletingAdminClub.club_name} (${deletingAdminClub.chapter_name})` : undefined}
+        message="Are you sure you want to delete this club? This action will immediately remove the club from the chapter registry."
+        onConfirm={handleConfirmDeleteAdminClub}
+        onClose={() => setDeletingAdminClub(null)}
+      />
     </div>
   );
 }

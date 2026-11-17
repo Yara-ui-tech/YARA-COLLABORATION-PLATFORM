@@ -14,6 +14,7 @@ import {
   UnderservedRegion
 } from '../services/equityService';
 import { AFRICAN_COUNTRIES, ZIMBABWE_PROVINCES, POPULAR_ZIM_SCHOOLS } from '../constants/locationsData';
+import { sendWelcomeEmail } from '../services/emailService';
 
 import ForgotPasswordModal from '../components/auth/ForgotPasswordModal';
 
@@ -24,6 +25,8 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [registeredMemberId, setRegisteredMemberId] = useState('');
+  const [registeredPosition, setRegisteredPosition] = useState('');
   const [role, setRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [gender, setGender] = useState<'girl' | 'boy'>('girl');
   const [tier, setTier] = useState<'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6'>('T2');
@@ -301,6 +304,25 @@ export default function Auth() {
             }, { onConflict: 'id' });
           } catch (e) {
             console.warn('Profile upsert warning:', e);
+          }
+
+          const positionLabel = finalRole === 'teacher' ? 'Robotics Educator' : (finalRole === 'mentor' ? 'STEM Mentor' : (finalRole === 'admin' ? 'Administrator' : `Student Innovator (${resolvedTier})`));
+          setRegisteredMemberId(generatedMemberId);
+          setRegisteredPosition(positionLabel);
+
+          // Asynchronously dispatch Welcome Induction Email with position, member ID, special thanks, and official logo
+          try {
+            await sendWelcomeEmail({
+              toEmail: cleanEmail,
+              recipientName: displayName.trim(),
+              memberId: generatedMemberId,
+              position: positionLabel,
+              schoolOrInstitution: schoolInstitution.trim() || undefined,
+              province: province.trim() || 'Zimbabwe',
+              specialThanksMessage: `Special Thanks from the National Directorate: Thank you, ${displayName.trim()}, for joining the Young Africans Robotics Association! Your enthusiasm and commitment to robotics, STEM, and artificial intelligence empower Zimbabwe and Africa's next generation of technological builders.`
+            });
+          } catch (mailErr) {
+            console.warn('Welcome email dispatch warning:', mailErr);
           }
 
           // If session is immediately active (email confirmation off) and user is admin, navigate directly to /admin
@@ -989,22 +1011,61 @@ export default function Auth() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white w-full max-w-md rounded-[2.5rem] p-10 text-center shadow-2xl"
             >
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <UserPlus className="w-10 h-10 text-emerald-600" />
+              <div className="w-20 h-20 rounded-full mx-auto mb-5 p-1 bg-gradient-to-tr from-indigo-500 to-amber-400 shadow-lg flex items-center justify-center">
+                <img 
+                  src="/assets/yara-circular-logo.png" 
+                  alt="YARA Logo" 
+                  className="w-full h-full rounded-full object-contain bg-slate-950"
+                />
               </div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-2">Welcome to YARA!</h3>
-              <p className="text-slate-600 mb-6">
-                You have been registered as <span className="font-bold text-indigo-600 uppercase">{role === 'mentor' || role === 'admin' ? role : tier}</span>.
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1">Welcome to YARA!</h3>
+              <p className="text-slate-500 text-xs sm:text-sm font-medium mb-5">
+                Official Membership Induction &amp; Platform Access
               </p>
 
+              {/* Official Credentials Badge */}
+              <div className="bg-slate-50 border-2 border-indigo-100 rounded-3xl p-5 mb-5 text-left space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-500 uppercase tracking-wider">Official Member ID:</span>
+                  <span className="font-mono font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 text-sm">
+                    {registeredMemberId || memberId || 'YARA-MEMBER'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs border-t border-slate-200/60 pt-2">
+                  <span className="font-bold text-slate-500 uppercase tracking-wider">Inducted Position:</span>
+                  <span className="font-bold text-slate-900">
+                    {registeredPosition || (role === 'mentor' || role === 'admin' ? role : tier)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Special Thanks Message */}
+              <div className="bg-gradient-to-r from-indigo-50/80 to-purple-50/80 border border-indigo-200/70 rounded-2xl p-4 mb-5 text-left space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center space-x-1">
+                  <HeartHandshake className="w-3.5 h-3.5" />
+                  <span>Special Thanks from YARA Directorate</span>
+                </span>
+                <p className="text-xs text-indigo-950 font-medium leading-relaxed italic">
+                  "Thank you, <strong>{displayName.trim()}</strong>, for joining the Young Africans Robotics Association! Your active passion for robotics, technology, and AI represents the future of technological self-reliance across Zimbabwe and the African continent."
+                </p>
+              </div>
+
+              {/* Welcome Email Confirmation Box */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 mb-5 text-left flex items-start space-x-2.5 text-xs text-emerald-900">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Welcome Email Dispatched:</strong> An official welcome email including your <strong>Position</strong>, <strong>Member ID</strong>, and official YARA seal has been sent to <strong>{email}</strong>.
+                </span>
+              </div>
+
               {!signupHasSession && (
-                <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-5 mb-6">
-                  <div className="flex items-center justify-center space-x-2 text-blue-700 font-bold mb-2">
-                    <Mail className="w-5 h-5" />
-                    <span>Check Your Email</span>
+                <div className="bg-blue-50 border-2 border-blue-100 rounded-3xl p-4 mb-5">
+                  <div className="flex items-center justify-center space-x-2 text-blue-700 font-bold mb-1 text-xs">
+                    <Mail className="w-4 h-4" />
+                    <span>Email Verification Required</span>
                   </div>
-                  <p className="text-blue-600 text-sm font-medium">
-                    A confirmation link has been sent to <strong>{email}</strong>. Please verify your email to activate your account, then sign in below.
+                  <p className="text-blue-600 text-xs font-medium">
+                    Please check your inbox at <strong>{email}</strong> to activate your account before signing in.
                   </p>
                 </div>
               )}

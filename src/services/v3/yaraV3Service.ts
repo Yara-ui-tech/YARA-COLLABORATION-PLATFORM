@@ -734,12 +734,25 @@ export const yaraV3Service = {
     }
 
     if (params.channel === 'email') {
-      // Trigger edge function send-member-emails asynchronously
+      // Trigger edge function send-member-emails asynchronously with official logo footer
       try {
+        const logoFooter = `
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="margin-bottom: 10px;">
+              <img src="https://www.yaria.tech/assets/yara-circular-logo.png" alt="YARA Logo" width="84" height="84" style="width: 84px; height: 84px; border-radius: 50%; object-fit: contain; display: inline-block; border: 2px solid #cbd5e1; box-shadow: 0 4px 10px rgba(15,23,42,0.12);" />
+            </div>
+            <p style="margin: 0; font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">Young Africans Robotics Association (YARA)</p>
+            <p style="margin: 3px 0 0 0; font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase;">Innovate Local · Build Global</p>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b;">Harare, Zimbabwe · www.yaria.tech</p>
+          </div>
+        `;
+        const finalBody = params.body.includes('yara-circular-logo.png') ? params.body : `${params.body}\n\n${logoFooter}`;
+
         await supabase.functions.invoke('send-member-emails', {
           body: {
             subject: params.subject,
-            body: params.body,
+            body: finalBody,
+            html: finalBody,
             audience: params.audience
           }
         });

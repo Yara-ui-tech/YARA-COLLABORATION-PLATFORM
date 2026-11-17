@@ -4,15 +4,33 @@ import {
   ExternalLink, Mail, Phone, ShieldCheck, Lock, Unlock, 
   CheckCircle2, AlertCircle, X, ChevronRight,
   Share2, Award, Clock, ArrowRight, Landmark, Search,
-  GraduationCap, UserCheck, Shield, Globe, Edit2, Plus,
-  ListChecks, CheckSquare, Rocket
+  GraduationCap, UserCheck, Shield, Globe, Edit2, Edit3, Plus,
+  ListChecks, CheckSquare, Rocket, Trash2, AlertTriangle
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Chapter, ChapterMember, ChapterReport, ChapterClub } from '../../types/chapters';
+import { Chapter, ChapterMember, ChapterReport, ChapterClub, ChapterLeader } from '../../types/chapters';
 import { cn } from '../../lib/utils';
-import { getChapterReports, updateChapter } from '../../services/chaptersService';
+import { 
+  getChapterReports, 
+  updateChapter, 
+  deleteChapter,
+  updateChapterClub,
+  deleteChapterClub,
+  addChapterMember,
+  updateChapterMember,
+  deleteChapterMember,
+  addChapterLeader,
+  updateChapterLeader,
+  deleteChapterLeader,
+  deleteChapterReport
+} from '../../services/chaptersService';
 import { getProvincialMinistries } from '../../constants/zimbabweHierarchy';
 import ClubFormationModal from './ClubFormationModal';
+import AdminDeleteConfirmModal from './AdminDeleteConfirmModal';
+import AdminClubEditModal from './AdminClubEditModal';
+import AdminMemberEditModal from './AdminMemberEditModal';
+import AdminChapterEditModal from './AdminChapterEditModal';
+import AdminLeaderEditModal from './AdminLeaderEditModal';
 
 interface ChapterDetailModalProps {
   chapter: Chapter;
@@ -21,6 +39,7 @@ interface ChapterDetailModalProps {
   onClose: () => void;
   onOpenReportModal?: (chapter: Chapter) => void;
   onChapterUpdated?: (chapter: Chapter) => void;
+  onChapterDeleted?: (chapterId: string) => void;
 }
 
 export default function ChapterDetailModal({
@@ -29,13 +48,32 @@ export default function ChapterDetailModal({
   currentUserEmail,
   onClose,
   onOpenReportModal,
-  onChapterUpdated
+  onChapterUpdated,
+  onChapterDeleted
 }: ChapterDetailModalProps) {
   const [currentChapter, setCurrentChapter] = useState<Chapter>(chapter);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'clubs' | 'minutes_agendas' | 'projects' | 'activities' | 'leadership' | 'confidential'>('overview');
   const [memberSearch, setMemberSearch] = useState('');
   const [memberRoleFilter, setMemberRoleFilter] = useState('ALL');
   const [isClubModalOpen, setIsClubModalOpen] = useState(false);
+
+  // Admin Editing & Removal States
+  const [editingClub, setEditingClub] = useState<ChapterClub | null>(null);
+  const [isAddingClub, setIsAddingClub] = useState(false);
+  const [deletingClub, setDeletingClub] = useState<ChapterClub | null>(null);
+
+  const [editingMember, setEditingMember] = useState<ChapterMember | null>(null);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [deletingMember, setDeletingMember] = useState<ChapterMember | null>(null);
+
+  const [deletingReport, setDeletingReport] = useState<ChapterReport | null>(null);
+
+  const [editingLeader, setEditingLeader] = useState<ChapterLeader | null>(null);
+  const [isAddingLeader, setIsAddingLeader] = useState(false);
+  const [deletingLeader, setDeletingLeader] = useState<ChapterLeader | null>(null);
+
+  const [isEditingChapter, setIsEditingChapter] = useState(false);
+  const [isDeletingChapter, setIsDeletingChapter] = useState(false);
 
   // Website editing
   const [isEditingWebsite, setIsEditingWebsite] = useState(false);
@@ -133,6 +171,202 @@ export default function ChapterDetailModal({
     } finally {
       setIsSavingWebsite(false);
     }
+  };
+
+  // Admin Club Handlers
+  const handleSaveClub = async (clubData: Partial<ChapterClub>) => {
+    if (editingClub) {
+      const updated = await updateChapterClub(currentChapter.id, editingClub.id, clubData);
+      if (updated) {
+        setCurrentChapter(updated);
+        onChapterUpdated?.(updated);
+      } else {
+        const updatedClubs = (currentChapter.clubs || []).map(c => c.id === editingClub.id ? { ...c, ...clubData } : c);
+        const next = { ...currentChapter, clubs: updatedClubs };
+        setCurrentChapter(next);
+        onChapterUpdated?.(next);
+      }
+      setEditingClub(null);
+    } else if (isAddingClub) {
+      const newClub: ChapterClub = {
+        id: 'club-' + Date.now().toString(36),
+        chapter_id: currentChapter.id,
+        chapter_name: currentChapter.name,
+        club_name: clubData.club_name || 'Robotics Club',
+        specialization: clubData.specialization || 'Autonomous Systems',
+        description: clubData.description || '',
+        chairperson_name: clubData.chairperson_name || 'Club Lead',
+        chairperson_email: clubData.chairperson_email || '',
+        chairperson_phone: clubData.chairperson_phone,
+        secretary_name: clubData.secretary_name,
+        secretary_email: clubData.secretary_email,
+        patron_name: clubData.patron_name,
+        patron_email: clubData.patron_email,
+        lab_location: clubData.lab_location,
+        meeting_schedule: clubData.meeting_schedule,
+        status: clubData.status || 'chartered',
+        founding_member_names: clubData.founding_member_names || [],
+        created_at: new Date().toISOString()
+      };
+      const updatedClubs = [...(currentChapter.clubs || []), newClub];
+      const updated = await updateChapter(currentChapter.id, { clubs: updatedClubs });
+      const next = updated || { ...currentChapter, clubs: updatedClubs };
+      setCurrentChapter(next);
+      onChapterUpdated?.(next);
+      setIsAddingClub(false);
+    }
+  };
+
+  const handleConfirmDeleteClub = async () => {
+    if (!deletingClub) return;
+    const updated = await deleteChapterClub(currentChapter.id, deletingClub.id);
+    if (updated) {
+      setCurrentChapter(updated);
+      onChapterUpdated?.(updated);
+    } else {
+      const updatedClubs = (currentChapter.clubs || []).filter(c => c.id !== deletingClub.id);
+      const next = { ...currentChapter, clubs: updatedClubs };
+      setCurrentChapter(next);
+      onChapterUpdated?.(next);
+    }
+    setDeletingClub(null);
+  };
+
+  // Admin Member Handlers
+  const handleSaveMember = async (memberData: Partial<ChapterMember>) => {
+    if (editingMember) {
+      const updated = await updateChapterMember(currentChapter.id, editingMember.id, memberData);
+      if (updated) {
+        setCurrentChapter(updated);
+        onChapterUpdated?.(updated);
+      } else {
+        const mems = (currentChapter.members || []).map(m => m.id === editingMember.id ? { ...m, ...memberData } : m);
+        const next = { ...currentChapter, members: mems };
+        setCurrentChapter(next);
+        onChapterUpdated?.(next);
+      }
+      setEditingMember(null);
+    } else if (isAddingMember) {
+      const newMember: ChapterMember = {
+        id: 'mem-' + Date.now().toString(36),
+        name: memberData.name || 'New Member',
+        email: memberData.email,
+        phone: memberData.phone,
+        role: memberData.role || 'Member',
+        department_or_grade: memberData.department_or_grade,
+        student_or_staff_id: memberData.student_or_staff_id,
+        joined_date: new Date().toISOString().split('T')[0],
+        status: memberData.status || 'active',
+        public_consent: memberData.public_consent !== false,
+        skills: memberData.skills || []
+      };
+      const updated = await addChapterMember(currentChapter.id, newMember);
+      if (updated) {
+        setCurrentChapter(updated);
+        onChapterUpdated?.(updated);
+      } else {
+        const mems = [...(currentChapter.members || []), newMember];
+        const next = { ...currentChapter, members: mems, total_members_count: mems.length };
+        setCurrentChapter(next);
+        onChapterUpdated?.(next);
+      }
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleConfirmDeleteMember = async () => {
+    if (!deletingMember) return;
+    const updated = await deleteChapterMember(currentChapter.id, deletingMember.id);
+    if (updated) {
+      setCurrentChapter(updated);
+      onChapterUpdated?.(updated);
+    } else {
+      const mems = (currentChapter.members || []).filter(m => m.id !== deletingMember.id);
+      const next = { ...currentChapter, members: mems, total_members_count: mems.length };
+      setCurrentChapter(next);
+      onChapterUpdated?.(next);
+    }
+    setDeletingMember(null);
+  };
+
+  // Admin Report Deletion Handler
+  const handleConfirmDeleteReport = async () => {
+    if (!deletingReport) return;
+    await deleteChapterReport(deletingReport.id);
+    setMeetingReports(prev => prev.filter(r => r.id !== deletingReport.id));
+    setDeletingReport(null);
+  };
+
+  // Admin Leader Handlers
+  const handleSaveLeader = async (leaderData: Partial<ChapterLeader>) => {
+    if (editingLeader) {
+      const updated = await updateChapterLeader(currentChapter.id, editingLeader.id, leaderData);
+      if (updated) {
+        setCurrentChapter(updated);
+        onChapterUpdated?.(updated);
+      } else {
+        const leaders = (currentChapter.leaders || []).map(l => l.id === editingLeader.id ? { ...l, ...leaderData } : l);
+        const next = { ...currentChapter, leaders };
+        setCurrentChapter(next);
+        onChapterUpdated?.(next);
+      }
+      setEditingLeader(null);
+    } else if (isAddingLeader) {
+      const newLeader: ChapterLeader = {
+        id: 'ldr-' + Date.now().toString(36),
+        name: leaderData.name || 'Chapter Leader',
+        role: leaderData.role || 'secretary',
+        department_or_grade: leaderData.department_or_grade,
+        email: leaderData.email,
+        phone: leaderData.phone,
+        is_public_contact: leaderData.is_public_contact !== false,
+        is_approved_by_admin: leaderData.is_approved_by_admin !== false,
+        approved_at: new Date().toISOString(),
+        appointed_date: new Date().toISOString().split('T')[0]
+      };
+      const updated = await addChapterLeader(currentChapter.id, newLeader);
+      if (updated) {
+        setCurrentChapter(updated);
+        onChapterUpdated?.(updated);
+      } else {
+        const leaders = [...(currentChapter.leaders || []), newLeader];
+        const next = { ...currentChapter, leaders };
+        setCurrentChapter(next);
+        onChapterUpdated?.(next);
+      }
+      setIsAddingLeader(false);
+    }
+  };
+
+  const handleConfirmDeleteLeader = async () => {
+    if (!deletingLeader) return;
+    const updated = await deleteChapterLeader(currentChapter.id, deletingLeader.id);
+    if (updated) {
+      setCurrentChapter(updated);
+      onChapterUpdated?.(updated);
+    } else {
+      const leaders = (currentChapter.leaders || []).filter(l => l.id !== deletingLeader.id);
+      const next = { ...currentChapter, leaders };
+      setCurrentChapter(next);
+      onChapterUpdated?.(next);
+    }
+    setDeletingLeader(null);
+  };
+
+  // Admin Chapter Edit & Delete Handlers
+  const handleSaveChapter = async (updates: Partial<Chapter>) => {
+    const updated = await updateChapter(currentChapter.id, updates);
+    const next = updated || { ...currentChapter, ...updates };
+    setCurrentChapter(next);
+    onChapterUpdated?.(next);
+    setIsEditingChapter(false);
+  };
+
+  const handleConfirmDeleteChapter = async () => {
+    await deleteChapter(currentChapter.id);
+    setIsDeletingChapter(false);
+    onChapterDeleted?.(currentChapter.id);
+    onClose();
   };
 
   return (
@@ -271,6 +505,26 @@ export default function ChapterDetailModal({
                         <Edit2 className="w-3 h-3 text-slate-500" />
                         <span>{currentChapter.website_url ? 'Edit Website' : 'Attach Website'}</span>
                       </button>
+                    )}
+                    {isAdmin && (
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          onClick={() => setIsEditingChapter(true)}
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all"
+                          title="Edit Chapter Details (Admin)"
+                        >
+                          <Edit3 className="w-3 h-3 text-amber-400" />
+                          <span>Edit Chapter</span>
+                        </button>
+                        <button
+                          onClick={() => setIsDeletingChapter(true)}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs border border-red-200 transition-colors"
+                          title="Permanently Remove Chapter (Admin)"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     )}
                     <button
                       onClick={() => setIsClubModalOpen(true)}
@@ -535,6 +789,15 @@ export default function ChapterDetailModal({
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsAddingMember(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Add Member</span>
+                    </button>
+                  )}
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -622,6 +885,31 @@ export default function ChapterDetailModal({
                           )}
                         </div>
                       )}
+
+                      {/* Admin Controls on Member Card */}
+                      {isAdmin && (
+                        <div className="pt-2 mt-1 border-t border-slate-200/80 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admin</span>
+                          <div className="flex items-center space-x-1.5">
+                            <button
+                              onClick={() => setEditingMember(member)}
+                              className="px-2 py-0.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200 flex items-center space-x-1 shadow-2xs"
+                              title="Edit Member Details"
+                            >
+                              <Edit2 className="w-2.5 h-2.5 text-slate-500" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => setDeletingMember(member)}
+                              className="px-2 py-0.5 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 flex items-center space-x-1"
+                              title="Remove Member from Roster"
+                            >
+                              <Trash2 className="w-2.5 h-2.5 text-red-500" />
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -643,13 +931,25 @@ export default function ChapterDetailModal({
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setIsClubModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-200 flex items-center space-x-1.5 transition-all self-start sm:self-center shrink-0"
-                >
-                  <Rocket className="w-3.5 h-3.5" />
-                  <span>Form a Club in this Section</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsAddingClub(true)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-md flex items-center space-x-1.5 transition-all shrink-0"
+                      title="Charter a new club directly under this chapter"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
+                      <span>+ Charter Club (Admin)</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsClubModalOpen(true)}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black shadow-md shadow-indigo-200 flex items-center space-x-1.5 transition-all self-start sm:self-center shrink-0"
+                  >
+                    <Rocket className="w-3.5 h-3.5" />
+                    <span>Form a Club in this Section</span>
+                  </button>
+                </div>
               </div>
 
               {(!currentChapter.clubs || currentChapter.clubs.length === 0) ? (
@@ -724,6 +1024,34 @@ export default function ChapterDetailModal({
                                 +{club.founding_member_names.length - 5} more
                               </span>
                             )}
+                          </div>
+                        )}
+
+                        {/* Admin Action Bar on Club Card */}
+                        {isAdmin && (
+                          <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1">
+                              <Shield className="w-3 h-3 text-amber-600" />
+                              <span>Admin</span>
+                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                onClick={() => setEditingClub(club)}
+                                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200 flex items-center space-x-1 shadow-2xs transition-colors"
+                                title="Edit Club Details"
+                              >
+                                <Edit2 className="w-3 h-3 text-slate-600" />
+                                <span>Edit Club</span>
+                              </button>
+                              <button
+                                onClick={() => setDeletingClub(club)}
+                                className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] border border-red-200 flex items-center space-x-1 transition-colors"
+                                title="Permanently Delete Club"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <span>Remove</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -856,6 +1184,16 @@ export default function ChapterDetailModal({
                           </div>
 
                           <div className="flex items-center space-x-2 text-xs">
+                            {isAdmin && (
+                              <button
+                                onClick={() => setDeletingReport(rep)}
+                                className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-bold text-[11px] border border-red-200 flex items-center space-x-1 transition-colors"
+                                title="Delete Minutes / Agenda Record"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <span>Delete Record</span>
+                              </button>
+                            )}
                             {rep.meeting_date && (
                               <span className="px-2.5 py-1 bg-slate-100 rounded-lg font-bold text-slate-700 flex items-center space-x-1 text-[11px]">
                                 <Calendar className="w-3 h-3 text-slate-500" />
@@ -1070,27 +1408,65 @@ export default function ChapterDetailModal({
           {activeTab === 'leadership' && (
             <div className="space-y-6">
               <div className="space-y-3">
-                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Executive Committee Leaders</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Executive Committee Leaders</h4>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsAddingLeader(true)}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Add Leader</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {currentChapter.leaders?.map(leader => (
-                    <div key={leader.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 inline-block">
-                          {leader.role.replace('_', ' ')}
-                        </span>
-                        {leader.is_approved_by_admin && (
-                          <span className="flex items-center space-x-1 text-[10px] font-bold text-emerald-700">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Certified</span>
+                    <div key={leader.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 flex flex-col justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 inline-block">
+                            {leader.role.replace('_', ' ')}
                           </span>
+                          {leader.is_approved_by_admin && (
+                            <span className="flex items-center space-x-1 text-[10px] font-bold text-emerald-700">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Certified</span>
+                            </span>
+                          )}
+                        </div>
+                        <h5 className="font-bold text-slate-900 text-sm">{leader.name}</h5>
+                        {leader.department_or_grade && (
+                          <p className="text-[11px] text-slate-500 font-medium">{leader.department_or_grade}</p>
+                        )}
+                        {leader.is_public_contact && leader.email && (
+                          <p className="text-[11px] text-indigo-600 font-mono pt-1 truncate">{leader.email}</p>
                         )}
                       </div>
-                      <h5 className="font-bold text-slate-900 text-sm">{leader.name}</h5>
-                      {leader.department_or_grade && (
-                        <p className="text-[11px] text-slate-500 font-medium">{leader.department_or_grade}</p>
-                      )}
-                      {leader.is_public_contact && leader.email && (
-                        <p className="text-[11px] text-indigo-600 font-mono pt-1 truncate">{leader.email}</p>
+
+                      {isAdmin && (
+                        <div className="pt-2 mt-2 border-t border-slate-200/80 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Admin</span>
+                          <div className="flex items-center space-x-1.5">
+                            <button
+                              onClick={() => setEditingLeader(leader)}
+                              className="px-2 py-0.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200 flex items-center space-x-1 shadow-2xs"
+                              title="Edit Leader Details"
+                            >
+                              <Edit2 className="w-2.5 h-2.5 text-slate-500" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => setDeletingLeader(leader)}
+                              className="px-2 py-0.5 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-bold border border-red-200 flex items-center space-x-1"
+                              title="Remove Leader"
+                            >
+                              <Trash2 className="w-2.5 h-2.5 text-red-500" />
+                              <span>Remove</span>
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -1216,6 +1592,105 @@ export default function ChapterDetailModal({
           }}
         />
       )}
+
+      {/* Admin Club Edit / Add Modal */}
+      {(editingClub || isAddingClub) && (
+        <AdminClubEditModal
+          isOpen={Boolean(editingClub || isAddingClub)}
+          club={editingClub}
+          chapter={currentChapter}
+          onClose={() => {
+            setEditingClub(null);
+            setIsAddingClub(false);
+          }}
+          onSave={handleSaveClub}
+        />
+      )}
+
+      {/* Admin Member Edit / Add Modal */}
+      {(editingMember || isAddingMember) && (
+        <AdminMemberEditModal
+          isOpen={Boolean(editingMember || isAddingMember)}
+          member={editingMember}
+          chapterName={currentChapter.name}
+          onClose={() => {
+            setEditingMember(null);
+            setIsAddingMember(false);
+          }}
+          onSave={handleSaveMember}
+        />
+      )}
+
+      {/* Admin Leader Edit / Add Modal */}
+      {(editingLeader || isAddingLeader) && (
+        <AdminLeaderEditModal
+          isOpen={Boolean(editingLeader || isAddingLeader)}
+          leader={editingLeader}
+          chapterName={currentChapter.name}
+          onClose={() => {
+            setEditingLeader(null);
+            setIsAddingLeader(false);
+          }}
+          onSave={handleSaveLeader}
+        />
+      )}
+
+      {/* Admin Chapter Edit Modal */}
+      {isEditingChapter && (
+        <AdminChapterEditModal
+          isOpen={isEditingChapter}
+          chapter={currentChapter}
+          onClose={() => setIsEditingChapter(false)}
+          onSave={handleSaveChapter}
+        />
+      )}
+
+      {/* Admin Deletion Confirmation Modals */}
+      <AdminDeleteConfirmModal
+        isOpen={Boolean(deletingClub)}
+        title="Delete Robotics Club / Society"
+        itemName={deletingClub?.club_name}
+        message="Are you sure you want to permanently delete this club from this chapter? All records for this club will be removed."
+        onConfirm={handleConfirmDeleteClub}
+        onClose={() => setDeletingClub(null)}
+      />
+
+      <AdminDeleteConfirmModal
+        isOpen={Boolean(deletingMember)}
+        title="Remove Chapter Member"
+        itemName={deletingMember?.name}
+        message="Are you sure you want to remove this member from the chapter roster?"
+        onConfirm={handleConfirmDeleteMember}
+        onClose={() => setDeletingMember(null)}
+      />
+
+      <AdminDeleteConfirmModal
+        isOpen={Boolean(deletingReport)}
+        title="Delete Meeting Minutes / Agenda"
+        itemName={deletingReport?.title}
+        message="Are you sure you want to delete this meeting minutes or agenda report record?"
+        onConfirm={handleConfirmDeleteReport}
+        onClose={() => setDeletingReport(null)}
+      />
+
+      <AdminDeleteConfirmModal
+        isOpen={Boolean(deletingLeader)}
+        title="Remove Chapter Leader"
+        itemName={deletingLeader?.name}
+        message="Are you sure you want to remove this executive leader from the chapter leadership directory?"
+        onConfirm={handleConfirmDeleteLeader}
+        onClose={() => setDeletingLeader(null)}
+      />
+
+      <AdminDeleteConfirmModal
+        isOpen={isDeletingChapter}
+        title="Permanently Delete Entire Chapter"
+        itemName={currentChapter.name}
+        message="DANGER: Are you sure you want to delete this chapter? This will permanently remove the chapter, its clubs, its member roster, and all associated records."
+        confirmLabel="Yes, Delete Chapter"
+        onConfirm={handleConfirmDeleteChapter}
+        onClose={() => setIsDeletingChapter(false)}
+      />
     </div>
   );
 }
