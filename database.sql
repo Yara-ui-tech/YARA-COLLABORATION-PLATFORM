@@ -5245,12 +5245,307 @@ WHERE
   );
 
 -- ==============================================================================
--- END OF YARA ENTERPRISE PRODUCTION DATABASE SPECIFICATION (v3.2.1-PROD)
+-- SECTION: CHAPTERS & CLUBS FULL ADMINISTRATIVE CONTROL (v3.2.2-ADMIN-CLUBS)
+-- ==============================================================================
+
+-- 1. Ensure columns exist on chapters table
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS clubs JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS members JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS leaders JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS website_url TEXT;
+ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- 2. Index for fast querying inside clubs and members JSONB
+CREATE INDEX IF NOT EXISTS idx_chapters_clubs_gin ON public.chapters USING gin (clubs);
+CREATE INDEX IF NOT EXISTS idx_chapters_members_gin ON public.chapters USING gin (members);
+
+-- 3. Explicit Admin policies on chapters table
+-- Ensures that Admins can insert, update, or permanently delete chapters, clubs, members, or leaders.
+CALL public.safely_apply_policy(
+  'Admins can delete chapters', 
+  'chapters', 
+  'CREATE POLICY "Admins can delete chapters" ON public.chapters FOR DELETE USING (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com''))'
+);
+
+-- 4. RPC: Admin Update / Upsert Chapter Club
+CREATE OR REPLACE FUNCTION public.admin_update_chapter_club(
+  p_chapter_id UUID,
+  p_club_id TEXT,
+  p_club_data JSONB
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_current_clubs JSONB;
+  v_updated_clubs JSONB := '[]'::jsonb;
+  v_club JSONB;
+  v_found BOOLEAN := false;
+BEGIN
+  -- Verify admin rights
+  IF NOT (public.is_admin() OR COALESCE(auth.jwt() ->> 'email', '') IN ('manongwasimbarashe394@gmail.com', 'goyaracorp@gmail.com')) THEN
+    RAISE EXCEPTION 'Unauthorized: Only YARA National Executive Administrators can update clubs.';
+  END IF;
+
+  SELECT COALESCE(clubs, '[]'::jsonb) INTO v_current_clubs
+  FROM public.chapters
+  WHERE id = p_chapter_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Chapter not found with ID %', p_chapter_id;
+  END IF;
+
+  FOR v_club IN SELECT * FROM jsonb_array_elements(v_current_clubs)
+  LOOP
+    IF v_club ->> 'id' = p_club_id THEN
+      v_updated_clubs := v_updated_clubs || jsonb_build_array(v_club || p_club_data);
+      v_found := true;
+    ELSE
+      v_updated_clubs := v_updated_clubs || jsonb_build_array(v_club);
+    END IF;
+  END LOOP;
+
+  -- If club was not found, append it as a new club
+  IF NOT v_found THEN
+    v_updated_clubs := v_updated_clubs || jsonb_build_array(p_club_data);
+  END IF;
+
+  UPDATE public.chapters
+  SET clubs = v_updated_clubs, updated_at = now()
+  WHERE id = p_chapter_id;
+
+  RETURN v_updated_clubs;
+END;
+$$;
+
+-- 5. RPC: Admin Delete Chapter Club
+CREATE OR REPLACE FUNCTION public.admin_delete_chapter_club(
+  p_chapter_id UUID,
+  p_club_id TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_current_clubs JSONB;
+  v_updated_clubs JSONB := '[]'::jsonb;
+  v_club JSONB;
+BEGIN
+  -- Verify admin rights
+  IF NOT (public.is_admin() OR COALESCE(auth.jwt() ->> 'email', '') IN ('manongwasimbarashe394@gmail.com', 'goyaracorp@gmail.com')) THEN
+    RAISE EXCEPTION 'Unauthorized: Only YARA National Executive Administrators can delete clubs.';
+  END IF;
+
+  SELECT COALESCE(clubs, '[]'::jsonb) INTO v_current_clubs
+  FROM public.chapters
+  WHERE id = p_chapter_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Chapter not found with ID %', p_chapter_id;
+  END IF;
+
+  FOR v_club IN SELECT * FROM jsonb_array_elements(v_current_clubs)
+  LOOP
+    IF v_club ->> 'id' <> p_club_id THEN
+      v_updated_clubs := v_updated_clubs || jsonb_build_array(v_club);
+    END IF;
+  END LOOP;
+
+  UPDATE public.chapters
+  SET clubs = v_updated_clubs, updated_at = now()
+  WHERE id = p_chapter_id;
+
+  RETURN v_updated_clubs;
+END;
+$$;
+
+
+-- ==============================================================================
+-- SECTION: AUTOMATED WELCOME INDUCTION EMAIL & LOGO AT END OF ALL MAILS (v3.2.2)
+-- ==============================================================================
+
+-- 1. Table: email_dispatches (Tracks every email sent from the platform)
+CREATE TABLE IF NOT EXISTS public.email_dispatches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_email TEXT NOT NULL,
+  recipient_name TEXT,
+  member_id TEXT,
+  position TEXT,
+  email_type TEXT NOT NULL DEFAULT 'welcome',
+  subject TEXT NOT NULL,
+  body_html TEXT,
+  logo_url TEXT DEFAULT 'https://www.yaria.tech/assets/yara-circular-logo.png',
+  status TEXT NOT NULL DEFAULT 'dispatched',
+  error_message TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_dispatches_recipient ON public.email_dispatches (recipient_email);
+CREATE INDEX IF NOT EXISTS idx_email_dispatches_type ON public.email_dispatches (email_type);
+CREATE INDEX IF NOT EXISTS idx_email_dispatches_member_id ON public.email_dispatches (member_id);
+CREATE INDEX IF NOT EXISTS idx_email_dispatches_created ON public.email_dispatches (created_at DESC);
+
+ALTER TABLE public.email_dispatches ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Users view own emails', 
+  'email_dispatches', 
+  'CREATE POLICY "Users view own emails" ON public.email_dispatches FOR SELECT USING (recipient_email = auth.jwt() ->> ''email'' OR public.is_admin())'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage all email dispatches', 
+  'email_dispatches', 
+  'CREATE POLICY "Admins manage all email dispatches" ON public.email_dispatches FOR ALL USING (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com''))'
+);
+
+CALL public.safely_apply_policy(
+  'Allow inserting email dispatches', 
+  'email_dispatches', 
+  'CREATE POLICY "Allow inserting email dispatches" ON public.email_dispatches FOR INSERT WITH CHECK (true)'
+);
+
+-- 2. Table: member_messages (Parent broadcast/transactional message record)
+CREATE TABLE IF NOT EXISTS public.member_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'email',
+  audience JSONB DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'pending',
+  has_official_logo BOOLEAN DEFAULT TRUE,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 3. Table: member_message_recipients (Recipients queue consumed by Edge Function send-member-emails)
+CREATE TABLE IF NOT EXISTS public.member_message_recipients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID REFERENCES public.member_messages(id) ON DELETE CASCADE,
+  recipient_email TEXT NOT NULL,
+  recipient_name TEXT,
+  recipient_phone TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  sent_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mmr_status ON public.member_message_recipients (status);
+CREATE INDEX IF NOT EXISTS idx_mmr_message_id ON public.member_message_recipients (message_id);
+CREATE INDEX IF NOT EXISTS idx_mmr_email ON public.member_message_recipients (recipient_email);
+
+ALTER TABLE public.member_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.member_message_recipients ENABLE ROW LEVEL SECURITY;
+
+CALL public.safely_apply_policy(
+  'Admins manage member messages', 
+  'member_messages', 
+  'CREATE POLICY "Admins manage member messages" ON public.member_messages FOR ALL USING (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com''))'
+);
+
+CALL public.safely_apply_policy(
+  'Admins manage message recipients', 
+  'member_message_recipients', 
+  'CREATE POLICY "Admins manage message recipients" ON public.member_message_recipients FOR ALL USING (public.is_admin() OR COALESCE(auth.jwt() ->> ''email'', '''') IN (''manongwasimbarashe394@gmail.com'', ''goyaracorp@gmail.com''))'
+);
+
+CALL public.safely_apply_policy(
+  'Allow inserting member messages', 
+  'member_messages', 
+  'CREATE POLICY "Allow inserting member messages" ON public.member_messages FOR INSERT WITH CHECK (true)'
+);
+
+CALL public.safely_apply_policy(
+  'Allow inserting message recipients', 
+  'member_message_recipients', 
+  'CREATE POLICY "Allow inserting message recipients" ON public.member_message_recipients FOR INSERT WITH CHECK (true)'
+);
+
+-- 4. Function: Automatically log welcome induction email on profile creation
+CREATE OR REPLACE FUNCTION public.trg_fn_auto_log_welcome_email()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_pos TEXT;
+  v_special_thanks TEXT;
+  v_subject TEXT;
+  v_member_id TEXT;
+  v_logo_url TEXT := 'https://www.yaria.tech/assets/yara-circular-logo.png';
+BEGIN
+  IF NEW.email IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- Determine position label
+  IF NEW.role = 'teacher' THEN
+    v_pos := 'Robotics Educator';
+  ELSIF NEW.role = 'mentor' THEN
+    v_pos := 'STEM Mentor';
+  ELSIF NEW.role = 'admin' THEN
+    v_pos := 'Executive Administrator';
+  ELSE
+    v_pos := 'Student Innovator (' || COALESCE(NEW.tier, 'T2') || ')';
+  END IF;
+
+  v_member_id := COALESCE(NEW.member_id, 'YARA-MEMBER-' || substring(NEW.id::text, 1, 8));
+  v_subject := 'Welcome to YARA – Official Induction & Member ID: ' || v_member_id;
+  v_special_thanks := 'Special Thanks from the National Directorate: Thank you, ' || COALESCE(NEW.display_name, 'Innovator') || ', for joining the Young Africans Robotics Association! Your active passion for robotics, technology, and AI represents the future of technological self-reliance across Zimbabwe and the African continent.';
+
+  -- Insert record into email_dispatches
+  INSERT INTO public.email_dispatches (
+    recipient_email,
+    recipient_name,
+    member_id,
+    position,
+    email_type,
+    subject,
+    body_html,
+    logo_url,
+    status,
+    metadata
+  ) VALUES (
+    NEW.email,
+    COALESCE(NEW.display_name, split_part(NEW.email, '@', 1)),
+    v_member_id,
+    v_pos,
+    'welcome',
+    v_subject,
+    v_special_thanks,
+    v_logo_url,
+    'queued',
+    jsonb_build_object(
+      'school_institution', NEW.school_institution,
+      'province', NEW.province,
+      'role', NEW.role,
+      'tier', NEW.tier,
+      'has_official_logo', true
+    )
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_auto_log_welcome_email ON public.profiles;
+CREATE TRIGGER trg_auto_log_welcome_email
+AFTER INSERT ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_fn_auto_log_welcome_email();
+
+-- ==============================================================================
+-- END OF YARA ENTERPRISE PRODUCTION DATABASE SPECIFICATION (v3.2.2-PROD)
 -- ==============================================================================
 DO $$
 BEGIN
   RAISE NOTICE '==============================================================================';
-  RAISE NOTICE 'YARA Master Production Database Migration v3.2.1-PROD completed successfully!';
-  RAISE NOTICE 'All tables, storage buckets, RLS policies and LMS features are active.';
+  RAISE NOTICE 'YARA Master Production Database Migration v3.2.2-PROD completed successfully!';
+  RAISE NOTICE 'Chapters, clubs, automated welcome emails and official mail logo features active.';
   RAISE NOTICE '==============================================================================';
 END $$;
