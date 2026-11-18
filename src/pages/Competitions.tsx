@@ -313,7 +313,7 @@ export default function Competitions() {
                     </button>
                   ) : (
                     <Link
-                      to="/competition/live-results"
+                      to={`/competition/live-results?id=${featuredCompetition.id}`}
                       className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center space-x-2"
                     >
                       <Trophy className="w-4 h-4" />
@@ -356,7 +356,7 @@ export default function Competitions() {
                       <p className="text-sm font-black text-white">{featuredCompetition.title}</p>
                     </div>
                     <Link
-                      to="/competition/live-results"
+                      to={`/competition/live-results?id=${featuredCompetition.id}`}
                       className="px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl flex items-center space-x-1 transition shadow-md"
                     >
                       <span>Live Board</span>
@@ -598,7 +598,7 @@ export default function Competitions() {
                       </button>
                     ) : (
                       <Link
-                        to="/competition/live-results"
+                        to={`/competition/live-results?id=${comp.id}`}
                         className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl font-bold text-xs flex items-center justify-center space-x-2 transition-all border border-slate-700"
                       >
                         <Trophy className="w-4 h-4 text-amber-400" />
@@ -765,7 +765,7 @@ export default function Competitions() {
                     </button>
                   ) : (
                     <Link
-                      to="/competition/live-results"
+                      to={`/competition/live-results?id=${selectedComp.id}`}
                       className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-black uppercase tracking-wider shadow-md flex items-center space-x-2 transition"
                     >
                       <Trophy className="w-4 h-4" />
