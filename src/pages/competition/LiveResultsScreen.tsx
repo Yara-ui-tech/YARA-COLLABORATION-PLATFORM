@@ -2,28 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, Waves, Compass, Lightbulb, 
-  Maximize2, Minimize2, RefreshCw, Award, ShieldCheck, Flame
+  Maximize2, Minimize2, RefreshCw, Award, ShieldCheck, Flame, AlertCircle, Sparkles
 } from 'lucide-react';
 import { getDigitalScores } from '../../services/competitionEcosystemService';
-import { getRegistrations } from '../../services/yaraCompetitionService';
+import { getRegistrations, getScoreSheets } from '../../services/yaraCompetitionService';
 import { DigitalScoreSubmission } from '../../types/competitionEcosystem';
-import { YaraCompetitionRegistration } from '../../types/yaraCompetition';
+import { YaraCompetitionRegistration, CategoryScoreSheet } from '../../types/yaraCompetition';
 import { ASSETS } from '../../constants/assets';
 
 export default function LiveResultsScreen() {
   const [scores, setScores] = useState<DigitalScoreSubmission[]>([]);
+  const [scoreSheets, setScoreSheets] = useState<CategoryScoreSheet[]>([]);
   const [teams, setTeams] = useState<YaraCompetitionRegistration[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [activeChallengeView, setActiveChallengeView] = useState<'all' | 'underwater' | 'maze' | 'pitch'>('all');
 
   const loadData = async () => {
-    const [sc, tm] = await Promise.all([
+    const [sc, tm, sheets] = await Promise.all([
       getDigitalScores(),
-      getRegistrations()
+      getRegistrations(),
+      getScoreSheets()
     ]);
-    setScores(sc);
-    setTeams(tm);
+    setScores(sc || []);
+    setTeams(tm || []);
+    setScoreSheets(sheets || []);
     setLastUpdated(new Date());
   };
 
@@ -45,11 +48,51 @@ export default function LiveResultsScreen() {
     }
   };
 
-  // Compute challenge specific rankings
+  // Helper to extract official uploaded score for a specific team in a category
+  const getTeamCategoryScore = (teamId: string, regId: string, category: 'underwater_drone' | 'autonomous_maze' | 'innovation_pitch'): number | null => {
+    // 1. Digital judge score submissions
+    const dig = scores.find(s => (s.team_id === teamId || s.team_id === regId) && s.category === category);
+    if (dig && typeof dig.total_score === 'number') {
+      return dig.total_score;
+    }
+    // 2. Score sheets submitted
+    const sheet = scoreSheets.find(s => (s.team_id === teamId || s.registration_id === regId) && s.category === category);
+    if (sheet && typeof sheet.final_category_score === 'number') {
+      return sheet.final_category_score;
+    }
+    return null;
+  };
+
+  // Challenge specific rankings: ONLY teams with verified uploaded competition scores
   const getCategoryStandings = (category: 'underwater_drone' | 'autonomous_maze' | 'innovation_pitch') => {
-    const categoryScores = scores.filter(s => s.category === category);
-    // Sort descending
-    return categoryScores.sort((a, b) => b.total_score - a.total_score);
+    const standings: { id: string; team_name: string; total_score: number; school?: string; province?: string }[] = [];
+
+    // Registered teams with verified scores
+    teams.forEach(team => {
+      const score = getTeamCategoryScore(team.id, team.registration_id, category);
+      if (score !== null) {
+        standings.push({
+          id: team.id,
+          team_name: team.team_name,
+          total_score: score,
+          school: team.school_organization,
+          province: team.province
+        });
+      }
+    });
+
+    // Also include any digital score submissions where team might be referenced directly
+    scores.filter(s => s.category === category).forEach(s => {
+      if (!standings.some(item => item.id === s.team_id)) {
+        standings.push({
+          id: s.team_id || s.id,
+          team_name: s.team_name,
+          total_score: s.total_score
+        });
+      }
+    });
+
+    return standings.sort((a, b) => b.total_score - a.total_score);
   };
 
   const underwaterRankings = getCategoryStandings('underwater_drone');
@@ -57,12 +100,19 @@ export default function LiveResultsScreen() {
   const pitchRankings = getCategoryStandings('innovation_pitch');
 
   // Compute Grand Championship Formula (35% Underwater + 35% Maze + 30% Pitch)
+  // Strictly calculated ONLY from real competition scores uploaded by judges
   const grandLeaderboard = teams.map(team => {
-    const uScore = scores.find(s => s.team_id === team.id && s.category === 'underwater_drone')?.total_score || 85;
-    const mScore = scores.find(s => s.team_id === team.id && s.category === 'autonomous_maze')?.total_score || 86;
-    const pScore = scores.find(s => s.team_id === team.id && s.category === 'innovation_pitch')?.total_score || 88;
+    const uScore = getTeamCategoryScore(team.id, team.registration_id, 'underwater_drone');
+    const mScore = getTeamCategoryScore(team.id, team.registration_id, 'autonomous_maze');
+    const pScore = getTeamCategoryScore(team.id, team.registration_id, 'innovation_pitch');
 
-    const weightedTotal = Math.round((uScore * 0.35) + (mScore * 0.35) + (pScore * 0.30));
+    const hasAnyScore = uScore !== null || mScore !== null || pScore !== null;
+    const trialsCompleted = (uScore !== null ? 1 : 0) + (mScore !== null ? 1 : 0) + (pScore !== null ? 1 : 0);
+
+    // Weighted Grand Total from officially scored trials
+    const weightedTotal = hasAnyScore
+      ? Math.round(((uScore ?? 0) * 0.35) + ((mScore ?? 0) * 0.35) + ((pScore ?? 0) * 0.30))
+      : null;
 
     return {
       team_id: team.id,
@@ -73,11 +123,22 @@ export default function LiveResultsScreen() {
       underwaterScore: uScore,
       mazeScore: mScore,
       pitchScore: pScore,
+      hasAnyScore,
+      trialsCompleted,
       grandTotal: weightedTotal
     };
-  }).sort((a, b) => b.grandTotal - a.grandTotal);
+  }).sort((a, b) => {
+    // Teams with uploaded scores rank first, ordered descending by grand total
+    if (a.hasAnyScore && !b.hasAnyScore) return -1;
+    if (!a.hasAnyScore && b.hasAnyScore) return 1;
+    if (a.hasAnyScore && b.hasAnyScore) {
+      return (b.grandTotal ?? 0) - (a.grandTotal ?? 0);
+    }
+    return a.team_name.localeCompare(b.team_name);
+  });
 
-  const grandChampion = grandLeaderboard[0];
+  // Grand Champion is ONLY declared if there are real competition trial scores uploaded
+  const grandChampion = grandLeaderboard.find(t => t.hasAnyScore && t.grandTotal !== null);
 
   return (
     <div className={`space-y-8 pb-16 ${isFullscreen ? 'p-8 bg-slate-950 min-h-screen text-white' : ''}`}>
@@ -124,8 +185,8 @@ export default function LiveResultsScreen() {
         </div>
       </div>
 
-      {/* 2. GRAND CHAMPION SHOWCASE BANNER */}
-      {grandChampion && (
+      {/* 2. GRAND CHAMPION SHOWCASE BANNER / AWAITING SCORES BANNER */}
+      {grandChampion ? (
         <div className="p-8 rounded-3xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border-4 border-amber-300">
           <div className="space-y-2 text-center md:text-left">
             <span className="px-3.5 py-1 rounded-full bg-slate-950 text-amber-400 text-xs font-black uppercase tracking-widest inline-block shadow-sm">
@@ -147,6 +208,34 @@ export default function LiveResultsScreen() {
               {grandChampion.grandTotal}
             </span>
             <span className="text-xs text-slate-400 block mt-0.5">out of 100 max</span>
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 md:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center space-x-4 text-center md:text-left">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <Trophy className="w-7 h-7" />
+            </div>
+            <div>
+              <span className="px-3 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/20 text-[10px] font-black uppercase tracking-widest inline-block mb-1">
+                Official Live Standings
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                Awaiting Arena Trial Scores
+              </h2>
+              <p className="text-xs text-slate-400 max-w-xl">
+                Official scores will be displayed here in real time as judges record and upload trial evaluations for Underwater Drone, Autonomous Maze, and Innovation Pitch.
+              </p>
+            </div>
+          </div>
+          <div className="text-center px-6 py-4 bg-slate-950 rounded-2xl border border-slate-800 shrink-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              Registered Teams
+            </span>
+            <span className="text-3xl font-black font-mono text-amber-400">
+              {teams.length}
+            </span>
+            <span className="text-[10px] text-slate-500 block mt-0.5">Ready on Roster</span>
           </div>
         </div>
       )}
@@ -301,34 +390,72 @@ export default function LiveResultsScreen() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {grandLeaderboard.map((team, idx) => (
-                <tr key={team.team_id} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-3 px-3 font-bold">
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black ${
-                      idx === 0 ? 'bg-amber-400 text-slate-950' :
-                      idx === 1 ? 'bg-slate-300 text-slate-900' :
-                      idx === 2 ? 'bg-amber-200 text-amber-950' :
-                      'bg-slate-100 text-slate-600'
-                    }`}>
-                      #{idx + 1}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 font-bold text-slate-900">
-                    {team.team_name}
-                    <span className="block text-[10px] text-slate-400 font-mono">{team.registration_id}</span>
-                  </td>
-                  <td className="py-3 px-3 text-slate-600">
-                    {team.school}
-                    <span className="block text-[10px] text-slate-400">{team.province}</span>
-                  </td>
-                  <td className="py-3 px-3 text-center font-mono text-blue-700 font-bold">{team.underwaterScore}</td>
-                  <td className="py-3 px-3 text-center font-mono text-amber-700 font-bold">{team.mazeScore}</td>
-                  <td className="py-3 px-3 text-center font-mono text-emerald-700 font-bold">{team.pitchScore}</td>
-                  <td className="py-3 px-3 text-right font-mono font-black text-sm text-slate-900">
-                    {team.grandTotal} / 100
+              {grandLeaderboard.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                    No registered competition teams found. Teams will appear here once officially registered.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                grandLeaderboard.map((team, idx) => (
+                  <tr key={team.team_id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-3 font-bold">
+                      {team.hasAnyScore ? (
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black ${
+                          idx === 0 ? 'bg-amber-400 text-slate-950' :
+                          idx === 1 ? 'bg-slate-300 text-slate-900' :
+                          idx === 2 ? 'bg-amber-200 text-amber-950' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          #{idx + 1}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10px] font-bold">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 font-bold text-slate-900">
+                      {team.team_name}
+                      <span className="block text-[10px] text-slate-400 font-mono">{team.registration_id}</span>
+                    </td>
+                    <td className="py-3 px-3 text-slate-600">
+                      {team.school}
+                      <span className="block text-[10px] text-slate-400">{team.province}</span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {team.underwaterScore !== null ? (
+                        <span className="font-mono text-blue-700 font-bold">{team.underwaterScore}</span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {team.mazeScore !== null ? (
+                        <span className="font-mono text-amber-700 font-bold">{team.mazeScore}</span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {team.pitchScore !== null ? (
+                        <span className="font-mono text-emerald-700 font-bold">{team.pitchScore}</span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      {team.grandTotal !== null ? (
+                        <span className="font-mono font-black text-sm text-slate-900">
+                          {team.grandTotal} / 100
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-mono text-xs">Awaiting Trials</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

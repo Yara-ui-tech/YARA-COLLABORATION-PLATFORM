@@ -296,3 +296,4 @@ function logEmailDispatch(record: { to: string; recipient: string; subject: stri
     localStorage.setItem(key, JSON.stringify(stored.slice(0, 100)));
   } catch {}
 }
+

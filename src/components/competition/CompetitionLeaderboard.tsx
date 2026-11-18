@@ -163,24 +163,31 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                   </tr>
                 ) : (
                   sortedStandings.map((team, idx) => {
+                    const hasAnyScore = team.underwater_score !== undefined || team.maze_score !== undefined || team.pitch_score !== undefined;
                     const rank = idx + 1;
                     return (
-                      <tr key={team.team_id} className={cn("hover:bg-slate-800/50 transition-colors", rank === 1 ? "bg-amber-500/10" : "")}>
+                      <tr key={team.team_id} className={cn("hover:bg-slate-800/50 transition-colors", hasAnyScore && rank === 1 ? "bg-amber-500/10" : "")}>
                         <td className="py-3.5 px-4 text-center font-bold">
-                          {rank === 1 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30">
-                              1
-                            </span>
-                          ) : rank === 2 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-700 text-slate-100 font-black">
-                              2
-                            </span>
-                          ) : rank === 3 ? (
-                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-800/70 text-amber-200 font-black">
-                              3
-                            </span>
+                          {hasAnyScore ? (
+                            rank === 1 ? (
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30">
+                                1
+                              </span>
+                            ) : rank === 2 ? (
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-700 text-slate-100 font-black">
+                                2
+                              </span>
+                            ) : rank === 3 ? (
+                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-800/70 text-amber-200 font-black">
+                                3
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">{rank}</span>
+                            )
                           ) : (
-                            <span className="text-slate-500">{rank}</span>
+                            <span className="text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800">
+                              Pending
+                            </span>
                           )}
                         </td>
 
@@ -203,28 +210,32 @@ export default function CompetitionLeaderboard({ isPublished = true }: Competiti
                               {team.pitch_score !== undefined ? `${team.pitch_score}` : '—'}
                             </td>
                             <td className="py-3.5 px-4 text-right">
-                              <span className="px-2.5 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 font-black font-mono text-xs">
-                                {team.overall_championship_score} pts
-                              </span>
+                              {hasAnyScore ? (
+                                <span className="px-2.5 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 font-black font-mono text-xs">
+                                  {team.overall_championship_score} pts
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 font-mono text-xs">Awaiting Trials</span>
+                              )}
                             </td>
                           </>
                         )}
 
                         {activeTab === 'underwater_drone' && (
                           <td className="py-3.5 px-4 text-right font-black font-mono text-blue-400">
-                            {team.underwater_score !== undefined ? `${team.underwater_score} / 100` : 'Not Entered'}
+                            {team.underwater_score !== undefined ? `${team.underwater_score} / 100` : 'Awaiting Trial'}
                           </td>
                         )}
 
                         {activeTab === 'autonomous_maze' && (
                           <td className="py-3.5 px-4 text-right font-black font-mono text-amber-400">
-                            {team.maze_score !== undefined ? `${team.maze_score} / 100` : 'Not Entered'}
+                            {team.maze_score !== undefined ? `${team.maze_score} / 100` : 'Awaiting Trial'}
                           </td>
                         )}
 
                         {activeTab === 'innovation_pitch' && (
                           <td className="py-3.5 px-4 text-right font-black font-mono text-emerald-400">
-                            {team.pitch_score !== undefined ? `${team.pitch_score} / 100` : 'Not Entered'}
+                            {team.pitch_score !== undefined ? `${team.pitch_score} / 100` : 'Awaiting Trial'}
                           </td>
                         )}
                       </tr>

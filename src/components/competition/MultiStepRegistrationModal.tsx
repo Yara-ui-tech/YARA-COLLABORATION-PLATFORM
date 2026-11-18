@@ -1,31 +1,31 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  X, Check, ChevronRight, ChevronLeft, Trophy, Users, ShieldCheck, 
-  Upload, FileText, CheckCircle2, AlertCircle, Building2, 
-  MapPin, Phone, Mail, User, Layers, Waves, Compass, Lightbulb, 
+import {
+  X, Check, ChevronRight, ChevronLeft, Trophy, Users, ShieldCheck,
+  Upload, FileText, CheckCircle2, AlertCircle, Building2,
+  MapPin, Phone, Mail, User, Layers, Waves, Compass, Lightbulb,
   Plus, Trash2, Crown, Download, Printer, ArrowRight, Video, FileCheck, Info
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../AuthContext';
-import { 
-  ParticipantType, 
-  CompetitionCategoryType, 
-  YaraTeamMember, 
+import {
+  ParticipantType,
+  CompetitionCategoryType,
+  YaraTeamMember,
   UnderwaterDroneDetails,
   AutonomousMazeDetails,
   InnovationPitchDetails,
   TeamUploadedDocument,
   TeamConsents,
-  YaraCompetitionRegistration 
+  YaraCompetitionRegistration
 } from '../../types/yaraCompetition';
-import { 
-  ZIMBABWE_PROVINCES_AND_DISTRICTS, 
-  YARA_EVENT_2026_DEFAULT 
+import {
+  ZIMBABWE_PROVINCES_AND_DISTRICTS,
+  YARA_EVENT_2026_DEFAULT
 } from '../../constants/yaraCompetitionData';
-import { 
-  generateRegistrationId, 
-  saveRegistration 
+import {
+  generateRegistrationId,
+  saveRegistration
 } from '../../services/yaraCompetitionService';
 import { computeTeamCompositionStatus } from '../../lib/teamValidation';
 
@@ -419,8 +419,8 @@ export default function MultiStepRegistrationModal({
                       currentStep === s.step
                         ? "bg-amber-400 text-slate-950 shadow-md font-black"
                         : currentStep > s.step
-                        ? "bg-white/20 text-emerald-300 hover:bg-white/30"
-                        : "bg-white/5 text-slate-400 cursor-not-allowed"
+                          ? "bg-white/20 text-emerald-300 hover:bg-white/30"
+                          : "bg-white/5 text-slate-400 cursor-not-allowed"
                     )}
                   >
                     <span className="w-4 h-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">
@@ -724,8 +724,8 @@ export default function MultiStepRegistrationModal({
                               onClick={() => handleToggleCategory(c.id)}
                               className={cn(
                                 "p-4 rounded-2xl border text-left transition-all flex items-start justify-between",
-                                isSelected 
-                                  ? "bg-indigo-50/80 border-indigo-600 text-indigo-950 shadow-sm" 
+                                isSelected
+                                  ? "bg-indigo-50/80 border-indigo-600 text-indigo-950 shadow-sm"
                                   : "bg-white border-slate-200 hover:border-slate-300 text-slate-600"
                               )}
                             >
@@ -778,8 +778,8 @@ export default function MultiStepRegistrationModal({
                             {compositionStatus.isEligible ? "✓ Mandatory Composition Satisfied" : "⚠ Team Not Yet Eligible"}
                           </h4>
                           <p className="text-[11px] text-slate-600">
-                            {compositionStatus.isEligible 
-                              ? "Ready: 2+ boys and 2+ girls present." 
+                            {compositionStatus.isEligible
+                              ? "Ready: 2+ boys and 2+ girls present."
                               : "Must have at least 2 boys and 2 girls (minimum 4 members)."}
                           </p>
                         </div>

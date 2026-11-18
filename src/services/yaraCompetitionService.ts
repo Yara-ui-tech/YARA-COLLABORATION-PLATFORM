@@ -220,22 +220,50 @@ export const computeChampionshipStandings = async (): Promise<ChampionshipTeamSt
   const registrations = await getRegistrations();
   const scoreSheets = await getScoreSheets();
 
+  // Also retrieve digital scores uploaded by competition judges
+  let digitalScores: Array<{ team_id?: string; category?: string; total_score?: number }> = [];
+  try {
+    const { data } = await supabase.from('scores').select('*');
+    if (data && data.length > 0) {
+      digitalScores = data;
+    } else {
+      const stored = localStorage.getItem('yara_comp_scores');
+      if (stored) digitalScores = JSON.parse(stored);
+    }
+  } catch {
+    const stored = localStorage.getItem('yara_comp_scores');
+    if (stored) {
+      try { digitalScores = JSON.parse(stored); } catch {}
+    }
+  }
+
   const standings: ChampionshipTeamStanding[] = registrations.map(team => {
-    const teamScores = scoreSheets.filter(s => s.team_id === team.id || s.registration_id === team.registration_id);
+    const teamSheets = scoreSheets.filter(s => s.team_id === team.id || s.registration_id === team.registration_id);
+    const teamDig = digitalScores.filter(s => s.team_id === team.id || s.team_id === team.registration_id);
     
-    const underwaterSheet = teamScores.find(s => s.category === 'underwater_drone');
-    const mazeSheet = teamScores.find(s => s.category === 'autonomous_maze');
-    const pitchSheet = teamScores.find(s => s.category === 'innovation_pitch');
+    const getCatScore = (cat: string): number | undefined => {
+      const dig = teamDig.find(s => s.category === cat);
+      if (dig && typeof dig.total_score === 'number') {
+        return dig.total_score;
+      }
+      const sheet = teamSheets.find(s => s.category === cat);
+      if (sheet && typeof sheet.final_category_score === 'number') {
+        return sheet.final_category_score;
+      }
+      return undefined;
+    };
 
-    const uScore = underwaterSheet ? underwaterSheet.final_category_score : (team.selected_categories.includes('underwater_drone') ? 0 : undefined);
-    const mScore = mazeSheet ? mazeSheet.final_category_score : (team.selected_categories.includes('autonomous_maze') ? 0 : undefined);
-    const pScore = pitchSheet ? pitchSheet.final_category_score : (team.selected_categories.includes('innovation_pitch') ? 0 : undefined);
+    const uScore = getCatScore('underwater_drone');
+    const mScore = getCatScore('autonomous_maze');
+    const pScore = getCatScore('innovation_pitch');
 
-    // Formula: 35% Underwater + 35% Maze + 30% Innovation
+    const hasAnyScore = uScore !== undefined || mScore !== undefined || pScore !== undefined;
+
+    // Formula: 35% Underwater + 35% Maze + 30% Innovation (only from officially uploaded scores)
     const weightedUnderwater = (uScore ?? 0) * 0.35;
     const weightedMaze = (mScore ?? 0) * 0.35;
     const weightedPitch = (pScore ?? 0) * 0.30;
-    const overall = parseFloat((weightedUnderwater + weightedMaze + weightedPitch).toFixed(2));
+    const overall = hasAnyScore ? parseFloat((weightedUnderwater + weightedMaze + weightedPitch).toFixed(2)) : 0;
 
     const awardedTitles: string[] = [];
     if (team.status === 'Winner') {
@@ -258,8 +286,14 @@ export const computeChampionshipStandings = async (): Promise<ChampionshipTeamSt
     };
   });
 
-  // Sort by overall championship score
-  standings.sort((a, b) => b.overall_championship_score - a.overall_championship_score);
+  // Sort by overall championship score (teams with uploaded scores first)
+  standings.sort((a, b) => {
+    const aHas = a.underwater_score !== undefined || a.maze_score !== undefined || a.pitch_score !== undefined;
+    const bHas = b.underwater_score !== undefined || b.maze_score !== undefined || b.pitch_score !== undefined;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return b.overall_championship_score - a.overall_championship_score;
+  });
   standings.forEach((s, idx) => {
     s.rank_overall = idx + 1;
   });
