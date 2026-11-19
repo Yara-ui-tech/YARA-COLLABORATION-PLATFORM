@@ -1022,6 +1022,130 @@ export const safeguardingService = {
       await supabase.from('safeguarding_case_notes').insert(noteObj);
     } catch {}
     return noteObj;
+  },
+
+  // --------------------------------------------------------------------------
+  // ADMIN CONTENT MANAGEMENT: DOCUMENTS, POLICIES, IMAGES & URLS
+  // --------------------------------------------------------------------------
+
+  // Documents & Policies (Docs)
+  addResource: async (resource: Omit<SafeguardingResource, 'id' | 'download_count'>): Promise<SafeguardingResource> => {
+    const newRes: SafeguardingResource = {
+      ...resource,
+      id: 'res_' + Date.now().toString(36),
+      download_count: 0,
+      updated_at: new Date().toISOString()
+    };
+    const current = getLocal<SafeguardingResource[]>(STORAGE_KEYS.RESOURCES, DEFAULT_SAFEGUARDING_RESOURCES);
+    setLocal(STORAGE_KEYS.RESOURCES, [newRes, ...current]);
+    try {
+      await supabase.from('safeguarding_resources').insert(newRes);
+    } catch {}
+    return newRes;
+  },
+
+  deleteResource: async (id: string): Promise<boolean> => {
+    const current = getLocal<SafeguardingResource[]>(STORAGE_KEYS.RESOURCES, DEFAULT_SAFEGUARDING_RESOURCES);
+    setLocal(STORAGE_KEYS.RESOURCES, current.filter(r => r.id !== id));
+    try {
+      await supabase.from('safeguarding_resources').delete().eq('id', id);
+    } catch {}
+    return true;
+  },
+
+  // Campaigns & Awareness Initiatives (Images & Event URLs)
+  addCampaign: async (campaign: Omit<SafeguardingCampaign, 'id'>): Promise<SafeguardingCampaign> => {
+    const newCamp: SafeguardingCampaign = {
+      ...campaign,
+      id: 'camp_' + Date.now().toString(36)
+    };
+    const current = getLocal<SafeguardingCampaign[]>(STORAGE_KEYS.CAMPAIGNS, DEFAULT_SAFEGUARDING_CAMPAIGNS);
+    setLocal(STORAGE_KEYS.CAMPAIGNS, [newCamp, ...current]);
+    try {
+      await supabase.from('safeguarding_campaigns').insert(newCamp);
+    } catch {}
+    return newCamp;
+  },
+
+  deleteCampaign: async (id: string): Promise<boolean> => {
+    const current = getLocal<SafeguardingCampaign[]>(STORAGE_KEYS.CAMPAIGNS, DEFAULT_SAFEGUARDING_CAMPAIGNS);
+    setLocal(STORAGE_KEYS.CAMPAIGNS, current.filter(c => c.id !== id));
+    try {
+      await supabase.from('safeguarding_campaigns').delete().eq('id', id);
+    } catch {}
+    return true;
+  },
+
+  // Institutional Partners & Referrals (Logos & Portal URLs)
+  addPartner: async (partner: Omit<SafeguardingPartner, 'id'>): Promise<SafeguardingPartner> => {
+    const newPartner: SafeguardingPartner = {
+      ...partner,
+      id: 'partner_' + Date.now().toString(36)
+    };
+    const current = getLocal<SafeguardingPartner[]>(STORAGE_KEYS.PARTNERS, DEFAULT_SAFEGUARDING_PARTNERS);
+    setLocal(STORAGE_KEYS.PARTNERS, [newPartner, ...current]);
+    try {
+      await supabase.from('safeguarding_partners').insert(newPartner);
+    } catch {}
+    return newPartner;
+  },
+
+  deletePartner: async (id: string): Promise<boolean> => {
+    const current = getLocal<SafeguardingPartner[]>(STORAGE_KEYS.PARTNERS, DEFAULT_SAFEGUARDING_PARTNERS);
+    setLocal(STORAGE_KEYS.PARTNERS, current.filter(p => p.id !== id));
+    try {
+      await supabase.from('safeguarding_partners').delete().eq('id', id);
+    } catch {}
+    return true;
+  },
+
+  // Verified Emergency Helplines
+  addEmergencyContact: async (contact: Omit<SafeguardingEmergencyContact, 'id'>): Promise<SafeguardingEmergencyContact> => {
+    const newContact: SafeguardingEmergencyContact = {
+      ...contact,
+      id: 'em_' + Date.now().toString(36)
+    };
+    const current = getLocal<SafeguardingEmergencyContact[]>(STORAGE_KEYS.EMERGENCY, DEFAULT_EMERGENCY_CONTACTS);
+    setLocal(STORAGE_KEYS.EMERGENCY, [newContact, ...current]);
+    try {
+      await supabase.from('safeguarding_emergency_contacts').insert(newContact);
+    } catch {}
+    return newContact;
+  },
+
+  deleteEmergencyContact: async (id: string): Promise<boolean> => {
+    const current = getLocal<SafeguardingEmergencyContact[]>(STORAGE_KEYS.EMERGENCY, DEFAULT_EMERGENCY_CONTACTS);
+    setLocal(STORAGE_KEYS.EMERGENCY, current.filter(e => e.id !== id));
+    try {
+      await supabase.from('safeguarding_emergency_contacts').delete().eq('id', id);
+    } catch {}
+    return true;
+  },
+
+  // Attach Document / Image / Evidence URL to a Case Report
+  addCaseEvidenceUrl: async (reportId: string, url: string, name?: string): Promise<boolean> => {
+    const reports = getLocal<SafeguardingReport[]>(STORAGE_KEYS.REPORTS, []);
+    const target = reports.find(r => r.id === reportId);
+    if (!target) return false;
+
+    const existingUrls = target.evidence_urls || [];
+    target.evidence_urls = [...existingUrls, url];
+    target.updated_at = new Date().toISOString();
+    setLocal(STORAGE_KEYS.REPORTS, reports.map(r => r.id === reportId ? target : r));
+
+    try {
+      await supabase.from('safeguarding_reports').update({ evidence_urls: target.evidence_urls, updated_at: target.updated_at }).eq('id', reportId);
+    } catch {}
+
+    await logSafeguardingAction({
+      report_id: reportId,
+      case_number: target.case_number,
+      officer_name: 'Safeguarding Officer',
+      action: 'ATTACHED_EVIDENCE',
+      details: name ? `Attached: ${name} (${url})` : `Attached URL: ${url}`
+    });
+
+    return true;
   }
 };
 

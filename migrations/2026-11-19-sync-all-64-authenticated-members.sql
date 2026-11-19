@@ -108,7 +108,7 @@ BEGIN
       community,
       school_institution,
       institution,
-      is_verified,
+      approval_status,
       registration_paid,
       trial_ends_at,
       subscription_expires_at,
@@ -131,7 +131,7 @@ BEGIN
       COALESCE(v_user.raw_user_meta_data->>'community', ''),
       COALESCE(v_user.raw_user_meta_data->>'school_institution', v_user.raw_user_meta_data->>'institution', ''),
       COALESCE(v_user.raw_user_meta_data->>'institution', v_user.raw_user_meta_data->>'school_institution', ''),
-      TRUE,
+      'approved',
       TRUE,
       NOW() + INTERVAL '30 days',
       NOW() + INTERVAL '365 days',
@@ -238,3 +238,4 @@ SELECT
 FROM public.profiles p;
 
 GRANT SELECT ON public.v_admin_member_directory TO anon, authenticated, service_role;
+
