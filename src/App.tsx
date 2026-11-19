@@ -49,6 +49,20 @@ import Training from './pages/Training';
 import SchoolManagement from './pages/SchoolManagement';
 import Shop from './pages/Shop';
 
+// YARA Safeguarding & Wellbeing Portal
+import SafeguardingHub from './pages/safeguarding/SafeguardingHub';
+import ChildProtectionPage from './pages/safeguarding/ChildProtectionPage';
+import GbvPreventionPage from './pages/safeguarding/GbvPreventionPage';
+import ReportConcernPage from './pages/safeguarding/ReportConcernPage';
+import ReportTrackingPage from './pages/safeguarding/ReportTrackingPage';
+import EmergencyHotlinesPage from './pages/safeguarding/EmergencyHotlinesPage';
+import MentalHealthWellbeingPage from './pages/safeguarding/MentalHealthWellbeingPage';
+import EducationResourcesPage from './pages/safeguarding/EducationResourcesPage';
+import AwarenessCampaignsPage from './pages/safeguarding/AwarenessCampaignsPage';
+import PartnersCollaborationsPage from './pages/safeguarding/PartnersCollaborationsPage';
+import ChapterSafeguardingPage from './pages/safeguarding/ChapterSafeguardingPage';
+import SafeguardingAdminDashboard from './pages/safeguarding/SafeguardingAdminDashboard';
+
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, profile, loading, isAuthReady, isHalted, isSubscriptionExpired, isTrialExpired } = useAuth();
 
@@ -208,6 +222,27 @@ const AppContent = () => {
             <Route path="/reviews" element={<Feedback />} />
             <Route path="/mentorship" element={<Mentorship />} />
             <Route path="/me" element={<Navigate to="/profile" replace />} />
+
+            {/* ========================================================= */}
+            {/* YARA SAFEGUARDING, CHILD PROTECTION & WELLBEING PORTAL   */}
+            {/* ========================================================= */}
+            <Route path="/safeguarding" element={<SafeguardingHub />} />
+            <Route path="/safeguarding/child-protection" element={<ChildProtectionPage />} />
+            <Route path="/safeguarding/gbv" element={<GbvPreventionPage />} />
+            <Route path="/safeguarding/report" element={<ReportConcernPage />} />
+            <Route path="/safeguarding/track" element={<ReportTrackingPage />} />
+            <Route path="/safeguarding/emergency" element={<EmergencyHotlinesPage />} />
+            <Route path="/safeguarding/wellbeing" element={<MentalHealthWellbeingPage />} />
+            <Route path="/safeguarding/mental-health" element={<MentalHealthWellbeingPage />} />
+            <Route path="/safeguarding/resources" element={<EducationResourcesPage />} />
+            <Route path="/safeguarding/policies" element={<EducationResourcesPage />} />
+            <Route path="/safeguarding/campaigns" element={<AwarenessCampaignsPage />} />
+            <Route path="/safeguarding/partners" element={<PartnersCollaborationsPage />} />
+            <Route path="/safeguarding/chapters" element={<ChapterSafeguardingPage />} />
+            <Route path="/safeguarding/admin" element={<SafeguardingAdminDashboard />} />
+            <Route path="/child-protection" element={<ChildProtectionPage />} />
+            <Route path="/gbv" element={<GbvPreventionPage />} />
+            <Route path="/report-concern" element={<ReportConcernPage />} />
           </Route>
 
           {/* ========================================================= */}

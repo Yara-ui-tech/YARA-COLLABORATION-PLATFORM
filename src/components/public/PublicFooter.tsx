@@ -9,7 +9,8 @@ import {
   BookOpen, 
   Trophy, 
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 import { ASSETS } from '../../constants/assets';
 
@@ -84,6 +85,13 @@ export default function PublicFooter() {
                 </Link>
                 <Link to="/mentorship" className="text-slate-400 hover:text-white transition-colors py-1 flex items-center gap-1.5">
                   <span>Mentorship</span>
+                </Link>
+                <Link to="/safeguarding" className="text-[#00C6FF] hover:underline font-bold transition-colors py-1 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#00C6FF]" />
+                  <span>Safeguarding Portal</span>
+                </Link>
+                <Link to="/safeguarding/report" className="text-amber-400 hover:underline font-semibold transition-colors py-1 flex items-center gap-1.5">
+                  <span>Report Concern</span>
                 </Link>
                 <Link to="/contact" className="text-slate-400 hover:text-white transition-colors py-1 flex items-center gap-1.5">
                   <span>Contact</span>

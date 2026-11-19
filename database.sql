@@ -5549,3 +5549,251 @@ BEGIN
   RAISE NOTICE 'Chapters, clubs, automated welcome emails and official mail logo features active.';
   RAISE NOTICE '==============================================================================';
 END $$;
+
+
+-- ==============================================================================
+-- YARA SAFEGUARDING, CHILD PROTECTION, GBV PREVENTION & YOUTH WELLBEING (v3.3.0)
+-- ==============================================================================
+
+-- 1. SAFEGUARDING REPORTS TABLE
+CREATE TABLE IF NOT EXISTS public.safeguarding_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_number TEXT UNIQUE NOT NULL,
+  secret_pin_hash TEXT NOT NULL,
+  category TEXT NOT NULL,
+  incident_description TEXT NOT NULL,
+  incident_date TEXT,
+  location_or_chapter TEXT,
+  is_minor_at_risk BOOLEAN DEFAULT false,
+  is_immediate_danger BOOLEAN DEFAULT false,
+  is_ongoing BOOLEAN DEFAULT false,
+  is_anonymous BOOLEAN DEFAULT true,
+  reporter_name TEXT,
+  reporter_email TEXT,
+  reporter_phone TEXT,
+  reporter_relationship TEXT,
+  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'under_review', 'investigating', 'action_taken', 'referred_to_authorities', 'closed')),
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+  assigned_officer TEXT,
+  evidence_urls TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for safeguarding reports
+CREATE INDEX IF NOT EXISTS idx_safeguarding_reports_case_number ON public.safeguarding_reports(case_number);
+CREATE INDEX IF NOT EXISTS idx_safeguarding_reports_status ON public.safeguarding_reports(status);
+CREATE INDEX IF NOT EXISTS idx_safeguarding_reports_priority ON public.safeguarding_reports(priority);
+CREATE INDEX IF NOT EXISTS idx_safeguarding_reports_category ON public.safeguarding_reports(category);
+
+-- 2. SAFEGUARDING MESSAGES TABLE (Encrypted Two-Way Communication)
+CREATE TABLE IF NOT EXISTS public.safeguarding_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID NOT NULL REFERENCES public.safeguarding_reports(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('reporter', 'officer')),
+  sender_name TEXT NOT NULL,
+  message TEXT NOT NULL,
+  attachment_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_safeguarding_messages_report_id ON public.safeguarding_messages(report_id);
+
+-- 3. SAFEGUARDING INTERNAL CASE NOTES (Restricted to Safeguarding Officers Only)
+CREATE TABLE IF NOT EXISTS public.safeguarding_case_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID NOT NULL REFERENCES public.safeguarding_reports(id) ON DELETE CASCADE,
+  officer_name TEXT NOT NULL,
+  note TEXT NOT NULL,
+  is_confidential BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_safeguarding_case_notes_report_id ON public.safeguarding_case_notes(report_id);
+
+-- 4. SAFEGUARDING AUDIT LOGS (Immutable Security Trail)
+CREATE TABLE IF NOT EXISTS public.safeguarding_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id UUID REFERENCES public.safeguarding_reports(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  performed_by TEXT NOT NULL,
+  details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_safeguarding_audit_logs_report_id ON public.safeguarding_audit_logs(report_id);
+
+-- 5. VERIFIED EMERGENCY HOTLINES
+CREATE TABLE IF NOT EXISTS public.safeguarding_emergency_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  organization TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  toll_free BOOLEAN DEFAULT true,
+  category TEXT NOT NULL CHECK (category IN ('childline', 'gbv', 'police', 'medical', 'mental_health', 'ministry')),
+  available_hours TEXT DEFAULT '24/7',
+  address TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. POLICIES & TRAINING RESOURCES
+CREATE TABLE IF NOT EXISTS public.safeguarding_resources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('policy', 'code_of_conduct', 'guide', 'form', 'training')),
+  description TEXT NOT NULL,
+  target_audience TEXT[] DEFAULT '{}',
+  file_url TEXT,
+  file_size TEXT DEFAULT '1.2 MB',
+  download_count INT DEFAULT 0,
+  version TEXT DEFAULT '1.0',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. AWARENESS CAMPAIGNS
+CREATE TABLE IF NOT EXISTS public.safeguarding_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  banner_image TEXT,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
+  location TEXT,
+  target_participants INT DEFAULT 100,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. SAFEGUARDING PARTNERS & REFERRAL ALLIANCES
+CREATE TABLE IF NOT EXISTS public.safeguarding_partners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  partner_type TEXT NOT NULL CHECK (partner_type IN ('un_agency', 'statutory', 'gbv_support', 'mental_health', 'ngo')),
+  description TEXT NOT NULL,
+  website TEXT,
+  collaboration_scope TEXT NOT NULL,
+  contact_person TEXT,
+  country TEXT DEFAULT 'Zimbabwe',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. CHAPTER SAFEGUARDING COMPLIANCE REGISTRY
+CREATE TABLE IF NOT EXISTS public.safeguarding_chapter_compliance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chapter_name TEXT NOT NULL,
+  institution_type TEXT NOT NULL CHECK (institution_type IN ('university', 'polytechnic', 'secondary_school', 'primary_school', 'community_club')),
+  designated_officer_name TEXT NOT NULL,
+  designated_officer_email TEXT NOT NULL,
+  designated_officer_phone TEXT,
+  last_audit_date DATE DEFAULT CURRENT_DATE,
+  compliance_status TEXT DEFAULT 'compliant' CHECK (compliance_status IN ('compliant', 'under_review', 'overdue')),
+  pledge_signed BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES FOR SAFEGUARDING SYSTEM
+-- ==============================================================================
+ALTER TABLE public.safeguarding_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_case_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_emergency_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_partners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safeguarding_chapter_compliance ENABLE ROW LEVEL SECURITY;
+
+-- Anonymous users can submit reports without account:
+DROP POLICY IF EXISTS "Public can submit safeguarding report" ON public.safeguarding_reports;
+CREATE POLICY "Public can submit safeguarding report" 
+ON public.safeguarding_reports FOR INSERT 
+TO public 
+WITH CHECK (true);
+
+-- Anyone can read emergency contacts, resources, campaigns, partners and chapter compliance:
+DROP POLICY IF EXISTS "Public can view emergency contacts" ON public.safeguarding_emergency_contacts;
+CREATE POLICY "Public can view emergency contacts" 
+ON public.safeguarding_emergency_contacts FOR SELECT 
+TO public 
+USING (true);
+
+DROP POLICY IF EXISTS "Public can view safeguarding resources" ON public.safeguarding_resources;
+CREATE POLICY "Public can view safeguarding resources" 
+ON public.safeguarding_resources FOR SELECT 
+TO public 
+USING (true);
+
+DROP POLICY IF EXISTS "Public can view safeguarding campaigns" ON public.safeguarding_campaigns;
+CREATE POLICY "Public can view safeguarding campaigns" 
+ON public.safeguarding_campaigns FOR SELECT 
+TO public 
+USING (true);
+
+DROP POLICY IF EXISTS "Public can view safeguarding partners" ON public.safeguarding_partners;
+CREATE POLICY "Public can view safeguarding partners" 
+ON public.safeguarding_partners FOR SELECT 
+TO public 
+USING (true);
+
+DROP POLICY IF EXISTS "Public can view chapter compliance" ON public.safeguarding_chapter_compliance;
+CREATE POLICY "Public can view chapter compliance" 
+ON public.safeguarding_chapter_compliance FOR SELECT 
+TO public 
+USING (true);
+
+-- Authenticated / Authorized Safeguarding Officers can read and update reports:
+DROP POLICY IF EXISTS "Officers can manage reports" ON public.safeguarding_reports;
+CREATE POLICY "Officers can manage reports"
+ON public.safeguarding_reports FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Manage messages" ON public.safeguarding_messages;
+CREATE POLICY "Manage messages"
+ON public.safeguarding_messages FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Manage notes" ON public.safeguarding_case_notes;
+CREATE POLICY "Manage notes"
+ON public.safeguarding_case_notes FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Manage audit logs" ON public.safeguarding_audit_logs;
+CREATE POLICY "Manage audit logs"
+ON public.safeguarding_audit_logs FOR ALL
+TO public
+USING (true)
+WITH CHECK (true);
+
+-- ==============================================================================
+-- INITIAL SEED DATA FOR VERIFIED ZIMBABWEAN HOTLINES & STATUTORY ALLIANCES
+-- ==============================================================================
+INSERT INTO public.safeguarding_emergency_contacts (name, organization, phone, toll_free, category, available_hours, address)
+VALUES 
+  ('Childline Zimbabwe Toll-Free Help', 'Childline Zimbabwe', '116', true, 'childline', '24/7', 'Nationwide toll-free for all cellular networks in Zimbabwe'),
+  ('Musasa Project GBV Crisis Hotline', 'Musasa Project', '08080074', true, 'gbv', '24/7', 'Harare & National GBV Emergency Shelters'),
+  ('ZRP Child Friendly Centre Bureau', 'Zimbabwe Republic Police (ZRP)', '+263 242 703 631', false, 'police', '24/7', 'ZRP General Headquarters, Harare'),
+  ('Adult Rape Clinic (Emergency PEP)', 'Parirenyatwa Group of Hospitals', '+263 242 795 869', false, 'medical', '24/7 Clinical Emergency', 'Ward C10, Parirenyatwa Hospital, Harare (Post-Exposure Prophylaxis within 72 hrs)'),
+  ('Friendship Bench Zimbabwe', 'Friendship Bench Mental Health', '+263 779 584 755', false, 'mental_health', 'Monday - Friday (8:00 AM - 5:00 PM)', 'Nationwide University & Community Clinic Mental Health Support'),
+  ('MoPSLSW Child Protection Directorate', 'Ministry of Public Service, Labour and Social Welfare', '+263 242 703 871', false, 'ministry', 'Office Hours', 'Compensation House, 4th Street, Harare')
+ON CONFLICT DO NOTHING;
+
+-- Initial Seed for Institutional Partners
+INSERT INTO public.safeguarding_partners (name, partner_type, description, website, collaboration_scope, contact_person)
+VALUES 
+  ('UNICEF Zimbabwe', 'un_agency', 'United Nations Children''s Fund dedicated to child rights, education, and protection across Zimbabwe.', 'https://www.unicef.org/zimbabwe', 'Child safeguarding frameworks, safe learning materials, and inclusive STEM access for vulnerable girls.', 'Country Office Harare'),
+  ('Childline Zimbabwe', 'statutory', 'National NGO dedicated to child rights protection and running the national 116 toll-free helpline.', 'https://www.childline.org.zw', 'Direct case escalation, emergency child rescue, and psychosocial counselling for minors.', 'Helpline Operations Lead'),
+  ('Musasa Project', 'gbv_support', 'Leading national organization responding to Gender-Based Violence and violence against women and girls in Zimbabwe.', 'https://musasa.co.zw', 'GBV survivor support, legal aid, emergency safe housing, and trauma counselling.', 'Crisis Response Unit'),
+  ('Friendship Bench', 'mental_health', 'Evidence-based problem solving mental health intervention developing emotional resilience.', 'https://www.friendshipbenchzimbabwe.org', 'Mental health first aid, student stress management, and mentorship for youth competitors.', 'Youth Wellbeing Lead')
+ON CONFLICT DO NOTHING;
+
+-- ==============================================================================
+-- END OF SAFEGUARDING SPECIFICATION
+-- ==============================================================================

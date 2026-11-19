@@ -28,6 +28,7 @@ export default function PublicHeader() {
     { label: 'Mentorship', path: '/mentorship' },
     { label: 'Competitions', path: '/competitions' },
     { label: 'School Clubs', path: '/chapters' },
+    { label: 'Safeguarding', path: '/safeguarding' },
     { label: 'Verify Cert', path: '/verify-certificate' },
     { label: 'Contact', path: '/contact' },
   ];
