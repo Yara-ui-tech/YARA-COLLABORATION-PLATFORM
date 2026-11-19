@@ -2384,13 +2384,14 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
           value={user.role}
           onChange={(e) => onUpdateRole(user.id, e.target.value)}
           disabled={isUpdating}
-          className="bg-white border-2 border-slate-200 rounded-xl py-1.5 px-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-600 transition-all"
+          className="bg-white border-2 border-slate-200 rounded-xl py-1.5 px-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-600 transition-all cursor-pointer"
         >
           <option value="innovator">Innovator</option>
-          <option value="mentor">Mentor</option>
-          <option value="admin">Admin</option>
+          <option value="mentor">🎓 Mentor</option>
+          <option value="teacher">🏫 Teacher</option>
+          <option value="admin">🛡️ Admin</option>
         </select>
-        {user.role === 'mentor' && (
+        {user.role === 'mentor' ? (
           <button
             type="button"
             onClick={() => {
@@ -2404,6 +2405,21 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
           >
             <UserX className="w-3 h-3 text-red-500" />
             <span>Remove Mentor</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Restore Mentor Status:\n\nSet ${user.display_name} as an active YARA Mentor? They will immediately be listed in the Mentorship directory and able to accept student mentorship requests.`)) {
+                onUpdateRole(user.id, 'mentor');
+              }
+            }}
+            disabled={isUpdating}
+            className="mt-1.5 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+            title="Re-activate user as verified Mentor"
+          >
+            <Award className="w-3 h-3 text-purple-600" />
+            <span>Put back as Mentor</span>
           </button>
         )}
       </td>

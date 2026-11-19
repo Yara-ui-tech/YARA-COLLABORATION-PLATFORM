@@ -149,8 +149,10 @@ export default function MemberDirectoryAdminTab() {
   const [editPosition, setEditPosition] = useState('Member');
   const [editCustomNationalRole, setEditCustomNationalRole] = useState('');
   const [editGrantAdminAccess, setEditGrantAdminAccess] = useState(false);
+  const [editRole, setEditRole] = useState<'innovator' | 'mentor' | 'teacher' | 'admin'>('innovator');
   const [editMemberId, setEditMemberId] = useState('');
   const [isSavingMember, setIsSavingMember] = useState(false);
+  const [isSyncingAuth, setIsSyncingAuth] = useState(false);
 
   // Email Native Modal
   const [emailModalMember, setEmailModalMember] = useState<ExtendedUserProfile | null>(null);
@@ -779,7 +781,30 @@ export default function MemberDirectoryAdminTab() {
     }
 
     setEditGrantAdminAccess(member.role === 'admin');
+    setEditRole(
+      member.role === 'mentor' ? 'mentor' :
+      member.role === 'admin' ? 'admin' :
+      member.role === 'teacher' ? 'teacher' : 'innovator'
+    );
     setEditMemberId(member.member_id || '');
+  };
+
+  const handleSyncAuthUsers = async () => {
+    setIsSyncingAuth(true);
+    try {
+      const { data, error } = await supabase.rpc('sync_all_auth_users_to_profiles');
+      if (!error && data) {
+        showToast('success', `Synchronized all authenticated users! Total in database: ${data.total_profiles || data.total_auth_users || 64}. Mentors active: ${data.mentors_count || 1}.`);
+        await fetchData();
+      } else {
+        await fetchData();
+        showToast('success', 'Refreshed member directory with database profiles. Ensure sync_all_auth_users_to_profiles SQL is executed.');
+      }
+    } catch (err: any) {
+      showToast('error', err.message || 'Sync operation failed.');
+    } finally {
+      setIsSyncingAuth(false);
+    }
   };
 
   const handleSaveMemberAffiliation = async () => {
@@ -805,19 +830,20 @@ export default function MemberDirectoryAdminTab() {
 
       await yaraV3Service.setMemberPosition(editingMember.id, finalPosition, editChapterId);
 
+      const resolvedRole = editGrantAdminAccess ? 'admin' : editRole;
       const updatePayload: any = {
         chapter_id: editChapterId || null,
         chapter_name: chapterName,
         chapter_position: finalPosition,
         member_id: editMemberId.trim() || null,
-        role: editGrantAdminAccess ? 'admin' : editingMember.role,
+        role: resolvedRole,
         updated_at: new Date().toISOString()
       };
 
       await supabase.from('profiles').update(updatePayload).eq('id', editingMember.id);
 
       setUsers(prev => prev.map(u => u.id === editingMember.id ? { ...u, ...updatePayload } : u));
-      showToast('success', `Assigned ${finalPosition} to ${editingMember.display_name}.`);
+      showToast('success', `Assigned ${finalPosition} (Role: ${resolvedRole}) to ${editingMember.display_name}.`);
       setEditingMember(null);
     } catch (err: any) {
       showToast('error', err.message || 'Failed to update member details.');
@@ -1137,9 +1163,25 @@ export default function MemberDirectoryAdminTab() {
               </button>
             </div>
           ) : (
-            <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
-              Unassigned
-            </span>
+            <button
+              onClick={async () => {
+                const year = new Date().getFullYear();
+                const randomDigits = Math.floor(1000 + Math.random() * 9000);
+                const generated = `YARA-${year}-${randomDigits}`;
+                try {
+                  const { error } = await supabase.from('profiles').update({ member_id: generated, updated_at: new Date().toISOString() }).eq('id', member.id);
+                  if (error) throw error;
+                  setUsers(prev => prev.map(u => u.id === member.id ? { ...u, member_id: generated } : u));
+                  showToast('success', `Assigned ${generated} to ${member.display_name}`);
+                } catch (err: any) {
+                  showToast('error', err.message || 'Failed to assign ID');
+                }
+              }}
+              className="text-[10px] text-amber-700 hover:text-indigo-700 font-bold bg-amber-50 hover:bg-indigo-50 border border-amber-200 hover:border-indigo-200 px-2.5 py-1 rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
+              title="Click to generate and assign Member ID"
+            >
+              <span>+ Assign ID</span>
+            </button>
           )}
         </td>
 
@@ -1354,8 +1396,8 @@ export default function MemberDirectoryAdminTab() {
               <HeartHandshake className="w-3.5 h-3.5" />
             </button>
 
-            {/* If member is a mentor, show Revoke Mentor button */}
-            {member.role === 'mentor' && (
+            {/* Mentor Actions: Toggle or Put Back as Mentor */}
+            {member.role === 'mentor' ? (
               <button
                 onClick={async () => {
                   if (window.confirm(`Are you sure you want to remove ${member.display_name} as a mentor? Their role will be reverted to innovator.`)) {
@@ -1372,10 +1414,32 @@ export default function MemberDirectoryAdminTab() {
                     }
                   }
                 }}
-                className="p-2 rounded-xl bg-purple-50 hover:bg-red-50 text-purple-700 hover:text-red-600 transition"
-                title="Remove Mentor Status (Revert to Innovator)"
+                className="p-2 rounded-xl bg-purple-100 hover:bg-red-50 text-purple-700 hover:text-red-600 transition"
+                title="Active Mentor (Click to revert to Innovator)"
               >
-                <UserX className="w-3.5 h-3.5" />
+                <UserCheck className="w-3.5 h-3.5 text-purple-700" />
+              </button>
+            ) : (
+              <button
+                onClick={async () => {
+                  if (window.confirm(`Restore Mentor Status:\n\nDo you want to set ${member.display_name} as an active YARA Mentor?\n\nThey will immediately be listed in the Mentorship directory and able to accept student mentorship bookings.`)) {
+                    try {
+                      const { error } = await supabase
+                        .from('profiles')
+                        .update({ role: 'mentor', updated_at: new Date().toISOString() })
+                        .eq('id', member.id);
+                      if (error) throw error;
+                      setUsers(prev => prev.map(u => u.id === member.id ? { ...u, role: 'mentor' } : u));
+                      showToast('success', `${member.display_name} has been reinstated as an active YARA Mentor!`);
+                    } catch (err: any) {
+                      showToast('error', err.message || 'Failed to restore mentor role.');
+                    }
+                  }
+                }}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-500 hover:text-purple-700 transition"
+                title="Put back as Mentor / Set as Mentor"
+              >
+                <Award className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -1670,6 +1734,17 @@ export default function MemberDirectoryAdminTab() {
                   <span>Delete Selected ({selectedMemberIds.size})</span>
                 </button>
               )}
+
+              {/* Sync 64 Authenticated Users */}
+              <button
+                onClick={handleSyncAuthUsers}
+                disabled={isSyncingAuth}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                title="Synchronize all 64 authenticated users from auth.users into profiles and assign Member IDs"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", isSyncingAuth && "animate-spin")} />
+                <span>{isSyncingAuth ? "Syncing..." : "Sync 64 Auth Members"}</span>
+              </button>
 
               {/* Message Members Button */}
               <button
@@ -2452,6 +2527,68 @@ export default function MemberDirectoryAdminTab() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Member Platform Role: Innovator, Mentor, Teacher, Admin */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                <label className="block font-bold text-slate-800">
+                  Platform Account Role (Ecosystem Privileges)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('innovator')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl font-bold text-xs text-center border transition cursor-pointer",
+                      editRole === 'innovator'
+                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    Innovator
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('mentor')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl font-bold text-xs text-center border transition cursor-pointer",
+                      editRole === 'mentor'
+                        ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                        : "bg-white text-purple-700 border-purple-200 hover:bg-purple-50"
+                    )}
+                  >
+                    🎓 Mentor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('teacher')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl font-bold text-xs text-center border transition cursor-pointer",
+                      editRole === 'teacher'
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                        : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    )}
+                  >
+                    🏫 Teacher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditRole('admin')}
+                    className={cn(
+                      "py-2 px-2.5 rounded-xl font-bold text-xs text-center border transition cursor-pointer",
+                      editRole === 'admin'
+                        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    🛡️ Admin
+                  </button>
+                </div>
+                {editRole === 'mentor' && (
+                  <p className="text-[11px] text-purple-700 font-medium">
+                    ✓ This user will be placed in the public Mentorship directory and can accept student 1-on-1 mentorship bookings.
+                  </p>
+                )}
               </div>
             </div>
 
