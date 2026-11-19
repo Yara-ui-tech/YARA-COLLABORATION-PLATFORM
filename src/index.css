@@ -1,31 +1,55 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --color-yara-navy: #0A1B4D;
+  --color-yara-royal: #0D47A1;
+  --color-yara-blue: #1976D2;
+  --color-yara-cyan: #00C6FF;
+  --color-yara-light: #E8F4FF;
+  --color-yara-white: #F8FAFF;
+  --color-text-dark: #1E293B;
+  --color-border-grey: #CBD5E1;
+  --color-success: #10B981;
+  --color-warning: #FFC107;
+  --color-danger: #EF4444;
+}
+
 /* ============================================================
    YARA Design System – Premium CSS Custom Properties
    ============================================================ */
 :root {
-  /* Brand Colors – YARA Official Flyer & Logo Corporate Palette */
-  --yara-deep-navy: 2 6 23;     /* #020617 Deep Midnight Navy */
-  --yara-navy: 5 11 20;         /* #050B14 Corporate Flyer Dark */
-  --yara-blue-dark: 8 14 36;    /* #080E24 Electric Dark Navy */
-  --yara-royal: 0 56 168;       /* #0038A8 Deep Electric Royal */
-  --yara-blue: 0 114 245;       /* #0072F5 YARA Luminous Blue */
-  --yara-cyan: 0 210 255;       /* #00D2FF Flyer Neon Cyan */
-  --yara-sky: 56 189 248;       /* #38BDF8 Sky Cyan */
-  --yara-slate: 15 23 42;       /* #0F172A */
+  --yara-navy: #0A1B4D;
+  --yara-royal: #0D47A1;
+  --yara-blue: #1976D2;
+  --yara-cyan: #00C6FF;
 
-  /* Surfaces */
+  --yara-light: #E8F4FF;
+  --yara-white: #F8FAFF;
+
+  --text-dark: #1E293B;
+  --border-grey: #CBD5E1;
+
+  --success: #10B981;
+  --warning: #FFC107;
+  --danger: #EF4444;
+
+  /* Surfaces & Derivatives */
+  --yara-deep-navy: #0A1B4D;
+  --yara-blue-dark: #071333;
+  --yara-sky: #38BDF8;
+  --yara-slate: #1E293B;
+
   --surface-glass: rgba(255, 255, 255, 0.85);
-  --surface-glass-dark: rgba(2, 6, 23, 0.92);
-  --surface-frosted: rgba(248, 250, 252, 0.9);
+  --surface-glass-dark: rgba(10, 27, 77, 0.92);
+  --surface-frosted: rgba(248, 250, 255, 0.9);
 
   /* Shadows & Glows */
-  --shadow-glow-cyan: 0 0 35px rgba(0, 210, 255, 0.3);
-  --shadow-glow-blue: 0 0 35px rgba(0, 114, 245, 0.35);
-  --shadow-glow-indigo: 0 0 30px rgba(37, 99, 235, 0.2);
-  --shadow-premium: 0 4px 24px -4px rgba(2, 6, 23, 0.18), 0 2px 8px -2px rgba(2, 6, 23, 0.08);
-  --shadow-card: 0 1px 3px rgba(2,6,23,0.06), 0 1px 2px rgba(2,6,23,0.04);
+  --shadow-glow-cyan: 0 0 35px rgba(0, 198, 255, 0.3);
+  --shadow-glow-blue: 0 0 35px rgba(25, 118, 210, 0.35);
+  --shadow-glow-indigo: 0 0 30px rgba(13, 71, 161, 0.25);
+  --shadow-premium: 0 4px 24px -4px rgba(10, 27, 77, 0.18), 0 2px 8px -2px rgba(10, 27, 77, 0.08);
+  --shadow-card: 0 1px 3px rgba(10, 27, 77, 0.06), 0 1px 2px rgba(10, 27, 77, 0.04);
 
   /* Transitions */
   --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -80,7 +104,7 @@ select,
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
   caret-color: #000000 !important;
-  border: 1px solid #cbd5e1 !important;
+  border: 1px solid var(--border-grey) !important;
 }
 
 /* Ensure inputs inside white modals/cards always have crisp black font */
@@ -110,8 +134,8 @@ select:focus,
   background-color: #ffffff !important;
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
-  border-color: #2563eb !important;
-  outline: 2px solid rgba(37, 99, 235, 0.25) !important;
+  border-color: var(--yara-blue) !important;
+  outline: 2px solid rgba(25, 118, 210, 0.25) !important;
 }
 
 input:-webkit-autofill,
@@ -194,32 +218,32 @@ select:-webkit-autofill {
 }
 
 /* ============================================================
-   Premium Gradients (Matching YARA Flyer Palette)
+   Premium Gradients (Matching YARA Official Palette)
    ============================================================ */
 .gradient-yara {
-  background: linear-gradient(135deg, #020617 0%, #0038A8 50%, #00D2FF 100%);
+  background: linear-gradient(135deg, var(--yara-navy) 0%, var(--yara-royal) 50%, var(--yara-cyan) 100%);
 }
 
 .gradient-yara-flyer {
-  background: linear-gradient(135deg, #020617 0%, #050B14 30%, #0038A8 70%, #00A3FF 100%);
+  background: linear-gradient(135deg, var(--yara-navy) 0%, var(--yara-royal) 40%, var(--yara-blue) 75%, var(--yara-cyan) 100%);
 }
 
 .gradient-yara-accent {
-  background: linear-gradient(135deg, #0052D4 0%, #00D2FF 100%);
+  background: linear-gradient(135deg, var(--yara-blue) 0%, var(--yara-cyan) 100%);
 }
 
 .gradient-yara-dark {
-  background: linear-gradient(135deg, #020617 0%, #080E24 50%, #050B14 100%);
+  background: linear-gradient(135deg, var(--yara-navy) 0%, var(--yara-royal) 100%);
 }
 
 .gradient-hero {
-  background: radial-gradient(ellipse at top right, rgba(0,210,255,0.2) 0%, transparent 60%),
-              radial-gradient(ellipse at bottom left, rgba(0,56,168,0.3) 0%, transparent 60%),
-              linear-gradient(180deg, #020617 0%, #080E24 100%);
+  background: radial-gradient(ellipse at top right, rgba(0, 198, 255, 0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at bottom left, rgba(13, 71, 161, 0.35) 0%, transparent 60%),
+              linear-gradient(180deg, var(--yara-navy) 0%, #071333 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #60A5FA, #00D2FF, #38BDF8);
+  background: linear-gradient(135deg, var(--yara-cyan), var(--yara-blue), var(--yara-royal));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -236,15 +260,15 @@ select:-webkit-autofill {
    Card Variants
    ============================================================ */
 .card-premium {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--yara-white);
+  border: 1px solid var(--border-grey);
   border-radius: 1.25rem;
   box-shadow: var(--shadow-card);
   transition: var(--transition-smooth);
 }
 
 .card-premium:hover {
-  border-color: #c7d2fe;
+  border-color: var(--yara-blue);
   box-shadow: var(--shadow-premium), var(--shadow-glow-indigo);
   transform: translateY(-1px);
 }
@@ -261,7 +285,7 @@ select:-webkit-autofill {
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #1E40AF, #2563EB);
+  background: linear-gradient(135deg, var(--yara-royal), var(--yara-blue));
   color: white;
   font-weight: 700;
   font-size: 0.75rem;
@@ -269,12 +293,12 @@ select:-webkit-autofill {
   border: none;
   cursor: pointer;
   transition: var(--transition-smooth);
-  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+  box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
 }
 
 .btn-primary:active {
