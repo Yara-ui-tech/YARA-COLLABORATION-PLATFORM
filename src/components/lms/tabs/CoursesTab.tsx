@@ -28,7 +28,8 @@ import {
   Code2,
   Layers,
   Trash2,
-  Loader2
+  Loader2,
+  ArrowRight
 } from 'lucide-react';
 import { YARALmsSession, LearnerLevelNumber } from '../../../types/yaraLms';
 import { COMPLETE_YARA_SESSIONS } from '../../../constants/yaraLmsCatalog';
@@ -300,6 +301,29 @@ export const CoursesTab: React.FC<Props> = ({
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Featured Robotics & Engineering Training Programme Banner */}
+          <div className="bg-gradient-to-r from-[#0A1B4D] via-[#0D47A1] to-[#1976D2] rounded-3xl p-6 text-white shadow-md border border-[#00C6FF]/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00C6FF]/20 text-[#00C6FF] text-[10px] font-black uppercase tracking-wider">
+                <Bot className="w-3.5 h-3.5" />
+                Official Academy Programme
+              </div>
+              <h3 className="text-lg sm:text-xl font-black">
+                YARA Robotics &amp; Engineering Academy
+              </h3>
+              <p className="text-xs text-blue-100 max-w-2xl">
+                Structured training from ECD to tertiary level: Curriculum syllabus ($25–$40), Weekly clubs ($5), Monthly workshops ($5), and Accredited Certification Pathways with Digital Passports.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('robotics-training')}
+              className="px-5 py-2.5 rounded-xl bg-white text-[#0A1B4D] hover:bg-blue-50 font-black text-xs uppercase tracking-wider shrink-0 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Explore Programme</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           {/* 2. LMS Track Switcher */}
           <div className="bg-white border border-slate-200 rounded-2xl p-2.5 shadow-xs flex items-center gap-2 overflow-x-auto scrollbar-none">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 shrink-0">

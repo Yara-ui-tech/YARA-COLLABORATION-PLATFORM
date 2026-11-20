@@ -6109,3 +6109,139 @@ GRANT SELECT ON public.v_admin_member_directory TO anon, authenticated, service_
 -- ==============================================================================
 -- END OF SECTION 40 SPECIFICATION
 -- ==============================================================================
+
+
+-- ==============================================================================
+-- 41. YARA ACADEMY - ROBOTICS & ENGINEERING TRAINING PROGRAMME
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.robotics_programmes (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  target_audience TEXT NOT NULL,
+  age_range TEXT NOT NULL,
+  fee_per_learner NUMERIC(10,2) NOT NULL DEFAULT 0,
+  fee_structure TEXT NOT NULL,
+  duration_description TEXT NOT NULL,
+  minimum_lessons_or_sessions INTEGER DEFAULT 10,
+  description TEXT NOT NULL,
+  features JSONB DEFAULT '[]'::jsonb,
+  syllabus_topics JSONB DEFAULT '[]'::jsonb,
+  badge TEXT NOT NULL,
+  is_popular BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.robotics_certification_levels (
+  id TEXT PRIMARY KEY,
+  level_number INTEGER NOT NULL,
+  level_title TEXT NOT NULL,
+  target_audience TEXT NOT NULL,
+  minimum_requirements TEXT NOT NULL,
+  required_lessons_or_sessions INTEGER NOT NULL DEFAULT 10,
+  fee_per_unit NUMERIC(10,2) NOT NULL DEFAULT 5,
+  minimum_cost NUMERIC(10,2) NOT NULL DEFAULT 50,
+  is_provisional_pricing BOOLEAN DEFAULT false,
+  description TEXT NOT NULL,
+  learning_outcomes JSONB DEFAULT '[]'::jsonb,
+  sample_project TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.robotics_enrolments (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  enrolment_type TEXT NOT NULL DEFAULT 'individual',
+  primary_contact_name TEXT NOT NULL,
+  primary_contact_email TEXT NOT NULL,
+  primary_contact_phone TEXT NOT NULL,
+  parent_guardian_name TEXT,
+  school_or_chapter_name TEXT NOT NULL,
+  grade_or_education_level TEXT NOT NULL,
+  programme_id TEXT REFERENCES public.robotics_programmes(id) ON DELETE SET NULL,
+  programme_title TEXT NOT NULL,
+  certification_level_id TEXT REFERENCES public.robotics_certification_levels(id) ON DELETE SET NULL,
+  location_option TEXT NOT NULL DEFAULT 'school_lab',
+  preferred_schedule TEXT NOT NULL DEFAULT 'weekday_afternoon',
+  students_list JSONB DEFAULT '[]'::jsonb,
+  learner_count INTEGER NOT NULL DEFAULT 1,
+  calculated_fee NUMERIC(10,2) NOT NULL DEFAULT 0,
+  include_hardware_kit BOOLEAN DEFAULT false,
+  hardware_kit_fee NUMERIC(10,2) NOT NULL DEFAULT 0,
+  total_payable_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  enrolment_status TEXT NOT NULL DEFAULT 'submitted',
+  assigned_trainer_name TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.robotics_teacher_enrolments (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  teacher_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  school_name TEXT NOT NULL,
+  subject_taught TEXT NOT NULL,
+  province TEXT NOT NULL,
+  city TEXT NOT NULL,
+  sessions_completed INTEGER NOT NULL DEFAULT 0,
+  required_sessions INTEGER NOT NULL DEFAULT 5,
+  purchased_robotics_kit BOOLEAN DEFAULT true,
+  total_cost NUMERIC(10,2) NOT NULL DEFAULT 100,
+  status TEXT NOT NULL DEFAULT 'enrolled',
+  certificate_number TEXT,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.robotics_school_partnerships (
+  id TEXT PRIMARY KEY,
+  school_name TEXT NOT NULL,
+  contact_person_name TEXT NOT NULL,
+  contact_role TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  province TEXT NOT NULL,
+  district TEXT,
+  city TEXT NOT NULL,
+  school_type TEXT NOT NULL DEFAULT 'combined',
+  estimated_learners INTEGER NOT NULL DEFAULT 30,
+  requested_offerings JSONB DEFAULT '[]'::jsonb,
+  has_existing_lab BOOLEAN DEFAULT false,
+  preferred_start_date DATE,
+  additional_message TEXT,
+  status TEXT NOT NULL DEFAULT 'submitted',
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.robotics_programmes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.robotics_certification_levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.robotics_enrolments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.robotics_teacher_enrolments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.robotics_school_partnerships ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public view robotics programmes" ON public.robotics_programmes FOR SELECT USING (true);
+CREATE POLICY "Public view certification pathways" ON public.robotics_certification_levels FOR SELECT USING (true);
+CREATE POLICY "Public insert enrolments" ON public.robotics_enrolments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users view own enrolments" ON public.robotics_enrolments FOR SELECT USING (
+  auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Admins update enrolments" ON public.robotics_enrolments FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Public insert partnerships" ON public.robotics_school_partnerships FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admins manage partnerships" ON public.robotics_school_partnerships FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "Public insert teacher enrolments" ON public.robotics_teacher_enrolments FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admins manage teacher enrolments" ON public.robotics_teacher_enrolments FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+);

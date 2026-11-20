@@ -23,7 +23,8 @@ import {
   Check,
   RefreshCw,
   Eye,
-  ShieldCheck
+  ShieldCheck,
+  Bot
 } from 'lucide-react';
 import { COMPLETE_YARA_SESSIONS, YARA_LEARNING_LEVELS, YARA_HARDWARE_KITS } from '../../constants/yaraLmsCatalog';
 import { YARALmsSession, CapstoneProjectSubmission } from '../../types/yaraLms';
@@ -38,6 +39,7 @@ import { CodingCoursesAdminManager } from './CodingCoursesAdminManager';
 import { CourseManagementStudio } from './CourseManagementStudio';
 import { CertificateUnlockAdminManager } from './CertificateUnlockAdminManager';
 import CertificateTemplatesAdminManager from './CertificateTemplatesAdminManager';
+import { RoboticsAdminStudio } from '../lms/robotics/RoboticsAdminStudio';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -60,7 +62,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => {
-  const [activeSection, setActiveSection] = useState<'coding_courses' | 'curriculum' | 'students' | 'capstones' | 'kits' | 'certificates' | 'certificate_templates' | 'qa_audit'>('coding_courses');
+  const [activeSection, setActiveSection] = useState<'robotics_management' | 'coding_courses' | 'curriculum' | 'students' | 'capstones' | 'kits' | 'certificates' | 'certificate_templates' | 'qa_audit'>('robotics_management');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -308,6 +310,18 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
       {/* Sub-Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
         <button
+          onClick={() => setActiveSection('robotics_management')}
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
+            activeSection === 'robotics_management'
+              ? 'bg-[#0D47A1] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+          }`}
+        >
+          <Bot className="w-4 h-4 text-[#00C6FF]" />
+          <span>Robotics Programmes &amp; Enrolments</span>
+        </button>
+
+        <button
           onClick={() => setActiveSection('coding_courses')}
           className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
             activeSection === 'coding_courses'
@@ -408,6 +422,11 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           <span>7. Curriculum Completeness Audit & QA Gate</span>
         </button>
       </div>
+
+      {/* SECTION: ROBOTICS PROGRAMMES & ENROLMENTS */}
+      {activeSection === 'robotics_management' && (
+        <RoboticsAdminStudio />
+      )}
 
       {/* SECTION: CENTRALIZED COURSE MANAGEMENT */}
       {activeSection === 'coding_courses' && (

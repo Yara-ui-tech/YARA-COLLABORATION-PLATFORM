@@ -13,6 +13,7 @@ import { SubscriptionTab } from '../components/lms/tabs/SubscriptionTab';
 import { ResourcesTab } from '../components/lms/tabs/ResourcesTab';
 import { ProgrammingCoursesTab } from '../components/lms/tabs/ProgrammingCoursesTab';
 import { LearningAcademyAdminCenter } from '../components/admin/LearningAcademyAdminCenter';
+import { RoboticsTrainingSection, RoboticsSubTab } from '../components/lms/robotics/RoboticsTrainingSection';
 import { YaraLmsSessionPlayer } from '../components/lms/YaraLmsSessionPlayer';
 import { YaraLmsCapstoneSubmissionModal } from '../components/lms/YaraLmsCapstoneSubmissionModal';
 import { GreatLearningCertificateModal } from '../components/lms/GreatLearningCertificateModal';
@@ -288,6 +289,13 @@ export default function YaraLearning() {
       {/* 2. Main Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-6">
         {/* Render Tab based on selection */}
+        {activeTab === 'robotics-training' && (
+          <RoboticsTrainingSection
+            initialSubTab={(searchParams.get('sub') as RoboticsSubTab) || 'overview'}
+            onNavigateTab={handleSelectTab}
+          />
+        )}
+
         {activeTab === 'dashboard' && (
           <LearningDashboardTab
             userOverall={overallProgress}

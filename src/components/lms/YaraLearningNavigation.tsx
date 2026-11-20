@@ -5,12 +5,14 @@ import {
   Package, 
   Award, 
   ShieldCheck,
-  Zap
+  Zap,
+  Bot
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export type LearningTabId = 
   | 'courses' 
+  | 'robotics-training'
   | 'progress' 
   | 'resources' 
   | 'certificates' 
@@ -32,11 +34,12 @@ interface TabItem {
 }
 
 export const LEARNING_NAV_TABS: TabItem[] = [
+  { id: 'robotics-training', label: 'Robotics & Engineering', icon: Bot, badge: 'Official', highlight: true },
   { id: 'courses', label: 'Robotics Courses', icon: BookOpen },
   { id: 'progress', label: 'Curriculum Roadmap', icon: TrendingUp },
   { id: 'resources', label: 'Study Materials', icon: Package },
   { id: 'certificates', label: 'Certificates', icon: Award },
-  { id: 'admin-center', label: 'Admin LMS Studio', icon: ShieldCheck, badge: 'Admin', highlight: true }
+  { id: 'admin-center', label: 'Admin LMS Studio', icon: ShieldCheck, badge: 'Admin', highlight: false }
 ];
 
 interface Props {
