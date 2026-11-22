@@ -319,8 +319,10 @@ export default function Mentorship() {
         let query = supabase.from('mentorship_requests').select('*');
         if (!isUserAdmin) {
           if (isUserMentor) {
+            // Target mentor ONLY: query requests where mentor_id is user.id
             query = query.eq('mentor_id', user.id);
           } else {
+            // Requester ONLY: query requests where requester_id is user.id
             query = query.eq('requester_id', user.id);
           }
         }
@@ -329,7 +331,10 @@ export default function Mentorship() {
           dbRequests = data;
         }
 
-        // Merge with local persistent requests
+        // Merge with local persistent requests ONLY if the current user is strictly permitted:
+        // - Admin can see all
+        // - Target mentor can ONLY see requests specifically addressed to them (mentor_id === user.id)
+        // - Requester can see their own request (requester_id === user.id)
         let localRequests: any[] = [];
         try {
           const raw = localStorage.getItem('yara_local_mentorship_requests');
@@ -337,13 +342,25 @@ export default function Mentorship() {
         } catch { }
 
         const dbIds = new Set(dbRequests.map(r => r.id));
-        const merged = [
-          ...dbRequests,
-          ...localRequests.filter(lr => !dbIds.has(lr.id) && (isUserAdmin || isUserMentor || lr.requester_id === user.id))
-        ];
+        const filteredLocal = localRequests.filter(lr => {
+          if (dbIds.has(lr.id)) return false;
+          if (isUserAdmin) return true;
+          if (isUserMentor && lr.mentor_id && (lr.mentor_id === user.id || lr.mentor_id === profile?.id)) return true;
+          if (lr.requester_id === user.id) return true;
+          return false;
+        });
 
-        setRequests(merged);
-        merged.forEach((r: any) => fetchMessagesForRequest(r.id));
+        // Enforce strict privacy filter on all merged requests:
+        // Only target mentor, requester, and admin can ever see the request!
+        const strictlyAuthorized = [...dbRequests, ...filteredLocal].filter(r => {
+          if (isUserAdmin) return true;
+          if (r.requester_id === user.id) return true;
+          if (r.mentor_id && (r.mentor_id === user.id || r.mentor_id === profile?.id)) return true;
+          return false;
+        });
+
+        setRequests(strictlyAuthorized);
+        strictlyAuthorized.forEach((r: any) => fetchMessagesForRequest(r.id));
       } catch (err) {
         console.warn('Error fetching requests:', err);
       }
@@ -512,7 +529,9 @@ export default function Mentorship() {
       const targetMentor = mentors.find(m => m.id === mentorId);
       const mentorDisplayName = targetMentor?.display_name || 'Industrial Mentor';
       const formattedMessage = `[Session: ${bookingSessionType} | Date: ${bookingDate} | Slot: ${bookingTimeSlot}] ${requestMessage}`;
-      const newReqId = 'req_' + Date.now();
+      const newReqId = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
 
       const newLocalRequest = {
         id: newReqId,
@@ -526,11 +545,12 @@ export default function Mentorship() {
         session_type: bookingSessionType,
         session_date: bookingDate,
         session_time_slot: bookingTimeSlot,
+        topic: bookingSessionType,
         created_at: new Date().toISOString()
       };
 
       try {
-        await supabase.from('mentorship_requests').insert({
+        const { data: dbData, error: dbErr } = await supabase.from('mentorship_requests').insert({
           id: newReqId,
           requester_id: user.id,
           requester_name: newLocalRequest.requester_name,
@@ -541,10 +561,15 @@ export default function Mentorship() {
           whatsapp_number: whatsapp.trim(),
           session_type: bookingSessionType,
           session_date: bookingDate,
-          session_time_slot: bookingTimeSlot
-        });
+          session_time_slot: bookingTimeSlot,
+          topic: bookingSessionType
+        }).select().single();
+
+        if (dbData?.id) {
+          newLocalRequest.id = dbData.id;
+        }
       } catch (err) {
-        console.warn('Supabase request insert fallback:', err);
+        console.warn('Supabase request insert notice:', err);
       }
 
       // Persist to local storage
@@ -640,13 +665,17 @@ export default function Mentorship() {
   const handleSendReply = async (requestId: string, messageText: string) => {
     if (!messageText.trim() || !user) return;
     try {
-      const isMentor = profile?.role === 'mentor';
+      const targetReq = requests.find(r => r.id === requestId);
+      const isTargetMentor = Boolean(targetReq?.mentor_id && (user?.id === targetReq.mentor_id || profile?.id === targetReq.mentor_id));
+      const isAdmin = Boolean(profile?.role === 'admin' || profile?.is_admin);
+      const senderRole = isTargetMentor ? 'mentor' : (isAdmin ? 'admin' : 'mentee');
+
       const newMsg = {
-        id: 'msg_' + Date.now(),
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'msg_' + Date.now(),
         request_id: requestId,
         sender_id: user.id,
-        sender_name: profile?.display_name || (isMentor ? 'Industrial Mentor' : 'Mentee'),
-        sender_role: isMentor ? 'mentor' : 'mentee',
+        sender_name: profile?.display_name || (isTargetMentor ? 'Assigned Mentor' : (isAdmin ? 'Administrator' : 'Mentee')),
+        sender_role: senderRole,
         message: messageText.trim(),
         created_at: new Date().toISOString()
       };
@@ -661,7 +690,7 @@ export default function Mentorship() {
         });
       } catch { }
 
-      if (isMentor) {
+      if (isTargetMentor) {
         try {
           await supabase.from('mentorship_requests').update({ mentor_response: messageText.trim() }).eq('id', requestId);
         } catch { }
@@ -1514,45 +1543,70 @@ Possible causes:
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-1">
                 {profile?.role === 'mentor'
-                  ? 'Review mentees seeking guidance, provide virtual meeting rooms, and send structured replies.'
-                  : 'Track your requested mentorship sessions, access virtual meeting rooms, and chat directly with your mentors.'}
+                  ? 'Private console. Only mentorship requests specifically assigned to you (or general sessions approved by admin) are visible here.'
+                  : 'Track your requested mentorship sessions, access virtual meeting rooms, and chat directly with your assigned mentor.'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
-                {requests.length} Total Sessions
+                {(() => {
+                  const isAdmin = Boolean(isUserAdmin || profile?.role === 'admin');
+                  const count = requests.filter(r => {
+                    if (isAdmin) return true;
+                    if (r.requester_id === user?.id) return true;
+                    if (r.mentor_id && (r.mentor_id === user?.id || r.mentor_id === profile?.id)) return true;
+                    return false;
+                  }).length;
+                  return `${count} ${count === 1 ? 'Session' : 'Sessions'}`;
+                })()}
               </span>
             </div>
           </div>
 
           <div className="space-y-6">
-            {requests.length === 0 ? (
-              <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center space-y-4 shadow-sm">
-                <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
-                  <MessageSquare className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-base font-bold text-slate-900">No Active Mentorship Requests Yet</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    {profile?.role === 'mentor'
-                      ? 'When students submit mentorship inquiries for robotics, PCB design, or AI, they will appear here for your review.'
-                      : 'Explore verified industrial mentors and book your first 1-on-1 code or hardware review session!'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('mentors')}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all"
-                >
-                  Browse Industrial Mentors
-                </button>
-              </div>
-            ) : (
-              requests.map((request) => {
-                const isMentorOfSession = profile?.role === 'mentor' || profile?.id === request.mentor_id;
+            {(() => {
+              const isAdmin = Boolean(isUserAdmin || profile?.role === 'admin');
+              const visibleRequests = requests.filter(r => {
+                if (isAdmin) return true;
+                if (r.requester_id === user?.id) return true;
+                if (r.mentor_id && (r.mentor_id === user?.id || r.mentor_id === profile?.id)) return true;
+                return false;
+              });
+
+              if (visibleRequests.length === 0) {
+                return (
+                  <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center space-y-4 shadow-sm">
+                    <div className="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                      <MessageSquare className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-base font-bold text-slate-900">
+                        {profile?.role === 'mentor'
+                          ? 'No Requests Directed To You'
+                          : 'No Active Mentorship Requests Yet'}
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        {profile?.role === 'mentor'
+                          ? 'Mentorship inquiries are strictly confidential. Only students who specifically select you as their target mentor will appear here.'
+                          : 'Explore verified industrial mentors and book your first 1-on-1 code or hardware review session!'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('mentors')}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+                    >
+                      Browse Industrial Mentors
+                    </button>
+                  </div>
+                );
+              }
+
+              return visibleRequests.map((request) => {
+                const isTargetMentor = Boolean(request.mentor_id && (user?.id === request.mentor_id || profile?.id === request.mentor_id));
                 const isRequester = user?.id === request.requester_id;
-                const isAdmin = profile?.role === 'admin';
-                const canRespond = isMentorOfSession || isRequester || isAdmin;
+                const isMentorOfSession = isTargetMentor; // Strictly target mentor, never other mentors
+                const canRespond = isTargetMentor || isRequester || isAdmin;
                 const messages = messagesMap[request.id] || [];
 
                 return (
@@ -1899,8 +1953,8 @@ Possible causes:
                     </div>
                   </motion.div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </section>
       )}

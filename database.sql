@@ -6294,3 +6294,29 @@ ALTER TABLE public.shop_orders ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can insert shop orders" ON public.shop_orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public view own shop orders" ON public.shop_orders FOR SELECT USING (true);
 
+-- ==============================================================================
+-- 2026-11-23: STRICT MENTORSHIP REQUEST PRIVACY
+-- ==============================================================================
+DROP POLICY IF EXISTS "Participants view own mentorship requests" ON public.mentorship_requests;
+DROP POLICY IF EXISTS "Participants and admins can read mentorship requests" ON public.mentorship_requests;
+CREATE POLICY "Strict target mentor and admin view mentorship requests" ON public.mentorship_requests
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL AND (
+      auth.uid() = requester_id 
+      OR (mentor_id IS NOT NULL AND auth.uid()::text = mentor_id::text)
+      OR public.is_admin()
+    )
+  );
+
+DROP POLICY IF EXISTS "Participants and admins can update mentorship requests" ON public.mentorship_requests;
+DROP POLICY IF EXISTS "Participants update mentorship requests" ON public.mentorship_requests;
+CREATE POLICY "Strict target mentor and admin update mentorship requests" ON public.mentorship_requests
+  FOR UPDATE USING (
+    auth.uid() IS NOT NULL AND (
+      auth.uid() = requester_id 
+      OR (mentor_id IS NOT NULL AND auth.uid()::text = mentor_id::text)
+      OR public.is_admin()
+    )
+  );
+
+
