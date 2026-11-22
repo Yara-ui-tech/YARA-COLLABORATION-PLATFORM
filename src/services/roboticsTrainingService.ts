@@ -210,11 +210,12 @@ export const ROBOTICS_PROGRAMMES_CATALOG: RoboticsProgramme[] = [
     category: 'bootcamp',
     targetAudience: 'Holiday break learners (ECD – Grade 7)',
     ageRange: '6 – 12 Years',
-    feePerLearner: 20,
+    feePerLearner: 0,
     feeStructure: 'complete_programme',
+    pricingVaries: true,
     durationDescription: '3-Day Intensive Holiday Build Camp (9:00 AM – 1:00 PM)',
     minimumLessonsOrSessions: 6,
-    description: 'An action-packed holiday experience where learners spend school break turning ideas into moving robots, building friend networks, and presenting team creations.',
+    description: 'An action-packed holiday experience where learners spend school break turning ideas into moving robots, building friend networks, and presenting team creations. Pricing varies based on venue, intensive track, and kit selection.',
     features: [
       '3 full days of hands-on robot building',
       'Daily take-home projects and fun challenges',
@@ -225,7 +226,7 @@ export const ROBOTICS_PROGRAMMES_CATALOG: RoboticsProgramme[] = [
       'Day 2: Motorized Roaming Robots',
       'Day 3: Grand Arena Maze Showdown'
     ],
-    badge: 'Holiday Accelerator',
+    badge: 'Pricing Varies',
     isPopular: true
   },
   {
@@ -234,11 +235,12 @@ export const ROBOTICS_PROGRAMMES_CATALOG: RoboticsProgramme[] = [
     category: 'bootcamp',
     targetAudience: 'Holiday break learners (High School & Tertiary)',
     ageRange: '13 – 20 Years',
-    feePerLearner: 35,
+    feePerLearner: 0,
     feeStructure: 'complete_programme',
+    pricingVaries: true,
     durationDescription: '5-Day Full-Week Holiday Sprint (9:00 AM – 3:30 PM)',
     minimumLessonsOrSessions: 10,
-    description: 'Fast-paced, team-based hardware sprint where high schoolers and university innovators build an autonomous rescue or underwater robot from scratch.',
+    description: 'Fast-paced, team-based hardware sprint where high schoolers and university innovators build an autonomous rescue or underwater robot from scratch. Pricing varies based on hub, duration, and kit options.',
     features: [
       'Full week engineering immersion',
       'Competition-standard testing arena',
@@ -249,7 +251,7 @@ export const ROBOTICS_PROGRAMMES_CATALOG: RoboticsProgramme[] = [
       'Days 3-4: Autonomous Navigation & Microcontroller Firmware',
       'Day 5: Live Project Defense & Awards'
     ],
-    badge: 'Holiday Intensive'
+    badge: 'Pricing Varies'
   }
 ];
 
@@ -702,7 +704,10 @@ export const roboticsTrainingService = {
     let breakdown = '';
 
     if (programme) {
-      if (programme.feeStructure === 'complete_programme') {
+      if (programme.pricingVaries || programmeId.startsWith('holiday_bootcamp')) {
+        baseFee = 0;
+        breakdown = `${count} learner(s) • Bootcamp pricing varies by duration & hub (Confirmed upon inquiry)`;
+      } else if (programme.feeStructure === 'complete_programme') {
         baseFee = programme.feePerLearner * count;
         breakdown = `${count} learner(s) × $${programme.feePerLearner} (Complete programme)`;
       } else if (programme.feeStructure === 'per_session') {

@@ -13,7 +13,8 @@ import {
   Layers,
   ArrowUpRight,
   ShoppingBag,
-  Users
+  Users,
+  Bot
 } from 'lucide-react';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
@@ -81,14 +82,22 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Two Clean, Confident CTAs */}
+          {/* Confident, High-Impact CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Link
-              to="/learn"
+              to="/learn?tab=robotics-training"
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-[#00C6FF] to-[#1976D2] hover:from-[#1976D2] hover:to-[#0D47A1] text-white font-black text-xs uppercase tracking-widest transition-all duration-300 shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 group cursor-pointer"
+            >
+              <Bot className="w-4 h-4 text-white" />
+              <span>ROBOTICS TRAINING PROGRAMMES</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <Link
+              to="/learn?tab=courses"
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-white text-slate-950 hover:bg-slate-200 font-black text-xs uppercase tracking-widest transition-all duration-300 shadow-xl shadow-white/5 flex items-center justify-center gap-2 group cursor-pointer"
             >
-              <span>EXPLORE ACADEMY</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span>EXPLORE COURSES</span>
             </Link>
 
             <Link

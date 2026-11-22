@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Menu, X, GraduationCap, Trophy, 
   ShieldCheck, ArrowRight, User, 
-  Search, CreditCard
+  Search, CreditCard, Bot, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { ASSETS } from '../../constants/assets';
@@ -23,7 +23,8 @@ export default function PublicHeader() {
   // Standalone primary navigation tabs
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Academy', path: '/learn' },
+    { label: 'Robotics Training', path: '/learn?tab=robotics-training', highlight: true },
+    { label: 'Academy', path: '/learn?tab=courses' },
     { label: 'Shop', path: '/shop' },
     { label: 'Mentorship', path: '/mentorship' },
     { label: 'Competitions', path: '/competitions' },
@@ -57,6 +58,11 @@ export default function PublicHeader() {
           <div className="flex items-center gap-2.5 shrink-0 text-[11px] font-semibold text-blue-300">
             <RuralDataSaverToggle variant="badge" />
             <span className="text-slate-600 hidden sm:inline">|</span>
+            <Link to="/learn?tab=robotics-training" className="text-cyan-300 hover:text-white flex items-center gap-1 font-extrabold hidden md:flex">
+              <Bot className="w-3.5 h-3.5" />
+              <span>Robotics Training &amp; Bootcamps</span>
+            </Link>
+            <span className="text-slate-600 hidden md:inline">|</span>
             <Link to="/verify-certificate" className="hover:text-white flex items-center gap-1 transition-colors hidden sm:flex">
               <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
               <span>Verify Certificate</span>
@@ -100,20 +106,31 @@ export default function PublicHeader() {
 
           {/* Desktop Navigation Links — Standalone Routes */}
           <nav className="hidden lg:flex items-center space-x-1 font-semibold text-xs">
-            {navLinks.map((item) => (
-              <Link
-                key={item.label}
-                to={item.path}
-                className={cn(
-                  "px-3.5 py-2 rounded-xl transition-all cursor-pointer",
-                  isActive(item.path)
-                    ? "text-blue-400 bg-blue-950/60 font-bold"
-                    : "text-slate-300 hover:text-white hover:bg-slate-900"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navLinks.map((item) => {
+              const active = item.path.includes('?') 
+                ? (location.pathname + location.search) === item.path
+                : isActive(item.path);
+
+              return (
+                <Link
+                  key={item.label}
+                  to={item.path}
+                  className={cn(
+                    "px-3 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5",
+                    item.highlight
+                      ? active
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black shadow-md shadow-cyan-500/20"
+                        : "text-[#00C6FF] hover:text-white bg-blue-950/60 hover:bg-blue-900/60 border border-cyan-500/30 font-bold"
+                      : active
+                      ? "text-blue-400 bg-blue-950/60 font-bold"
+                      : "text-slate-300 hover:text-white hover:bg-slate-900"
+                  )}
+                >
+                  {item.highlight && <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Actions: Search + Quick Pay + Sign In / Join */}

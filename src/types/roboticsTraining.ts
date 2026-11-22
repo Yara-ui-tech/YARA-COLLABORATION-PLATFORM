@@ -38,6 +38,7 @@ export interface RoboticsProgramme {
   ageRange: string;
   feePerLearner: number;
   feeStructure: 'complete_programme' | 'per_session' | 'per_lesson';
+  pricingVaries?: boolean;
   durationDescription: string;
   minimumLessonsOrSessions?: number;
   description: string;

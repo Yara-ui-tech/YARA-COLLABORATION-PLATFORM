@@ -208,6 +208,11 @@ const AppContent = () => {
             <Route path="/verify-certificate/:number" element={<VerifyCertificate />} />
             <Route path="/library" element={<Navigate to="/learn?tab=resources" replace />} />
             <Route path="/resources" element={<Navigate to="/learn?tab=resources" replace />} />
+            <Route path="/robotics-training" element={<Navigate to="/learn?tab=robotics-training" replace />} />
+            <Route path="/robotics" element={<Navigate to="/learn?tab=robotics-training" replace />} />
+            <Route path="/training" element={<Navigate to="/learn?tab=robotics-training" replace />} />
+            <Route path="/bootcamp" element={<Navigate to="/learn?tab=robotics-training&sub=programmes" replace />} />
+            <Route path="/bootcamps" element={<Navigate to="/learn?tab=robotics-training&sub=programmes" replace />} />
             <Route path="/learn" element={<YaraLearning />} />
             <Route path="/learning" element={<YaraLearning />} />
             <Route path="/learning/*" element={<YaraLearning />} />

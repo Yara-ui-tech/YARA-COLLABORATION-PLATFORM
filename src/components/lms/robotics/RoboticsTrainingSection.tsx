@@ -598,18 +598,32 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
 
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <div className="text-xs text-slate-400 font-medium">Standard Fee</div>
-                    <div className="text-xl font-black text-[#0A1B4D]">
-                      ${prog.feePerLearner}
-                      <span className="text-xs text-slate-500 font-normal">
-                        {prog.feeStructure === 'per_session' ? ' / session' : prog.feeStructure === 'per_lesson' ? ' / lesson' : ' / complete'}
-                      </span>
-                    </div>
+                    {prog.pricingVaries || prog.id.startsWith('holiday_bootcamp') ? (
+                      <div>
+                        <div className="text-xs text-slate-400 font-medium">Programme Investment</div>
+                        <div className="text-lg font-black text-[#0A1B4D]">
+                          Pricing Varies
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-normal">
+                          Varies by camp duration &amp; track
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-xs text-slate-400 font-medium">Standard Fee</div>
+                        <div className="text-xl font-black text-[#0A1B4D]">
+                          ${prog.feePerLearner}
+                          <span className="text-xs text-slate-500 font-normal">
+                            {prog.feeStructure === 'per_session' ? ' / session' : prog.feeStructure === 'per_lesson' ? ' / lesson' : ' / complete'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <button
                     onClick={() => handleTriggerEnrolProgramme(prog.id)}
-                    className="px-4 py-2 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white font-bold text-xs transition shadow-sm flex items-center gap-1"
+                    className="px-4 py-2 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white font-bold text-xs transition shadow-sm flex items-center gap-1 cursor-pointer"
                   >
                     <span>Enrol</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1467,8 +1481,8 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                       <option value="comprehensive_certification">Comprehensive Robotics Training & Certification – $5 per lesson</option>
                     </optgroup>
                     <optgroup label="Holiday Break Bootcamps">
-                      <option value="holiday_bootcamp_junior">Holiday Robotics Bootcamp (Junior Explorer) – $20</option>
-                      <option value="holiday_bootcamp_senior">Holiday Robotics Bootcamp (Senior Innovators) – $35</option>
+                      <option value="holiday_bootcamp_junior">Holiday Robotics Bootcamp (Junior Explorer) – Pricing Varies</option>
+                      <option value="holiday_bootcamp_senior">Holiday Robotics Bootcamp (Senior Innovators) – Pricing Varies</option>
                     </optgroup>
                   </select>
                 </div>
@@ -1526,8 +1540,12 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
               <div className="text-right flex items-center gap-6">
                 <div>
                   <div className="text-xs text-blue-300 font-medium">Total Payable</div>
-                  <div className="text-3xl font-black text-white">
-                    ${feeCalculation.totalPayable}
+                  <div className="text-2xl sm:text-3xl font-black text-white">
+                    {selectedProgrammeId.startsWith('holiday_bootcamp') ? (
+                      includeHardwareKit ? `$${feeCalculation.hardwareKitFee} (Kit only, Camp Fee Varies)` : 'Pricing Varies'
+                    ) : (
+                      `$${feeCalculation.totalPayable}`
+                    )}
                   </div>
                 </div>
 

@@ -29,7 +29,7 @@ import {
 import { COMPLETE_YARA_SESSIONS, getSessionById } from '../constants/yaraLmsCatalog';
 import { checkAndVerifyUserSubscription } from '../services/partnershipDonationService';
 import { usePortal } from '../context/PortalContext';
-import { Globe, ArrowRight, Layers, GraduationCap, ShieldCheck, Sparkles, Info } from 'lucide-react';
+import { Globe, ArrowRight, Layers, GraduationCap, ShieldCheck, Sparkles, Info, Bot, BookOpen } from 'lucide-react';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function YaraLearning() {
@@ -52,8 +52,8 @@ export default function YaraLearning() {
   const [lockedCourseTitle, setLockedCourseTitle] = useState('');
   const [isPendingApproval, setIsPendingApproval] = useState(false);
 
-  // Active Tab from URL search params (Default: 'courses' for clean, direct learning)
-  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || 'courses';
+  // Active Tab from URL search params (Default: 'robotics-training' for immediate prominent access)
+  const tabFromQuery = (searchParams.get('tab') as LearningTabId) || 'robotics-training';
   const [activeTab, setActiveTab] = useState<LearningTabId>(
     tabFromQuery === 'dashboard' ? 'courses' : tabFromQuery
   );
@@ -277,6 +277,56 @@ export default function YaraLearning() {
           </span>
         </div>
       )}
+
+      {/* High-Visibility Robotics Training Spotlight Banner */}
+      <div className="bg-gradient-to-r from-[#0A1B4D] via-[#0D47A1] to-[#0A1B4D] text-white p-4 sm:p-5 border-b border-[#1976D2]/40 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#00C6FF] to-[#1976D2] flex items-center justify-center text-white shrink-0 shadow-lg ring-2 ring-[#00C6FF]/40">
+              <Bot className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#00C6FF]/20 text-[#00C6FF] border border-[#00C6FF]/40">
+                  Core Programme
+                </span>
+                <span className="text-xs text-blue-200 font-semibold">ECD to Tertiary STEM Education</span>
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-white mt-0.5 tracking-tight">
+                YARA Robotics &amp; Engineering Academy
+              </h2>
+              <p className="text-xs text-blue-100/90 hidden sm:block">
+                Structured curriculum from primary to tertiary, weekly clubs, bootcamps, and 4 accredited certification pathways.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+            <button
+              onClick={() => handleSelectTab('robotics-training')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                activeTab === 'robotics-training'
+                  ? 'bg-[#00C6FF] text-slate-950 shadow-md shadow-cyan-500/20'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              }`}
+            >
+              <Bot className="w-4 h-4" />
+              <span>ROBOTICS TRAINING</span>
+            </button>
+            <button
+              onClick={() => handleSelectTab('courses')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeTab === 'courses'
+                  ? 'bg-white text-slate-950 font-black shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Self-Paced Courses</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* 1. Sticky Navigation Tab Bar */}
       <YaraLearningNavigation
