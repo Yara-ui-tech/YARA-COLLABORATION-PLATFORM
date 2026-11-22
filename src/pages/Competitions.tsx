@@ -73,12 +73,47 @@ export default function Competitions() {
     loadData();
   }, []);
 
+  const dynamicCategoryChips = useMemo(() => {
+    const defaultChips = [
+      { id: 'ALL', label: 'All Tournaments' },
+      { id: 'flagship_robotics', label: 'Flagship Championships' },
+      { id: 'underwater_rov', label: 'Underwater Drone & ROV' },
+      { id: 'autonomous_vehicles', label: 'Autonomous & Micromouse' },
+      { id: 'hackathon', label: 'Agro-Tech & AI Hackathons' },
+      { id: 'junior_stem', label: 'Junior & Primary STEM' }
+    ];
+
+    const knownIds = new Set(defaultChips.map(c => c.id.toLowerCase()));
+    const customChips: { id: string; label: string }[] = [];
+
+    competitions.forEach(c => {
+      if (c.category) {
+        const catKey = c.category.toLowerCase().trim();
+        if (!knownIds.has(catKey)) {
+          knownIds.add(catKey);
+          customChips.push({
+            id: c.category,
+            label: c.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          });
+        }
+      }
+    });
+
+    return [...defaultChips, ...customChips];
+  }, [competitions]);
+
   const filteredCompetitions = useMemo(() => {
     return competitions.filter(c => {
       const matchSearch = (c.title + ' ' + (c.subtitle || '') + ' ' + (c.description || '') + ' ' + (c.location || ''))
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
-      const matchCategory = selectedCategory === 'ALL' || c.category === selectedCategory;
+      const matchCategory = selectedCategory === 'ALL' || 
+        c.category?.toLowerCase() === selectedCategory.toLowerCase() ||
+        (selectedCategory === 'flagship_robotics' && c.category?.toLowerCase().includes('flagship')) ||
+        (selectedCategory === 'underwater_rov' && c.category?.toLowerCase().includes('underwater')) ||
+        (selectedCategory === 'autonomous_vehicles' && (c.category?.toLowerCase().includes('autonomous') || c.category?.toLowerCase().includes('micromouse'))) ||
+        (selectedCategory === 'hackathon' && c.category?.toLowerCase().includes('hackathon')) ||
+        (selectedCategory === 'junior_stem' && c.category?.toLowerCase().includes('junior'));
       const matchStatus = selectedStatus === 'ALL' || c.status === selectedStatus;
       return matchSearch && matchCategory && matchStatus;
     });
@@ -428,7 +463,7 @@ export default function Competitions() {
           {/* Category Chips & Status Filters */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
             <div className="flex flex-wrap items-center gap-1.5">
-              {CATEGORY_CHIPS.map(chip => (
+              {dynamicCategoryChips.map(chip => (
                 <button
                   key={chip.id}
                   onClick={() => setSelectedCategory(chip.id)}

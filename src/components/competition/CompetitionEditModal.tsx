@@ -115,18 +115,54 @@ export default function CompetitionEditModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-bold text-slate-300 uppercase tracking-wider text-[10px]">Category</label>
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value as any })}
+              <label className="font-bold text-slate-300 uppercase tracking-wider text-[10px]">
+                Category * <span className="text-cyan-400 font-normal lowercase">(type any category you want)</span>
+              </label>
+              <input
+                type="text"
+                list="competition-edit-categories-datalist"
+                required
+                value={form.category || ''}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="Type any category (e.g. Drone Racing, Combat Bots...)"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-bold focus:outline-none focus:border-cyan-500"
-              >
-                <option value="flagship_robotics">Flagship Championship</option>
-                <option value="underwater_rov">Underwater Drone & ROV</option>
-                <option value="autonomous_vehicles">Autonomous & Micromouse</option>
-                <option value="hackathon">Agro-Tech & AI Hackathon</option>
-                <option value="junior_stem">Junior & Primary STEM</option>
-              </select>
+              />
+              <datalist id="competition-edit-categories-datalist">
+                <option value="Flagship Robotics Championship" />
+                <option value="Underwater Drone & ROV Challenge" />
+                <option value="Autonomous Vehicles & Maze Derby" />
+                <option value="Smart AgTech & AI Hackathon" />
+                <option value="Junior STEM & Primary Bot Open" />
+                <option value="Drone Racing & Aerial Robotics" />
+                <option value="Combat Bots & Battle Arena" />
+                <option value="Clean Energy & Solar Innovation" />
+              </datalist>
+
+              {/* Quick suggestion pills */}
+              <div className="flex flex-wrap gap-1 mt-1">
+                {[
+                  'Flagship Robotics',
+                  'Underwater ROV',
+                  'Autonomous & Maze',
+                  'AgTech & AI',
+                  'Junior STEM',
+                  'Drone Racing',
+                  'Combat Bots'
+                ].map((sugg) => (
+                  <button
+                    key={sugg}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: sugg })}
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-md border transition cursor-pointer ${
+                      form.category === sugg
+                        ? 'bg-cyan-600 text-white border-cyan-500'
+                        : 'bg-slate-800 text-slate-400 hover:text-white border-slate-700'
+                    }`}
+                  >
+                    {sugg}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

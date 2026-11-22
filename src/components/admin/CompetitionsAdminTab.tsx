@@ -79,13 +79,41 @@ export default function CompetitionsAdminTab() {
     loadData();
   }, []);
 
+  const allCategoryOptions = useMemo(() => {
+    const list = [...CATEGORY_OPTIONS];
+    const existingValues = new Set(list.map(c => c.value.toLowerCase()));
+    
+    competitions.forEach(c => {
+      if (c.category) {
+        const val = c.category.trim();
+        const lower = val.toLowerCase();
+        if (!existingValues.has(lower)) {
+          existingValues.add(lower);
+          list.push({
+            value: val,
+            label: val.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            color: 'bg-indigo-50 text-indigo-700 border-indigo-200'
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [competitions]);
+
   const filteredCompetitions = useMemo(() => {
     return competitions.filter(c => {
       const matchSearch = (c.title + ' ' + (c.subtitle || '') + ' ' + (c.description || '') + ' ' + (c.location || ''))
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
       const matchStatus = statusFilter === 'ALL' || c.status === statusFilter;
-      const matchCategory = categoryFilter === 'ALL' || c.category === categoryFilter;
+      const matchCategory = categoryFilter === 'ALL' || 
+        c.category?.toLowerCase() === categoryFilter.toLowerCase() ||
+        (categoryFilter === 'flagship_robotics' && c.category?.toLowerCase().includes('flagship')) ||
+        (categoryFilter === 'underwater_rov' && c.category?.toLowerCase().includes('underwater')) ||
+        (categoryFilter === 'autonomous_vehicles' && (c.category?.toLowerCase().includes('autonomous') || c.category?.toLowerCase().includes('micromouse'))) ||
+        (categoryFilter === 'hackathon' && c.category?.toLowerCase().includes('hackathon')) ||
+        (categoryFilter === 'junior_stem' && c.category?.toLowerCase().includes('junior'));
       return matchSearch && matchStatus && matchCategory;
     });
   }, [competitions, searchQuery, statusFilter, categoryFilter]);
@@ -364,7 +392,7 @@ export default function CompetitionsAdminTab() {
                 className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"
               >
                 <option value="ALL">All Categories</option>
-                {CATEGORY_OPTIONS.map(cat => (
+                {allCategoryOptions.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
@@ -623,16 +651,49 @@ export default function CompetitionsAdminTab() {
                 {/* Category, Format & Status */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Category</label>
-                    <select
-                      value={formData.category}
+                    <label className="block font-bold text-slate-700 mb-1">
+                      Category * <span className="text-[10px] font-normal text-indigo-600">(Type any or pick)</span>
+                    </label>
+                    <input
+                      type="text"
+                      list="competition-admin-categories-datalist"
+                      required
+                      value={formData.category || ''}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-indigo-600"
-                    >
-                      {CATEGORY_OPTIONS.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                      placeholder="e.g. Combat Robotics, Drone Racing..."
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none focus:border-indigo-600 text-xs"
+                    />
+                    <datalist id="competition-admin-categories-datalist">
+                      {allCategoryOptions.map((c, idx) => (
+                        <option key={idx} value={c.label} />
                       ))}
-                    </select>
+                    </datalist>
+
+                    {/* Quick suggestion pills */}
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {[
+                        'Flagship Robotics',
+                        'Underwater ROV',
+                        'Autonomous Vehicles',
+                        'AgTech & AI',
+                        'Junior STEM',
+                        'Drone Racing',
+                        'Combat Bots'
+                      ].map((sugg) => (
+                        <button
+                          key={sugg}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, category: sugg })}
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition cursor-pointer ${
+                            formData.category === sugg
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200'
+                          }`}
+                        >
+                          {sugg}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>

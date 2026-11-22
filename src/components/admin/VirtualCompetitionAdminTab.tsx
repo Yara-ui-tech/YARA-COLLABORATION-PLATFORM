@@ -416,17 +416,25 @@ export default function VirtualCompetitionAdminTab() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-900 mb-1">Category</label>
-                  <select
-                    value={form.category}
-                    onChange={e => setForm({ ...form, category: e.target.value })}
+                  <label className="block text-xs font-bold text-slate-900 mb-1">
+                    Category * <span className="text-[10px] font-normal text-indigo-600">(Custom or pick)</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="virtual-comp-categories-datalist"
+                    value={form.category_label || form.category || ''}
+                    onChange={e => setForm({ ...form, category: e.target.value, category_label: e.target.value })}
+                    placeholder="Type any category (e.g. Robot Simulation, Vision AI...)"
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
-                  >
-                    <option value="robot_simulation">Robot Simulation (Wokwi)</option>
-                    <option value="pcb_design">PCB Design (EasyEDA/KiCad)</option>
-                    <option value="embedded_c">Embedded C/C++ Optimization</option>
-                    <option value="iot_telemetry">IoT Telemetry & Cloud</option>
-                  </select>
+                    required
+                  />
+                  <datalist id="virtual-comp-categories-datalist">
+                    <option value="Robot Simulation (Wokwi)" />
+                    <option value="PCB Design (EasyEDA / KiCad)" />
+                    <option value="Embedded C/C++ Optimization" />
+                    <option value="IoT Telemetry & Cloud" />
+                    <option value="AI & Computer Vision Challenge" />
+                  </datalist>
                 </div>
 
                 <div>
