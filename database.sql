@@ -6245,3 +6245,52 @@ CREATE POLICY "Public insert teacher enrolments" ON public.robotics_teacher_enro
 CREATE POLICY "Admins manage teacher enrolments" ON public.robotics_teacher_enrolments FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+-- ==============================================================================
+-- 2026-11-23: MENTOR REAL REVIEWS & PROTECTED READ-ONLY BOOKS (PAID HARDCOPY)
+-- ==============================================================================
+
+-- 1. Mentor Reviews Schema Extensions
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS mentor_name TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS learner_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS learner_name TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS review_text TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS comment TEXT;
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General Mentorship';
+ALTER TABLE public.mentor_reviews ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.mentor_reviews ALTER COLUMN student_id DROP NOT NULL;
+ALTER TABLE public.mentor_reviews ALTER COLUMN mentor_id DROP NOT NULL;
+
+-- 2. Protected Books & Paid Hardcopy Schema Extensions
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS author TEXT DEFAULT 'YARA Robotics Faculty';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS is_book BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS hardcopy_available BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS hardcopy_price_usd NUMERIC(10,2) DEFAULT 15.00;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS pages_count INTEGER DEFAULT 0;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS isbn TEXT;
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS preview_mode TEXT DEFAULT 'read_only';
+ALTER TABLE public.study_materials ADD COLUMN IF NOT EXISTS is_downloadable BOOLEAN DEFAULT FALSE;
+
+-- 3. Shop Orders for Hardcopy Books
+CREATE TABLE IF NOT EXISTS public.shop_orders (
+  id TEXT PRIMARY KEY,
+  product_id TEXT NOT NULL,
+  product_title TEXT NOT NULL,
+  quantity INTEGER DEFAULT 1,
+  total_price_usd NUMERIC(10,2) NOT NULL,
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  customer_email TEXT,
+  delivery_address TEXT NOT NULL,
+  city_or_province TEXT NOT NULL,
+  school_or_club_name TEXT,
+  payment_method TEXT DEFAULT 'ecocash',
+  status TEXT DEFAULT 'pending',
+  order_type TEXT DEFAULT 'hardcopy_book',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.shop_orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can insert shop orders" ON public.shop_orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public view own shop orders" ON public.shop_orders FOR SELECT USING (true);
+

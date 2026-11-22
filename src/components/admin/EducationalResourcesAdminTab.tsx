@@ -2,12 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, Upload, Search, FileText, Video, Image as ImageIcon, 
   Download, Trash2, Edit2, ExternalLink, Plus, RefreshCw, 
-  CheckCircle2, AlertCircle, Eye, Tag, Globe, Sparkles, Copy, Check, Play
+  CheckCircle2, AlertCircle, Eye, Tag, Globe, Sparkles, Copy, Check, Play,
+  Lock, Truck, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import ItemCoverDisplay from '../resources/ItemCoverDisplay';
+import { ReadOnlyBookReaderModal, ProtectedBookItem } from '../library/ReadOnlyBookReaderModal';
 
 export interface EducationalResource {
   id: string;
@@ -25,6 +27,11 @@ export interface EducationalResource {
   thumbnail_url?: string;
   tags?: string[];
   created_at?: string;
+  author?: string;
+  is_book?: boolean;
+  hardcopy_available?: boolean;
+  hardcopy_price_usd?: number;
+  pages_count?: number;
 }
 
 const RESOURCE_CATEGORIES = [
@@ -76,14 +83,20 @@ export default function EducationalResourcesAdminTab() {
     target_level: 'All Levels',
     target_age_group: 'All Ages',
     language: 'English',
-    is_downloadable: true,
+    is_downloadable: false, // Protected read-only for educational books by default
     is_published: true,
     thumbnail_url: '',
-    tags: []
+    tags: [],
+    author: 'YARA Robotics Faculty',
+    is_book: true,
+    hardcopy_available: true,
+    hardcopy_price_usd: 15.00,
+    pages_count: 85
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
+  const [selectedBookPreview, setSelectedBookPreview] = useState<ProtectedBookItem | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -272,10 +285,15 @@ export default function EducationalResourcesAdminTab() {
         target_level: form.target_level || 'All Levels',
         target_age_group: form.target_age_group || 'All Ages',
         language: form.language || 'English',
-        is_downloadable: form.is_downloadable ?? true,
+        is_downloadable: form.is_downloadable ?? false, // Books are protected read-only
         is_published: form.is_published ?? true,
         thumbnail_url: finalCoverUrl || null,
-        tags: form.tags || []
+        tags: form.tags || [],
+        author: form.author || 'YARA Robotics Faculty',
+        is_book: form.is_book ?? (form.file_type === 'pdf'),
+        hardcopy_available: form.hardcopy_available ?? true,
+        hardcopy_price_usd: Number(form.hardcopy_price_usd) || 15.00,
+        pages_count: Number(form.pages_count) || 0
       };
 
       const { data, error } = await supabase
@@ -506,19 +524,20 @@ export default function EducationalResourcesAdminTab() {
                     >
                       {copiedId === res.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
-                    <a
-                      href={res.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl text-emerald-600 hover:bg-emerald-100/60 transition flex items-center gap-1 cursor-pointer"
-                      title="Open or Download Resource"
+
+                    {/* Preview in Protected Reader */}
+                    <button
+                      onClick={() => setSelectedBookPreview(res)}
+                      className="p-2 rounded-xl text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition flex items-center gap-1 cursor-pointer text-[11px]"
+                      title="Preview in Secured Read-Only Reader"
                     >
-                      {res.file_type === 'video' ? <Play className="w-3.5 h-3.5 fill-current" /> : <Download className="w-3.5 h-3.5" />}
-                      <span className="text-[11px]">{res.file_type === 'video' ? 'Watch' : 'Download'}</span>
-                    </a>
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Read-Only Viewer</span>
+                    </button>
+
                     <button
                       onClick={() => handleUpdateCover(res.id, res.thumbnail_url)}
-                      className="p-2 rounded-xl text-indigo-600 hover:bg-indigo-50 transition cursor-pointer flex items-center gap-1 text-[11px]"
+                      className="p-2 rounded-xl text-slate-600 hover:bg-slate-200/60 transition cursor-pointer flex items-center gap-1 text-[11px]"
                       title="Update or change cover image"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
@@ -662,6 +681,74 @@ export default function EducationalResourcesAdminTab() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Author / Faculty</label>
+                  <input
+                    type="text"
+                    value={form.author || ''}
+                    onChange={(e) => setForm({ ...form, author: e.target.value })}
+                    placeholder="e.g. YARA Robotics Faculty, Dr. Moyo"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Estimated Pages</label>
+                  <input
+                    type="number"
+                    value={form.pages_count || ''}
+                    onChange={(e) => setForm({ ...form, pages_count: Number(e.target.value) })}
+                    placeholder="e.g. 85"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-bold text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Physical Hardcopy Configuration & Anti-Download Protection */}
+              <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-amber-950 text-xs flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-amber-700" />
+                    <span>Physical Hardcopy Purchase &amp; Protection</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                    🔒 Read-Only Digital (No Downloads)
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-relaxed">
+                  Users can read this publication online in read-only mode (digital downloading is blocked). They can order an official printed physical hardcopy.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                      Hardcopy Price ($ USD) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.50"
+                      value={form.hardcopy_price_usd ?? 15.00}
+                      onChange={(e) => setForm({ ...form, hardcopy_price_usd: Number(e.target.value) })}
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-slate-900 font-bold text-xs"
+                      placeholder="15.00"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-4">
+                    <label className="flex items-center gap-2 text-xs font-bold text-amber-950 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.hardcopy_available ?? true}
+                        onChange={(e) => setForm({ ...form, hardcopy_available: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                      />
+                      <span>Hardcopy available for delivery</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               {/* Cover Image / Thumbnail Upload */}
               <div className="p-3 bg-indigo-50/60 rounded-2xl border border-indigo-100 space-y-2">
                 <label className="block font-bold text-indigo-950">
@@ -751,6 +838,27 @@ export default function EducationalResourcesAdminTab() {
             </form>
           </motion.div>
         </div>
+      )}
+
+      {/* Read-Only Protected Book Viewer Modal */}
+      {selectedBookPreview && (
+        <ReadOnlyBookReaderModal
+          book={{
+            id: selectedBookPreview.id,
+            title: selectedBookPreview.title,
+            author: selectedBookPreview.author,
+            description: selectedBookPreview.description,
+            category: selectedBookPreview.category,
+            file_url: selectedBookPreview.file_url,
+            thumbnail_url: selectedBookPreview.thumbnail_url,
+            target_level: selectedBookPreview.target_level,
+            pages_count: selectedBookPreview.pages_count,
+            hardcopy_available: selectedBookPreview.hardcopy_available,
+            hardcopy_price_usd: selectedBookPreview.hardcopy_price_usd
+          }}
+          isOpen={true}
+          onClose={() => setSelectedBookPreview(null)}
+        />
       )}
     </div>
   );

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, ExternalLink, Code, Cpu, Zap, ArrowRight, Star, 
-  Play, Upload, FileText, Video, Trash2, Loader2, Plus, Image as ImageIcon 
+  Play, Upload, FileText, Video, Trash2, Loader2, Plus, Image as ImageIcon,
+  ShoppingBag, Lock, ShieldCheck, Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -12,6 +13,9 @@ import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { useRuralAccessibility } from '../context/RuralAccessibilityContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import ItemCoverDisplay from '../components/resources/ItemCoverDisplay';
+import { ReadOnlyBookReaderModal, ProtectedBookItem } from '../components/library/ReadOnlyBookReaderModal';
+import { ShopOrderModal } from '../components/shop/ShopOrderModal';
+import { ShopProduct } from '../types/shop';
 
 export interface StudyMaterial {
   id: string;
@@ -26,6 +30,12 @@ export interface StudyMaterial {
   file_size_bytes?: number;
   thumbnail_url?: string;
   created_at: string;
+  author?: string;
+  is_book?: boolean;
+  is_downloadable?: boolean;
+  hardcopy_available?: boolean;
+  hardcopy_price_usd?: number;
+  pages_count?: number;
 }
 
 const simulationTools = [
@@ -73,16 +83,38 @@ export default function Resources() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Read-only Book Viewer & Hardcopy Checkout Modals
+  const [selectedBookForReading, setSelectedBookForReading] = useState<ProtectedBookItem | null>(null);
+  const [selectedProductForOrder, setSelectedProductForOrder] = useState<ShopProduct | null>(null);
   
-  // Upload form state with Cover Image support
-  const [newMaterial, setNewMaterial] = useState({
+  // Upload form state with Cover Image, Author, and Hardcopy Ecommerce
+  const [newMaterial, setNewMaterial] = useState<{
+    title: string;
+    description: string;
+    file_type: 'pdf' | 'doc' | 'video' | 'other';
+    file_url: string;
+    category: string;
+    target_level: string;
+    thumbnail_url: string;
+    author: string;
+    is_book: boolean;
+    hardcopy_available: boolean;
+    hardcopy_price_usd: number;
+    pages_count: number;
+  }>({
     title: '',
     description: '',
-    file_type: 'pdf' as 'pdf' | 'doc' | 'video' | 'other',
+    file_type: 'pdf',
     file_url: '',
     category: 'book',
     target_level: 'All Levels',
-    thumbnail_url: ''
+    thumbnail_url: '',
+    author: '',
+    is_book: true,
+    hardcopy_available: true,
+    hardcopy_price_usd: 15.00,
+    pages_count: 80
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null);
@@ -196,6 +228,12 @@ export default function Resources() {
         target_level: newMaterial.target_level,
         file_size_bytes: calculatedSize,
         thumbnail_url: finalCoverUrl || null,
+        author: newMaterial.author?.trim() || profile?.display_name || 'YARA Faculty',
+        is_book: newMaterial.is_book || newMaterial.file_type === 'pdf',
+        is_downloadable: false, // Books are strictly read-only digital, hardcopy only upon payment!
+        hardcopy_available: newMaterial.hardcopy_available,
+        hardcopy_price_usd: Number(newMaterial.hardcopy_price_usd) || 15.00,
+        pages_count: Number(newMaterial.pages_count) || 0,
       };
 
       const { data: savedData, error: dbError } = await supabase
@@ -222,7 +260,12 @@ export default function Resources() {
         file_url: '',
         category: 'book',
         target_level: 'All Levels',
-        thumbnail_url: ''
+        thumbnail_url: '',
+        author: '',
+        is_book: true,
+        hardcopy_available: true,
+        hardcopy_price_usd: 15.00,
+        pages_count: 80
       });
       setSelectedFile(null);
       setSelectedCoverFile(null);
@@ -403,38 +446,89 @@ export default function Resources() {
                     <h4 className="font-bold text-slate-900 mb-1.5 line-clamp-1 group-hover:text-indigo-600 transition-colors">
                       {material.title}
                     </h4>
-                    <p className="text-xs text-slate-500 font-medium mb-4 line-clamp-2 h-9 leading-relaxed">
+                    <p className="text-xs text-slate-500 font-medium mb-2 line-clamp-2 h-9 leading-relaxed">
                       {material.description}
                     </p>
+
+                    {/* Book Protection Callout */}
+                    {material.file_type !== 'video' && (
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+                        <span className="flex items-center text-slate-500 font-semibold">
+                          <Lock className="w-3 h-3 text-emerald-600 mr-1" />
+                          Read-Only Digital Copy
+                        </span>
+                        <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 font-mono">
+                          Hardcopy: ${(Number(material.hardcopy_price_usd) || 15).toFixed(2)} USD
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="p-6 pt-0">
-                  <div className="flex items-center justify-between">
-                    <a
-                      href={material.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-indigo-600 font-bold text-xs hover:translate-x-1 transition-transform"
-                    >
-                      {material.file_type === 'video' ? (
-                        <>
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                          <span>Watch Video Lesson</span>
-                        </>
-                      ) : (
-                        <>
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>Download &amp; Read Book</span>
-                        </>
-                      )}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    {material.file_type === 'video' ? (
+                      <a
+                        href={material.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 text-indigo-600 font-bold text-xs hover:translate-x-1 transition-transform"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Watch Video Lesson</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBookForReading({
+                            id: material.id,
+                            title: material.title,
+                            author: material.author || material.mentor_name,
+                            description: material.description,
+                            category: material.category,
+                            file_url: material.file_url,
+                            thumbnail_url: material.thumbnail_url,
+                            target_level: material.target_level,
+                            pages_count: material.pages_count,
+                            hardcopy_available: material.hardcopy_available !== false,
+                            hardcopy_price_usd: Number(material.hardcopy_price_usd) || 15.00
+                          })}
+                          className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Read Online (Protected)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const price = Number(material.hardcopy_price_usd) || 15.00;
+                            setSelectedProductForOrder({
+                              id: `book-${material.id}`,
+                              title: `${material.title} (Official Printed Hardcopy)`,
+                              subtitle: `Author: ${material.author || material.mentor_name || 'YARA Faculty'} • ${material.category || 'Robotics & STEM'}`,
+                              category: 'components',
+                              categoryLabel: 'Printed Book & Manual',
+                              priceUsd: price,
+                              description: `Official published hardcopy of "${material.title}". Full color printed edition, bound with official YARA certification.`,
+                              imageUrl: material.thumbnail_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=800',
+                              inStock: true
+                            });
+                          }}
+                          className="flex items-center space-x-1 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-xs transition-all cursor-pointer"
+                        >
+                          <Truck className="w-3.5 h-3.5" />
+                          <span>Order Hardcopy (${(Number(material.hardcopy_price_usd) || 15).toFixed(2)})</span>
+                        </button>
+                      </div>
+                    )}
                     
                     {user?.id === material.mentor_id && (
                       <button
                         onClick={() => handleDelete(material.id, material.file_url)}
-                        className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                        className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-colors cursor-pointer ml-auto"
                         title="Delete resource"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -610,6 +704,75 @@ export default function Resources() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Book Author / Faculty</label>
+                    <input
+                      type="text"
+                      value={newMaterial.author}
+                      onChange={(e) => setNewMaterial({ ...newMaterial, author: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all font-semibold text-xs"
+                      placeholder="e.g., YARA Robotics Faculty, Dr. Moyo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Estimated Pages</label>
+                    <input
+                      type="number"
+                      value={newMaterial.pages_count}
+                      onChange={(e) => setNewMaterial({ ...newMaterial, pages_count: Number(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all font-semibold text-xs"
+                      placeholder="e.g., 85"
+                    />
+                  </div>
+                </div>
+
+                {/* Hardcopy Pricing & Read-Only Notice Box */}
+                <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-amber-700" />
+                      <span>Physical Hardcopy Purchase &amp; Protection</span>
+                    </label>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                      🔒 Read-Only Digital (No Downloads)
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-amber-900 leading-relaxed">
+                    Books are made accessible online in read-only mode (digital downloading is disabled). Users can order an official printed physical hardcopy delivered to their door upon payment.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                        Hardcopy Price ($ USD) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.50"
+                        value={newMaterial.hardcopy_price_usd}
+                        onChange={(e) => setNewMaterial({ ...newMaterial, hardcopy_price_usd: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white focus:border-amber-500 font-bold text-xs"
+                        placeholder="15.00"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-5">
+                      <label className="flex items-center gap-2 text-xs font-bold text-amber-950 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newMaterial.hardcopy_available}
+                          onChange={(e) => setNewMaterial({ ...newMaterial, hardcopy_available: e.target.checked })}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Physical hardcopy available for delivery</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Description</label>
                   <textarea
@@ -750,6 +913,24 @@ export default function Resources() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Read-Only Protected Book Viewer Modal */}
+      {selectedBookForReading && (
+        <ReadOnlyBookReaderModal
+          book={selectedBookForReading}
+          isOpen={true}
+          onClose={() => setSelectedBookForReading(null)}
+        />
+      )}
+
+      {/* Shop Order Modal for Hardcopy Purchasing */}
+      {selectedProductForOrder && (
+        <ShopOrderModal
+          product={selectedProductForOrder}
+          isOpen={true}
+          onClose={() => setSelectedProductForOrder(null)}
+        />
+      )}
     </div>
   );
 }

@@ -265,7 +265,7 @@ export default function MentorDashboard() {
               <span className="text-2xl font-black text-slate-900">
                 {mentorReviews.length > 0 
                   ? (mentorReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / mentorReviews.length).toFixed(1) 
-                  : '5.0'}
+                  : '—'}
               </span>
               <span className="text-xs text-amber-500 font-bold block">★ Rating</span>
             </div>

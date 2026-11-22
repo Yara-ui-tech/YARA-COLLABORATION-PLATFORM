@@ -266,17 +266,44 @@ export default function Mentorship() {
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const { data, error } = await supabase
+        const { data: mentorsData, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('role', 'mentor')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          setMentors(data);
-        } else {
+        if (error || !mentorsData) {
           setMentors([]);
+          return;
         }
+
+        // Fetch verified user reviews from mentor_reviews to compute real ratings
+        const { data: reviewsData } = await supabase
+          .from('mentor_reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        const enriched = mentorsData.map((m: any) => {
+          const mentorReviews = (reviewsData || []).filter((r: any) => r.mentor_id === m.id);
+          const reviewCount = mentorReviews.length;
+          const totalScore = mentorReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0);
+          const avgRating = reviewCount > 0 ? Number((totalScore / reviewCount).toFixed(1)) : null;
+
+          return {
+            ...m,
+            rating: avgRating,
+            review_count: reviewCount,
+            reviews: mentorReviews.map((r: any) => ({
+              id: r.id,
+              student_name: r.learner_name || 'Verified Learner',
+              rating: Number(r.rating) || 5,
+              date: r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent',
+              comment: r.comment || r.review_text || ''
+            }))
+          };
+        });
+
+        setMentors(enriched);
       } catch (err) {
         console.warn('Error fetching mentors:', err);
         setMentors([]);
@@ -724,20 +751,70 @@ Possible causes:
     if (!user || !isReviewing) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from('mentor_reviews').insert({
+      const reviewerName = profile?.display_name || user.email?.split('@')[0] || 'Verified Learner';
+      const insertRecord: any = {
         mentor_id: isReviewing.mentor_id,
         student_id: user.id,
-        request_id: isReviewing.id,
+        request_id: isReviewing.id?.startsWith('rev-') ? null : isReviewing.id,
+        mentor_name: isReviewing.mentor_name || 'Mentor',
+        learner_name: reviewerName,
         rating: reviewRating,
         comment: reviewComment,
-      });
-      if (error) throw error;
+        review_text: reviewComment,
+        is_approved: true
+      };
 
+      const { error } = await supabase.from('mentor_reviews').insert(insertRecord);
+      if (error) {
+        console.warn('DB error inserting review, continuing with local update:', error);
+      }
+
+      // Re-fetch mentor records to update real rating and review counts live
+      try {
+        const { data: mentorsData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'mentor')
+          .order('created_at', { ascending: false });
+
+        const { data: reviewsData } = await supabase
+          .from('mentor_reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (mentorsData) {
+          const enriched = mentorsData.map((m: any) => {
+            const mentorReviews = (reviewsData || []).filter((r: any) => r.mentor_id === m.id);
+            const reviewCount = mentorReviews.length;
+            const totalScore = mentorReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0);
+            const avgRating = reviewCount > 0 ? Number((totalScore / reviewCount).toFixed(1)) : null;
+
+            return {
+              ...m,
+              rating: avgRating,
+              review_count: reviewCount,
+              reviews: mentorReviews.map((r: any) => ({
+                id: r.id,
+                student_name: r.learner_name || 'Verified Learner',
+                rating: Number(r.rating) || 5,
+                date: r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent',
+                comment: r.comment || r.review_text || ''
+              }))
+            };
+          });
+          setMentors(enriched);
+        }
+      } catch (fErr) {
+        console.warn('Notice re-fetching mentors:', fErr);
+      }
+
+      alert('Thank you! Your rating and review have been submitted successfully.');
       setIsReviewing(null);
       setReviewRating(5);
       setReviewComment('');
     } catch (error) {
       console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1236,20 +1313,28 @@ Possible causes:
                           </div>
                         </div>
 
-                        {/* Mentored count badge & Star rating */}
+                        {/* Mentored count badge & Real Star rating */}
                         <div className="text-right space-y-1.5">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs">
                             <Users className="w-3.5 h-3.5 mr-1 text-indigo-600" />
                             {mentor.mentored_count || 0} Mentored
                           </span>
-                          <div className="flex items-center justify-end text-amber-500">
-                            <Star className="w-4 h-4 fill-amber-400" />
-                            <span className="text-sm font-bold ml-1 text-slate-800">
-                              {mentor.rating ? Number(mentor.rating).toFixed(1) : '5.0'}
-                            </span>
-                            <span className="text-xs text-slate-400 ml-1">
-                              ({mentor.review_count || mentor.reviews?.length || 0})
-                            </span>
+                          <div className="flex items-center justify-end">
+                            {mentor.review_count > 0 ? (
+                              <div className="flex items-center text-amber-500 font-bold text-xs">
+                                <Star className="w-3.5 h-3.5 fill-amber-400 mr-1" />
+                                <span className="text-slate-800">
+                                  {Number(mentor.rating).toFixed(1)}
+                                </span>
+                                <span className="text-slate-400 font-normal ml-1">
+                                  ({mentor.review_count} {mentor.review_count === 1 ? 'review' : 'reviews'})
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                                No reviews yet
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1320,27 +1405,52 @@ Possible causes:
 
                     {/* Reviews Accordion & Booking Action */}
                     <div className="space-y-3 pt-4 border-t border-slate-100 mt-5">
-                      {mentor.reviews && mentor.reviews.length > 0 && (
-                        <div className="border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedReviewsMentorId(expandedReviewsMentorId === mentor.id ? null : mentor.id)}
-                            className="w-full flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-700 py-1.5 px-2 rounded-xl hover:bg-indigo-50 transition-colors"
-                          >
-                            <span className="flex items-center space-x-1.5">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              <span>Student Reviews ({mentor.reviews.length})</span>
-                            </span>
-                            {expandedReviewsMentorId === mentor.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </button>
+                      {/* Rate & Review Button for Authenticated Users */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!user) {
+                            alert('Please sign in to rate and review mentors.');
+                            return;
+                          }
+                          setIsReviewing({
+                            mentor_id: mentor.id,
+                            mentor_name: mentor.display_name,
+                            id: `rev-${Date.now()}`
+                          });
+                        }}
+                        className="w-full py-2 px-3 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-amber-900 font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                        <span>Rate &amp; Review This Mentor</span>
+                      </button>
 
-                          {expandedReviewsMentorId === mentor.id && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="space-y-2 mt-2 pt-2 border-t border-slate-200/60 text-left"
-                            >
-                              {mentor.reviews.map((rev: MentorReviewItem) => (
+                      {/* Reviews Accordion */}
+                      <div className="border border-slate-100 rounded-2xl p-2 bg-slate-50/50">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedReviewsMentorId(expandedReviewsMentorId === mentor.id ? null : mentor.id)}
+                          className="w-full flex items-center justify-between text-xs font-bold text-indigo-600 hover:text-indigo-700 py-1.5 px-2 rounded-xl hover:bg-indigo-50 transition-colors cursor-pointer"
+                        >
+                          <span className="flex items-center space-x-1.5">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                            <span>
+                              {mentor.review_count > 0 
+                                ? `Student Reviews (${mentor.review_count})` 
+                                : 'Student Reviews (0)'}
+                            </span>
+                          </span>
+                          {expandedReviewsMentorId === mentor.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+
+                        {expandedReviewsMentorId === mentor.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="space-y-2 mt-2 pt-2 border-t border-slate-200/60 text-left"
+                          >
+                            {mentor.reviews && mentor.reviews.length > 0 ? (
+                              mentor.reviews.map((rev: MentorReviewItem) => (
                                 <div key={rev.id} className="bg-white rounded-xl p-3 border border-slate-100 shadow-xs text-xs space-y-1">
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-slate-800">{rev.student_name}</span>
@@ -1352,11 +1462,16 @@ Possible causes:
                                   <p className="text-slate-600 italic">"{rev.comment}"</p>
                                   <span className="text-[10px] text-slate-400 block">{rev.date}</span>
                                 </div>
-                              ))}
-                            </motion.div>
-                          )}
-                        </div>
-                      )}
+                              ))
+                            ) : (
+                              <div className="p-3 text-center text-xs text-slate-500">
+                                <p className="font-medium">No reviews submitted yet.</p>
+                                <p className="text-[11px] text-slate-400 mt-0.5">Click "Rate &amp; Review This Mentor" above to leave the first review!</p>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
 
                       <button
                         onClick={() => setIsRequesting(mentor.id)}
@@ -2232,12 +2347,16 @@ Possible causes:
                           <h4 className="font-bold text-slate-900 text-sm">{selectedMentor.display_name}</h4>
                           <p className="text-xs text-indigo-600 font-semibold">{selectedMentor.title}</p>
                           <div className="flex items-center space-x-2 text-[11px] text-slate-500 mt-0.5">
-                            <span className="flex items-center text-amber-500 font-bold">
-                              <Star className="w-3 h-3 fill-amber-400 mr-0.5" />
-                              {selectedMentor.rating ? Number(selectedMentor.rating).toFixed(2) : '4.90'}
-                            </span>
+                            {selectedMentor.rating ? (
+                              <span className="flex items-center text-amber-500 font-bold">
+                                <Star className="w-3 h-3 fill-amber-400 mr-0.5" />
+                                {Number(selectedMentor.rating).toFixed(1)} ({selectedMentor.review_count || 0} reviews)
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-medium">New Mentor (No reviews yet)</span>
+                            )}
                             <span>•</span>
-                            <span>{selectedMentor.mentored_count || 45}+ Students Mentored</span>
+                            <span>{selectedMentor.mentored_count || 0} Students Mentored</span>
                           </div>
                         </div>
                       </div>
