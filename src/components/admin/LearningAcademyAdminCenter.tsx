@@ -23,10 +23,9 @@ import {
   Check,
   RefreshCw,
   Eye,
-  ShieldCheck,
-  Bot
+  ShieldCheck
 } from 'lucide-react';
-import { COMPLETE_YARA_SESSIONS, YARA_LEARNING_LEVELS, YARA_HARDWARE_KITS } from '../../constants/yaraLmsCatalog';
+import { COMPLETE_YARA_SESSIONS, YARA_LEARNING_LEVELS } from '../../constants/yaraLmsCatalog';
 import { YARALmsSession, CapstoneProjectSubmission } from '../../types/yaraLms';
 import { 
   getAllCapstoneSubmissions, 
@@ -38,8 +37,6 @@ import { AdminSessionVideoModal } from '../lms/AdminSessionVideoModal';
 import { CodingCoursesAdminManager } from './CodingCoursesAdminManager';
 import { CourseManagementStudio } from './CourseManagementStudio';
 import { CertificateUnlockAdminManager } from './CertificateUnlockAdminManager';
-import CertificateTemplatesAdminManager from './CertificateTemplatesAdminManager';
-import { RoboticsAdminStudio } from '../lms/robotics/RoboticsAdminStudio';
 import { supabase } from '../../lib/supabase';
 
 interface Props {
@@ -62,7 +59,7 @@ const RUBRIC_CRITERIA = [
 ];
 
 export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => {
-  const [activeSection, setActiveSection] = useState<'robotics_management' | 'coding_courses' | 'curriculum' | 'students' | 'capstones' | 'kits' | 'certificates' | 'certificate_templates' | 'qa_audit'>('robotics_management');
+  const [activeSection, setActiveSection] = useState<'coding_courses' | 'students' | 'capstones' | 'certificates' | 'curriculum'>('coding_courses');
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -82,60 +79,13 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
 
-  // Kits state
-  const [kits, setKits] = useState(YARA_HARDWARE_KITS);
-  const [kitSavedNotice, setKitSavedNotice] = useState(false);
-
   // Feedback notification banner
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     loadSubmissions();
     loadStudents();
-    loadKitPricing();
   }, []);
-
-  const loadKitPricing = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'yara_lms_kit_pricing')
-        .maybeSingle();
-
-      if (!error && data?.value && Array.isArray(data.value.kits)) {
-        setKits(data.value.kits);
-      } else {
-        const cached = localStorage.getItem('yara_lms_kit_pricing');
-        if (cached) setKits(JSON.parse(cached));
-      }
-    } catch (err) {
-      console.warn('Error loading kit pricing:', err);
-    }
-  };
-
-  const handleSaveStoreChanges = async () => {
-    try {
-      setKitSavedNotice(true);
-      try {
-        localStorage.setItem('yara_lms_kit_pricing', JSON.stringify(kits));
-      } catch {}
-
-      await supabase
-        .from('system_settings')
-        .upsert({
-          key: 'yara_lms_kit_pricing',
-          value: { kits, updated_at: new Date().toISOString() },
-          description: 'Official YARA LMS Starter Hardware Kits & Component Pricing'
-        }, { onConflict: 'key' });
-
-      showNotification('success', 'Starter kit prices and inventory saved & synced live to all users!');
-      setTimeout(() => setKitSavedNotice(false), 3000);
-    } catch (err: any) {
-      showNotification('error', 'Failed to sync store changes: ' + (err?.message || 'Unknown error'));
-      setKitSavedNotice(false);
-    }
-  };
 
   const loadSubmissions = () => {
     const list = getAllCapstoneSubmissions();
@@ -257,8 +207,8 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           </div>
         </div>
 
-        {/* 4 Stat Overview Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
+        {/* 3 Stat Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/10">
           <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
             <div className="flex items-center justify-between text-slate-400 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider">Courses</span>
@@ -285,15 +235,6 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
             <p className="text-2xl font-black text-amber-400">{approvedCapstonesCount}</p>
             <p className="text-[11px] text-slate-300 mt-0.5">Certified innovators</p>
           </div>
-
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider">Starter Kits</span>
-              <Package className="w-4 h-4 text-sky-400" />
-            </div>
-            <p className="text-2xl font-black text-sky-400">{kits.length}</p>
-            <p className="text-[11px] text-slate-300 mt-0.5">Hardware packages active</p>
-          </div>
         </div>
       </div>
 
@@ -309,18 +250,6 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
 
       {/* Sub-Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-200">
-        <button
-          onClick={() => setActiveSection('robotics_management')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-            activeSection === 'robotics_management'
-              ? 'bg-[#0D47A1] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <Bot className="w-4 h-4 text-[#00C6FF]" />
-          <span>Robotics Programmes &amp; Enrolments</span>
-        </button>
-
         <button
           onClick={() => setActiveSection('coding_courses')}
           className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
@@ -383,50 +312,9 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
           }`}
         >
           <Video className="w-4 h-4" />
-          <span>5. Robotics Sessions & Video Studio</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('certificate_templates')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-            activeSection === 'certificate_templates'
-              ? 'bg-violet-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          <span>6. Certificate Templates</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('kits')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer ${
-            activeSection === 'kits'
-              ? 'bg-sky-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>7. Hardware Kits Store</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSection('qa_audit')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition ${
-            activeSection === 'qa_audit'
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>7. Curriculum Completeness Audit & QA Gate</span>
+          <span>5. Robotics Sessions &amp; Video Studio</span>
         </button>
       </div>
-
-      {/* SECTION: ROBOTICS PROGRAMMES & ENROLMENTS */}
-      {activeSection === 'robotics_management' && (
-        <RoboticsAdminStudio />
-      )}
 
       {/* SECTION: CENTRALIZED COURSE MANAGEMENT */}
       {activeSection === 'coding_courses' && (
@@ -436,11 +324,6 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
       {/* SECTION: CERTIFICATE UNLOCKS */}
       {activeSection === 'certificates' && (
         <CertificateUnlockAdminManager />
-      )}
-
-      {/* SECTION: CERTIFICATE TEMPLATES */}
-      {activeSection === 'certificate_templates' && (
-        <CertificateTemplatesAdminManager />
       )}
 
       {/* SECTION 1: CURRICULUM & VIDEO STUDIO */}
@@ -907,357 +790,6 @@ export const LearningAcademyAdminCenter: React.FC<Props> = ({ adminUserId }) => 
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* SECTION 4: HARDWARE KITS & STORE MANAGER */}
-      {activeSection === 'kits' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Robotics Starter Kits & Equipment Store</h3>
-                <p className="text-xs text-slate-500">Configure prices, in-stock status, and WhatsApp phone inquiries.</p>
-              </div>
-              <div className="text-xs text-slate-600 flex items-center gap-2">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span>Default Hotline: <strong>0717468236</strong></span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {kits.map((kit, index) => (
-                <div key={kit.id} className="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4">
-                  <div className="w-full h-36 rounded-xl overflow-hidden bg-slate-200">
-                    <img src={kit.imageUrl} alt={kit.title} className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-sky-100 text-sky-800">
-                      Levels {kit.suitableLevels.join(', ')}
-                    </span>
-                    <h4 className="font-bold text-slate-900 text-sm mt-1">{kit.title}</h4>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{kit.subtitle}</p>
-                  </div>
-
-                  <div className="space-y-3 pt-3 border-t border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">Price (USD):</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-slate-400">$</span>
-                        <input
-                          type="number"
-                          value={kit.priceUsd}
-                          onChange={e => {
-                            const newKits = [...kits];
-                            newKits[index].priceUsd = Number(e.target.value);
-                            setKits(newKits);
-                          }}
-                          className="w-20 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-900 text-right"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">Stock Status:</span>
-                      <button
-                        onClick={() => {
-                          const newKits = [...kits];
-                          newKits[index].inStock = !newKits[index].inStock;
-                          setKits(newKits);
-                        }}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                          kit.inStock ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {kit.inStock ? 'In Stock' : 'Out of Stock'}
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">WhatsApp Inquiry:</span>
-                      <input
-                        type="text"
-                        value={kit.contactInquiryPhone || '0717468236'}
-                        onChange={e => {
-                          const newKits = [...kits];
-                          newKits[index].contactInquiryPhone = e.target.value;
-                          setKits(newKits);
-                        }}
-                        className="w-28 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={handleSaveStoreChanges}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>{kitSavedNotice ? 'Saved!' : 'Save Store Changes'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── SECTION: CURRICULUM COMPLETENESS AUDIT & QA GATE (Section 36 & 37) ─── */}
-      {activeSection === 'qa_audit' && (
-        <div className="space-y-8">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-slate-800 shadow-xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5" /> Official QA & Audit Gate
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Robotics Curriculum Completeness Audit & QA Gate
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Evaluation standard: Minimum 6 modules baseline with <strong className="text-white">NO artificial maximum</strong>. Competency &gt; Time. Quality &gt; Module Count. Completeness &gt; Artificial Simplicity.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3.5 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-sm">
-                  <CheckCircle2 className="w-4 h-4" /> 100% Competency Coverage Verified
-                </span>
-              </div>
-            </div>
-
-            {/* Level Workload Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                  <span>Beginner Level</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase">Complete</span>
-                </div>
-                <div className="text-2xl font-black text-white">10 Modules</div>
-                <div className="text-[11px] text-slate-400">
-                  + 2 Capstones (Research + Rover) • <strong>95+ Learner Hours</strong>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                  <span>Intermediate Level</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase">Complete</span>
-                </div>
-                <div className="text-2xl font-black text-white">12 Modules</div>
-                <div className="text-[11px] text-slate-400">
-                  + 2 Capstones (Research + IoT/PID) • <strong>115+ Learner Hours</strong>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-1">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-300">
-                  <span>Advanced Level</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase">Complete</span>
-                </div>
-                <div className="text-2xl font-black text-white">15 Modules</div>
-                <div className="text-[11px] text-slate-400">
-                  + 2 Capstones (Research + ROS/Vision) • <strong>145+ Learner Hours</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── AUDIT REPORT MATRIX (Section 37) ─── */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/60">
-              <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">
-                  INTERNAL REPORT: ROBOTICS CURRICULUM COMPLETENESS AUDIT
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  14 core competency dimensions evaluated across Beginner, Intermediate, and Advanced tiers.
-                </p>
-              </div>
-              <span className="text-xs font-bold text-slate-600 font-mono bg-white border border-slate-200 px-3 py-1 rounded-xl self-start sm:self-auto">
-                All 42 Dimensions COMPLETE (100%)
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-100/70 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                    <th className="p-4 w-44">Competency Dimension</th>
-                    <th className="p-4 w-1/3">Beginner Level (10 Modules)</th>
-                    <th className="p-4 w-1/3">Intermediate Level (12 Modules)</th>
-                    <th className="p-4 w-1/3">Advanced Level (15 Modules)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {[
-                    {
-                      dim: 'A. Knowledge',
-                      beg: 'Robot anatomy, power, Ohm’s law, digital vs analog, microcontroller pins, safety.',
-                      int: 'H-bridges, state machines, interrupt vectors, pull-up logic, wireless telemetry.',
-                      adv: 'ARM / SBC architectures, RTOS concepts, system architecture, C++ OOP, memory management.'
-                    },
-                    {
-                      dim: 'B. Practical Skills',
-                      beg: 'Breadboard wiring, multimeter continuity, LEDs, HC-SR04 sonar, L298N motors.',
-                      int: 'Quadrature encoders, IMU calibration, multi-sensor arrays, 2-layer PCB breadboarding.',
-                      adv: 'LiDAR point clouds, sensor fusion, Kalman filters, industrial vision pipelines.'
-                    },
-                    {
-                      dim: 'C. Programming',
-                      beg: 'Variables, conditionals, loops, functions, basic libraries, serial debug.',
-                      int: 'Modular C++, non-blocking millis(), hardware interrupts, EEPROM state saving.',
-                      adv: 'ROS 2 pub/sub nodes, C++ templates, multi-threading, custom sensor drivers.'
-                    },
-                    {
-                      dim: 'D. Electronics',
-                      beg: 'Voltage dividers, series/parallel, resistors, diodes, multimeters, power supplies.',
-                      int: 'Transistor switching, buck/boost regulation, protection diodes, signal filtering.',
-                      adv: 'I2C/SPI bus sniffing, logic analyzer diagnostics, power distribution networks, CAN bus.'
-                    },
-                    {
-                      dim: 'E. Mechanical Skills',
-                      beg: 'Chassis assembly, differential drive, traction, center of gravity, wire management.',
-                      int: 'Torque calculation, gear ratios, mechanism design, grippers, 2D/3D CAD.',
-                      adv: 'Kinematics (forward/inverse), FEA stress analysis, 3D printing tolerances, industrial arms.'
-                    },
-                    {
-                      dim: 'F. Control Systems',
-                      beg: 'Open-loop PWM duty cycle, binary threshold on/off switching.',
-                      int: 'Closed-loop encoder speed feedback, basic line tracking error correction.',
-                      adv: 'Full PID tuning (Kp/Ki/Kd), velocity/position profiling, trajectory tracking.'
-                    },
-                    {
-                      dim: 'G. Autonomy',
-                      beg: 'Reactive line follower, ultrasonic obstacle avoidance state machine.',
-                      int: 'Maze-solving wall-following algorithms, state-based decision trees.',
-                      adv: 'Autonomous path planning (A* / Dijkstra), SLAM mapping, mission sequencing.'
-                    },
-                    {
-                      dim: 'H. Troubleshooting',
-                      beg: 'Systematic fault finding: loose DuPonts, polarity, baud rate mismatch, power limits.',
-                      int: 'Brownout isolation, motor inductive noise, I2C address conflict scanners.',
-                      adv: 'Logic analyzer capture, oscilloscope signal integrity, memory leak profiling.'
-                    },
-                    {
-                      dim: 'I. Engineering Design',
-                      beg: 'Engineering design process, problem identification, basic block diagrams.',
-                      int: 'Requirements engineering, component trade-off matrix, schematic CAD.',
-                      adv: 'System architecture, failure mode analysis (FMEA), reliability engineering.'
-                    },
-                    {
-                      dim: 'J. Documentation',
-                      beg: 'Basic schematic diagrams, code comments, structured laboratory reports.',
-                      int: '21-point engineering report, complete Bill of Materials (BOM), user manuals.',
-                      adv: 'Academic-grade research paper, conference presentation poster, technical whitepaper.'
-                    },
-                    {
-                      dim: 'K. Project Skills',
-                      beg: 'Research & Design Project + Assigned Autonomous Rover Capstone build.',
-                      int: 'Research & Design Project + Assigned Autonomous Connected Robot Capstone.',
-                      adv: 'Substantial Engineering Innovation Capstone + Prototype Defense.'
-                    },
-                    {
-                      dim: 'L. Competition Readiness',
-                      beg: 'Basic arena rules, timing gates, inspection compliance, sportsmanship.',
-                      int: 'YARA 2026 track constraints, rapid turnaround testing, team division of labor.',
-                      adv: 'Advanced competition strategy, system reliability under match pressure, pit management.'
-                    },
-                    {
-                      dim: 'M. Safety Standards',
-                      beg: 'Workshop safety, electrical hazard avoidance, eye protection, safe battery handling.',
-                      int: 'Lithium battery protection (18650/LiPo), thermal management, short-circuit handling.',
-                      adv: 'Industrial safety standards, emergency stop (E-stop) circuits, high-current busbars.'
-                    },
-                    {
-                      dim: 'N. Innovation & African Context',
-                      beg: 'Smart agriculture, basic solar irrigation, local environmental sensing problem spaces.',
-                      int: 'Community water monitoring, low-cost African BOM sourcing, stakeholder empathy.',
-                      adv: 'Mining automation, agricultural drone vision, infrastructure telemetry, commercialization.'
-                    }
-                  ].map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-4 font-black text-slate-900 border-r border-slate-100 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        <span>{row.dim}</span>
-                      </td>
-                      <td className="p-4 border-r border-slate-100">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase mb-1">
-                          COMPLETE
-                        </span>
-                        <p className="text-[11px] text-slate-600 leading-relaxed">{row.beg}</p>
-                      </td>
-                      <td className="p-4 border-r border-slate-100">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase mb-1">
-                          COMPLETE
-                        </span>
-                        <p className="text-[11px] text-slate-600 leading-relaxed">{row.int}</p>
-                      </td>
-                      <td className="p-4">
-                        <span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase mb-1">
-                          COMPLETE
-                        </span>
-                        <p className="text-[11px] text-slate-600 leading-relaxed">{row.adv}</p>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* ─── 18-POINT CURRICULUM QA GATE CHECKLIST (Section 36) ─── */}
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-black text-slate-900 tracking-tight">
-                  18-Point Curriculum Publication QA Gate
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Mandatory quality requirements verified before certifying any robotics level.
-                </p>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
-                18 / 18 Requirements Verified
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                { title: 'At least 6 modules per level', desc: 'Exceeded: Beginner 10, Intermediate 12, Advanced 15 modules.' },
-                { title: 'All necessary competencies identified', desc: 'No knowledge or practical gaps in any tier.' },
-                { title: 'No major curriculum gaps', desc: 'Audited across electronics, firmware, mechanical & control.' },
-                { title: 'Theory complete for every module', desc: 'Full pedagogical overviews and foundational concepts provided.' },
-                { title: 'Short focused learning videos', desc: 'Videos adhere to 3–8 min standard (max 10–12 min).' },
-                { title: 'Guided practical lab exists', desc: 'Every module contains step-by-step physical laboratory instructions.' },
-                { title: 'Independent practical assignment', desc: 'Rubric-evaluated problem-solving extension for every module.' },
-                { title: 'Assessments & knowledge checks', desc: 'Multiple-choice and calculation quizzes configured.' },
-                { title: 'Troubleshooting guidance', desc: 'Common fault isolation, wiring errors, and brownout guides.' },
-                { title: 'Mentor support integration', desc: 'Universal [NEED HELP?] auto-attaches course/module context.' },
-                { title: 'Research & Design Project', desc: 'Authentic real-world community challenge project per level.' },
-                { title: 'Assigned Final Design Project', desc: 'Full integrative capstone prototype build per level.' },
-                { title: 'Completion requirements defined', desc: '100% competency-based progression, not time-gated.' },
-                { title: 'Competencies mapped to evidence', desc: 'Tracked through lab demo, assignment, and capstone.' },
-                { title: 'Estimated learning time defined', desc: 'Displayed for learner planning (95h, 115h, 145h targets).' },
-                { title: 'Required hardware kits defined', desc: 'Pioneer, Autonomous Rover, and IoT Expansion packs specified.' },
-                { title: 'Level prerequisites configured', desc: 'Sequential mastery unlocks prevent jumping ahead.' },
-                { title: 'Certificate requirements defined', desc: 'Verifiable credentials issued only upon demonstrated mastery.' }
-              ].map((item, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}

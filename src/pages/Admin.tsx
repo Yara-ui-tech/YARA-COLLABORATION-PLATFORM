@@ -24,7 +24,6 @@ import { SiteContentAdminTab } from '../components/admin/SiteContentAdminTab';
 import YaraKidsAdminTab from '../components/admin/YaraKidsAdminTab';
 import FeedbacksTestimonialsAdminTab from '../components/admin/FeedbacksTestimonialsAdminTab';
 import ImpactGalleryAdminTab from '../components/admin/ImpactGalleryAdminTab';
-import CertificateTemplatesAdminManager from '../components/admin/CertificateTemplatesAdminManager';
 import { DataUploadManager } from '../components/admin/DataUploadManager';
 import ImageUploader from '../components/ImageUploader';
 import { deleteEventItem } from '../constants/eventsData';
@@ -111,7 +110,7 @@ export default function Admin() {
   
   const getHubForTab = (tab: string): AdminHub => {
     if (['site_content', 'shop_manager', 'org_posts', 'impact_gallery', 'feedbacks_testimonials'].includes(tab)) return 'webpage';
-    if (['learning_academy', 'resources_media', 'cert_templates', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
+    if (['learning_academy', 'resources_media', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
     if (['competitions', 'competition_teams', 'events', 'virtual_comp', 'yara_competition'].includes(tab)) return 'competitions';
     if (['event_registrations', 'members', 'chapters', 'admin_management', 'equity_inclusion'].includes(tab)) return 'members';
     return 'platform';
@@ -1098,7 +1097,6 @@ export default function Admin() {
     lms: [
       { id: 'learning_academy', label: 'Academy Courses & Tiers', icon: BookOpen, badge: 'Tiers 1–4' },
       { id: 'resources_media', label: 'Technical Datasheets & Schematics', icon: Upload, badge: 'Uploads' },
-      { id: 'cert_templates', label: 'Accredited Certificate Templates', icon: Award },
       { id: 'yara_kids', label: 'YARA Kids STEM (Ages 3–8)', icon: Star },
       { id: 'brainstorming', label: 'Critical Thinking Quizzes', icon: Brain },
     ],
@@ -1867,12 +1865,6 @@ export default function Admin() {
         {activeTab === 'impact_gallery' && (
           <div className="p-6 md:p-8">
             <ImpactGalleryAdminTab />
-          </div>
-        )}
-
-        {activeTab === 'cert_templates' && (
-          <div className="p-6 md:p-8">
-            <CertificateTemplatesAdminManager />
           </div>
         )}
 

@@ -203,6 +203,11 @@ export const CourseManagementStudio: React.FC = () => {
       return;
     }
 
+    if (!form.level) {
+      showNotice('error', 'Please select which level this course falls under (Beginner, Intermediate, Advanced, etc.).');
+      return;
+    }
+
     const courseToSave: UnifiedCourse = {
       id: form.id ? ensureUuid(form.id) : ensureUuid(),
       code: form.code.trim().toUpperCase(),
@@ -551,7 +556,48 @@ export const CourseManagementStudio: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Dedicated Level Selection - Mandatory Prompt */}
+                  <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <label className="block text-sm font-black text-indigo-200">
+                        Which level does this course fall under? <span className="text-red-400 font-bold">* Mandatory</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Sets prerequisite ordering, syllabus tier, and competency milestone.
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {[
+                        { val: 'Beginner', title: 'Beginner', desc: 'Level 1: Explorer / Primary / Fundamentals' },
+                        { val: 'Intermediate', title: 'Intermediate', desc: 'Level 2: Junior / Secondary / Embedded Circuits' },
+                        { val: 'Advanced', title: 'Advanced', desc: 'Level 3: Senior / Autonomous Robotics & RTOS' },
+                        { val: 'Masterclass', title: 'Masterclass', desc: 'Level 4: Masterclass / Industry & Capstones' },
+                        { val: 'All Levels', title: 'All Levels', desc: 'Universal STEM & Robotics Foundation' }
+                      ].map((lvl) => (
+                        <button
+                          key={lvl.val}
+                          type="button"
+                          onClick={() => setForm({ ...form, level: lvl.val as any })}
+                          className={`p-3 rounded-xl text-left border transition-all cursor-pointer ${
+                            form.level === lvl.val
+                              ? 'bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-600/30 ring-2 ring-indigo-400/50'
+                              : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-950'
+                          }`}
+                        >
+                          <div className="font-black text-xs flex items-center justify-between">
+                            <span>{lvl.title}</span>
+                            {form.level === lvl.val && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            )}
+                          </div>
+                          <p className="text-[10px] opacity-80 mt-1 leading-tight">{lvl.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-bold text-slate-300 mb-1">Track</label>
                       <select
@@ -560,23 +606,9 @@ export const CourseManagementStudio: React.FC = () => {
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                       >
                         <option value="robotics">YARA Robotics Academy</option>
-                        <option value="technology">Technology & Programming</option>
-                        <option value="stem">STEM Education & Pedagogy</option>
-                        <option value="specialized">Specialized & Industrial</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-slate-300 mb-1">Level</label>
-                      <select
-                        value={form.level}
-                        onChange={(e) => setForm({ ...form, level: e.target.value as any })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                      >
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                        <option value="Masterclass">Masterclass</option>
+                        <option value="technology">Technology &amp; Programming</option>
+                        <option value="stem">STEM Education &amp; Pedagogy</option>
+                        <option value="specialized">Specialized &amp; Industrial</option>
                       </select>
                     </div>
 
