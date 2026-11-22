@@ -6,6 +6,7 @@
 
 export type CourseTrack =
   | 'robotics_academy'  // YARA Robotics Academy (Levels 0–8 / 4 Tiers)
+  | 'electronics'       // Electronics & Circuit Engineering
   | 'technology'        // Python, Scratch, JavaScript, Web, Embedded, AI, IoT
   | 'stem'              // STEM Education, Pedagogy for Educators, Patron Coaching
   | 'specialized';      // Industrial Automation, CAD, Computer Vision, PLC/SCADA

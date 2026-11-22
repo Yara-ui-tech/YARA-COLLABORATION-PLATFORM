@@ -258,10 +258,11 @@ export const CourseManagementStudio: React.FC = () => {
       const ct = (c.track || '').toLowerCase();
       const st = selectedTrack.toLowerCase();
       if (st === 'robotics' && !(ct === 'robotics' || ct === 'robotics_academy')) return false;
+      if (st === 'electronics' && !(ct === 'electronics' || (c.category || '').toLowerCase().includes('electr') || c.title.toLowerCase().includes('electr'))) return false;
       if (st === 'technology' && !(ct === 'technology' || ct.includes('tech') || ct.includes('coding'))) return false;
       if (st === 'stem' && !(ct === 'stem' || ct.includes('stem'))) return false;
       if (st === 'specialized' && !(ct === 'specialized' || ct.includes('spec'))) return false;
-      if (st !== 'robotics' && st !== 'technology' && st !== 'stem' && st !== 'specialized' && ct !== st) return false;
+      if (st !== 'robotics' && st !== 'electronics' && st !== 'technology' && st !== 'stem' && st !== 'specialized' && ct !== st) return false;
     }
     if (selectedStatus === 'published' && (!c.isPublished || c.isDraft)) return false;
     if (selectedStatus === 'draft' && (c.isPublished && !c.isDraft)) return false;
@@ -336,6 +337,7 @@ export const CourseManagementStudio: React.FC = () => {
             {[
               { id: 'all', label: 'All Tracks' },
               { id: 'robotics', label: 'Robotics' },
+              { id: 'electronics', label: 'Electronics & Circuits' },
               { id: 'technology', label: 'Technology' },
               { id: 'stem', label: 'STEM' },
               { id: 'specialized', label: 'Specialized' }
@@ -573,6 +575,7 @@ export const CourseManagementStudio: React.FC = () => {
                         { val: 'Intermediate', title: 'Intermediate', desc: 'Level 2: Junior / Secondary / Embedded Circuits' },
                         { val: 'Advanced', title: 'Advanced', desc: 'Level 3: Senior / Autonomous Robotics & RTOS' },
                         { val: 'Masterclass', title: 'Masterclass', desc: 'Level 4: Masterclass / Industry & Capstones' },
+                        { val: 'Trainer', title: 'Trainer / Mentor', desc: 'Level 5: Certified Trainer, Mentor & Patron Qualification' },
                         { val: 'All Levels', title: 'All Levels', desc: 'Universal STEM & Robotics Foundation' }
                       ].map((lvl) => (
                         <button
@@ -597,19 +600,51 @@ export const CourseManagementStudio: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Track</label>
+                      <label className="block font-bold text-slate-300 mb-1">Discipline / Track</label>
                       <select
                         value={form.track === 'robotics_academy' ? 'robotics' : (form.track || 'robotics')}
-                        onChange={(e) => setForm({ ...form, track: e.target.value as any })}
+                        onChange={(e) => {
+                          const newTrack = e.target.value as any;
+                          setForm({ 
+                            ...form, 
+                            track: newTrack,
+                            category: newTrack === 'electronics' ? 'electronics' : form.category
+                          });
+                        }}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                       >
                         <option value="robotics">YARA Robotics Academy</option>
+                        <option value="electronics">Electronics &amp; Circuit Engineering</option>
                         <option value="technology">Technology &amp; Programming</option>
                         <option value="stem">STEM Education &amp; Pedagogy</option>
                         <option value="specialized">Specialized &amp; Industrial</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-300 mb-1">Subject Area / Category</label>
+                      {form.track === 'electronics' ? (
+                        <select
+                          value={form.category || 'electronics'}
+                          onChange={(e) => setForm({ ...form, category: e.target.value as any })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="electronics">Basic &amp; Analog Electronics</option>
+                          <option value="embedded_systems">Embedded Systems &amp; MCUs</option>
+                          <option value="iot">IoT &amp; Sensor Networks</option>
+                          <option value="engineering">PCB &amp; Hardware Prototyping</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={form.category || ''}
+                          onChange={(e) => setForm({ ...form, category: e.target.value as any })}
+                          placeholder="e.g. electronics, python, iot"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      )}
                     </div>
 
                     <div>
@@ -663,41 +698,89 @@ export const CourseManagementStudio: React.FC = () => {
                       <h4 className="font-bold text-white">Course Modules ({form.modules?.length || 0})</h4>
                       <p className="text-[11px] text-slate-400">Each module contains theory, short video, lab, assignment, and quiz.</p>
                     </div>
-                    <button
-                      onClick={() => {
-                        const newModNumber = (form.modules?.length || 0) + 1;
-                        const newMod: CourseModule = {
-                          id: ensureUuid(),
-                          courseId: form.id || '',
-                          moduleNumber: newModNumber,
-                          order: newModNumber,
-                          title: `Module ${newModNumber}: New Topic`,
-                          coherentSkillArea: 'Applied Skill',
-                          description: 'Description of module competencies.',
-                          durationMinutes: 45,
-                          theoryOverview: 'Theoretical framework.',
-                          theoryKeyConcepts: ['Concept A', 'Concept B'],
-                          videoUrl: '',
-                          resources: [],
-                          guidedLab: {
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newModNumber = (form.modules?.length || 0) + 1;
+                          const newMod: CourseModule = {
                             id: ensureUuid(),
-                            title: `Lab ${newModNumber}: Practical Exercise`,
-                            objective: 'Execute bench procedure.',
-                            equipment: ['Standard Kit'],
-                            safetyRules: ['Safety first'],
-                            instructions: 'Detailed steps.',
-                            expectedResult: 'Pass.',
-                            troubleshootingTips: []
-                          },
-                          quizQuestions: []
-                        };
-                        setForm({ ...form, modules: [...(form.modules || []), newMod] });
-                      }}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Module</span>
-                    </button>
+                            courseId: form.id || '',
+                            moduleNumber: newModNumber,
+                            order: newModNumber,
+                            title: `Module ${newModNumber}: Electronics Circuit Analysis & Breadboard Lab`,
+                            coherentSkillArea: 'Electronics & Hardware',
+                            description: 'Hands-on breadboard assembly, voltage dividers, multimeter measurements, and bench safety.',
+                            durationMinutes: 50,
+                            theoryOverview: 'Ohm’s law, Kirchhoff’s voltage laws, diode protection, and resistor color coding.',
+                            theoryKeyConcepts: ['Ohm’s Law V=IR', 'Current Dividers', 'Breadboard Continuity', 'Multimeter Probing'],
+                            videoUrl: 'https://www.youtube.com/watch?v=0hYg4q6MvdE',
+                            resources: [],
+                            guidedLab: {
+                              id: ensureUuid(),
+                              title: `Lab ${newModNumber}: Building & Testing Closed Circuit with LED & Potentiometer`,
+                              objective: 'Assemble a variable brightness circuit and probe voltage drops with a digital multimeter.',
+                              equipment: ['Solderless Breadboard', '9V Battery / 5V DC Supply', 'Multimeter', '10k Potentiometer', '220Ω Resistors', 'LEDs'],
+                              safetyRules: ['Disconnect power before altering circuit', 'Do not connect multimeter on Amps across power rails'],
+                              instructions: '1. Connect 5V rail to breadboard edge.\n2. Insert 10k potentiometer as variable divider.\n3. Measure wiper output voltage with DC multimeter.\n4. Connect current-limiting 220Ω resistor to LED anode.\n5. Verify gradual dimming response.',
+                              expectedResult: 'LED dims smoothly without heating; measured voltage varies 0V to 4.9V.',
+                              troubleshootingTips: ['If LED does not light, check cathode/anode orientation', 'Ensure multimeter leads are firmly seated in COM and V/Ω sockets']
+                            },
+                            quizQuestions: [
+                              {
+                                id: ensureUuid(),
+                                question: 'If supply voltage is 5V and current is 20mA, what is the minimum series resistor for an LED with a 2V drop?',
+                                options: ['150 Ohms', '1000 Ohms', '10 Ohms', '4700 Ohms'],
+                                correctIndex: 0,
+                                explanation: 'R = (Vsupply - Vled) / I = (5V - 2V) / 0.02A = 3V / 0.02A = 150 Ohms.'
+                              }
+                            ]
+                          };
+                          setForm({ ...form, modules: [...(form.modules || []), newMod] });
+                        }}
+                        className="px-3 py-1.5 bg-sky-700 hover:bg-sky-600 text-white rounded-xl font-bold flex items-center gap-1 text-[11px] cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Electronics Lab Module</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newModNumber = (form.modules?.length || 0) + 1;
+                          const newMod: CourseModule = {
+                            id: ensureUuid(),
+                            courseId: form.id || '',
+                            moduleNumber: newModNumber,
+                            order: newModNumber,
+                            title: `Module ${newModNumber}: New Topic`,
+                            coherentSkillArea: 'Applied Skill',
+                            description: 'Description of module competencies.',
+                            durationMinutes: 45,
+                            theoryOverview: 'Theoretical framework.',
+                            theoryKeyConcepts: ['Concept A', 'Concept B'],
+                            videoUrl: '',
+                            resources: [],
+                            guidedLab: {
+                              id: ensureUuid(),
+                              title: `Lab ${newModNumber}: Practical Exercise`,
+                              objective: 'Execute bench procedure.',
+                              equipment: ['Standard Kit'],
+                              safetyRules: ['Safety first'],
+                              instructions: 'Detailed steps.',
+                              expectedResult: 'Pass.',
+                              troubleshootingTips: []
+                            },
+                            quizQuestions: []
+                          };
+                          setForm({ ...form, modules: [...(form.modules || []), newMod] });
+                        }}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-1 text-[11px] cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Module</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -706,11 +789,12 @@ export const CourseManagementStudio: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-indigo-400">Module {m.moduleNumber}</span>
                           <button
+                            type="button"
                             onClick={() => {
                               const filtered = form.modules?.filter(x => x.id !== m.id);
                               setForm({ ...form, modules: filtered });
                             }}
-                            className="text-red-400 hover:text-red-300 font-bold"
+                            className="text-red-400 hover:text-red-300 font-bold cursor-pointer"
                           >
                             Remove
                           </button>
@@ -737,6 +821,60 @@ export const CourseManagementStudio: React.FC = () => {
                           placeholder="Theory / Lesson Overview"
                           className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-white resize-none"
                         />
+
+                        {/* Guided Practical Lab Section */}
+                        <div className="p-3 bg-slate-900/80 border border-slate-800/80 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-amber-400">Guided Practical Lab</span>
+                            <span className="text-[10px] text-slate-400">Hands-on Lab Bench Exercise</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              value={m.guidedLab?.title || ''}
+                              onChange={(e) => {
+                                const updated = [...(form.modules || [])];
+                                updated[idx].guidedLab = {
+                                  ...(updated[idx].guidedLab || { id: ensureUuid(), instructions: '', expectedResult: '', safetyRules: [], troubleshootingTips: [] }),
+                                  title: e.target.value,
+                                  objective: updated[idx].guidedLab?.objective || 'Complete bench exercise.',
+                                  equipment: updated[idx].guidedLab?.equipment || ['Breadboard Starter Kit']
+                                };
+                                setForm({ ...form, modules: updated });
+                              }}
+                              placeholder="Lab Title (e.g. Lab 1: Circuit Probing)"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white text-[11px]"
+                            />
+                            <input
+                              type="text"
+                              value={m.guidedLab?.equipment?.join(', ') || ''}
+                              onChange={(e) => {
+                                const updated = [...(form.modules || [])];
+                                updated[idx].guidedLab = {
+                                  ...(updated[idx].guidedLab || { id: ensureUuid(), title: 'Hands-on Lab', instructions: '', expectedResult: '', safetyRules: [], troubleshootingTips: [] }),
+                                  equipment: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                                };
+                                setForm({ ...form, modules: updated });
+                              }}
+                              placeholder="Equipment (comma separated e.g. Multimeter, LED, Breadboard)"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white text-[11px]"
+                            />
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={m.guidedLab?.instructions || ''}
+                            onChange={(e) => {
+                              const updated = [...(form.modules || [])];
+                              updated[idx].guidedLab = {
+                                ...(updated[idx].guidedLab || { id: ensureUuid(), title: 'Hands-on Lab', expectedResult: '', equipment: [], safetyRules: [], troubleshootingTips: [] }),
+                                instructions: e.target.value
+                              };
+                              setForm({ ...form, modules: updated });
+                            }}
+                            placeholder="Step-by-step Lab Instructions..."
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-[11px] resize-none"
+                          />
+                        </div>
 
                         {/* Video URL & Video File Uploader */}
                         <div className="space-y-2 pt-1 border-t border-slate-900">

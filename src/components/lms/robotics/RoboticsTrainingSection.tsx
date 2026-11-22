@@ -32,7 +32,8 @@ import { useAuth } from '../../AuthContext';
 import { 
   roboticsTrainingService, 
   ROBOTICS_PROGRAMMES_CATALOG, 
-  ROBOTICS_PATHWAYS_CATALOG 
+  ROBOTICS_PATHWAYS_CATALOG,
+  CORE_ROBOTICS_LEVEL_IDS
 } from '../../../services/roboticsTrainingService';
 import { 
   RoboticsProgrammeId, 
@@ -42,6 +43,7 @@ import {
   RoboticsLearningPassport 
 } from '../../../types/roboticsTraining';
 import { RoboticsDigitalCertificateModal } from './RoboticsDigitalCertificateModal';
+import { RoboticsTrainerExamModal } from './RoboticsTrainerExamModal';
 
 export type RoboticsSubTab = 
   | 'overview' 
@@ -127,6 +129,18 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
     grade: string;
   } | null>(null);
 
+  // Trainer Examination Modal State
+  const [isTrainerExamOpen, setIsTrainerExamOpen] = useState(false);
+  const [trainerEligibility, setTrainerEligibility] = useState<{
+    isEligible: boolean;
+    totalCompleted: number;
+    completedLevels: RoboticsCertificationLevelId[];
+  }>({
+    isEligible: false,
+    totalCompleted: 0,
+    completedLevels: []
+  });
+
   // Toast notice
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -135,7 +149,21 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
     if (activeSubTab === 'passport') {
       loadPassport();
     }
+    if (activeSubTab === 'pathways') {
+      loadTrainerEligibility();
+    }
   }, [activeSubTab, user?.id]);
+
+  const loadTrainerEligibility = async () => {
+    try {
+      const data = await roboticsTrainingService.checkTrainerEligibility(user?.id);
+      setTrainerEligibility({
+        isEligible: data.isEligible,
+        totalCompleted: data.totalCompleted,
+        completedLevels: data.completedLevels
+      });
+    } catch {}
+  };
 
   const loadPassport = async () => {
     setLoadingPassport(true);
@@ -598,41 +626,66 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
       {/* ===================================================================== */}
       {activeSubTab === 'pathways' && (
         <div className="space-y-8 animate-fade-in">
-          <div>
-            <h2 className="text-2xl font-black text-[#0A1B4D]">Visual Certification Pathways</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Accredited milestones from early primary exploration to university capstone defense and teacher CPD credentials.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#0D47A1] border border-blue-200 text-xs font-bold uppercase mb-1">
+                <Award className="w-3.5 h-3.5" />
+                4 Core Robotics Levels + Trainer Credential
+              </div>
+              <h2 className="text-2xl font-black text-[#0A1B4D]">Visual Robotics Certification Pathways</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                All 4 foundational robotics levels are fully certifiable with official YARA Digital Credentials upon module completion and capstone defense.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsTrainerExamOpen(true)}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+            >
+              <Award className="w-4 h-4" />
+              <span>Trainer &amp; Mentor Qualification</span>
+            </button>
           </div>
 
           {/* Visual Progression Pipeline Banner */}
           <div className="p-6 rounded-3xl bg-slate-900 text-white overflow-hidden shadow-lg border border-slate-800">
-            <div className="text-xs font-bold uppercase tracking-widest text-[#00C6FF] mb-3">
-              Standard Learner Progression Timeline
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-[#00C6FF]">
+                The 4 Certifiable Robotics Milestones
+              </div>
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                100% Certifiable
+              </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               {[
-                { level: 'Level 1', name: 'Robotics Explorer', age: 'ECD / Infants', req: '10 Lessons ($50)' },
-                { level: 'Level 2', name: 'Junior Robotics', age: 'Grades 3 – 7', req: '10 Lessons ($50)' },
-                { level: 'Level 3', name: 'Secondary Robotics', age: 'High School', req: '12 Sessions ($60)' },
-                { level: 'Level 4', name: 'Advanced Robotics', age: 'Tertiary & Capstone', req: 'Engineering Defense' }
+                { level: 'Level 1', name: 'Robotics Explorer', age: 'ECD / Infants', req: '10 Lessons ($50)', cert: 'Explorer Certificate' },
+                { level: 'Level 2', name: 'Junior Robotics', age: 'Grades 3 – 7', req: '10 Lessons ($50)', cert: 'Junior Certificate' },
+                { level: 'Level 3', name: 'Secondary Robotics', age: 'High School', req: '12 Sessions ($60)', cert: 'Secondary Certificate' },
+                { level: 'Level 4', name: 'Advanced Robotics', age: 'Tertiary & Capstone', req: 'Engineering Defense', cert: 'Engineering Certificate' }
               ].map((step, idx) => (
                 <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-white/10 relative">
-                  <div className="text-[10px] font-bold text-[#00C6FF] uppercase">{step.level}</div>
-                  <div className="text-sm font-extrabold text-white mt-0.5">{step.name}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">{step.age}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#00C6FF] uppercase">{step.level}</span>
+                    <Award className="w-3.5 h-3.5 text-emerald-400" />
+                  </div>
+                  <div className="text-sm font-extrabold text-white mt-1">{step.name}</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{step.age}</div>
                   <div className="text-[10px] text-emerald-400 font-semibold mt-2">{step.req}</div>
+                  <div className="mt-2 pt-2 border-t border-white/10 text-[10px] text-blue-200 font-medium">
+                    🏆 {step.cert}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Detailed Level Cards */}
+          {/* 4 CORE ROBOTICS LEVEL CARDS */}
           <div className="space-y-6">
-            {ROBOTICS_PATHWAYS_CATALOG.map((pathway) => (
+            {ROBOTICS_PATHWAYS_CATALOG.filter(p => p.id !== 'yara_certified_trainer_mentor').map((pathway) => (
               <div 
                 key={pathway.id}
-                className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+                className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:border-[#1976D2]/50 transition"
               >
                 <div className="max-w-2xl space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -641,6 +694,10 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                     </span>
                     <span className="text-xs font-bold text-slate-500">
                       Target: {pathway.targetAudience}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                      <Award className="w-3 h-3 text-emerald-600" />
+                      Certificable Pathway
                     </span>
                     {pathway.isProvisionalPricing && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
@@ -661,8 +718,15 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                     ))}
                   </div>
 
-                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
-                    <strong>Sample Project Milestone:</strong> {pathway.sampleProject}
+                  <div className="text-xs text-slate-500 pt-2 border-t border-slate-100 flex flex-wrap items-center gap-4">
+                    <div>
+                      <strong>Sample Project Milestone:</strong> {pathway.sampleProject}
+                    </div>
+                    {pathway.prerequisites && (
+                      <div className="text-indigo-600 font-semibold">
+                        <strong>Prerequisite:</strong> {pathway.prerequisites}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -690,13 +754,95 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                       setSelectedLevelId(pathway.id);
                       setActiveSubTab('enrolment');
                     }}
-                    className="w-full py-2.5 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white font-bold text-xs transition shadow-sm text-center"
+                    className="w-full py-2.5 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white font-bold text-xs transition shadow-sm text-center cursor-pointer"
                   >
                     Register for {pathway.levelTitle.split('–')[0]}
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* PINNACLE QUALIFICATION: BECOME YARA CERTIFIED ROBOTICS TRAINER OR MENTOR */}
+          <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-br from-[#0A1B4D] via-[#0D47A1] to-[#0A1B4D] text-white shadow-2xl border-2 border-amber-400/40 relative overflow-hidden space-y-6">
+            <div className="absolute -right-12 -top-12 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div className="max-w-2xl space-y-3">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-extrabold uppercase tracking-wider">
+                  <Award className="w-4 h-4 text-amber-400" />
+                  Pinnacle Master Credential
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                  Become YARA Certified Robotics Trainer or Mentor
+                </h3>
+
+                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed">
+                  The highest operational robotics teaching qualification awarded by YARA. 
+                  Strictly unlocks only for candidates who have completed <strong>all four foundational robotics levels</strong> (Explorer, Junior, Secondary, and Advanced). Candidates must pass our 20-question randomized pedagogical examination and submit verified proof of hands-on mentorship.
+                </p>
+
+                {/* 4 Levels Prerequisite Checklist */}
+                <div className="pt-2">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-amber-300 mb-2">
+                    Prerequisites Verification Status:
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { id: 'level_1_explorer' as RoboticsCertificationLevelId, title: 'Level 1: Explorer' },
+                      { id: 'level_2_junior' as RoboticsCertificationLevelId, title: 'Level 2: Junior' },
+                      { id: 'level_3_secondary' as RoboticsCertificationLevelId, title: 'Level 3: Secondary' },
+                      { id: 'level_4_advanced' as RoboticsCertificationLevelId, title: 'Level 4: Advanced' }
+                    ].map(l => {
+                      const done = trainerEligibility.completedLevels.includes(l.id);
+                      return (
+                        <div key={l.id} className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white text-[11px]">{l.title}</span>
+                            {done ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-semibold mt-0.5 block ${done ? 'text-emerald-300' : 'text-slate-300'}`}>
+                            {done ? 'Completed' : 'Required'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Column */}
+              <div className="lg:w-72 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex flex-col justify-between shrink-0 space-y-4 text-center sm:text-left">
+                <div>
+                  <div className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider">
+                    Qualification Gate
+                  </div>
+                  <div className="text-xl font-black text-white mt-1">
+                    Exam + Mentorship Proof
+                  </div>
+                  <p className="text-[11px] text-blue-200 mt-1">
+                    Minimum 80% passing grade on the 20-question pedagogical exam + verification of coaching sessions.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setIsTrainerExamOpen(true)}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>Start Trainer Exam Suite</span>
+                </button>
+
+                <div className="text-[10px] text-slate-300 text-center">
+                  Includes digital credential with online QR verification.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1571,6 +1717,28 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
           grade={selectedCert.grade}
         />
       )}
+
+      {/* Trainer & Mentor Examination Suite Modal */}
+      <RoboticsTrainerExamModal
+        isOpen={isTrainerExamOpen}
+        onClose={() => {
+          setIsTrainerExamOpen(false);
+          loadTrainerEligibility();
+        }}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={profile?.display_name}
+        userSchoolOrChapter={profile?.institution || profile?.school_institution}
+        userPhone={profile?.phone || profile?.contact_phone}
+        onCertificateIssued={(certNumber, title, grade) => {
+          setSelectedCert({
+            number: certNumber,
+            title,
+            grade
+          });
+          showToast(`Congratulations! You are officially certified as a YARA Robotics Trainer & Mentor (${certNumber}).`);
+        }}
+      />
     </div>
   );
 };

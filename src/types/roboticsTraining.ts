@@ -18,6 +18,7 @@ export type RoboticsCertificationLevelId =
   | 'level_2_junior'
   | 'level_3_secondary'
   | 'level_4_advanced'
+  | 'yara_certified_trainer_mentor'
   | 'teacher_cpd';
 
 export type EnrolmentType = 'individual' | 'parent_guardian' | 'school_group' | 'teacher';
@@ -62,6 +63,36 @@ export interface RoboticsCertificationPathway {
   learningOutcomes: string[];
   prerequisites?: string;
   sampleProject: string;
+  isCertificable?: boolean;
+  requiresAllPriorLevels?: boolean;
+  isTrainerPinnacle?: boolean;
+}
+
+export interface TrainerExamQuestion {
+  id: string;
+  category: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface TrainerMentorshipSubmission {
+  id: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  schoolOrChapter: string;
+  mentorshipExperienceSummary: string;
+  portfolioUrl?: string;
+  demonstrationVideoUrl?: string;
+  menteeOrPatronReference: string;
+  examScore: number;
+  examPassed: boolean;
+  status: 'submitted' | 'under_review' | 'certified';
+  certificateNumber?: string;
+  submittedAt: string;
 }
 
 export interface StudentGroupEntry {
