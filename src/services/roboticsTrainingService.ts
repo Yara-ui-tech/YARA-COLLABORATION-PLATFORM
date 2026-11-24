@@ -821,8 +821,8 @@ export const roboticsTrainingService = {
   },
 
   getUserEnrolments: async (userId?: string, userEmail?: string): Promise<RoboticsLearnerEnrolment[]> => {
+    if (!userId && !userEmail) return [];
     const all = await roboticsTrainingService.getAllEnrolments();
-    if (!userId && !userEmail) return all.slice(0, 5); // Return demo/recent if guest
     return all.filter(e => 
       (userId && e.userId === userId) || 
       (userEmail && e.primaryContactEmail?.toLowerCase() === userEmail.toLowerCase())
@@ -860,28 +860,180 @@ export const roboticsTrainingService = {
     return true;
   },
 
-  // Robotics Learning Passport Generator
+  // Robotics Learning Passport Generator (Pure real dynamic state)
   getLearningPassport: async (
     userId?: string, 
-    learnerName: string = 'YARA Learner',
-    schoolName: string = 'St. George’s College Robotics Chapter'
+    learnerName?: string,
+    schoolName?: string
   ): Promise<RoboticsLearningPassport> => {
+    // 1. Fetch user's actual enrolments
     const enrolments = await roboticsTrainingService.getUserEnrolments(userId);
     const activeEnrolment = enrolments[0];
 
-    // Determine current level and stats
-    const levelId = activeEnrolment?.certificationLevelId || 'level_2_junior';
-    const pathway = ROBOTICS_PATHWAYS_CATALOG.find(p => p.id === levelId) || ROBOTICS_PATHWAYS_CATALOG[1];
+    // 2. Query user's real certificates from Supabase and local storage
+    const earnedCertificates: RoboticsLearningPassport['certificatesEarned'] = [];
+    const completedLevelIds: RoboticsCertificationLevelId[] = [];
 
-    const attended = Math.min(pathway.requiredLessonsOrSessions, 8);
-    const required = pathway.requiredLessonsOrSessions;
-    const progress = Math.round((attended / required) * 100);
+    // Local completed levels
+    if (userId) {
+      const storedLevelsKey = `${STORAGE_KEYS.COMPLETED_LEVELS}_${userId}`;
+      const storedCompleted = getLocal<RoboticsCertificationLevelId[]>(storedLevelsKey, []);
+      if (Array.isArray(storedCompleted)) {
+        completedLevelIds.push(...storedCompleted);
+      }
+    }
+
+    // Local certificates cache
+    const localCerts = getLocal<any[]>(STORAGE_KEYS.CERTIFICATES, []);
+    const yaraLmsCerts = getLocal<any[]>('yara_lms_certificates', []);
+    const allLocalCerts = [...localCerts, ...yaraLmsCerts];
+
+    // Remote Supabase certificates
+    if (userId) {
+      try {
+        const { data: dbCerts } = await supabase
+          .from('certificates')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (dbCerts && Array.isArray(dbCerts)) {
+          dbCerts.forEach((c: any) => {
+            const certNum = c.certificate_number || c.certificateNumber || c.id;
+            const lvlTitle = c.course_title || c.title || 'Robotics Certificate';
+            let lvlId = c.metadata?.levelId;
+            if (typeof c.metadata === 'string') {
+              try {
+                const parsed = JSON.parse(c.metadata);
+                lvlId = parsed?.levelId || lvlId;
+              } catch {}
+            }
+            if (!lvlId && lvlTitle) {
+              const lower = lvlTitle.toLowerCase();
+              if (lower.includes('explorer') || lower.includes('level 1')) lvlId = 'level_1_explorer';
+              else if (lower.includes('junior') || lower.includes('level 2')) lvlId = 'level_2_junior';
+              else if (lower.includes('secondary') || lower.includes('level 3')) lvlId = 'level_3_secondary';
+              else if (lower.includes('advanced') || lower.includes('level 4')) lvlId = 'level_4_advanced';
+            }
+            if (lvlId && !completedLevelIds.includes(lvlId)) {
+              completedLevelIds.push(lvlId);
+            }
+            if (certNum && !earnedCertificates.some(existing => existing.certificateNumber === certNum)) {
+              earnedCertificates.push({
+                certificateNumber: certNum,
+                levelTitle: lvlTitle,
+                issueDate: c.issue_date ? new Date(c.issue_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Verified',
+                verificationQrHash: certNum,
+                grade: c.grade || (c.score >= 90 ? 'Distinction' : c.score >= 75 ? 'Merit' : 'Pass'),
+                downloadUrl: `/verify-certificate?cert=${encodeURIComponent(certNum)}`
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch supabase certificates for passport:', err);
+      }
+    }
+
+    // Match local certificates for this user
+    allLocalCerts.forEach((c: any) => {
+      const cUserId = c.user_id || c.userId;
+      if (userId && cUserId && cUserId === userId) {
+        const certNum = c.certificate_number || c.certificateNumber;
+        if (certNum && !earnedCertificates.some(existing => existing.certificateNumber === certNum)) {
+          earnedCertificates.push({
+            certificateNumber: certNum,
+            levelTitle: c.course_title || c.title || 'Robotics Certificate',
+            issueDate: c.issue_date || 'Verified',
+            verificationQrHash: certNum,
+            grade: c.grade || 'Certified',
+            downloadUrl: `/verify-certificate?cert=${encodeURIComponent(certNum)}`
+          });
+        }
+      }
+    });
+
+    // Determine current level
+    let currentLevelId: RoboticsCertificationLevelId = 'level_1_explorer';
+    if (activeEnrolment?.certificationLevelId) {
+      currentLevelId = activeEnrolment.certificationLevelId;
+    } else if (completedLevelIds.includes('level_3_secondary')) {
+      currentLevelId = 'level_4_advanced';
+    } else if (completedLevelIds.includes('level_2_junior')) {
+      currentLevelId = 'level_3_secondary';
+    } else if (completedLevelIds.includes('level_1_explorer')) {
+      currentLevelId = 'level_2_junior';
+    }
+
+    const pathway = ROBOTICS_PATHWAYS_CATALOG.find(p => p.id === currentLevelId) || ROBOTICS_PATHWAYS_CATALOG[0];
+
+    // Real progress calculations
+    const required = pathway.requiredLessonsOrSessions || 10;
+    let attended = 0;
+    if (completedLevelIds.includes(currentLevelId)) {
+      attended = required;
+    } else if (activeEnrolment) {
+      attended = (activeEnrolment as any).sessionsAttended || 0;
+    }
+    const progress = required > 0 ? Math.min(100, Math.round((attended / required) * 100)) : 0;
+
+    // Real practical robot projects from Supabase capstone submissions
+    const realProjects: RoboticsLearningPassport['projectsCompleted'] = [];
+    if (userId) {
+      try {
+        const { data: submissions } = await supabase
+          .from('capstone_submissions')
+          .select('*')
+          .eq('user_id', userId);
+        if (submissions && Array.isArray(submissions)) {
+          submissions.forEach((s: any) => {
+            realProjects.push({
+              id: s.id,
+              title: s.title || s.project_title || 'Robotics Practical Build',
+              description: s.description || 'Verified engineering prototype & defense.',
+              completedDate: s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : 'Completed',
+              score: Number(s.score || s.grade_score || 0),
+              badge: s.status === 'approved' ? 'Verified Build' : 'Submitted'
+            });
+          });
+        }
+      } catch {}
+    }
+
+    // Real assessment records from Trainer Exam / assessments
+    const realAssessments: RoboticsLearningPassport['assessmentResults'] = [];
+    const trainerSubs = getLocal<TrainerMentorshipSubmission[]>(STORAGE_KEYS.TRAINER_SUBMISSIONS, []);
+    trainerSubs
+      .filter(s => (userId && s.userId === userId) || (s.email && s.email === activeEnrolment?.primaryContactEmail))
+      .forEach(s => {
+        realAssessments.push({
+          assessmentName: 'YARA Certified Robotics Trainer & Mentor Examination',
+          score: s.examScore,
+          maxScore: 100,
+          date: s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB') : 'Recent',
+          feedback: s.examPassed 
+            ? 'Candidate exceeded 80% competency threshold with verified mastery in robotics pedagogy.' 
+            : 'Candidate did not reach 80% passing grade. Retake recommended.'
+        });
+      });
+
+    // Real skills acquired dynamically based on verified completed levels
+    const acquiredSkills: string[] = [];
+    completedLevelIds.forEach(lvlId => {
+      const matchP = ROBOTICS_PATHWAYS_CATALOG.find(p => p.id === lvlId);
+      if (matchP && matchP.learningOutcomes) {
+        acquiredSkills.push(...matchP.learningOutcomes.slice(0, 3));
+      }
+    });
+
+    const finalLearnerName = learnerName?.trim() || activeEnrolment?.primaryContactName || 'Learner';
+    const finalSchoolName = schoolName?.trim() || activeEnrolment?.schoolOrChapterName || 'Independent YARA Chapter';
+    const finalGradeLevel = activeEnrolment?.gradeOrEducationLevel || 'Independent Learner';
 
     return {
-      learnerId: userId || 'demo_learner_01',
-      learnerName: activeEnrolment?.primaryContactName || learnerName,
-      schoolName: activeEnrolment?.schoolOrChapterName || schoolName,
-      gradeLevel: activeEnrolment?.gradeOrEducationLevel || 'Grade 6 / Form 1',
+      learnerId: userId || 'guest_learner',
+      learnerName: finalLearnerName,
+      schoolName: finalSchoolName,
+      gradeLevel: finalGradeLevel,
       currentLevel: pathway.id,
       levelTitle: pathway.levelTitle,
       sessionsAttended: attended,
@@ -889,59 +1041,11 @@ export const roboticsTrainingService = {
       lessonsCompleted: attended,
       totalLessonsRequired: required,
       progressPercentage: progress,
-      projectsCompleted: [
-        {
-          id: 'proj_01',
-          title: 'Obstacle-Evading Rover (Dual Infrared)',
-          description: 'Constructed 2WD robot chassis with LM393 IR comparator circuit for obstacle rollback.',
-          completedDate: '2026-10-15',
-          score: 92,
-          badge: 'Gold Distinction'
-        },
-        {
-          id: 'proj_02',
-          title: 'Ultrasonic Distance Ping Sensor Radar',
-          description: 'Interfaced HC-SR04 sonar module with multi-tone piezo buzzer warning system.',
-          completedDate: '2026-11-04',
-          score: 88,
-          badge: 'Merit'
-        }
-      ],
-      skillsAcquired: [
-        'Closed Circuit Breadboarding',
-        'DC Motor H-Bridge Kinematics',
-        'HC-SR04 Sonar Timing',
-        'Conditional Control Logic',
-        'Soldering & Wire Management',
-        'Engineering Logbook Defense'
-      ],
-      assessmentResults: [
-        {
-          assessmentName: 'Mid-Term Circuit & Breadboarding Assessment',
-          score: 28,
-          maxScore: 30,
-          date: '2026-10-20',
-          feedback: 'Exceptional tidy wiring and deep grasp of current dividers.'
-        },
-        {
-          assessmentName: 'Practical Obstacle Avoidance Trial',
-          score: 45,
-          maxScore: 50,
-          date: '2026-11-10',
-          feedback: 'Robot completed maze with zero collisions. Excellent sensor response.'
-        }
-      ],
-      isEligibleForCertificate: attended >= required,
-      certificatesEarned: [
-        {
-          certificateNumber: 'YARA-ROB-2026-0842',
-          levelTitle: 'Level 1 – Robotics Explorer Certificate',
-          issueDate: '2026-09-30',
-          verificationQrHash: 'yara_cert_rob_0842',
-          grade: 'Distinction',
-          downloadUrl: '/verify-certificate?cert=YARA-ROB-2026-0842'
-        }
-      ]
+      projectsCompleted: realProjects,
+      skillsAcquired: Array.from(new Set(acquiredSkills)),
+      assessmentResults: realAssessments,
+      isEligibleForCertificate: attended >= required && required > 0,
+      certificatesEarned: earnedCertificates
     };
   },
 
@@ -1039,9 +1143,10 @@ export const roboticsTrainingService = {
   // Issue digital certificate
   issueRoboticsCertificate: async (
     learnerName: string,
-    schoolName: string,
+    schoolName: string = 'Independent YARA Chapter',
     levelId: RoboticsCertificationLevelId,
-    grade: string = 'Distinction'
+    grade: string = 'Distinction',
+    userId?: string
   ): Promise<{ certificateNumber: string; verificationUrl: string }> => {
     const certNum = `YARA-ROB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const pathway = ROBOTICS_PATHWAYS_CATALOG.find(p => p.id === levelId) || ROBOTICS_PATHWAYS_CATALOG[1];
@@ -1049,6 +1154,7 @@ export const roboticsTrainingService = {
 
     const certRecord = {
       certificate_number: certNum,
+      user_id: userId,
       student_name: learnerName,
       course_title: `Robotics & Engineering: ${pathway.levelTitle}`,
       level_number: pathway.levelNumber,
@@ -1059,15 +1165,30 @@ export const roboticsTrainingService = {
       president_signature_name: 'Simbarashe Manongwa',
       president_title: 'President & Technical Director, YARA',
       metadata: {
-        schoolName,
+        schoolName: schoolName || 'Independent YARA Chapter',
         levelId,
         minimumLessons: pathway.requiredLessonsOrSessions
       }
     };
 
+    // Store in local certificates cache
+    const localCerts = getLocal<any[]>(STORAGE_KEYS.CERTIFICATES, []);
+    setLocal(STORAGE_KEYS.CERTIFICATES, [certRecord, ...localCerts]);
+
+    // Record completed level for user
+    if (userId) {
+      const storedLevelsKey = `${STORAGE_KEYS.COMPLETED_LEVELS}_${userId}`;
+      const existing = getLocal<RoboticsCertificationLevelId[]>(storedLevelsKey, []);
+      if (!existing.includes(levelId)) {
+        setLocal(storedLevelsKey, [...existing, levelId]);
+      }
+    }
+
     try {
       await supabase.from('certificates').insert(certRecord);
-    } catch {}
+    } catch (err) {
+      console.warn('Could not insert certificate into Supabase, stored locally:', err);
+    }
 
     return {
       certificateNumber: certNum,
@@ -1102,9 +1223,12 @@ export const roboticsTrainingService = {
       };
     }
 
-    // Check localStorage completions
+    // Check localStorage completions safely
     const storedLevelsKey = `${STORAGE_KEYS.COMPLETED_LEVELS}_${userId}`;
     let userCompleted = getLocal<RoboticsCertificationLevelId[]>(storedLevelsKey, []);
+    if (!Array.isArray(userCompleted)) {
+      userCompleted = [];
+    }
 
     // Also check Supabase certificates for this user
     try {
@@ -1113,18 +1237,33 @@ export const roboticsTrainingService = {
         .select('course_title, metadata')
         .eq('user_id', userId);
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data)) {
         data.forEach((c: any) => {
-          const lvl = c.metadata?.levelId;
+          let lvl = c.metadata?.levelId;
+          if (typeof c.metadata === 'string') {
+            try {
+              const parsed = JSON.parse(c.metadata);
+              lvl = parsed?.levelId || lvl;
+            } catch {}
+          }
+          if (!lvl && c.course_title) {
+            const lower = c.course_title.toLowerCase();
+            if (lower.includes('explorer') || lower.includes('level 1')) lvl = 'level_1_explorer';
+            else if (lower.includes('junior') || lower.includes('level 2')) lvl = 'level_2_junior';
+            else if (lower.includes('secondary') || lower.includes('level 3')) lvl = 'level_3_secondary';
+            else if (lower.includes('advanced') || lower.includes('level 4')) lvl = 'level_4_advanced';
+          }
           if (lvl && coreLevels.includes(lvl) && !userCompleted.includes(lvl)) {
             userCompleted.push(lvl);
           }
         });
       }
-    } catch {}
+    } catch (err) {
+      console.warn('Error reading certificates in checkTrainerEligibility:', err);
+    }
 
     // Deduplicate
-    userCompleted = Array.from(new Set(userCompleted));
+    userCompleted = Array.from(new Set(userCompleted || []));
 
     const missing = coreLevels.filter(lvl => !userCompleted.includes(lvl));
     const isEligible = missing.length === 0;

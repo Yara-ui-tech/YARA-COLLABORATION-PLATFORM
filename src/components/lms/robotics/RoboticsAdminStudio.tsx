@@ -104,7 +104,7 @@ export const RoboticsAdminStudio: React.FC = () => {
     const pathway = ROBOTICS_PATHWAYS_CATALOG.find(p => p.id === manualCertForm.levelId);
     const result = await roboticsTrainingService.issueRoboticsCertificate(
       manualCertForm.learnerName,
-      manualCertForm.schoolName || 'St. George’s Robotics Chapter',
+      manualCertForm.schoolName || 'Independent YARA Chapter',
       manualCertForm.levelId,
       manualCertForm.grade
     );

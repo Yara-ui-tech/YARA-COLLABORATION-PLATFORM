@@ -157,21 +157,32 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
   const loadTrainerEligibility = async () => {
     try {
       const data = await roboticsTrainingService.checkTrainerEligibility(user?.id);
+      if (data) {
+        setTrainerEligibility({
+          isEligible: Boolean(data.isEligible),
+          totalCompleted: Number(data.totalCompleted) || 0,
+          completedLevels: Array.isArray(data.completedLevels) ? data.completedLevels : []
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load trainer eligibility:', err);
       setTrainerEligibility({
-        isEligible: data.isEligible,
-        totalCompleted: data.totalCompleted,
-        completedLevels: data.completedLevels
+        isEligible: false,
+        totalCompleted: 0,
+        completedLevels: []
       });
-    } catch {}
+    }
   };
 
   const loadPassport = async () => {
     setLoadingPassport(true);
     try {
+      const learnerName = profile?.display_name || user?.email?.split('@')[0] || 'Learner';
+      const schoolName = profile?.institution || profile?.school_institution || profile?.community || 'Independent YARA Chapter';
       const data = await roboticsTrainingService.getLearningPassport(
         user?.id,
-        profile?.display_name || 'YARA Learner',
-        profile?.institution || 'St. George’s Robotics Chapter'
+        learnerName,
+        schoolName
       );
       setPassport(data);
     } catch (err) {
@@ -770,7 +781,7 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                     }}
                     className="w-full py-2.5 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white font-bold text-xs transition shadow-sm text-center cursor-pointer"
                   >
-                    Register for {pathway.levelTitle.split('–')[0]}
+                    Register for {pathway.levelTitle.split(/–|-/)[0]?.trim() || pathway.levelTitle}
                   </button>
                 </div>
               </div>
@@ -809,7 +820,7 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                       { id: 'level_3_secondary' as RoboticsCertificationLevelId, title: 'Level 3: Secondary' },
                       { id: 'level_4_advanced' as RoboticsCertificationLevelId, title: 'Level 4: Advanced' }
                     ].map(l => {
-                      const done = trainerEligibility.completedLevels.includes(l.id);
+                      const done = Boolean(trainerEligibility?.completedLevels?.includes(l.id));
                       return (
                         <div key={l.id} className="p-2.5 rounded-xl bg-white/10 border border-white/10 text-xs">
                           <div className="flex items-center justify-between">
@@ -1621,7 +1632,7 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                   <div className="h-3 w-full bg-black/30 rounded-full overflow-hidden p-0.5">
                     <div 
                       className="h-full bg-gradient-to-r from-[#00C6FF] to-emerald-400 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.max(5, passport.progressPercentage)}%` }}
+                      style={{ width: `${Math.max(0, Math.min(100, passport.progressPercentage))}%` }}
                     />
                   </div>
                 </div>
@@ -1636,22 +1647,32 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                     <span className="text-xs text-[#1976D2]">{passport.projectsCompleted.length} Completed</span>
                   </h4>
 
-                  <div className="space-y-3">
-                    {passport.projectsCompleted.map((proj) => (
-                      <div key={proj.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
-                        <div>
-                          <h5 className="text-xs font-bold text-[#0A1B4D]">{proj.title}</h5>
-                          <p className="text-[11px] text-slate-500 mt-0.5">{proj.description}</p>
-                          <span className="text-[10px] text-slate-400 block mt-1">
-                            Completed on {proj.completedDate}
+                  {passport.projectsCompleted.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+                      <Bot className="w-8 h-8 text-slate-400 mx-auto" />
+                      <h5 className="text-xs font-bold text-slate-700">No Practical Robot Projects Completed Yet</h5>
+                      <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                        Hands-on builds and hardware prototypes will appear here once verified by your YARA robotics mentor.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {passport.projectsCompleted.map((proj) => (
+                        <div key={proj.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-3">
+                          <div>
+                            <h5 className="text-xs font-bold text-[#0A1B4D]">{proj.title}</h5>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{proj.description}</p>
+                            <span className="text-[10px] text-slate-400 block mt-1">
+                              Completed on {proj.completedDate}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px] whitespace-nowrap">
+                            Score: {proj.score}/100
                           </span>
                         </div>
-                        <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px] whitespace-nowrap">
-                          Score: {proj.score}/100
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Skills Acquired & Assessments */}
@@ -1659,25 +1680,41 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                   <h4 className="text-sm font-bold text-[#0A1B4D] uppercase tracking-wider">
                     Competency Skills Acquired
                   </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {passport.skillsAcquired.map((skill, i) => (
-                      <span key={i} className="px-3 py-1.5 rounded-xl bg-[#E8F4FF] text-[#0D47A1] text-xs font-bold border border-[#1976D2]/20">
-                        ✓ {skill}
-                      </span>
-                    ))}
-                  </div>
+                  {passport.skillsAcquired.length === 0 ? (
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center">
+                      <p className="text-xs text-slate-500">
+                        Skills unlock progressively as you complete circuit experiments, firmware challenges, and capstone trials.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {passport.skillsAcquired.map((skill, i) => (
+                        <span key={i} className="px-3 py-1.5 rounded-xl bg-[#E8F4FF] text-[#0D47A1] text-xs font-bold border border-[#1976D2]/20">
+                          ✓ {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="pt-4 border-t border-slate-100 space-y-2">
                     <span className="text-[11px] font-bold uppercase text-slate-400 block">Assessment Records</span>
-                    {passport.assessmentResults.map((ass, i) => (
-                      <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                        <div className="flex justify-between font-bold text-slate-800">
-                          <span>{ass.assessmentName}</span>
-                          <span className="text-emerald-600">{ass.score} / {ass.maxScore}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{ass.feedback}</p>
+                    {passport.assessmentResults.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                        <p className="text-xs text-slate-400">
+                          No formal assessment scores recorded yet. Scores are posted following milestone reviews and practical exams.
+                        </p>
                       </div>
-                    ))}
+                    ) : (
+                      passport.assessmentResults.map((ass, i) => (
+                        <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                          <div className="flex justify-between font-bold text-slate-800">
+                            <span>{ass.assessmentName}</span>
+                            <span className="text-emerald-600">{ass.score} / {ass.maxScore}</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{ass.feedback}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -1689,33 +1726,49 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
                   <Award className="w-4 h-4 text-[#0D47A1]" />
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {passport.certificatesEarned.map((cert, i) => (
-                    <div key={i} className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex items-center justify-between gap-4">
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 font-bold">
-                          #{cert.certificateNumber}
-                        </span>
-                        <h5 className="text-sm font-extrabold text-[#0A1B4D]">{cert.levelTitle}</h5>
-                        <p className="text-[11px] text-slate-500">
-                          Issued on {cert.issueDate} • Grade: <strong className="text-emerald-700">{cert.grade}</strong>
-                        </p>
-                      </div>
+                {passport.certificatesEarned.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-3">
+                    <Award className="w-10 h-10 text-slate-400 mx-auto" />
+                    <div className="text-xs font-bold text-slate-700">No Accredited Credentials Earned Yet</div>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                      Complete your first robotics level (Explorer, Junior, Secondary, or Advanced) and pass the practical project defense to claim your verified digital certificate.
+                    </p>
+                    <button
+                      onClick={() => setActiveSubTab('pathways')}
+                      className="px-4 py-2 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white text-xs font-bold transition shadow-sm"
+                    >
+                      Explore Certification Pathways
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {passport.certificatesEarned.map((cert, i) => (
+                      <div key={i} className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-500 font-bold">
+                            #{cert.certificateNumber}
+                          </span>
+                          <h5 className="text-sm font-extrabold text-[#0A1B4D]">{cert.levelTitle}</h5>
+                          <p className="text-[11px] text-slate-500">
+                            Issued on {cert.issueDate} • Grade: <strong className="text-emerald-700">{cert.grade}</strong>
+                          </p>
+                        </div>
 
-                      <button
-                        onClick={() => setSelectedCert({
-                          number: cert.certificateNumber,
-                          title: cert.levelTitle,
-                          grade: cert.grade
-                        })}
-                        className="px-3.5 py-2 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white text-xs font-bold transition shrink-0 flex items-center gap-1.5 shadow-sm"
-                      >
-                        <Award className="w-3.5 h-3.5" />
-                        View Credential
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <button
+                          onClick={() => setSelectedCert({
+                            number: cert.certificateNumber,
+                            title: cert.levelTitle,
+                            grade: cert.grade
+                          })}
+                          className="px-3.5 py-2 rounded-xl bg-[#0D47A1] hover:bg-[#0A1B4D] text-white text-xs font-bold transition shrink-0 flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          View Credential
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1731,7 +1784,7 @@ export const RoboticsTrainingSection: React.FC<Props> = ({
           learnerName={passport?.learnerName || 'YARA Learner'}
           levelTitle={selectedCert.title}
           programmeCompleted="Robotics & Engineering Accredited Training"
-          schoolName={passport?.schoolName || 'St. George’s Robotics Chapter'}
+          schoolName={passport?.schoolName || profile?.institution || 'Independent YARA Chapter'}
           grade={selectedCert.grade}
         />
       )}

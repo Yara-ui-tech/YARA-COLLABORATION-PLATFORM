@@ -102,13 +102,26 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
     setLoadingEligibility(true);
     try {
       const data = await roboticsTrainingService.checkTrainerEligibility(userId);
-      setEligibility(data);
-      if (data.isEligible) {
-        // If already completed all 4, start directly on prerequisites confirmation or exam
-        setActiveStep('prerequisites');
+      if (data) {
+        setEligibility({
+          isEligible: Boolean(data.isEligible),
+          completedLevels: Array.isArray(data.completedLevels) ? data.completedLevels : [],
+          missingLevels: Array.isArray(data.missingLevels) ? data.missingLevels : [],
+          totalCompleted: Number(data.totalCompleted) || 0
+        });
+        if (data.isEligible) {
+          // If already completed all 4, start directly on prerequisites confirmation or exam
+          setActiveStep('prerequisites');
+        }
       }
     } catch (err) {
       console.error('Failed to check trainer eligibility:', err);
+      setEligibility({
+        isEligible: false,
+        completedLevels: [],
+        missingLevels: [...CORE_ROBOTICS_LEVEL_IDS],
+        totalCompleted: 0
+      });
     } finally {
       setLoadingEligibility(false);
     }
@@ -364,7 +377,7 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
                     desc: 'Computer vision, underwater ROVs, IoT telemetry, and 21-point engineering jury defense.'
                   }
                 ].map(lvl => {
-                  const isDone = eligibility.completedLevels.includes(lvl.id);
+                  const isDone = Boolean(eligibility?.completedLevels?.includes(lvl.id));
                   return (
                     <div 
                       key={lvl.id}
@@ -613,7 +626,7 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
                       required
                       value={portfolioForm.schoolOrChapter}
                       onChange={e => setPortfolioForm({ ...portfolioForm, schoolOrChapter: e.target.value })}
-                      placeholder="e.g. St. George's College Robotics Club"
+                      placeholder="e.g. YARA Innovation Hub or High School Robotics Chapter"
                       className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0D47A1]"
                     />
                   </div>
@@ -669,7 +682,7 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
                     type="text"
                     value={portfolioForm.referenceDetails}
                     onChange={e => setPortfolioForm({ ...portfolioForm, referenceDetails: e.target.value })}
-                    placeholder="e.g. Mrs. R. Chidzero (Head of Science, St. George's) — +263 77 000 0000"
+                    placeholder="e.g. Mrs. R. Chidzero (Head of Science / Club Patron) — +263 77 000 0000"
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#0D47A1]"
                   />
                 </div>
