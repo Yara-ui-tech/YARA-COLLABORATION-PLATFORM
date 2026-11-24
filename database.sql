@@ -6341,4 +6341,31 @@ CREATE POLICY "Strict target mentor and admin update mentorship requests" ON pub
     )
   );
 
+-- ==============================================================================
+-- 2026-11-24: CONTENT LIKES AND ENGAGEMENT (POSTS, NEWS, PUBLICATIONS, KITS)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.content_likes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  content_type TEXT NOT NULL,
+  content_id TEXT NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  user_identifier TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_likes_lookup ON public.content_likes (content_type, content_id);
+CREATE INDEX IF NOT EXISTS idx_content_likes_user ON public.content_likes (user_identifier);
+
+ALTER TABLE public.content_likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public insert content likes" ON public.content_likes;
+CREATE POLICY "Public insert content likes" ON public.content_likes FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public view content likes" ON public.content_likes;
+CREATE POLICY "Public view content likes" ON public.content_likes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public delete own content likes" ON public.content_likes;
+CREATE POLICY "Public delete own content likes" ON public.content_likes FOR DELETE USING (true);
+
+
 

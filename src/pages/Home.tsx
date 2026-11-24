@@ -14,23 +14,38 @@ import {
   ArrowUpRight,
   ShoppingBag,
   Users,
-  Bot
+  Bot,
+  ThumbsUp
 } from 'lucide-react';
 import { DynamicSectionRenderer } from '../components/DynamicSectionRenderer';
 import { OrganizationPost } from '../types/organizationPosts';
 import { getOrganizationPosts } from '../services/organizationPostsService';
 import { getLiveTotalModulesCount } from '../services/unifiedCourseService';
+import { likesService } from '../services/likesService';
+import { useAuth } from '../components/AuthContext';
 
 export default function Home() {
+  const { profile } = useAuth();
   const [recentPosts, setRecentPosts] = useState<OrganizationPost[]>([]);
   const [moduleCount, setModuleCount] = useState<number>(0);
+  const [likedPostIds, setLikedPostIds] = useState<string[]>([]);
 
   useEffect(() => {
     async function loadFeed() {
       try {
         const posts = await getOrganizationPosts();
         if (posts && posts.length > 0) {
-          setRecentPosts(posts.slice(0, 3));
+          const slice = posts.slice(0, 3);
+          const liked: string[] = [];
+          const hydrated = slice.map(p => {
+            if (likesService.isLiked('post', p.id, profile?.id, profile?.email)) {
+              liked.push(p.id);
+            }
+            const count = likesService.getLikeCount('post', p.id, p.likes_count || 0);
+            return { ...p, likes_count: count };
+          });
+          setRecentPosts(hydrated);
+          setLikedPostIds(liked);
         }
       } catch {}
     }
@@ -44,7 +59,26 @@ export default function Home() {
 
     loadFeed();
     loadModuleStats();
-  }, []);
+
+    const unsubscribe = likesService.subscribeToLikes(({ contentType, contentId, isLiked, count }) => {
+      if (contentType === 'post' || contentType === 'news') {
+        setLikedPostIds(prev => isLiked ? Array.from(new Set([...prev, contentId])) : prev.filter(id => id !== contentId));
+        setRecentPosts(prev => prev.map(p => p.id === contentId ? { ...p, likes_count: count } : p));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profile?.id]);
+
+  const handleLikePost = async (postId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const post = recentPosts.find(p => p.id === postId);
+    const initialCount = post?.likes_count || 0;
+    const result = await likesService.toggleLike('post', postId, initialCount, profile?.id, profile?.email);
+    setLikedPostIds(prev => result.isLiked ? Array.from(new Set([...prev, postId])) : prev.filter(id => id !== postId));
+    setRecentPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: result.count } : p));
+  };
 
   return (
     <div className="bg-slate-950 text-white font-sans selection:bg-amber-400 selection:text-black">
@@ -261,9 +295,24 @@ export default function Home() {
                     {post.content}
                   </p>
                 </div>
-                <div className="text-[11px] font-semibold text-slate-500 group-hover:text-white flex items-center gap-1 pt-2">
-                  <span>Read update</span>
-                  <ChevronRight className="w-3 h-3" />
+                <div className="pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                  <div className="group-hover:text-white flex items-center gap-1 transition-colors">
+                    <span>Read update</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => handleLikePost(post.id, e)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      likedPostIds.includes(post.id)
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                    title={likedPostIds.includes(post.id) ? 'Unlike post' : 'Like post'}
+                  >
+                    <ThumbsUp className={`w-3.5 h-3.5 ${likedPostIds.includes(post.id) ? 'fill-current' : ''}`} />
+                    <span>{post.likes_count || 0}</span>
+                  </button>
                 </div>
               </Link>
             ))}

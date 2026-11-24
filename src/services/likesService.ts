@@ -1,0 +1,159 @@
+import { supabase } from '../lib/supabase';
+
+export type ContentLikeType = 'post' | 'news' | 'publication' | 'kit' | 'site';
+
+export interface LikeState {
+  isLiked: boolean;
+  count: number;
+}
+
+const STORAGE_PREFIX = 'yara_likes_v1_';
+const COUNTS_STORAGE_KEY = 'yara_content_like_counts_v1';
+
+// Custom event for cross-component real-time updates
+const LIKE_CHANGED_EVENT = 'yara_content_like_changed';
+
+function getLocalLikedIds(contentType: ContentLikeType, userKey: string): string[] {
+  try {
+    const raw = localStorage.getItem(`${STORAGE_PREFIX}${contentType}_${userKey}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setLocalLikedIds(contentType: ContentLikeType, userKey: string, ids: string[]): void {
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${contentType}_${userKey}`, JSON.stringify(ids));
+  } catch {}
+}
+
+function getAllStoredCounts(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(COUNTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setStoredCount(key: string, count: number): void {
+  try {
+    const all = getAllStoredCounts();
+    all[key] = Math.max(0, count);
+    localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(all));
+  } catch {}
+}
+
+export const likesService = {
+  makeKey: (contentType: ContentLikeType, contentId: string) => `${contentType}:${contentId}`,
+
+  getUserKey: (userId?: string, userEmail?: string): string => {
+    if (userId) return userId;
+    if (userEmail) return userEmail.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    // Persistent guest anonymous ID
+    let guestId = localStorage.getItem('yara_guest_device_id');
+    if (!guestId) {
+      guestId = 'guest_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('yara_guest_device_id', guestId);
+    }
+    return guestId;
+  },
+
+  isLiked: (contentType: ContentLikeType, contentId: string, userId?: string, userEmail?: string): boolean => {
+    const userKey = likesService.getUserKey(userId, userEmail);
+    const liked = getLocalLikedIds(contentType, userKey);
+    return liked.includes(contentId);
+  },
+
+  getLikeCount: (contentType: ContentLikeType, contentId: string, initialCount: number = 0): number => {
+    const key = likesService.makeKey(contentType, contentId);
+    const stored = getAllStoredCounts()[key];
+    if (typeof stored === 'number') {
+      return stored;
+    }
+    return initialCount || 0;
+  },
+
+  toggleLike: async (
+    contentType: ContentLikeType,
+    contentId: string,
+    currentCount: number = 0,
+    userId?: string,
+    userEmail?: string
+  ): Promise<LikeState> => {
+    const userKey = likesService.getUserKey(userId, userEmail);
+    const likedIds = getLocalLikedIds(contentType, userKey);
+    const alreadyLiked = likedIds.includes(contentId);
+    const key = likesService.makeKey(contentType, contentId);
+
+    let newLiked = !alreadyLiked;
+    let updatedIds: string[];
+    let newCount: number;
+
+    const storedCount = getAllStoredCounts()[key];
+    const baseCount = typeof storedCount === 'number' ? storedCount : currentCount;
+
+    if (alreadyLiked) {
+      // Unlike
+      updatedIds = likedIds.filter(id => id !== contentId);
+      newCount = Math.max(0, baseCount - 1);
+    } else {
+      // Like
+      updatedIds = [...likedIds, contentId];
+      newCount = baseCount + 1;
+    }
+
+    setLocalLikedIds(contentType, userKey, updatedIds);
+    setStoredCount(key, newCount);
+
+    // Broadcast local event for immediate reactivity
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(LIKE_CHANGED_EVENT, {
+        detail: { contentType, contentId, isLiked: newLiked, count: newCount }
+      }));
+    }
+
+    // Background sync with Supabase
+    try {
+      if (newLiked) {
+        await supabase.from('content_likes').insert({
+          content_type: contentType,
+          content_id: contentId,
+          user_id: userId || null,
+          user_identifier: userKey
+        });
+
+        // Also increment parent table like counts where supported
+        if (contentType === 'post' || contentType === 'news') {
+          await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
+        }
+      } else {
+        await supabase
+          .from('content_likes')
+          .delete()
+          .match({ content_type: contentType, content_id: contentId, user_identifier: userKey });
+
+        if (contentType === 'post' || contentType === 'news') {
+          await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
+        }
+      }
+    } catch {
+      // Safe fallback - local storage handles offline/unauthenticated state
+    }
+
+    return { isLiked: newLiked, count: newCount };
+  },
+
+  subscribeToLikes: (callback: (detail: { contentType: ContentLikeType; contentId: string; isLiked: boolean; count: number }) => void) => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        callback(customEvent.detail);
+      }
+    };
+    window.addEventListener(LIKE_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(LIKE_CHANGED_EVENT, handler);
+  }
+};
+

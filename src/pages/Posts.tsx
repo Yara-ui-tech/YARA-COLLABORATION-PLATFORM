@@ -16,6 +16,7 @@ import {
   generateSocialShareLinks,
   getEmbeddableVideoUrl
 } from '../services/organizationPostsService';
+import { likesService } from '../services/likesService';
 import { cn } from '../lib/utils';
 
 export default function Posts() {
@@ -33,7 +34,17 @@ export default function Posts() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+
+    const unsubscribe = likesService.subscribeToLikes(({ contentType, contentId, isLiked, count }) => {
+      if (contentType === 'post' || contentType === 'news') {
+        setLikedPosts(prev => isLiked ? Array.from(new Set([...prev, contentId])) : prev.filter(id => id !== contentId));
+        setPosts(prev => prev.map(p => p.id === contentId ? { ...p, likes_count: count } : p));
+        setSelectedPost(prev => (prev && prev.id === contentId) ? { ...prev, likes_count: count } : prev);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profile?.id]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -42,7 +53,18 @@ export default function Posts() {
         getOrganizationPosts(),
         getSocialBroadcastConfig()
       ]);
-      setPosts(allPosts);
+
+      // Initialize real like states and counts
+      const liked: string[] = [];
+      const hydratedPosts = allPosts.map(p => {
+        const isLiked = likesService.isLiked('post', p.id, profile?.id, profile?.email);
+        if (isLiked) liked.push(p.id);
+        const count = likesService.getLikeCount('post', p.id, p.likes_count || 0);
+        return { ...p, likes_count: count };
+      });
+
+      setPosts(hydratedPosts);
+      setLikedPosts(liked);
       setConfig(broadcastConfig);
     } catch (e) {
       console.warn('Posts fetch warning:', e);
@@ -51,12 +73,15 @@ export default function Posts() {
     }
   };
 
-  const handleLike = async (postId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (likedPosts.includes(postId)) return;
-    setLikedPosts(prev => [...prev, postId]);
-    const newCount = await likeOrganizationPost(postId);
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: newCount } : p));
+  const handleLike = async (postId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const post = posts.find(p => p.id === postId) || (selectedPost?.id === postId ? selectedPost : null);
+    const initialCount = post?.likes_count || 0;
+    const result = await likesService.toggleLike('post', postId, initialCount, profile?.id, profile?.email);
+
+    setLikedPosts(prev => result.isLiked ? Array.from(new Set([...prev, postId])) : prev.filter(id => id !== postId));
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes_count: result.count } : p));
+    setSelectedPost(prev => (prev && prev.id === postId) ? { ...prev, likes_count: result.count } : prev);
   };
 
   const handleCopyLink = (post: OrganizationPost, e: React.MouseEvent) => {
@@ -319,13 +344,14 @@ export default function Posts() {
                         type="button"
                         onClick={(e) => handleLike(post.id, e)}
                         className={cn(
-                          "flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all",
+                          "flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
                           isLiked
                             ? "bg-indigo-600 text-white shadow-sm"
                             : "bg-slate-50 hover:bg-slate-100 text-slate-600"
                         )}
+                        title={isLiked ? "Unlike post" : "Like post"}
                       >
-                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <ThumbsUp className={cn("w-3.5 h-3.5", isLiked && "fill-current")} />
                         <span>{post.likes_count || 0}</span>
                       </button>
 
@@ -558,14 +584,29 @@ export default function Posts() {
                 </div>
               )}
 
-              {/* Share & Download bar */}
+              {/* Share, Like & Download bar */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700">Share this update:</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleLike(selectedPost.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs",
+                        likedPosts.includes(selectedPost.id)
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      )}
+                    >
+                      <ThumbsUp className={cn("w-3.5 h-3.5", likedPosts.includes(selectedPost.id) && "fill-current")} />
+                      <span>{likedPosts.includes(selectedPost.id) ? "Liked" : "Like"} ({selectedPost.likes_count || 0})</span>
+                    </button>
+                    <span className="text-xs font-bold text-slate-700 hidden sm:inline">• Share:</span>
+                  </div>
                   {selectedPost.image_url && (
                     <button
                       onClick={() => handleDownloadImage(selectedPost.image_url!, `yara-post-${selectedPost.id}.jpg`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" /> Download Post Image
                     </button>

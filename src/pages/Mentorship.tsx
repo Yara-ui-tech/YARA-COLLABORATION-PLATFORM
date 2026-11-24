@@ -132,6 +132,7 @@ export default function Mentorship() {
   const [whatsapp, setWhatsapp] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewGuestName, setReviewGuestName] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedLiveCategory, setSelectedLiveCategory] = useState<'all' | 'junior' | 'intermediate' | 'senior' | 'teachers'>('all');
   const [studyMaterials, setStudyMaterials] = useState<any[]>([]);
@@ -777,13 +778,13 @@ Possible causes:
     }
   };
   const handleSubmitReview = async () => {
-    if (!user || !isReviewing) return;
+    if (!isReviewing) return;
     setLoading(true);
     try {
-      const reviewerName = profile?.display_name || user.email?.split('@')[0] || 'Verified Learner';
+      const reviewerName = profile?.display_name || user?.email?.split('@')[0] || reviewGuestName.trim() || 'Verified Learner';
       const insertRecord: any = {
         mentor_id: isReviewing.mentor_id,
-        student_id: user.id,
+        student_id: user?.id || null,
         request_id: isReviewing.id?.startsWith('rev-') ? null : isReviewing.id,
         mentor_name: isReviewing.mentor_name || 'Mentor',
         learner_name: reviewerName,
@@ -841,6 +842,7 @@ Possible causes:
       setIsReviewing(null);
       setReviewRating(5);
       setReviewComment('');
+      setReviewGuestName('');
     } catch (error) {
       console.error('Error submitting review:', error);
       alert('Failed to submit review. Please try again.');
@@ -1434,14 +1436,10 @@ Possible causes:
 
                     {/* Reviews Accordion & Booking Action */}
                     <div className="space-y-3 pt-4 border-t border-slate-100 mt-5">
-                      {/* Rate & Review Button for Authenticated Users */}
+                      {/* Rate & Review Button */}
                       <button
                         type="button"
                         onClick={() => {
-                          if (!user) {
-                            alert('Please sign in to rate and review mentors.');
-                            return;
-                          }
                           setIsReviewing({
                             mentor_id: mentor.id,
                             mentor_name: mentor.display_name,
@@ -2568,6 +2566,22 @@ Possible causes:
                     </button>
                   ))}
                 </div>
+
+                {!user && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      Your Name / School or Organization (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={reviewGuestName}
+                      onChange={(e) => setReviewGuestName(e.target.value)}
+                      placeholder="e.g. Tendai M. (St. George's College) or Harare High Student"
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3 px-4 text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all"
+                    />
+                  </div>
+                )}
+
                 <textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
