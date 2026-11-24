@@ -46,6 +46,12 @@ export default function Home() {
           });
           setRecentPosts(hydrated);
           setLikedPostIds(liked);
+
+          // Background reconcile with Supabase likes table
+          likesService.syncUserLikes('post', slice.map(p => p.id), profile?.id, profile?.email).then(() => {
+            const recheck = slice.filter(p => likesService.isLiked('post', p.id, profile?.id, profile?.email)).map(p => p.id);
+            setLikedPostIds(recheck);
+          });
         }
       } catch {}
     }

@@ -13,6 +13,9 @@ const COUNTS_STORAGE_KEY = 'yara_content_like_counts_v1';
 // Custom event for cross-component real-time updates
 const LIKE_CHANGED_EVENT = 'yara_content_like_changed';
 
+// In-flight locking map to prevent rapid double-clicks from duplicating or skipping toggles
+const inFlightToggles = new Set<string>();
+
 function getLocalLikedIds(contentType: ContentLikeType, userKey: string): string[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_PREFIX}${contentType}_${userKey}`);
@@ -24,7 +27,9 @@ function getLocalLikedIds(contentType: ContentLikeType, userKey: string): string
 
 function setLocalLikedIds(contentType: ContentLikeType, userKey: string, ids: string[]): void {
   try {
-    localStorage.setItem(`${STORAGE_PREFIX}${contentType}_${userKey}`, JSON.stringify(ids));
+    // Deduplicate array to ensure id is strictly present at most once
+    const uniqueIds = Array.from(new Set(ids));
+    localStorage.setItem(`${STORAGE_PREFIX}${contentType}_${userKey}`, JSON.stringify(uniqueIds));
   } catch {}
 }
 
@@ -83,66 +88,92 @@ export const likesService = {
     userEmail?: string
   ): Promise<LikeState> => {
     const userKey = likesService.getUserKey(userId, userEmail);
-    const likedIds = getLocalLikedIds(contentType, userKey);
-    const alreadyLiked = likedIds.includes(contentId);
-    const key = likesService.makeKey(contentType, contentId);
+    const flightKey = `${contentType}:${contentId}:${userKey}`;
 
-    let newLiked = !alreadyLiked;
-    let updatedIds: string[];
-    let newCount: number;
-
-    const storedCount = getAllStoredCounts()[key];
-    const baseCount = typeof storedCount === 'number' ? storedCount : currentCount;
-
-    if (alreadyLiked) {
-      // Unlike
-      updatedIds = likedIds.filter(id => id !== contentId);
-      newCount = Math.max(0, baseCount - 1);
-    } else {
-      // Like
-      updatedIds = [...likedIds, contentId];
-      newCount = baseCount + 1;
+    // Prevent concurrent double-invocations on the exact same item
+    if (inFlightToggles.has(flightKey)) {
+      const isLiked = likesService.isLiked(contentType, contentId, userId, userEmail);
+      const count = likesService.getLikeCount(contentType, contentId, currentCount);
+      return { isLiked, count };
     }
 
-    setLocalLikedIds(contentType, userKey, updatedIds);
-    setStoredCount(key, newCount);
+    inFlightToggles.add(flightKey);
 
-    // Broadcast local event for immediate reactivity
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent(LIKE_CHANGED_EVENT, {
-        detail: { contentType, contentId, isLiked: newLiked, count: newCount }
-      }));
-    }
-
-    // Background sync with Supabase
     try {
-      if (newLiked) {
-        await supabase.from('content_likes').insert({
-          content_type: contentType,
-          content_id: contentId,
-          user_id: userId || null,
-          user_identifier: userKey
-        });
+      const likedIds = getLocalLikedIds(contentType, userKey);
+      const alreadyLiked = likedIds.includes(contentId);
+      const key = likesService.makeKey(contentType, contentId);
 
-        // Also increment parent table like counts where supported
-        if (contentType === 'post' || contentType === 'news') {
-          await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
-        }
+      const newLiked = !alreadyLiked;
+      let updatedIds: string[];
+      let newCount: number;
+
+      const storedCount = getAllStoredCounts()[key];
+      const baseCount = typeof storedCount === 'number' ? storedCount : currentCount;
+
+      if (alreadyLiked) {
+        // Unlike: strictly remove and decrement
+        updatedIds = likedIds.filter(id => id !== contentId);
+        newCount = Math.max(0, baseCount - 1);
       } else {
-        await supabase
-          .from('content_likes')
-          .delete()
-          .match({ content_type: contentType, content_id: contentId, user_identifier: userKey });
-
-        if (contentType === 'post' || contentType === 'news') {
-          await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
-        }
+        // Like: strictly add and increment (deduplicating)
+        updatedIds = Array.from(new Set([...likedIds, contentId]));
+        newCount = baseCount + 1;
       }
-    } catch {
-      // Safe fallback - local storage handles offline/unauthenticated state
-    }
 
-    return { isLiked: newLiked, count: newCount };
+      setLocalLikedIds(contentType, userKey, updatedIds);
+      setStoredCount(key, newCount);
+
+      // Broadcast local event for immediate reactivity
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(LIKE_CHANGED_EVENT, {
+          detail: { contentType, contentId, isLiked: newLiked, count: newCount }
+        }));
+      }
+
+      // Background sync with Supabase
+      try {
+        if (newLiked) {
+          // Check if already in DB before insert to prevent duplicate rows
+          const { data: existing } = await supabase
+            .from('content_likes')
+            .select('id')
+            .eq('content_type', contentType)
+            .eq('content_id', contentId)
+            .eq('user_identifier', userKey)
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from('content_likes').insert({
+              content_type: contentType,
+              content_id: contentId,
+              user_id: userId || null,
+              user_identifier: userKey
+            });
+          }
+
+          // Also increment parent table like counts where supported
+          if (contentType === 'post' || contentType === 'news') {
+            await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
+          }
+        } else {
+          await supabase
+            .from('content_likes')
+            .delete()
+            .match({ content_type: contentType, content_id: contentId, user_identifier: userKey });
+
+          if (contentType === 'post' || contentType === 'news') {
+            await supabase.from('organization_posts').update({ likes_count: newCount }).eq('id', contentId);
+          }
+        }
+      } catch {
+        // Safe fallback - local storage handles offline/unauthenticated state
+      }
+
+      return { isLiked: newLiked, count: newCount };
+    } finally {
+      inFlightToggles.delete(flightKey);
+    }
   },
 
   subscribeToLikes: (callback: (detail: { contentType: ContentLikeType; contentId: string; isLiked: boolean; count: number }) => void) => {
@@ -154,6 +185,30 @@ export const likesService = {
     };
     window.addEventListener(LIKE_CHANGED_EVENT, handler);
     return () => window.removeEventListener(LIKE_CHANGED_EVENT, handler);
+  },
+
+  /**
+   * Sync and reconcile current user's liked content with remote DB
+   */
+  syncUserLikes: async (contentType: ContentLikeType, contentIds: string[], userId?: string, userEmail?: string): Promise<void> => {
+    if (!contentIds || contentIds.length === 0) return;
+    const userKey = likesService.getUserKey(userId, userEmail);
+
+    try {
+      const { data, error } = await supabase
+        .from('content_likes')
+        .select('content_id')
+        .eq('content_type', contentType)
+        .eq('user_identifier', userKey)
+        .in('content_id', contentIds);
+
+      if (!error && data) {
+        const remoteLikedIds = data.map(r => r.content_id);
+        const localLikedIds = getLocalLikedIds(contentType, userKey);
+        const merged = Array.from(new Set([...localLikedIds, ...remoteLikedIds]));
+        setLocalLikedIds(contentType, userKey, merged);
+      }
+    } catch {}
   }
 };
 

@@ -66,6 +66,12 @@ export default function Posts() {
       setPosts(hydratedPosts);
       setLikedPosts(liked);
       setConfig(broadcastConfig);
+
+      // Background reconcile with Supabase likes table
+      likesService.syncUserLikes('post', allPosts.map(p => p.id), profile?.id, profile?.email).then(() => {
+        const recheck = allPosts.filter(p => likesService.isLiked('post', p.id, profile?.id, profile?.email)).map(p => p.id);
+        setLikedPosts(recheck);
+      });
     } catch (e) {
       console.warn('Posts fetch warning:', e);
     } finally {
