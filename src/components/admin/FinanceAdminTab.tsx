@@ -164,8 +164,67 @@ export default function FinanceAdminTab() {
         .in('role', ['mentor', 'employee', 'trainer', 'coach', 'educator', 'admin', 'volunteer'])
         .order('display_name', { ascending: true });
 
-      if (profilesData && profilesData.length > 0) {
-        setPersonnel(profilesData);
+      // Fetch verified reviews from mentor_reviews to compute real ratings
+      const { data: allReviews } = await supabase
+        .from('mentor_reviews')
+        .select('mentor_id, rating');
+
+      // Fetch mentorship requests to compute real completed/accepted sessions
+      const { data: allRequests } = await supabase
+        .from('mentorship_requests')
+        .select('mentor_id, status')
+        .in('status', ['accepted', 'completed', 'scheduled', 'in_progress']);
+
+      // Fetch logged sessions
+      const { data: allSessionLogs } = await supabase
+        .from('mentor_session_logs')
+        .select('mentor_id, amount');
+
+      const rawSessionLogs = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('yara_mentor_session_logs') || '[]');
+        } catch {
+          return [];
+        }
+      })();
+
+      const enrichedProfiles = (profilesData || []).map((person: any) => {
+        const pReviews = (allReviews || []).filter((r: any) => r.mentor_id === person.id);
+        const reviewCount = pReviews.length;
+        const avgRating = reviewCount > 0
+          ? (pReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0) / reviewCount).toFixed(1)
+          : null;
+
+        const pRequests = (allRequests || []).filter((r: any) => r.mentor_id === person.id);
+        const pDbLogs = (allSessionLogs || []).filter((l: any) => l.mentor_id === person.id);
+        const pLocalLogs = rawSessionLogs.filter((l: any) => l.mentor_id === person.id);
+        const totalSessions = Math.max(
+          pRequests.length,
+          pDbLogs.length,
+          pLocalLogs.length,
+          Number(person.mentored_count) || 0
+        );
+
+        const personSlips = slips.filter((s: any) =>
+          s.recipient_id === person.id ||
+          (s.recipient_email && s.recipient_email.toLowerCase() === person.email?.toLowerCase()) ||
+          (s.recipient_name && s.recipient_name.toLowerCase() === person.display_name?.toLowerCase())
+        );
+        const slipTotal = personSlips.reduce((sum: number, s: any) => sum + (Number(s.net_amount) || Number(s.base_amount) || 0), 0);
+        const sessionLogTotal = [...pDbLogs, ...pLocalLogs].reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0);
+        const realCommission = Math.max(slipTotal, sessionLogTotal, Number(person.total_commission) || 0);
+
+        return {
+          ...person,
+          rating: avgRating,
+          review_count: reviewCount,
+          mentored_count: totalSessions,
+          total_commission: realCommission
+        };
+      });
+
+      if (enrichedProfiles.length > 0) {
+        setPersonnel(enrichedProfiles);
       } else {
         // Fallback default mock mentors if empty
         setPersonnel([
@@ -175,9 +234,10 @@ export default function FinanceAdminTab() {
             email: 'tinashe@yara.org',
             role: 'mentor',
             member_id: 'YARA-2026-M01',
-            mentored_count: 14,
-            rating: '4.9',
-            total_commission: 150
+            mentored_count: 0,
+            rating: null,
+            review_count: 0,
+            total_commission: 0
           },
           {
             id: 'm-2',
@@ -185,9 +245,10 @@ export default function FinanceAdminTab() {
             email: 'farai.trainer@yara.org',
             role: 'trainer',
             member_id: 'YARA-2026-TR02',
-            mentored_count: 18,
-            rating: '5.0',
-            total_commission: 180
+            mentored_count: 0,
+            rating: null,
+            review_count: 0,
+            total_commission: 0
           },
           {
             id: 'm-3',
@@ -195,9 +256,10 @@ export default function FinanceAdminTab() {
             email: 'nyasha.emp@yara.org',
             role: 'employee',
             member_id: 'YARA-2026-EMP03',
-            mentored_count: 22,
-            rating: '4.8',
-            total_commission: 250
+            mentored_count: 0,
+            rating: null,
+            review_count: 0,
+            total_commission: 0
           }
         ]);
       }
@@ -712,16 +774,33 @@ export default function FinanceAdminTab() {
                     </td>
 
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-1 text-slate-700 font-bold">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span>{person.rating || '5.0'}</span>
-                        <span className="text-slate-400 font-normal ml-1">({person.mentored_count || 10} sessions)</span>
-                      </div>
+                      {person.rating && person.review_count > 0 ? (
+                        <div className="flex items-center space-x-1 text-slate-700 font-bold">
+                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                          <span>{person.rating}</span>
+                          <span className="text-slate-400 font-normal ml-1">
+                            ({person.review_count} {person.review_count === 1 ? 'review' : 'reviews'})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 font-medium text-xs bg-slate-100 px-2 py-0.5 rounded-md inline-block">
+                          Unrated (0 reviews)
+                        </span>
+                      )}
+                      {person.mentored_count > 0 ? (
+                        <span className="text-slate-500 text-xs block mt-0.5 font-normal">
+                          {person.mentored_count} {person.mentored_count === 1 ? 'session' : 'sessions'}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-xs block mt-0.5 font-normal">
+                          0 sessions
+                        </span>
+                      )}
                     </td>
 
                     <td className="px-6 py-4">
                       <span className="font-black text-emerald-600 text-sm">
-                        ${person.total_commission || (person.role === 'employee' ? 200 : person.role === 'trainer' ? 120 : 100)}.00
+                        ${Number(person.total_commission || 0).toFixed(2)}
                       </span>
                     </td>
 

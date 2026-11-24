@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
+import { stipendService } from '../services/stipendService';
 import {
   Users,
   Search,
@@ -39,7 +40,7 @@ import {
   UserX,
   ArrowRight
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ASSETS } from '../constants/assets';
@@ -164,6 +165,130 @@ export default function Mentorship() {
   const [meetingLinks, setMeetingLinks] = useState<Record<string, string>>({});
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Dynamic Live Mentor Stats (dynamically computed from sessions, requests, reviews and slips)
+  const [mentorStats, setMentorStats] = useState<{
+    mentoredCount: number;
+    commission: string;
+    rating: string;
+    reviewCount: number;
+  }>({
+    mentoredCount: 0,
+    commission: '0.00',
+    rating: '0.0',
+    reviewCount: 0
+  });
+
+  const computeMentorStats = useCallback(async () => {
+    if (!user) return;
+    try {
+      // 1. Fetch real reviews for this mentor from mentor_reviews
+      const { data: revsData } = await supabase
+        .from('mentor_reviews')
+        .select('*')
+        .eq('mentor_id', user.id);
+
+      const revList = revsData || [];
+      const reviewCount = revList.length;
+      let calculatedRating = '0.0';
+      if (reviewCount > 0) {
+        const totalRating = revList.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0);
+        calculatedRating = (totalRating / reviewCount).toFixed(1);
+      }
+
+      // 2. Fetch completed/accepted requests for this mentor
+      const acceptedOrCompleted = requests.filter(r => 
+        (r.mentor_id === user.id || r.mentor_id === profile?.id) &&
+        ['accepted', 'completed', 'scheduled', 'in_progress'].includes(r.status)
+      );
+      const uniqueRequesters = new Set(
+        acceptedOrCompleted.map(r => r.requester_id || r.requester_name).filter(Boolean)
+      );
+
+      // 3. Fetch logged sessions from mentor_session_logs & localStorage
+      let sessionLogs: any[] = [];
+      try {
+        const { data: dbLogs } = await supabase
+          .from('mentor_session_logs')
+          .select('*')
+          .eq('mentor_id', user.id);
+        if (dbLogs) sessionLogs = dbLogs;
+      } catch {}
+
+      try {
+        const rawLocal = localStorage.getItem('yara_mentor_session_logs');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          const userLocalLogs = parsed.filter((l: any) => l.mentor_id === user.id);
+          const existingIds = new Set(sessionLogs.map(l => l.id));
+          userLocalLogs.forEach((l: any) => {
+            if (!existingIds.has(l.id)) sessionLogs.push(l);
+          });
+        }
+      } catch {}
+
+      // 4. Fetch stipend slips received by this mentor
+      let slips: any[] = [];
+      try {
+        slips = await stipendService.getStipendsForUser(user.id, user.email, profile?.display_name);
+      } catch {}
+
+      const slipTotal = slips.reduce((sum: number, s: any) => sum + (Number(s.net_amount) || Number(s.base_amount) || 0), 0);
+      const sessionTotal = sessionLogs.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+      
+      const computedCommission = Math.max(
+        slipTotal,
+        sessionTotal,
+        parseFloat(String(profile?.total_commission || '0'))
+      );
+
+      const totalStudents = Math.max(
+        uniqueRequesters.size,
+        acceptedOrCompleted.length,
+        sessionLogs.length,
+        Number(profile?.mentored_count) || 0
+      );
+
+      const finalStats = {
+        mentoredCount: totalStudents,
+        commission: computedCommission.toFixed(2),
+        rating: reviewCount > 0 ? calculatedRating : (profile?.rating ? Number(profile.rating).toFixed(1) : '0.0'),
+        reviewCount: reviewCount
+      };
+
+      setMentorStats(finalStats);
+
+      // Keep Supabase profiles table in sync so other views also see fresh numbers
+      if (
+        profile && (
+          profile.mentored_count !== totalStudents ||
+          Math.abs(Number(profile.total_commission || 0) - computedCommission) > 0.01 ||
+          (reviewCount > 0 && String(profile.rating) !== calculatedRating)
+        )
+      ) {
+        supabase
+          .from('profiles')
+          .update({
+            mentored_count: totalStudents,
+            total_commission: computedCommission,
+            rating: reviewCount > 0 ? parseFloat(calculatedRating) : (profile.rating || 0),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+          .then(() => {
+            if (refreshProfile) refreshProfile().catch(() => {});
+          });
+      }
+    } catch (err) {
+      console.warn('Error computing mentor dynamic stats:', err);
+    }
+  }, [user, profile, requests, refreshProfile]);
+
+  useEffect(() => {
+    if (profile?.role === 'mentor' && user) {
+      computeMentorStats();
+    }
+  }, [user, profile, requests, computeMentorStats]);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -799,6 +924,27 @@ Possible causes:
         console.warn('DB error inserting review, continuing with local update:', error);
       }
 
+      // Recompute target mentor's real rating in profiles table
+      try {
+        const { data: mReviews } = await supabase
+          .from('mentor_reviews')
+          .select('rating')
+          .eq('mentor_id', isReviewing.mentor_id);
+        if (mReviews && mReviews.length > 0) {
+          const avg = Number((mReviews.reduce((sum: number, r: any) => sum + Number(r.rating || 5), 0) / mReviews.length).toFixed(1));
+          await supabase
+            .from('profiles')
+            .update({ rating: avg, updated_at: new Date().toISOString() })
+            .eq('id', isReviewing.mentor_id);
+        }
+      } catch (rErr) {
+        console.warn('Notice updating mentor rating profile:', rErr);
+      }
+
+      if (profile?.role === 'mentor' && isReviewing.mentor_id === user?.id) {
+        computeMentorStats();
+      }
+
       // Re-fetch mentor records to update real rating and review counts live
       try {
         const { data: mentorsData } = await supabase
@@ -947,8 +1093,8 @@ Possible causes:
       }
 
       // 4. Update profile stats: mentored_count and total_commission
-      const currentCount = profile?.mentored_count || 0;
-      const currentCommission = parseFloat(String(profile?.total_commission || '0'));
+      const currentCount = mentorStats.mentoredCount || profile?.mentored_count || 0;
+      const currentCommission = parseFloat(mentorStats.commission || String(profile?.total_commission || '0'));
       const newCount = currentCount + 1;
       const newCommission = parseFloat((currentCommission + amountVal).toFixed(2));
 
@@ -957,6 +1103,13 @@ Possible causes:
         total_commission: newCommission,
         updated_at: new Date().toISOString()
       }).eq('id', user.id);
+
+      // Immediately update local mentorStats state!
+      setMentorStats(prev => ({
+        ...prev,
+        mentoredCount: newCount,
+        commission: newCommission.toFixed(2)
+      }));
 
       if (refreshProfile) {
         await refreshProfile();
@@ -1129,7 +1282,7 @@ Possible causes:
             </div>
             <div>
               <h3 className="text-2xl font-bold">Mentor Dashboard</h3>
-              <p className="text-indigo-100 font-medium">You've mentored {profile.mentored_count || 0} students total.</p>
+              <p className="text-indigo-100 font-medium">You've mentored {mentorStats.mentoredCount} {mentorStats.mentoredCount === 1 ? 'student' : 'students'} total.</p>
             </div>
           </div>
           <div className="flex flex-col items-end space-y-4">
@@ -1138,7 +1291,7 @@ Possible causes:
                 <p className="text-xs font-bold uppercase tracking-widest opacity-70">Commission</p>
                 <p className="text-2xl font-bold flex items-center justify-center">
                   <DollarSign className="w-5 h-5 mr-1" />
-                  {profile.total_commission || '0.00'}
+                  {mentorStats.commission}
                 </p>
               </div>
               <div className="w-px h-10 bg-white/20 hidden md:block" />
@@ -1146,17 +1299,28 @@ Possible causes:
                 <p className="text-xs font-bold uppercase tracking-widest opacity-70">Rating</p>
                 <p className="text-2xl font-bold flex items-center justify-center">
                   <Star className="w-5 h-5 mr-1 fill-white" />
-                  {profile.rating || '0.0'}
+                  {mentorStats.rating}
                 </p>
+                <span className="text-[10px] text-indigo-200 block">
+                  {mentorStats.reviewCount > 0 ? `(${mentorStats.reviewCount} ${mentorStats.reviewCount === 1 ? 'review' : 'reviews'})` : '(0 reviews)'}
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => openLogSessionModal()}
-              className="bg-white text-indigo-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Log Session & Commission</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/profile"
+                className="bg-indigo-700/80 hover:bg-indigo-700 text-white border border-indigo-300/30 px-4 py-2.5 rounded-xl font-semibold transition-colors text-sm flex items-center gap-2 cursor-pointer shadow-sm"
+              >
+                <span>Edit Bio &amp; Skills</span>
+              </Link>
+              <button
+                onClick={() => openLogSessionModal()}
+                className="bg-white text-indigo-600 px-6 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Log Session &amp; Commission</span>
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -1375,14 +1539,22 @@ Possible causes:
                         <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                           {mentor.display_name}
                         </h4>
-                        <p className="text-xs font-bold text-indigo-600 mt-1 line-clamp-1">
-                          {mentor.title || 'Accredited YARA Mentor'}
-                        </p>
+                        {mentor.title && (
+                          <p className="text-xs font-bold text-indigo-600 mt-1 line-clamp-1">
+                            {mentor.title}
+                          </p>
+                        )}
                       </div>
 
-                      <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
-                        {mentor.bio || "Dedicated robotics & automation engineer passionate about developing student technical mastery."}
-                      </p>
+                      {mentor.bio ? (
+                        <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
+                          {mentor.bio}
+                        </p>
+                      ) : (
+                        <p className="text-slate-400 text-xs italic">
+                          No bio provided yet.
+                        </p>
+                      )}
 
                       {/* Registered Skills & Strengths */}
                       {(() => {
