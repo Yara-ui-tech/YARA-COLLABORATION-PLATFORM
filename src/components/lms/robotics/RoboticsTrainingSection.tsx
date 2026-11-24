@@ -26,7 +26,8 @@ import {
   Download,
   AlertCircle,
   HelpCircle,
-  Package
+  Package,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
 import { 
