@@ -127,27 +127,6 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
     }
   };
 
-  const handleSimulateAllLevels = () => {
-    // Allows testing/admin fast-track
-    roboticsTrainingService.setUserCompletedLevels(userId, [...CORE_ROBOTICS_LEVEL_IDS]);
-    setEligibility({
-      isEligible: true,
-      completedLevels: [...CORE_ROBOTICS_LEVEL_IDS],
-      missingLevels: [],
-      totalCompleted: 4
-    });
-  };
-
-  const handleResetLevels = () => {
-    roboticsTrainingService.setUserCompletedLevels(userId, ['level_1_explorer']);
-    setEligibility({
-      isEligible: false,
-      completedLevels: ['level_1_explorer'],
-      missingLevels: ['level_2_junior', 'level_3_secondary', 'level_4_advanced'],
-      totalCompleted: 1
-    });
-  };
-
   const handleSelectOption = (questionId: string, optionIndex: number) => {
     setAnswers(prev => ({
       ...prev,
@@ -413,30 +392,6 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
                 })}
               </div>
 
-              {/* Developer / Admin Test Simulation Controls */}
-              <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <span className="font-bold text-slate-900 block">Candidate Testing &amp; Simulation Controls</span>
-                  <p className="text-[11px] text-slate-500">
-                    Admins and mentors can fast-track or toggle completion status to inspect the full Trainer exam and credential generation pipeline.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={handleSimulateAllLevels}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition cursor-pointer"
-                  >
-                    Simulate All 4 Levels Completed
-                  </button>
-                  <button
-                    onClick={handleResetLevels}
-                    className="px-3 py-1.5 rounded-xl bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold text-[11px] transition cursor-pointer"
-                  >
-                    Reset to 1 Level
-                  </button>
-                </div>
-              </div>
-
               {/* Action Button */}
               <div className="pt-2 flex justify-end">
                 {eligibility.isEligible ? (
@@ -450,7 +405,7 @@ export const RoboticsTrainerExamModal: React.FC<Props> = ({
                 ) : (
                   <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs font-bold">
                     <Lock className="w-4 h-4 shrink-0" />
-                    <span>Complete all 4 robotics levels first or use the simulation control above to unlock.</span>
+                    <span>Complete all 4 foundational robotics levels (Explorer, Junior, Secondary, and Advanced) to unlock this examination.</span>
                   </div>
                 )}
               </div>
