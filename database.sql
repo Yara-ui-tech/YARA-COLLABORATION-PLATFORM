@@ -6367,5 +6367,48 @@ CREATE POLICY "Public view content likes" ON public.content_likes FOR SELECT USI
 DROP POLICY IF EXISTS "Public delete own content likes" ON public.content_likes;
 CREATE POLICY "Public delete own content likes" ON public.content_likes FOR DELETE USING (true);
 
+-- ==============================================================================
+-- 2026-11-24: NPO STIPEND DISBURSEMENTS & RECORD KEEPING
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.stipend_slips (
+  id TEXT PRIMARY KEY, -- e.g. STP-2026-XXXX
+  recipient_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  recipient_name TEXT NOT NULL,
+  recipient_email TEXT,
+  recipient_phone TEXT,
+  recipient_role TEXT NOT NULL, -- 'mentor', 'employee', 'trainer', 'coach', 'judge', 'volunteer'
+  member_id TEXT,
+  currency TEXT DEFAULT 'USD',
+  base_stipend NUMERIC(10,2) NOT NULL DEFAULT 0,
+  allowance_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  travel_subsistence_ts NUMERIC(10,2) NOT NULL DEFAULT 0,
+  gross_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  withholding_deductions NUMERIC(10,2) NOT NULL DEFAULT 0,
+  net_amount_received NUMERIC(10,2) NOT NULL,
+  budget_category TEXT NOT NULL DEFAULT 'program_stipends',
+  payment_method TEXT NOT NULL DEFAULT 'mobile_money',
+  payment_reference TEXT NOT NULL,
+  disbursement_date DATE DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL DEFAULT 'completed',
+  approved_by_admin TEXT NOT NULL DEFAULT 'YARA Treasury',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stipend_slips_recipient ON public.stipend_slips (recipient_id);
+CREATE INDEX IF NOT EXISTS idx_stipend_slips_date ON public.stipend_slips (disbursement_date);
+
+ALTER TABLE public.stipend_slips ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public insert stipend slips" ON public.stipend_slips;
+CREATE POLICY "Public insert stipend slips" ON public.stipend_slips FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Recipient and admin view stipend slips" ON public.stipend_slips;
+CREATE POLICY "Recipient and admin view stipend slips" ON public.stipend_slips FOR SELECT USING (
+  auth.uid() IS NULL 
+  OR auth.uid() = recipient_id 
+  OR public.is_admin()
+);
+
 
 

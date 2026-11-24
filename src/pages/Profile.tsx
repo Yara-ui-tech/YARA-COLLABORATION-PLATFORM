@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut, Building2, MapPin, HeartHandshake, Globe } from 'lucide-react';
+import { User, Mail, Briefcase, Award, Settings, Save, Loader2, CheckCircle2, XCircle, Clock, Plus, X, Camera, CreditCard, ShieldCheck, LogOut, Building2, MapPin, HeartHandshake, Globe, Download, Printer, FileText } from 'lucide-react';
 import { ASSETS } from '../constants/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { AFRICAN_COUNTRIES, ZIMBABWE_PROVINCES, ZIMBABWE_PROVINCES_LIST, POPULAR_ZIMBABWE_SCHOOLS } from '../constants/locationsData';
+import { StipendSlip } from '../types/stipends';
+import { stipendService } from '../services/stipendService';
+import { downloadStipendSlipPdf, printStipendSlip } from '../utils/stipendSlipPrinter';
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -32,6 +35,8 @@ export default function Profile() {
   });
   const [newSkill, setNewSkill] = useState('');
   const [newInterest, setNewInterest] = useState('');
+  const [myStipendSlips, setMyStipendSlips] = useState<StipendSlip[]>([]);
+  const [selectedSlip, setSelectedSlip] = useState<StipendSlip | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -53,6 +58,20 @@ export default function Profile() {
         location_region: profile.location_region || '',
         disability_type: profile.disability_type || 'none',
       });
+
+      // Load user's official stipend slips (mentors, employees, trainers, coaches, etc.)
+      const loadSlips = async () => {
+        try {
+          const allSlips = await stipendService.getAllStipends();
+          const mine = allSlips.filter(s => 
+            (s.recipient_id && s.recipient_id === profile.id) || 
+            (s.recipient_email && profile.email && s.recipient_email.toLowerCase() === profile.email.toLowerCase()) ||
+            (profile.display_name && s.recipient_name.toLowerCase() === profile.display_name.toLowerCase())
+          );
+          setMyStipendSlips(mine);
+        } catch {}
+      };
+      loadSlips();
     }
   }, [profile]);
 
@@ -696,6 +715,87 @@ Possible causes:
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* Official Stipend & Compensation Slips (For Mentors, Employees, Trainers, Coaches) */}
+          <section className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight flex items-center space-x-3">
+                  <CreditCard className="w-5 h-5 text-emerald-600" />
+                  <span>Official Stipend &amp; Compensation Slips</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Computerized NPO stipend slips with payment references, allowances, and T&amp;S for your records.
+                </p>
+              </div>
+
+              {myStipendSlips.length > 0 && (
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200">
+                  {myStipendSlips.length} Verified Payment {myStipendSlips.length === 1 ? 'Slip' : 'Slips'}
+                </span>
+              )}
+            </div>
+
+            {myStipendSlips.length === 0 ? (
+              <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center space-y-2">
+                <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-700">No Disbursed Stipend Slips Found</p>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  When an administrator authorizes your mentorship, coaching, training, or employee stipend in the admin console, your official receipt slip will appear here for download.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-wider border-b border-slate-100">
+                      <th className="py-3 px-4">Slip Ref</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Breakdown</th>
+                      <th className="py-3 px-4">Amount Received</th>
+                      <th className="py-3 px-4">Transaction Ref</th>
+                      <th className="py-3 px-4 text-right">Download</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {myStipendSlips.map(slip => (
+                      <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.id}</td>
+                        <td className="py-3 px-4 text-slate-600">{slip.disbursement_date}</td>
+                        <td className="py-3 px-4 text-slate-600">
+                          Base: ${Number(slip.base_stipend).toFixed(2)} | Allowances: ${Number(slip.allowance_amount).toFixed(2)} | T&amp;S: ${Number(slip.travel_subsistence_ts).toFixed(2)}
+                        </td>
+                        <td className="py-3 px-4 font-black text-emerald-600 text-sm">
+                          ${Number(slip.net_amount_received).toFixed(2)} {slip.currency}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-slate-500">{slip.payment_reference}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => printStipendSlip(slip)}
+                              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
+                              title="Print Slip"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadStipendSlipPdf(slip)}
+                              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-all"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>PDF</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </div>
       </div>
