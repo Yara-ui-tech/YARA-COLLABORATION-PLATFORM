@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { StipendSlip } from '../types/stipends';
+import { YARA_LOGO_BASE64 } from '../constants/yaraLogoBase64';
 
 /**
  * Format currency nicely
@@ -78,18 +79,23 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
       gap: 16px;
     }
     .logo-badge {
-      width: 48px;
-      height: 48px;
-      background: #2563eb;
-      color: #ffffff;
-      font-size: 22px;
-      font-weight: 900;
-      border-radius: 8px;
+      width: 54px;
+      height: 54px;
+      background: #ffffff;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      letter-spacing: -0.05em;
-      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      border: 2px solid #2563eb;
+      padding: 2px;
+    }
+    .logo-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
     }
     .org-details h1 {
       font-size: 16px;
@@ -354,7 +360,9 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
     <!-- Corporate Header -->
     <div class="corp-header">
       <div class="org-brand">
-        <div class="logo-badge">Y</div>
+        <div class="logo-badge">
+          <img src="${YARA_LOGO_BASE64}" alt="YARA Official Logo" />
+        </div>
         <div class="org-details">
           <h1>Young Africans Robotics Association</h1>
           <p>Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR</p>
@@ -562,26 +570,30 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
   doc.setFillColor(37, 99, 235);
   doc.rect(0, 36, 210, 1.5, 'F');
 
-  // Logo Icon Box
-  doc.setFillColor(37, 99, 235);
-  doc.roundedRect(14, 8, 12, 12, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Y', 17.5, 17);
+  // Logo Icon / Official Circular Badge
+  try {
+    doc.addImage(YARA_LOGO_BASE64, 'PNG', 14, 6.5, 23, 23);
+  } catch (imgErr) {
+    doc.setFillColor(37, 99, 235);
+    doc.roundedRect(14, 8, 12, 12, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Y', 17.5, 17);
+  }
 
   // Organization Title
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION', 30, 14);
+  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION', 41, 14);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(147, 197, 253);
-  doc.text('Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR', 30, 19.5);
+  doc.text('Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR', 41, 19.5);
   doc.setTextColor(203, 213, 225);
-  doc.text('Directorate of Treasury & Financial Accountability • Harare & Chinhoyi Hubs', 30, 24.5);
+  doc.text('Directorate of Treasury & Financial Accountability • Harare & Chinhoyi Hubs', 41, 24.5);
 
   // Right-aligned Document Title
   doc.setFontSize(12);

@@ -116,6 +116,53 @@ export const stipendService = {
   },
 
   /**
+   * Update or edit an existing stipend slip (all fields editable by admin)
+   */
+  updateStipendSlip: async (updatedSlip: StipendSlip): Promise<StipendSlip> => {
+    // 1. Update local cache
+    const existing = await stipendService.getAllStipends();
+    const updated = existing.map(s => s.id === updatedSlip.id ? updatedSlip : s);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    // 2. Update Supabase
+    try {
+      await supabase
+        .from('stipend_slips')
+        .upsert(updatedSlip);
+    } catch (e) {
+      console.warn('Note updating stipend_slips in DB:', e);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('yara_stipend_disbursed', { detail: updatedSlip }));
+    }
+
+    return updatedSlip;
+  },
+
+  /**
+   * Delete a stipend slip
+   */
+  deleteStipendSlip: async (slipId: string): Promise<boolean> => {
+    const existing = await stipendService.getAllStipends();
+    const updated = existing.filter(s => s.id !== slipId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    try {
+      await supabase
+        .from('stipend_slips')
+        .delete()
+        .eq('id', slipId);
+    } catch {}
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('yara_stipend_disbursed', { detail: { id: slipId, deleted: true } }));
+    }
+
+    return true;
+  },
+
+  /**
    * Load NPO Budget Percentages configuration
    */
   getBudgetPercentages: async (): Promise<NpoBudgetPercentages> => {
