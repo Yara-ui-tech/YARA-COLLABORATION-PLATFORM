@@ -2,15 +2,26 @@ import jsPDF from 'jspdf';
 import { StipendSlip } from '../types/stipends';
 
 /**
- * Clean printable HTML document for official NPO stipend disbursement slip
+ * Format currency nicely
+ */
+function fmt(amount: number | string): string {
+  return Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Clean printable HTML document for official corporate NPO stipend disbursement payslip
  */
 export function generateStipendSlipHtml(slip: StipendSlip): string {
+  const gross = Number(slip.gross_amount) || (Number(slip.base_stipend) + Number(slip.allowance_amount) + Number(slip.travel_subsistence_ts));
+  const deductions = Number(slip.withholding_deductions) || 0;
+  const net = Number(slip.net_amount_received) || (gross - deductions);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YARA Official Stipend Disbursement Slip - ${slip.id}</title>
+  <title>YARA Confidential Payslip - ${slip.id}</title>
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -19,31 +30,31 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #0f172a;
-      background-color: #f8fafc;
-      padding: 24px;
-      line-height: 1.5;
+      color: #1e293b;
+      background-color: #f1f5f9;
+      padding: 32px 16px;
+      line-height: 1.45;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    .slip-box {
-      max-width: 720px;
+    .payslip-wrapper {
+      max-width: 820px;
       margin: 0 auto;
       background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 36px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
     }
     @media print {
       body {
         padding: 0;
         background: transparent;
       }
-      .slip-box {
-        border: none;
+      .payslip-wrapper {
+        border: 1px solid #94a3b8;
         box-shadow: none;
-        padding: 12px;
+        border-radius: 0;
         max-width: 100%;
       }
       @page {
@@ -51,233 +62,477 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
         margin: 10mm;
       }
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 2px solid #0f172a;
-      padding-bottom: 20px;
-      margin-bottom: 20px;
-    }
-    .org-title {
-      font-size: 15px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #0f172a;
-    }
-    .org-sub {
-      font-size: 11px;
-      font-weight: 700;
-      color: #2563eb;
-    }
-    .motto {
-      font-size: 10px;
-      font-style: italic;
-      color: #64748b;
-      margin-top: 2px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      background: #ecfdf5;
-      color: #059669;
-      border: 1px solid #a7f3d0;
-      border-radius: 9999px;
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .slip-title {
-      font-size: 18px;
-      font-weight: 800;
-      color: #0f172a;
-      margin-bottom: 4px;
-    }
-    .ref-meta {
-      font-size: 11px;
-      color: #64748b;
-      margin-bottom: 20px;
-    }
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .info-card {
-      background: #f8fafc;
-      border: 1px solid #f1f5f9;
-      border-radius: 12px;
-      padding: 14px;
-    }
-    .info-label {
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-    .info-val {
-      font-size: 13px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-    .info-val-sub {
-      font-size: 11px;
-      color: #475569;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 24px;
-    }
-    th {
-      text-align: left;
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #475569;
-      background: #f1f5f9;
-      padding: 10px 14px;
-      border-top: 1px solid #e2e8f0;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    td {
-      padding: 12px 14px;
-      font-size: 12px;
-      border-bottom: 1px solid #f1f5f9;
-      color: #334155;
-    }
-    .amount-col {
-      text-align: right;
-      font-weight: 700;
-      color: #0f172a;
-    }
-    .total-row td {
-      border-top: 2px solid #e2e8f0;
-      border-bottom: 2px solid #0f172a;
-      font-weight: 900;
-      font-size: 14px;
-      background: #faf5ff;
-      color: #6b21a8;
-    }
-    .audit-footer {
-      border-top: 1px dashed #cbd5e1;
-      padding-top: 16px;
-      font-size: 10px;
-      color: #64748b;
+    /* Top Corporate Header */
+    .corp-header {
+      background: linear-gradient(135deg, #09152e 0%, #112347 100%);
+      color: #ffffff;
+      padding: 24px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 3px solid #2563eb;
     }
-    .seal-box {
-      border: 2px solid #3b82f6;
+    .org-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-badge {
+      width: 48px;
+      height: 48px;
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 900;
       border-radius: 8px;
-      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: -0.05em;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    }
+    .org-details h1 {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+    .org-details p {
+      font-size: 11px;
+      color: #93c5fd;
+      font-weight: 500;
+    }
+    .doc-type-box {
+      text-align: right;
+    }
+    .doc-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+    .doc-subtitle {
+      font-size: 11px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    .confidential-tag {
+      display: inline-block;
+      margin-top: 4px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* Content Body */
+    .slip-body {
+      padding: 28px 32px;
+    }
+
+    /* Employee & Pay Details Two-Column Bar */
+    .employee-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #f8fafc;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .panel-col {
+      padding: 16px 20px;
+    }
+    .panel-col:first-child {
+      border-right: 1px solid #e2e8f0;
+    }
+    .panel-col h3 {
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 11.5px;
+    }
+    .data-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .data-val {
+      color: #0f172a;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    /* Corporate Dual-Column Earnings & Deductions Table */
+    .accounting-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .acc-col {
+      display: flex;
+      flex-direction: column;
+    }
+    .acc-col:first-child {
+      border-right: 1px solid #cbd5e1;
+    }
+    .acc-header {
+      background: #f1f5f9;
+      padding: 10px 16px;
+      border-bottom: 1px solid #cbd5e1;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #1e293b;
+      display: flex;
+      justify-content: space-between;
+    }
+    .acc-table {
+      width: 100%;
+      border-collapse: collapse;
+      flex: 1;
+    }
+    .acc-table tr {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .acc-table td {
+      padding: 9px 16px;
+      font-size: 11.5px;
+      color: #334155;
+    }
+    .acc-table td.amount {
+      text-align: right;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+    .acc-subtotal {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* Net Pay Highlight Bar */
+    .net-pay-banner {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+      color: #ffffff;
+      border-radius: 6px;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(49, 46, 129, 0.15);
+    }
+    .net-pay-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #c7d2fe;
+    }
+    .net-pay-inwords {
+      font-size: 10.5px;
+      color: #a5b4fc;
+      margin-top: 2px;
+      font-style: italic;
+    }
+    .net-pay-figure {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #38bdf8;
+    }
+
+    /* Additional Info & NPO Notes */
+    .info-footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .notes-box {
+      background: #fafaf9;
+      border: 1px solid #e7e5e4;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 10.5px;
+      color: #44403c;
+    }
+    .notes-box strong {
+      color: #1c1917;
+      display: block;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.05em;
+    }
+    .audit-seal-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .seal-stamp {
+      border: 2px solid #2563eb;
       color: #1d4ed8;
       font-weight: 900;
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .seal-text {
+      font-size: 9px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    /* Sign-off & Legal Line */
+    .signatures-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      padding-top: 20px;
+      border-top: 1px dashed #cbd5e1;
+      margin-bottom: 16px;
+    }
+    .sig-line {
+      border-top: 1px solid #475569;
+      margin-top: 36px;
+      padding-top: 4px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .legal-disclaimer {
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.4;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 12px;
     }
   </style>
 </head>
 <body>
-  <div class="slip-box">
-    <div class="header">
-      <div>
-        <div class="org-title">Young Africans Robotics Association</div>
-        <div class="org-sub">YARA Non-Profit Organization (NPO / Trust Reg)</div>
-        <div class="motto">"Innovate Local, Build Global" • STEM &amp; Autonomous Robotics Education</div>
+  <div class="payslip-wrapper">
+    <!-- Corporate Header -->
+    <div class="corp-header">
+      <div class="org-brand">
+        <div class="logo-badge">Y</div>
+        <div class="org-details">
+          <h1>Young Africans Robotics Association</h1>
+          <p>Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR</p>
+          <p style="color: #cbd5e1; font-size: 10px; margin-top: 1px;">Harare &amp; Chinhoyi Science Hubs • Directorate of Treasury &amp; Fiscal Compliance</p>
+        </div>
       </div>
-      <div>
-        <span class="badge">Disbursed &amp; Verified</span>
-      </div>
-    </div>
-
-    <div class="slip-title">Official Stipend &amp; Allowance Disbursement Slip</div>
-    <div class="ref-meta">Slip Reference: <strong>${slip.id}</strong> • Transaction Ref: <strong>${slip.payment_reference}</strong> • Date: <strong>${slip.disbursement_date}</strong></div>
-
-    <div class="grid-2">
-      <div class="info-card">
-        <div class="info-label">Recipient Details</div>
-        <div class="info-val">${slip.recipient_name}</div>
-        <div class="info-val-sub">Role: <strong style="text-transform: capitalize;">${slip.recipient_role}</strong> ${slip.member_id ? `• Member ID: ${slip.member_id}` : ''}</div>
-        ${slip.recipient_email ? `<div class="info-val-sub">Email: ${slip.recipient_email}</div>` : ''}
-      </div>
-
-      <div class="info-card">
-        <div class="info-label">Disbursement Method &amp; Allocation</div>
-        <div class="info-val" style="text-transform: capitalize;">${slip.payment_method.replace('_', ' ')}</div>
-        <div class="info-val-sub">NPO Budget Allocation: <strong>${slip.budget_category.replace(/_/g, ' ').toUpperCase()}</strong></div>
-        <div class="info-val-sub">Authorized By: <strong>${slip.approved_by_admin}</strong></div>
+      <div class="doc-type-box">
+        <div class="doc-title">Payslip / Stipend Advice</div>
+        <div class="doc-subtitle">Disbursement Slip #${slip.id}</div>
+        <span class="confidential-tag">Private &amp; Confidential</span>
       </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Disbursement Component / Item Description</th>
-          <th style="text-align: center;">Category</th>
-          <th class="amount-col">Amount (${slip.currency})</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <strong>Core Honorarium / Base Stipend</strong>
-            <div style="font-size: 10px; color: #64748b;">Direct instructional, technical or operational duties completed</div>
-          </td>
-          <td style="text-align: center; font-size: 11px; color: #64748b;">Stipend</td>
-          <td class="amount-col">$${Number(slip.base_stipend).toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td>
-            <strong>Allowances (Prep, Materials &amp; Session Support)</strong>
-            <div style="font-size: 10px; color: #64748b;">Equipment setup, student mentoring prep, and hardware logistics allowance</div>
-          </td>
-          <td style="text-align: center; font-size: 11px; color: #64748b;">Allowance</td>
-          <td class="amount-col">$${Number(slip.allowance_amount).toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td>
-            <strong>Travel &amp; Subsistence (T &amp; S)</strong>
-            <div style="font-size: 10px; color: #64748b;">Travel reimbursements, regional venue transit, meals, and local subsistence</div>
-          </td>
-          <td style="text-align: center; font-size: 11px; color: #64748b;">T &amp; S</td>
-          <td class="amount-col">$${Number(slip.travel_subsistence_ts).toFixed(2)}</td>
-        </tr>
-        ${slip.withholding_deductions > 0 ? `
-        <tr>
-          <td>
-            <strong>Statutory / Administrative Withholding</strong>
-          </td>
-          <td style="text-align: center; font-size: 11px; color: #64748b;">Deduction</td>
-          <td class="amount-col" style="color: #dc2626;">-$${Number(slip.withholding_deductions).toFixed(2)}</td>
-        </tr>` : ''}
-        <tr class="total-row">
-          <td colspan="2">NET AMOUNT RECEIVED &amp; CONFIRMED</td>
-          <td class="amount-col" style="color: #6b21a8; font-size: 16px;">$${Number(slip.net_amount_received).toFixed(2)} ${slip.currency}</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Body -->
+    <div class="slip-body">
+      <!-- Personnel & Pay Advice Details -->
+      <div class="employee-panel">
+        <div class="panel-col">
+          <h3>Payee / Beneficiary Details</h3>
+          <div class="data-row">
+            <span class="data-label">Full Name:</span>
+            <span class="data-val">${slip.recipient_name}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Staff / Member ID:</span>
+            <span class="data-val">${slip.member_id || 'YARA-MEMBER'}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Corporate Designation:</span>
+            <span class="data-val" style="text-transform: capitalize;">${slip.recipient_role}</span>
+          </div>
+          ${slip.recipient_email ? `
+          <div class="data-row">
+            <span class="data-label">Email Address:</span>
+            <span class="data-val">${slip.recipient_email}</span>
+          </div>` : ''}
+          ${slip.recipient_phone ? `
+          <div class="data-row">
+            <span class="data-label">Contact Mobile:</span>
+            <span class="data-val">${slip.recipient_phone}</span>
+          </div>` : ''}
+        </div>
 
-    ${slip.notes ? `
-    <div style="margin-bottom: 20px; padding: 12px; background: #fdf4ff; border-left: 3px solid #a855f7; border-radius: 4px; font-size: 11px; color: #581c87;">
-      <strong>Purpose &amp; Performance Notes:</strong> ${slip.notes}
-    </div>` : ''}
-
-    <div class="audit-footer">
-      <div>
-        <div>This is an official computer-generated NPO stipend payment record.</div>
-        <div>Complies with YARA Fiscal Transparency, Audit Standards &amp; Grant Reporting Protocols.</div>
+        <div class="panel-col">
+          <h3>Payment &amp; Audit Reference</h3>
+          <div class="data-row">
+            <span class="data-label">Disbursement Date:</span>
+            <span class="data-val">${slip.disbursement_date}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Payment Channel:</span>
+            <span class="data-val" style="text-transform: capitalize;">${slip.payment_method.replace('_', ' ')}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Transaction Reference:</span>
+            <span class="data-val" style="font-family: monospace;">${slip.payment_reference}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">NPO Cost Allocation:</span>
+            <span class="data-val">${slip.budget_category.replace(/_/g, ' ').toUpperCase()}</span>
+          </div>
+          <div class="data-row">
+            <span class="data-label">Payment Status:</span>
+            <span class="data-val" style="color: #059669; text-transform: uppercase;">VERIFIED &amp; COMPLETED</span>
+          </div>
+        </div>
       </div>
-      <div class="seal-box">
-        YARA TREASURY SEAL
+
+      <!-- Accounting Breakdown: Earnings vs Deductions Grid -->
+      <div class="accounting-grid">
+        <!-- Earnings Column -->
+        <div class="acc-col">
+          <div class="acc-header">
+            <span>Disbursement Earnings &amp; Allowances</span>
+            <span>Amount (${slip.currency})</span>
+          </div>
+          <table class="acc-table">
+            <tbody>
+              <tr>
+                <td>
+                  <strong>Basic Honorarium / Base Stipend</strong>
+                  <div style="font-size: 10px; color: #64748b;">Instructional modules, session defense &amp; technical duties</div>
+                </td>
+                <td class="amount">$${fmt(slip.base_stipend)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Session Prep &amp; Staging Allowance</strong>
+                  <div style="font-size: 10px; color: #64748b;">Breadboard hardware prep, lesson plans &amp; student follow-up</div>
+                </td>
+                <td class="amount">$${fmt(slip.allowance_amount)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Travel &amp; Subsistence (T &amp; S)</strong>
+                  <div style="font-size: 10px; color: #64748b;">Provincial transit fares, regional transit &amp; meal per diem</div>
+                </td>
+                <td class="amount">$${fmt(slip.travel_subsistence_ts)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="acc-subtotal">
+            <span>GROSS EARNINGS</span>
+            <span style="color: #2563eb;">$${fmt(gross)}</span>
+          </div>
+        </div>
+
+        <!-- Deductions Column -->
+        <div class="acc-col">
+          <div class="acc-header">
+            <span>Withholdings &amp; Deductions</span>
+            <span>Amount (${slip.currency})</span>
+          </div>
+          <table class="acc-table">
+            <tbody>
+              ${deductions > 0 ? `
+              <tr>
+                <td>
+                  <strong>Statutory Admin Withholding</strong>
+                  <div style="font-size: 10px; color: #64748b;">Institutional deduction / compliance fee</div>
+                </td>
+                <td class="amount" style="color: #dc2626;">-$${fmt(deductions)}</td>
+              </tr>` : `
+              <tr>
+                <td colspan="2" style="color: #94a3b8; font-style: italic; padding: 24px 16px; text-align: center;">
+                  No statutory withholdings or deductions applicable for this NPO disbursement period.
+                </td>
+              </tr>`}
+            </tbody>
+          </table>
+          <div class="acc-subtotal">
+            <span>TOTAL DEDUCTIONS</span>
+            <span style="color: #dc2626;">$${fmt(deductions)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Net Pay Highlight Banner -->
+      <div class="net-pay-banner">
+        <div>
+          <div class="net-pay-title">Net Stipend Received &amp; Reconciled</div>
+          <div class="net-pay-inwords">Paid via ${slip.payment_method.replace('_', ' ').toUpperCase()} • Final Amount Deposited</div>
+        </div>
+        <div class="net-pay-figure">$${fmt(net)} ${slip.currency}</div>
+      </div>
+
+      <!-- Additional Memorandum & Audit Seal -->
+      <div class="info-footer-grid">
+        <div class="notes-box">
+          <strong>Disbursement Memorandum / Scope of Work:</strong>
+          ${slip.notes || 'Official compensation for technical robotics instruction, mentoring, chapter management, and youth engineering development under YARA statutory NPO programs.'}
+        </div>
+        <div class="audit-seal-card">
+          <div class="seal-stamp">YARA TREASURY SEAL</div>
+          <div class="seal-text">Authorized: ${slip.approved_by_admin}</div>
+          <div class="seal-text" style="color: #059669; font-weight: 700; margin-top: 2px;">Electronically Audited</div>
+        </div>
+      </div>
+
+      <!-- Formal Signature Sign-off -->
+      <div class="signatures-row">
+        <div>
+          <div class="sig-line">
+            <span>Authorized Officer (YARA Directorate of Finance)</span>
+            <span>Date: ${slip.disbursement_date}</span>
+          </div>
+        </div>
+        <div>
+          <div class="sig-line">
+            <span>Payee Acknowledgement / Electronic Hash</span>
+            <span>Ref: ${slip.id}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Corporate Legal Disclaimer -->
+      <div class="legal-disclaimer">
+        This is an official computer-generated payroll advice issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&amp;S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.
       </div>
     </div>
   </div>
@@ -286,7 +541,7 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
 }
 
 /**
- * Downloads a high-quality PDF stipend slip directly in the browser
+ * Downloads a high-quality, corporate enterprise PDF stipend payslip directly in the browser
  */
 export function downloadStipendSlipPdf(slip: StipendSlip): void {
   const doc = new jsPDF({
@@ -295,187 +550,310 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
     format: 'a4'
   });
 
-  // Colors
-  const darkNavy = '#0f172a';
-  const blue = '#2563eb';
-  const slate = '#64748b';
-  const emerald = '#059669';
+  const gross = Number(slip.gross_amount) || (Number(slip.base_stipend) + Number(slip.allowance_amount) + Number(slip.travel_subsistence_ts));
+  const deductions = Number(slip.withholding_deductions) || 0;
+  const net = Number(slip.net_amount_received) || (gross - deductions);
 
-  // Header banner
-  doc.setFillColor(15, 23, 42); // dark navy
-  doc.rect(0, 0, 210, 32, 'F');
+  // 1. Top Corporate Navy Banner
+  doc.setFillColor(9, 21, 46); // deep corporate midnight navy
+  doc.rect(0, 0, 210, 36, 'F');
 
+  // Accent Blue Border
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 36, 210, 1.5, 'F');
+
+  // Logo Icon Box
+  doc.setFillColor(37, 99, 235);
+  doc.roundedRect(14, 8, 12, 12, 2, 2, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION (YARA)', 14, 12);
+  doc.text('Y', 17.5, 17);
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(191, 219, 254);
-  doc.text('Non-Profit Organization (NPO) • "Innovate Local, Build Global"', 14, 19);
-  doc.text('Official Stipend, Allowance & T&S Disbursement Slip', 14, 25);
-
-  // Status Badge
-  doc.setFillColor(16, 185, 129);
-  doc.roundedRect(150, 8, 46, 12, 3, 3, 'F');
+  // Organization Title
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
+  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION', 30, 14);
+
   doc.setFontSize(8);
-  doc.text('DISBURSED & VERIFIED', 153, 15.5);
-
-  // Reference Meta
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text(`Slip Reference: ${slip.id}`, 14, 42);
-
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Payment Reference: ${slip.payment_reference}  |  Date: ${slip.disbursement_date}  |  Method: ${slip.payment_method.toUpperCase()}`, 14, 48);
+  doc.setTextColor(147, 197, 253);
+  doc.text('Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR', 30, 19.5);
+  doc.setTextColor(203, 213, 225);
+  doc.text('Directorate of Treasury & Financial Accountability • Harare & Chinhoyi Hubs', 30, 24.5);
 
-  // Recipient Box
+  // Right-aligned Document Title
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('PAYSLIP / STIPEND ADVICE', 196, 14, { align: 'right' });
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(203, 213, 225);
+  doc.text(`Slip Reference: ${slip.id}`, 196, 19.5, { align: 'right' });
+
+  // Confidential tag
+  doc.setFillColor(239, 68, 68);
+  doc.roundedRect(153, 22.5, 43, 5.5, 1, 1, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRIVATE & CONFIDENTIAL', 174.5, 26.5, { align: 'center' });
+
+  // 2. Payee and Payment Details Two-Column Box
+  const panelY = 44;
   doc.setFillColor(248, 250, 252);
-  doc.roundedRect(14, 54, 88, 30, 3, 3, 'F');
+  doc.roundedRect(14, panelY, 182, 34, 2, 2, 'F');
   doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(14, 54, 88, 30, 3, 3, 'D');
+  doc.roundedRect(14, panelY, 182, 34, 2, 2, 'D');
+
+  // Divider line
+  doc.line(105, panelY, 105, panelY + 34);
+
+  // Left column: Payee Info
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAYEE / BENEFICIARY INFORMATION', 18, panelY + 6);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Name:', 18, panelY + 12);
+  doc.text('Designation:', 18, panelY + 17);
+  doc.text('Member ID:', 18, panelY + 22);
+  doc.text('Email:', 18, panelY + 27);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('RECIPIENT INFORMATION', 18, 60);
-
-  doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text(slip.recipient_name, 18, 67);
-
-  doc.setFontSize(9);
+  doc.text(slip.recipient_name, 45, panelY + 12);
+  doc.text(slip.recipient_role.toUpperCase(), 45, panelY + 17);
+  doc.text(slip.member_id || 'YARA-MEMBER', 45, panelY + 22);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Designation: ${slip.recipient_role.toUpperCase()}`, 18, 73);
-  if (slip.recipient_email) {
-    doc.text(`Email: ${slip.recipient_email}`, 18, 78);
-  }
+  doc.text(slip.recipient_email || 'Verified Member', 45, panelY + 27);
 
-  // Authorization Box
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(108, 54, 88, 30, 3, 3, 'F');
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(108, 54, 88, 30, 3, 3, 'D');
+  // Right column: Pay Advice Details
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DISBURSEMENT & AUDIT DETAILS', 110, panelY + 6);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Date of Payment:', 110, panelY + 12);
+  doc.text('Payment Channel:', 110, panelY + 17);
+  doc.text('Transaction Ref:', 110, panelY + 22);
+  doc.text('Cost Allocation:', 110, panelY + 27);
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('NPO ALLOCATION & AUDIT', 112, 60);
-
-  doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text(`Category: ${slip.budget_category.replace(/_/g, ' ').toUpperCase()}`, 112, 67);
+  doc.text(slip.disbursement_date, 142, panelY + 12);
+  doc.text(slip.payment_method.replace('_', ' ').toUpperCase(), 142, panelY + 17);
+  doc.setFont('courier', 'bold');
+  doc.text(slip.payment_reference, 142, panelY + 22);
+  doc.setFont('helvetica', 'bold');
+  doc.text(slip.budget_category.replace(/_/g, ' ').toUpperCase(), 142, panelY + 27);
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Authorized by: ${slip.approved_by_admin}`, 112, 73);
-  doc.text(`Status: Completed & Reconciled`, 112, 78);
-
-  // Financial Breakdown Table
-  let y = 96;
+  // 3. Accounting Table (Dual-column: Earnings & Deductions)
+  let y = 84;
+  
+  // Header: Earnings vs Deductions
   doc.setFillColor(241, 245, 249);
-  doc.rect(14, y, 182, 8, 'F');
+  doc.rect(14, y, 105, 8, 'F');
+  doc.rect(119, y, 77, 8, 'F');
+
+  doc.setDrawColor(203, 213, 225);
+  doc.rect(14, y, 105, 8, 'D');
+  doc.rect(119, y, 77, 8, 'D');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text('ITEM / DISBURSEMENT COMPONENT', 18, y + 5.5);
-  doc.text('CATEGORY', 120, y + 5.5);
-  doc.text(`AMOUNT (${slip.currency})`, 160, y + 5.5);
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('EARNINGS & ALLOWANCES', 18, y + 5.5);
+  doc.text(`AMOUNT (${slip.currency})`, 115, y + 5.5, { align: 'right' });
 
-  y += 8;
-  const items = [
-    { label: 'Core Base Stipend / Honorarium', category: 'Stipend', amount: Number(slip.base_stipend).toFixed(2) },
-    { label: 'Allowances (Materials, Prep & Session Support)', category: 'Allowance', amount: Number(slip.allowance_amount).toFixed(2) },
-    { label: 'Travel & Subsistence (T & S)', category: 'T & S', amount: Number(slip.travel_subsistence_ts).toFixed(2) },
+  doc.text('WITHHOLDINGS / DEDUCTIONS', 123, y + 5.5);
+  doc.text(`AMOUNT`, 192, y + 5.5, { align: 'right' });
+
+  // Rows
+  const earnings = [
+    { name: 'Basic Honorarium / Base Stipend', sub: 'Instructional & technical milestones', amount: fmt(slip.base_stipend) },
+    { name: 'Session Prep & Lab Allowance', sub: 'Kit staging & student follow-up', amount: fmt(slip.allowance_amount) },
+    { name: 'Travel & Subsistence (T & S)', sub: 'Transit fares, regional travel & meals', amount: fmt(slip.travel_subsistence_ts) },
   ];
 
-  if (slip.withholding_deductions > 0) {
-    items.push({ label: 'Statutory / Admin Withholdings', category: 'Deduction', amount: `-${Number(slip.withholding_deductions).toFixed(2)}` });
-  }
+  y += 8;
+  const startRowY = y;
+  let currentEarningsY = y;
 
-  doc.setFont('helvetica', 'normal');
-  items.forEach((item) => {
-    y += 10;
-    doc.setTextColor(15, 23, 42);
-    doc.text(item.label, 18, y);
-    doc.setTextColor(100, 116, 139);
-    doc.text(item.category, 120, y);
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`$${item.amount}`, 160, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setDrawColor(241, 245, 249);
-    doc.line(14, y + 3, 196, y + 3);
-  });
-
-  // Net Amount Box
-  y += 14;
-  doc.setFillColor(250, 245, 255);
-  doc.roundedRect(14, y, 182, 16, 3, 3, 'F');
-  doc.setDrawColor(233, 213, 255);
-  doc.roundedRect(14, y, 182, 16, 3, 3, 'D');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(107, 33, 168);
-  doc.text('TOTAL NET AMOUNT RECEIVED & CONFIRMED:', 18, y + 10);
-  doc.setFontSize(13);
-  doc.text(`$${Number(slip.net_amount_received).toFixed(2)} ${slip.currency}`, 148, y + 10);
-
-  // Notes
-  if (slip.notes) {
-    y += 24;
+  earnings.forEach((e) => {
+    currentEarningsY += 9;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.text('MEMORANDUM / PURPOSE NOTES:', 14, y);
+    doc.setTextColor(15, 23, 42);
+    doc.text(e.name, 18, currentEarningsY);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(51, 65, 85);
-    const splitNotes = doc.splitTextToSize(slip.notes, 182);
-    doc.text(splitNotes, 14, y + 6);
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(e.sub, 18, currentEarningsY + 3.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`$${e.amount}`, 115, currentEarningsY + 1.5, { align: 'right' });
+
+    doc.setDrawColor(241, 245, 249);
+    doc.line(14, currentEarningsY + 5.5, 119, currentEarningsY + 5.5);
+  });
+
+  // Deductions side
+  let currentDeductY = startRowY + 9;
+  if (deductions > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Statutory / Admin Withholding', 123, currentDeductY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Compliance withholding fee', 123, currentDeductY + 3.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(220, 38, 38);
+    doc.text(`-$${fmt(deductions)}`, 192, currentDeductY + 1.5, { align: 'right' });
+  } else {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('No deductions applied for this period.', 123, currentDeductY + 5);
   }
 
-  // Footer & Seal
-  const footerY = 265;
+  // Outer bounding box for table
+  const tableHeight = 36;
   doc.setDrawColor(203, 213, 225);
-  doc.setLineDashPattern([2, 2], 0);
-  doc.line(14, footerY, 196, footerY);
+  doc.rect(14, startRowY, 105, tableHeight, 'D');
+  doc.rect(119, startRowY, 77, tableHeight, 'D');
 
-  doc.setLineDashPattern([], 0);
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('Young Africans Robotics Association (YARA) Treasury Directorate', 14, footerY + 6);
-  doc.text('Certified authentic disbursement record. For tax and grant auditing inquiries: finance@yara.org', 14, footerY + 11);
+  // Subtotal Bars
+  const subtotalY = startRowY + tableHeight;
+  doc.setFillColor(248, 250, 252);
+  doc.rect(14, subtotalY, 105, 8, 'F');
+  doc.rect(119, subtotalY, 77, 8, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.rect(14, subtotalY, 105, 8, 'D');
+  doc.rect(119, subtotalY, 77, 8, 'D');
 
-  // Seal box
-  doc.setDrawColor(59, 130, 246);
-  doc.roundedRect(145, footerY + 3, 51, 14, 2, 2, 'D');
-  doc.setTextColor(29, 78, 216);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('YARA OFFICIAL TREASURY SEAL', 147, footerY + 9);
-  doc.setFontSize(7);
-  doc.text('VERIFIED & RECONCILED', 152, footerY + 13.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text('GROSS EARNINGS:', 18, subtotalY + 5.5);
+  doc.setTextColor(37, 99, 235);
+  doc.text(`$${fmt(gross)}`, 115, subtotalY + 5.5, { align: 'right' });
 
-  doc.save(`YARA-Stipend-Slip-${slip.id}.pdf`);
+  doc.setTextColor(15, 23, 42);
+  doc.text('TOTAL DEDUCTIONS:', 123, subtotalY + 5.5);
+  doc.setTextColor(220, 38, 38);
+  doc.text(`$${fmt(deductions)}`, 192, subtotalY + 5.5, { align: 'right' });
+
+  // 4. Net Pay Big Corporate Banner
+  const netY = subtotalY + 14;
+  doc.setFillColor(30, 27, 75); // rich royal indigo navy
+  doc.roundedRect(14, netY, 182, 18, 2, 2, 'F');
+
+  doc.setTextColor(199, 210, 254);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('NET STIPEND RECEIVED & RECONCILED', 20, netY + 8);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(165, 180, 252);
+  doc.text(`Credited via ${slip.payment_method.replace('_', ' ').toUpperCase()} • Official YARA NPO Treasury Record`, 20, netY + 13);
+
+  doc.setTextColor(56, 189, 248);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(`$${fmt(net)} ${slip.currency}`, 190, netY + 12, { align: 'right' });
+
+  // 5. Memorandum & Seal Section
+  const memoY = netY + 24;
+  doc.setFillColor(250, 250, 249);
+  doc.roundedRect(14, memoY, 120, 22, 2, 2, 'F');
+  doc.setDrawColor(231, 229, 228);
+  doc.roundedRect(14, memoY, 120, 22, 2, 2, 'D');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(28, 25, 23);
+  doc.text('DISBURSEMENT MEMORANDUM / REMARKS:', 18, memoY + 5.5);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(68, 64, 60);
+  const memoText = slip.notes || 'Official compensation for technical robotics instruction, mentoring, chapter management, and youth engineering development under YARA statutory NPO programs.';
+  const splitMemo = doc.splitTextToSize(memoText, 112);
+  doc.text(splitMemo, 18, memoY + 10.5);
+
+  // Seal card on right
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(138, memoY, 58, 22, 2, 2, 'F');
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(138, memoY, 58, 22, 2, 2, 'D');
+
+  doc.setDrawColor(37, 99, 235);
+  doc.roundedRect(143, memoY + 3.5, 48, 7, 1, 1, 'D');
+  doc.setTextColor(29, 78, 216);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('YARA TREASURY SEAL', 167, memoY + 8, { align: 'center' });
+
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Authorized: ${slip.approved_by_admin}`, 167, memoY + 14.5, { align: 'center' });
+  doc.setTextColor(5, 150, 105);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Electronically Verified', 167, memoY + 18.5, { align: 'center' });
+
+  // 6. Sign-off Line
+  const sigY = memoY + 32;
+  doc.setDrawColor(71, 85, 105);
+  doc.line(14, sigY + 12, 90, sigY + 12);
+  doc.line(120, sigY + 12, 196, sigY + 12);
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Authorized Finance Signatory (YARA Treasury)', 14, sigY + 16);
+  doc.text(`Date: ${slip.disbursement_date}`, 90, sigY + 16, { align: 'right' });
+
+  doc.text('Payee Electronic Confirmation', 120, sigY + 16);
+  doc.text(`Ref: ${slip.id}`, 196, sigY + 16, { align: 'right' });
+
+  // 7. Footer Legal Disclaimer
+  const footerY = 274;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(14, footerY, 196, footerY);
+
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('helvetica', 'normal');
+  const disclaimer = 'This is an official computer-generated payroll advice issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.';
+  const splitDisc = doc.splitTextToSize(disclaimer, 182);
+  doc.text(splitDisc, 14, footerY + 4);
+
+  doc.save(`YARA-Payslip-${slip.id}.pdf`);
 }
 
 /**
- * Print slip via browser print dialog in a new clean window
+ * Print slip via browser print dialog in a clean dedicated window
  */
 export function printStipendSlip(slip: StipendSlip): void {
   const html = generateStipendSlipHtml(slip);
-  const win = window.open('', '_blank', 'width=800,height=900');
+  const win = window.open('', '_blank', 'width=880,height=960');
   if (win) {
     win.document.open();
     win.document.write(html);
@@ -486,4 +864,3 @@ export function printStipendSlip(slip: StipendSlip): void {
     };
   }
 }
-
