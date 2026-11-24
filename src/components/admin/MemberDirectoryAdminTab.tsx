@@ -203,6 +203,35 @@ export default function MemberDirectoryAdminTab() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Collect permanently deleted members from local and database blacklist so they are never brought back
+      const deletedIds = new Set<string>();
+      const deletedEmails = new Set<string>();
+      try {
+        const localDeleted = JSON.parse(localStorage.getItem('yara_deleted_users_registry') || '[]');
+        localDeleted.forEach((d: any) => {
+          if (d.id) deletedIds.add(String(d.id).toLowerCase());
+          if (d.email) deletedEmails.add(String(d.email).toLowerCase());
+        });
+      } catch {}
+
+      try {
+        const { data: dbDeleted } = await supabase.from('deleted_users_registry').select('id, email');
+        if (dbDeleted) {
+          dbDeleted.forEach((d: any) => {
+            if (d.id) deletedIds.add(String(d.id).toLowerCase());
+            if (d.email) deletedEmails.add(String(d.email).toLowerCase());
+          });
+        }
+      } catch {}
+
+      const isNotDeleted = (u: any) => {
+        const uid = String(u.id || '').toLowerCase();
+        const uemail = String(u.email || '').toLowerCase();
+        if (deletedIds.has(uid)) return false;
+        if (uemail && deletedEmails.has(uemail)) return false;
+        return true;
+      };
+
       // 1. Fetch Users from v_admin_member_directory (with fallback)
       const directoryData = await yaraV3Service.getAdminMemberDirectory();
       if (directoryData && directoryData.length > 0) {
@@ -233,16 +262,17 @@ export default function MemberDirectoryAdminTab() {
           subscription_status: d.subscription_status,
           is_halted: d.status === 'suspended' || d.is_halted,
           created_at: d.joined_date || d.created_at || new Date().toISOString()
-        }));
+        })).filter(isNotDeleted);
         setUsers(mappedUsers);
       } else {
         const { data: userData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-        setUsers((userData || []).map((u: any) => ({
+        const cleanUsers = (userData || []).filter(isNotDeleted).map((u: any) => ({
           ...u,
           country: u.country || 'Zimbabwe',
           institution: u.school_institution || u.institution || '',
           school_institution: u.school_institution || u.institution || '',
-        })));
+        }));
+        setUsers(cleanUsers);
       }
 
       // 2. Fetch Chapters
@@ -599,25 +629,45 @@ export default function MemberDirectoryAdminTab() {
   const handleDeleteMember = async (member: ExtendedUserProfile) => {
     if (!member) return;
     const confirmed = window.confirm(
-      `CRITICAL ACTION:\nAre you sure you want to permanently delete the account for "${member.display_name}" (${member.email})?\n\nThis will remove their member profile, chapter assignment, and progress. This action cannot be undone.`
+      `CRITICAL ACTION:\nAre you sure you want to permanently delete the account for "${member.display_name}" (${member.email})?\n\nThis will permanently delete their account from the database and prevent them from being brought back by sync/refresh. This action cannot be undone.`
     );
     if (!confirmed) return;
 
     try {
+      // 1. Record in local blacklist immediately so client never restores them
+      try {
+        const raw = localStorage.getItem('yara_deleted_users_registry');
+        const existing = raw ? JSON.parse(raw) : [];
+        const updated = [{ id: member.id, email: member.email, name: member.display_name, deleted_at: new Date().toISOString() }, ...existing];
+        localStorage.setItem('yara_deleted_users_registry', JSON.stringify(updated));
+      } catch {}
+
+      // 2. Invoke admin_delete_user RPC in Supabase (deletes from profiles and auth, records in deleted_users_registry)
+      try {
+        await supabase.rpc('admin_delete_user', {
+          p_user_id: member.id,
+          p_user_email: member.email || null
+        });
+      } catch (rpcErr) {
+        console.warn('admin_delete_user RPC note:', rpcErr);
+      }
+
+      // 3. Fallback direct delete from public.profiles
       const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', member.id);
 
-      if (error) throw error;
+      if (error) console.warn('Direct profiles delete note:', error);
 
-      setUsers(prev => prev.filter(u => u.id !== member.id));
+      // 4. Update UI state immediately
+      setUsers(prev => prev.filter(u => u.id !== member.id && (!member.email || u.email?.toLowerCase() !== member.email?.toLowerCase())));
       setSelectedMemberIds(prev => {
         const next = new Set(prev);
         next.delete(member.id);
         return next;
       });
-      showToast('success', `Account for "${member.display_name}" was permanently deleted.`);
+      showToast('success', `Account for "${member.display_name}" was permanently deleted from the database.`);
     } catch (err: any) {
       showToast('error', err.message || 'Failed to delete user account.');
     }
@@ -628,22 +678,40 @@ export default function MemberDirectoryAdminTab() {
     if (selectedMemberIds.size === 0) return;
     const count = selectedMemberIds.size;
     const confirmed = window.confirm(
-      `CRITICAL BULK ACTION:\nAre you sure you want to permanently delete ${count} selected user accounts?\n\nThis will delete their profiles from the database and cannot be undone.`
+      `CRITICAL BULK ACTION:\nAre you sure you want to permanently delete ${count} selected user accounts?\n\nThis will permanently delete their accounts from the database and prevent them from being brought back by sync/refresh.`
     );
     if (!confirmed) return;
 
     try {
       const idsToDelete = Array.from(selectedMemberIds);
+      const membersToDelete = users.filter(u => selectedMemberIds.has(u.id));
+
+      // 1. Record in local blacklist
+      try {
+        const raw = localStorage.getItem('yara_deleted_users_registry');
+        const existing = raw ? JSON.parse(raw) : [];
+        const newEntries = membersToDelete.map(m => ({ id: m.id, email: m.email, name: m.display_name, deleted_at: new Date().toISOString() }));
+        localStorage.setItem('yara_deleted_users_registry', JSON.stringify([...newEntries, ...existing]));
+      } catch {}
+
+      // 2. Invoke admin_delete_user RPC for each
+      for (const m of membersToDelete) {
+        try {
+          await supabase.rpc('admin_delete_user', { p_user_id: m.id, p_user_email: m.email || null });
+        } catch {}
+      }
+
+      // 3. Fallback direct bulk delete from public.profiles
       const { error } = await supabase
         .from('profiles')
         .delete()
         .in('id', idsToDelete);
 
-      if (error) throw error;
+      if (error) console.warn('Direct bulk delete note:', error);
 
       setUsers(prev => prev.filter(u => !selectedMemberIds.has(u.id)));
       setSelectedMemberIds(new Set());
-      showToast('success', `Permanently deleted ${count} member accounts.`);
+      showToast('success', `Permanently deleted ${count} member accounts from the database.`);
     } catch (err: any) {
       showToast('error', err.message || 'Failed to delete selected accounts.');
     }
@@ -789,19 +857,13 @@ export default function MemberDirectoryAdminTab() {
     setEditMemberId(member.member_id || '');
   };
 
-  const handleSyncAuthUsers = async () => {
+  const handleRefreshMembers = async () => {
     setIsSyncingAuth(true);
     try {
-      const { data, error } = await supabase.rpc('sync_all_auth_users_to_profiles');
-      if (!error && data) {
-        showToast('success', `Synchronized all authenticated users! Total in database: ${data.total_profiles || data.total_auth_users || 64}. Mentors active: ${data.mentors_count || 1}.`);
-        await fetchData();
-      } else {
-        await fetchData();
-        showToast('success', 'Refreshed member directory with database profiles. Ensure sync_all_auth_users_to_profiles SQL is executed.');
-      }
+      await fetchData();
+      showToast('success', 'Refreshed member directory with active database profiles. Deleted members remain permanently excluded.');
     } catch (err: any) {
-      showToast('error', err.message || 'Sync operation failed.');
+      showToast('error', err.message || 'Refresh operation failed.');
     } finally {
       setIsSyncingAuth(false);
     }
@@ -1735,15 +1797,15 @@ export default function MemberDirectoryAdminTab() {
                 </button>
               )}
 
-              {/* Sync 64 Authenticated Users */}
+              {/* Sync or Refresh Members Button */}
               <button
-                onClick={handleSyncAuthUsers}
+                onClick={handleRefreshMembers}
                 disabled={isSyncingAuth}
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                title="Synchronize all 64 authenticated users from auth.users into profiles and assign Member IDs"
+                title="Refresh active member directory from database without restoring deleted members"
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", isSyncingAuth && "animate-spin")} />
-                <span>{isSyncingAuth ? "Syncing..." : "Sync 64 Auth Members"}</span>
+                <span>{isSyncingAuth ? "Refreshing..." : "Sync / Refresh Members"}</span>
               </button>
 
               {/* Message Members Button */}

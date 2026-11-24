@@ -961,6 +961,27 @@ export function verifyLeadershipAuthorization(
         };
       }
 
+      // STRICT EMAIL BINDING ENFORCEMENT:
+      // The code must be used by ONLY the assigned email, not anyone else!
+      const assignedEmail = (pinMatchedLeader.email || '').trim().toLowerCase();
+      const providedEmail = (authEmail || cleanEmail || '').trim().toLowerCase();
+
+      if (!assignedEmail) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Access PIN Error: Leader ${pinMatchedLeader.name} has no assigned email registered. Please contact administrator to link your email address.`
+        };
+      }
+
+      if (providedEmail && providedEmail !== assignedEmail) {
+        return {
+          isAuthorized: false,
+          isApprovedSecretary: false,
+          reason: `Access Denied: This Admin-Assigned PIN is strictly registered to "${assignedEmail}". The email "${providedEmail}" is not authorized to use this PIN. Only the assigned email may unlock access.`
+        };
+      }
+
       const isFinancialRole = ['treasurer', 'chairperson', 'secretary', 'vice_chair', 'vice_secretary'].includes(pinMatchedLeader.role);
       const isGeneralRole = ['secretary', 'vice_secretary', 'chairperson', 'vice_chair'].includes(pinMatchedLeader.role);
 
@@ -1175,9 +1196,20 @@ export async function addChapterLeader(
   const chIdx = chapters.findIndex(c => c.id === chapterId);
   if (chIdx < 0) return null;
 
+  // Single User Per Email Policy Check:
+  if (leader.email && leader.email.trim()) {
+    const cleanMail = leader.email.trim().toLowerCase();
+    for (const c of chapters) {
+      const existing = (c.leaders || []).find(l => (l.email || '').trim().toLowerCase() === cleanMail);
+      if (existing) {
+        throw new Error(`Security Rule: Only one user per email is allowed. The email "${leader.email}" is already assigned to ${existing.name} (${formatRoleName(existing.role)}) at ${c.name}.`);
+      }
+    }
+  }
+
   const cleanCode = chapters[chIdx].code.replace(/[^A-Z0-9]/gi, '');
-  const rolePrefix = leader.role === 'treasurer' ? 'TREAS' : leader.role === 'chairperson' ? 'PRES' : 'SEC';
-  const accessPin = leader.access_pin || `${cleanCode}-${rolePrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const rolePrefix = leader.role === 'treasurer' ? 'FIN' : leader.role === 'chairperson' ? 'PRES' : leader.role === 'vice_chair' ? 'VPRES' : leader.role === 'vice_secretary' ? 'VSEC' : 'SEC';
+  const accessPin = (leader.access_pin || `${cleanCode}-${rolePrefix}-${Math.floor(1000 + Math.random() * 9000)}`).toUpperCase();
 
   const newLeader: ChapterLeader = {
     ...leader,
@@ -1216,11 +1248,28 @@ export async function updateChapterLeader(
   const chIdx = chapters.findIndex(c => c.id === chapterId);
   if (chIdx < 0) return null;
 
+  // Single User Per Email Policy Check:
+  if (updates.email && updates.email.trim()) {
+    const cleanMail = updates.email.trim().toLowerCase();
+    for (const c of chapters) {
+      const existing = (c.leaders || []).find(l => l.id !== leaderId && (l.email || '').trim().toLowerCase() === cleanMail);
+      if (existing) {
+        throw new Error(`Security Rule: Only one user per email is allowed. The email "${updates.email}" is already assigned to ${existing.name} (${formatRoleName(existing.role)}) at ${c.name}.`);
+      }
+    }
+  }
+
   const leaders = chapters[chIdx].leaders || [];
   const lIdx = leaders.findIndex(l => l.id === leaderId);
   if (lIdx < 0) return null;
 
-  leaders[lIdx] = { ...leaders[lIdx], ...updates };
+  const normalizedUpdates = {
+    ...updates,
+    access_pin: updates.access_pin ? updates.access_pin.toUpperCase() : updates.secretary_access_pin ? updates.secretary_access_pin.toUpperCase() : leaders[lIdx].access_pin,
+    secretary_access_pin: updates.secretary_access_pin ? updates.secretary_access_pin.toUpperCase() : updates.access_pin ? updates.access_pin.toUpperCase() : leaders[lIdx].secretary_access_pin
+  };
+
+  leaders[lIdx] = { ...leaders[lIdx], ...normalizedUpdates };
   chapters[chIdx].leaders = leaders;
   chapters[chIdx].updated_at = new Date().toISOString();
 

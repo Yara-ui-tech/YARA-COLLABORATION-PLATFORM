@@ -139,6 +139,13 @@ export const stipendService = {
         status: newSlip.status,
         approved_by_admin: newSlip.approved_by_admin,
         notes: newSlip.notes,
+        reason_for_stipend: newSlip.reason_for_stipend || 'Outreach & Technical Training Workshop',
+        location: newSlip.location || 'Harare & Chinhoyi Operational Hubs',
+        number_of_days: Number(newSlip.number_of_days) || 1,
+        activity_category: newSlip.activity_category || 'outreach',
+        project_code: newSlip.project_code || null,
+        funding_source: newSlip.funding_source || 'NPO Direct Program Allocation',
+        recorded_by_officer: newSlip.recorded_by_officer || 'Appointed Finance Officer',
         created_at: newSlip.created_at
       });
     } catch (e) {

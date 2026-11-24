@@ -62,6 +62,82 @@ export default function FinanceAdminTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [slipRoleFilter, setSlipRoleFilter] = useState<string>('all');
+  const [slipActivityFilter, setSlipActivityFilter] = useState<string>('all');
+
+  const handleExportBookkeepingLedger = () => {
+    if (stipendSlips.length === 0) {
+      alert('No stipend slips available to export.');
+      return;
+    }
+
+    const headers = [
+      'Slip Ref',
+      'Disbursement Date',
+      'Recipient Name',
+      'Email',
+      'Role',
+      'Member ID',
+      'Reason / Purpose',
+      'Location / Venue',
+      'Days / Duration',
+      'Activity Category',
+      'Project Code',
+      'Funding Source',
+      'Base Stipend (USD)',
+      'Allowance (USD)',
+      'Travel & Subsistence T&S (USD)',
+      'Gross Amount (USD)',
+      'Withholding Deductions (USD)',
+      'Net Amount Received (USD)',
+      'Currency',
+      'Payment Channel',
+      'Transaction Ref',
+      'Cost Allocation',
+      'Authorized By',
+      'Recorded By Finance Officer',
+      'Status',
+      'Audit Memorandum'
+    ];
+
+    const rows = filteredSlips.map(s => [
+      `"${s.id}"`,
+      `"${s.disbursement_date}"`,
+      `"${(s.recipient_name || '').replace(/"/g, '""')}"`,
+      `"${s.recipient_email || ''}"`,
+      `"${s.recipient_role}"`,
+      `"${s.member_id || ''}"`,
+      `"${(s.reason_for_stipend || 'Outreach STEM Workshop').replace(/"/g, '""')}"`,
+      `"${(s.location || 'Harare & Chinhoyi Hubs').replace(/"/g, '""')}"`,
+      s.number_of_days || 1,
+      `"${s.activity_category || 'outreach'}"`,
+      `"${s.project_code || ''}"`,
+      `"${(s.funding_source || 'NPO Direct Program Allocation').replace(/"/g, '""')}"`,
+      Number(s.base_stipend || 0).toFixed(2),
+      Number(s.allowance_amount || 0).toFixed(2),
+      Number(s.travel_subsistence_ts || 0).toFixed(2),
+      Number(s.gross_amount || 0).toFixed(2),
+      Number(s.withholding_deductions || 0).toFixed(2),
+      Number(s.net_amount_received || 0).toFixed(2),
+      `"${s.currency || 'USD'}"`,
+      `"${s.payment_method}"`,
+      `"${s.payment_reference}"`,
+      `"${s.budget_category}"`,
+      `"${(s.approved_by_admin || 'YARA Treasury').replace(/"/g, '""')}"`,
+      `"${(s.recorded_by_officer || s.approved_by_admin || 'Finance Officer').replace(/"/g, '""')}"`,
+      `"${s.status}"`,
+      `"${(s.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `YARA_STIPEND_BOOKKEEPING_LEDGER_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Modals
   const [showAddInvestModal, setShowAddInvestModal] = useState(false);
@@ -92,7 +168,14 @@ export default function FinanceAdminTab() {
     budget_category: 'program_stipends' as StipendSlip['budget_category'],
     payment_method: 'mobile_money' as StipendSlip['payment_method'],
     payment_reference: 'TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-    notes: 'Program instruction & technical robotics coaching delivery'
+    notes: 'Program instruction & technical robotics coaching delivery',
+    reason_for_stipend: 'Outreach STEM Workshop & Lab Setup',
+    location: 'Harare & Chinhoyi Operational Hubs',
+    number_of_days: 1,
+    activity_category: 'outreach' as NonNullable<StipendSlip['activity_category']>,
+    project_code: `YARA-${new Date().getFullYear()}-OUT-01`,
+    funding_source: 'NPO Direct Program Allocation',
+    recorded_by_officer: 'Appointed Finance Officer'
   });
 
   // Stipend Slip Modal State (Add custom slip from scratch or edit all sections)
@@ -120,6 +203,13 @@ export default function FinanceAdminTab() {
     status: 'completed',
     notes: 'Program instruction, lab assembly defense, & technical mentoring.',
     approved_by_admin: 'YARA Treasury Directorate',
+    reason_for_stipend: 'Outreach STEM Workshop & Lab Setup',
+    location: 'Harare & Chinhoyi Operational Hubs',
+    number_of_days: 1,
+    activity_category: 'outreach',
+    project_code: `YARA-${new Date().getFullYear()}-OUT-01`,
+    funding_source: 'NPO Direct Program Allocation',
+    recorded_by_officer: 'Appointed Finance Officer',
     created_at: new Date().toISOString()
   });
 
@@ -336,7 +426,14 @@ export default function FinanceAdminTab() {
       budget_category: 'program_stipends',
       payment_method: 'mobile_money',
       payment_reference: 'TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-      notes: `${person.display_name} - Verified sessions and training modules milestone compensation`
+      notes: `${person.display_name} - Verified sessions and training modules milestone compensation`,
+      reason_for_stipend: 'Outreach STEM Workshop & Field Training',
+      location: 'Harare & Chinhoyi Operational Hubs',
+      number_of_days: 1,
+      activity_category: 'outreach',
+      project_code: `YARA-${new Date().getFullYear()}-OUT-01`,
+      funding_source: 'NPO Direct Program Allocation',
+      recorded_by_officer: profile?.display_name || user?.email || 'Appointed Finance Officer'
     });
     setShowDisburseModal(true);
   };
@@ -370,7 +467,14 @@ export default function FinanceAdminTab() {
         disbursement_date: new Date().toISOString().split('T')[0],
         status: 'completed',
         approved_by_admin: profile?.display_name || 'YARA Treasury Directorate',
-        notes: disburseForm.notes
+        notes: disburseForm.notes,
+        reason_for_stipend: disburseForm.reason_for_stipend,
+        location: disburseForm.location,
+        number_of_days: Number(disburseForm.number_of_days) || 1,
+        activity_category: disburseForm.activity_category,
+        project_code: disburseForm.project_code,
+        funding_source: disburseForm.funding_source,
+        recorded_by_officer: disburseForm.recorded_by_officer || profile?.display_name || 'Appointed Finance Officer'
       });
 
       setStipendSlips(prev => [newSlip, ...prev]);
@@ -547,11 +651,16 @@ export default function FinanceAdminTab() {
 
   const filteredSlips = stipendSlips.filter(s => {
     const matchesRole = slipRoleFilter === 'all' || s.recipient_role === slipRoleFilter;
+    const matchesActivity = slipActivityFilter === 'all' || s.activity_category === slipActivityFilter;
+    const q = searchQuery.toLowerCase();
     const matchesSearch = searchQuery === '' ||
-      s.recipient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.payment_reference.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRole && matchesSearch;
+      s.recipient_name.toLowerCase().includes(q) ||
+      s.id.toLowerCase().includes(q) ||
+      s.payment_reference.toLowerCase().includes(q) ||
+      (s.location && s.location.toLowerCase().includes(q)) ||
+      (s.reason_for_stipend && s.reason_for_stipend.toLowerCase().includes(q)) ||
+      (s.project_code && s.project_code.toLowerCase().includes(q));
+    return matchesRole && matchesActivity && matchesSearch;
   });
 
   return (
@@ -846,6 +955,31 @@ export default function FinanceAdminTab() {
                 <option value="volunteer">Volunteers</option>
               </select>
 
+              <select
+                value={slipActivityFilter}
+                onChange={(e) => setSlipActivityFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 py-2 px-3 focus:outline-none focus:border-indigo-600 cursor-pointer"
+              >
+                <option value="all">All Activity Types</option>
+                <option value="outreach">Outreach &amp; School Visits</option>
+                <option value="bootcamp">Bootcamp / Intensive Lab</option>
+                <option value="mentorship">Mentorship Cohort</option>
+                <option value="curriculum">Curriculum &amp; Content</option>
+                <option value="competition">Competition / Judging</option>
+                <option value="operations">Administrative Operations</option>
+                <option value="other">Other Activity</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={handleExportBookkeepingLedger}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-100 cursor-pointer whitespace-nowrap"
+                title="Export complete bookkeeping ledger with all audit metadata for appointed finance officers"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Bookkeeping Ledger (CSV)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleOpenCreateSlip}
@@ -875,6 +1009,7 @@ export default function FinanceAdminTab() {
                     <th className="px-6 py-4">Slip Ref &amp; Date</th>
                     <th className="px-6 py-4">Recipient</th>
                     <th className="px-6 py-4">Role</th>
+                    <th className="px-6 py-4">Audit &amp; Purpose</th>
                     <th className="px-6 py-4">Breakdown (Base + Allowance + T&amp;S)</th>
                     <th className="px-6 py-4">Net Amount</th>
                     <th className="px-6 py-4">Method &amp; Txn</th>
@@ -898,6 +1033,17 @@ export default function FinanceAdminTab() {
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-700">
                           {slip.recipient_role}
                         </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-slate-600">
+                        <div className="space-y-0.5 text-[11px]">
+                          <p className="font-bold text-slate-900">{slip.reason_for_stipend || 'Program Stipend'}</p>
+                          <div className="flex flex-wrap items-center gap-1 text-[10px] text-slate-500">
+                            {slip.location && <span>📍 {slip.location}</span>}
+                            {slip.number_of_days && <span>• ⏱️ {slip.number_of_days}d</span>}
+                            {slip.project_code && <span className="font-mono text-indigo-700">[{slip.project_code}]</span>}
+                          </div>
+                        </div>
                       </td>
 
                       <td className="px-6 py-4 text-slate-600">
@@ -1300,9 +1446,137 @@ export default function FinanceAdminTab() {
                   </div>
                 </div>
 
+                {/* Audit & Bookkeeping Documentation Panel */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs font-black uppercase text-indigo-950 flex items-center space-x-1.5">
+                      <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                      <span>Audit &amp; Bookkeeping Specification</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">NPO Audit Standard</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Reason for Stipend */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Reason for Stipend *</label>
+                      <input
+                        type="text"
+                        required
+                        value={disburseForm.reason_for_stipend}
+                        onChange={(e) => setDisburseForm({ ...disburseForm, reason_for_stipend: e.target.value })}
+                        placeholder="e.g. Outreach STEM Workshop & Lab Setup"
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600"
+                      />
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {[
+                          'Outreach STEM Workshop',
+                          'Hardware Lab Supervision',
+                          'Mentorship Cohort Coaching',
+                          'Robotics Championship Judging',
+                          'Curriculum Development'
+                        ].map(reason => (
+                          <button
+                            key={reason}
+                            type="button"
+                            onClick={() => setDisburseForm({ ...disburseForm, reason_for_stipend: reason })}
+                            className="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md font-semibold border border-indigo-100 cursor-pointer"
+                          >
+                            + {reason}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Location & Days */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Where / Outreach Location *</label>
+                        <input
+                          type="text"
+                          required
+                          value={disburseForm.location}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, location: e.target.value })}
+                          placeholder="e.g. Harare Tech Hub, Chinhoyi High School"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 focus:border-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Number of Days (Outreach / Duration)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          required
+                          value={disburseForm.number_of_days}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, number_of_days: Math.max(1, parseInt(e.target.value) || 1) })}
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Activity Category & Funding Source */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Activity Category</label>
+                        <select
+                          value={disburseForm.activity_category}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, activity_category: e.target.value as any })}
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-800 focus:border-indigo-600"
+                        >
+                          <option value="outreach">Outreach Program</option>
+                          <option value="training_workshop">Training Workshop / Bootcamp</option>
+                          <option value="mentorship_cohort">Mentorship Cohort Supervision</option>
+                          <option value="curriculum_dev">Curriculum &amp; Lab Content</option>
+                          <option value="event_judging">Robotics Event &amp; Judging</option>
+                          <option value="admin_support">Admin / Program Operations</option>
+                          <option value="other">Other Statutory Duty</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Funding Source / Grant</label>
+                        <input
+                          type="text"
+                          value={disburseForm.funding_source}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, funding_source: e.target.value })}
+                          placeholder="e.g. NPO Direct Program Allocation"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 focus:border-indigo-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Project Code & Appointed Officer */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Project Code / Audit Ref</label>
+                        <input
+                          type="text"
+                          value={disburseForm.project_code}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, project_code: e.target.value })}
+                          placeholder="e.g. YARA-OUT-2026-01"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-mono font-bold text-slate-900 focus:border-indigo-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Appointed Finance Officer</label>
+                        <input
+                          type="text"
+                          value={disburseForm.recorded_by_officer}
+                          onChange={(e) => setDisburseForm({ ...disburseForm, recorded_by_officer: e.target.value })}
+                          placeholder="Officer Name"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Performance Memorandum / Purpose</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Performance Memorandum / Remarks</label>
                   <textarea
                     value={disburseForm.notes}
                     onChange={(e) => setDisburseForm({ ...disburseForm, notes: e.target.value })}
@@ -1392,6 +1666,41 @@ export default function FinanceAdminTab() {
                 <div className="pt-2 text-slate-600 text-[11px]">
                   <strong>Notes:</strong> {selectedSlipForPreview.notes || 'Official YARA technical and mentoring stipend.'}
                 </div>
+
+                {/* Audit & Bookkeeping Specifications */}
+                {(selectedSlipForPreview.reason_for_stipend || selectedSlipForPreview.location || selectedSlipForPreview.recorded_by_officer) && (
+                  <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-xs space-y-2 mt-2">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-indigo-900">
+                      <span className="flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Audit &amp; Bookkeeping Documentation</span>
+                      </span>
+                      {selectedSlipForPreview.project_code && (
+                        <span className="font-mono text-indigo-700">Ref: {selectedSlipForPreview.project_code}</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 block text-[9px] uppercase font-bold">Purpose / Reason</span>
+                        <span className="font-bold text-slate-900">{selectedSlipForPreview.reason_for_stipend || 'Standard Program Stipend'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[9px] uppercase font-bold">Location &amp; Duration</span>
+                        <span className="font-bold text-slate-900">
+                          {selectedSlipForPreview.location || 'N/A'} {selectedSlipForPreview.number_of_days ? `(${selectedSlipForPreview.number_of_days} days)` : ''}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[9px] uppercase font-bold">Funding Source</span>
+                        <span className="text-slate-700">{selectedSlipForPreview.funding_source || 'Core Budget'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[9px] uppercase font-bold">Bookkeeping Officer</span>
+                        <span className="text-slate-700">{selectedSlipForPreview.recorded_by_officer || 'Appointed Finance Officer'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons: Download PDF, Print, and Edit Slip */}
@@ -1769,12 +2078,136 @@ export default function FinanceAdminTab() {
                   </div>
                 </div>
 
-                {/* Section 4: Audit & Signatory Notes */}
+                {/* Section 4: Audit & Bookkeeping Documentation */}
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      4. Audit &amp; Bookkeeping Documentation
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Required for Audit</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Reason for Stipend */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                        Reason for Stipend *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={slipFormData.reason_for_stipend || ''}
+                        onChange={(e) => setSlipFormData({ ...slipFormData, reason_for_stipend: e.target.value })}
+                        placeholder="e.g. Outreach STEM Workshop & Lab Setup"
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Location & Days */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Where / Outreach Location *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={slipFormData.location || ''}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, location: e.target.value })}
+                          placeholder="e.g. Harare Tech Hub, Chinhoyi High School"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Number of Days (Outreach / Duration)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="365"
+                          required
+                          value={slipFormData.number_of_days || 1}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, number_of_days: Math.max(1, parseInt(e.target.value) || 1) })}
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Activity Category & Funding Source */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Activity Category
+                        </label>
+                        <select
+                          value={slipFormData.activity_category || 'mentorship'}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, activity_category: e.target.value as any })}
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        >
+                          <option value="outreach">Outreach / School Visit</option>
+                          <option value="bootcamp">Bootcamp / Intensive Lab</option>
+                          <option value="mentorship">Mentorship Cohort</option>
+                          <option value="curriculum">Curriculum Development</option>
+                          <option value="competition">Competition / Judging</option>
+                          <option value="operations">Administrative Operations</option>
+                          <option value="other">Other Activity</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Funding Source / Grant Ref
+                        </label>
+                        <input
+                          type="text"
+                          value={slipFormData.funding_source || ''}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, funding_source: e.target.value })}
+                          placeholder="e.g. NPO Direct Program Allocation"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-medium text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Project Code & Appointed Officer */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Project Code / Audit Ref
+                        </label>
+                        <input
+                          type="text"
+                          value={slipFormData.project_code || ''}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, project_code: e.target.value })}
+                          placeholder="e.g. YARA-OUT-2026-01"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-mono font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                          Appointed Finance Officer
+                        </label>
+                        <input
+                          type="text"
+                          value={slipFormData.recorded_by_officer || ''}
+                          onChange={(e) => setSlipFormData({ ...slipFormData, recorded_by_officer: e.target.value })}
+                          placeholder="Officer Name"
+                          className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold text-slate-900 focus:border-indigo-600 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 5: Governance, Signatory & Purpose Notes */}
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                      4. Governance, Signatory &amp; Purpose Notes
+                      5. Governance, Signatory &amp; Purpose Notes
                     </span>
                   </div>
 

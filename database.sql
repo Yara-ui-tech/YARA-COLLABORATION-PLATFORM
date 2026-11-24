@@ -5773,16 +5773,18 @@ DECLARE
   v_gender TEXT;
   v_counter INTEGER := 1000;
 BEGIN
-  -- Iterate through every registered user in Supabase auth.users
+  -- Iterate through every registered user in Supabase auth.users (excluding permanently deleted users)
   FOR v_user IN 
     SELECT 
-      id,
-      email,
-      created_at,
-      raw_user_meta_data,
-      phone
-    FROM auth.users 
-    ORDER BY created_at ASC
+      u.id,
+      u.email,
+      u.created_at,
+      u.raw_user_meta_data,
+      u.phone
+    FROM auth.users u
+    WHERE u.id NOT IN (SELECT d.id FROM public.deleted_users_registry d WHERE d.id IS NOT NULL)
+      AND (u.email IS NULL OR lower(u.email) NOT IN (SELECT lower(d.email) FROM public.deleted_users_registry d WHERE d.email IS NOT NULL))
+    ORDER BY u.created_at ASC
   LOOP
     v_count := v_count + 1;
     v_counter := v_counter + 1;
@@ -6341,8 +6343,24 @@ CREATE TABLE IF NOT EXISTS public.stipend_slips (
   status TEXT NOT NULL DEFAULT 'completed',
   approved_by_admin TEXT NOT NULL DEFAULT 'YARA Treasury',
   notes TEXT,
+  reason_for_stipend TEXT DEFAULT 'Outreach & Technical Training Workshop',
+  location TEXT DEFAULT 'Harare & Chinhoyi Operational Hubs',
+  number_of_days INTEGER DEFAULT 1,
+  activity_category TEXT DEFAULT 'outreach',
+  project_code TEXT,
+  funding_source TEXT DEFAULT 'NPO Direct Program Allocation',
+  recorded_by_officer TEXT DEFAULT 'Appointed Finance Officer',
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE IF EXISTS public.stipend_slips
+  ADD COLUMN IF NOT EXISTS reason_for_stipend TEXT DEFAULT 'Outreach & Technical Training Workshop',
+  ADD COLUMN IF NOT EXISTS location TEXT DEFAULT 'Harare & Chinhoyi Operational Hubs',
+  ADD COLUMN IF NOT EXISTS number_of_days INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS activity_category TEXT DEFAULT 'outreach',
+  ADD COLUMN IF NOT EXISTS project_code TEXT,
+  ADD COLUMN IF NOT EXISTS funding_source TEXT DEFAULT 'NPO Direct Program Allocation',
+  ADD COLUMN IF NOT EXISTS recorded_by_officer TEXT DEFAULT 'Appointed Finance Officer';
 
 CREATE INDEX IF NOT EXISTS idx_stipend_slips_recipient ON public.stipend_slips (recipient_id);
 CREATE INDEX IF NOT EXISTS idx_stipend_slips_email ON public.stipend_slips (recipient_email);
@@ -6362,6 +6380,73 @@ CREATE POLICY "Public update stipend slips" ON public.stipend_slips FOR UPDATE U
 
 DROP POLICY IF EXISTS "Public delete stipend slips" ON public.stipend_slips;
 CREATE POLICY "Public delete stipend slips" ON public.stipend_slips FOR DELETE USING (true);
+
+-- ==============================================================================
+-- 2026-11-24: DELETED USERS REGISTRY & PERMANENT ADMIN DELETION RPC
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.deleted_users_registry (
+  id UUID PRIMARY KEY,
+  email TEXT,
+  deleted_by TEXT DEFAULT 'Admin',
+  deleted_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deleted_users_email ON public.deleted_users_registry (email);
+
+ALTER TABLE public.deleted_users_registry ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access deleted users registry" ON public.deleted_users_registry;
+CREATE POLICY "Public access deleted users registry" ON public.deleted_users_registry FOR ALL USING (true) WITH CHECK (true);
+
+CREATE OR REPLACE FUNCTION public.admin_delete_user(
+  p_user_id UUID,
+  p_user_email TEXT DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_email TEXT;
+BEGIN
+  -- 1. Resolve email
+  IF p_user_email IS NOT NULL AND p_user_email <> '' THEN
+    v_email := lower(trim(p_user_email));
+  ELSE
+    SELECT lower(trim(email)) INTO v_email FROM public.profiles WHERE id = p_user_id;
+    IF v_email IS NULL THEN
+      SELECT lower(trim(email)) INTO v_email FROM auth.users WHERE id = p_user_id;
+    END IF;
+  END IF;
+
+  -- 2. Record in deleted_users_registry so they can never be resurrected
+  INSERT INTO public.deleted_users_registry (id, email, deleted_at)
+  VALUES (p_user_id, v_email, now())
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, deleted_at = now();
+
+  -- 3. Delete from public profiles and related tables
+  DELETE FROM public.profiles WHERE id = p_user_id OR (v_email IS NOT NULL AND lower(email) = v_email);
+  DELETE FROM public.subscriptions WHERE user_id = p_user_id;
+  DELETE FROM public.mentorship_requests WHERE requester_id = p_user_id OR mentor_id = p_user_id;
+
+  -- 4. Delete from auth.users
+  BEGIN
+    DELETE FROM auth.users WHERE id = p_user_id OR (v_email IS NOT NULL AND lower(email) = v_email);
+  EXCEPTION WHEN OTHERS THEN
+    -- In case of restricted permissions on auth.users in some setups
+  END;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'deleted_user_id', p_user_id,
+    'deleted_email', v_email,
+    'message', 'User permanently deleted from profiles, auth, and blacklisted from sync.'
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_user(UUID, TEXT) TO anon, authenticated, service_role;
+
 
 
 

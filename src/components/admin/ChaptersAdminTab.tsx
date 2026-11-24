@@ -312,13 +312,15 @@ export default function ChaptersAdminTab() {
   const getRolePinPrefix = (role: ChapterLeaderRole) => {
     switch (role) {
       case 'chairperson':
-      case 'vice_chair':
         return 'PRES';
+      case 'vice_chair':
+        return 'VPRES';
       case 'treasurer':
-        return 'TREAS';
+        return 'FIN';
       case 'secretary':
-      case 'vice_secretary':
         return 'SEC';
+      case 'vice_secretary':
+        return 'VSEC';
       case 'tech_lead':
         return 'TECH';
       case 'lab_coordinator':
@@ -399,6 +401,21 @@ export default function ChaptersAdminTab() {
     if (!secretaryModalTargetChapterId) {
       showNotification('error', 'Please select a chapter.');
       return;
+    }
+
+    if (!secretaryForm.email || !secretaryForm.email.trim()) {
+      showNotification('error', 'Assigned official email is required. The Admin Access PIN is strictly tied to this email.');
+      return;
+    }
+
+    // Strict Policy: Only one user / appointment per email is allowed across the organization
+    const targetEmail = secretaryForm.email.trim().toLowerCase();
+    for (const ch of chapters) {
+      const existing = (ch.leaders || []).find(l => l.id !== editingLeaderId && (l.email || '').trim().toLowerCase() === targetEmail);
+      if (existing) {
+        showNotification('error', `Security Rule: Only one user per email is allowed. The email "${targetEmail}" is already assigned to ${existing.name} (${existing.role}) in chapter "${ch.name}".`);
+        return;
+      }
     }
 
     try {
@@ -2340,18 +2357,21 @@ export default function ChaptersAdminTab() {
                 </div>
 
                 {/* Secretarial / Leader Access PIN */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 uppercase flex items-center space-x-1.5">
-                    <Key className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Admin-Issued Access Key / PIN</span>
-                  </label>
+                <div className="space-y-1.5 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 uppercase flex items-center space-x-1.5">
+                      <Key className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Enter Admin-Assigned Access PIN to Unlock:</span>
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">Case-Insensitive</span>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
                       value={secretaryForm.secretary_access_pin}
                       onChange={e => setSecretaryForm({ ...secretaryForm, secretary_access_pin: e.target.value.toUpperCase() })}
                       placeholder="e.g. CUT-PRES-8842"
-                      className="flex-1 p-3 rounded-xl border border-slate-200 text-xs font-mono font-bold"
+                      className="flex-1 p-3 rounded-xl border border-slate-200 text-xs font-mono font-black tracking-wider uppercase bg-white focus:ring-2 focus:ring-indigo-500"
                     />
                     <button
                       type="button"
@@ -2364,12 +2384,21 @@ export default function ChaptersAdminTab() {
                           secretary_access_pin: `${code}-${prefix}-${Math.floor(1000 + Math.random() * 9000)}`
                         });
                       }}
-                      className="px-3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center space-x-1"
+                      className="px-3.5 py-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center space-x-1 border border-indigo-200 cursor-pointer"
                       title="Generate new PIN"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>Regen</span>
                     </button>
+                  </div>
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl space-y-0.5">
+                    <span className="text-[10px] font-bold text-amber-900 uppercase flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-amber-600" />
+                      <span>Strict Single-Email Binding Policy:</span>
+                    </span>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      This Access PIN can <strong>only be used by the assigned email address: <span className="font-mono font-bold">{secretaryForm.email || '(enter email above)'}</span></strong>. No other email can unlock access, and only one user per email is permitted across YARA chapters.
+                    </p>
                   </div>
                 </div>
 

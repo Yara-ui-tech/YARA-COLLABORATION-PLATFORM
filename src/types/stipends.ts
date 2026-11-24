@@ -35,6 +35,15 @@ export interface StipendSlip {
   approved_by_admin: string;
   notes?: string;
   created_at: string;
+
+  // Bookkeeping & Audit Documentation
+  reason_for_stipend?: string;       // Purpose/Reason for stipend disbursement
+  location?: string;                 // Venue / Outreach Location (e.g. Harare Hub, Chinhoyi High School)
+  number_of_days?: number;           // Duration/Days active in outreach/training
+  activity_category?: 'outreach' | 'training_workshop' | 'mentorship_cohort' | 'curriculum_dev' | 'event_judging' | 'admin_support' | 'other';
+  project_code?: string;             // Project / Audit reference code (e.g. YARA-OUT-2026-01)
+  funding_source?: string;           // Funding grant or allocation source
+  recorded_by_officer?: string;      // Appointed Finance Officer or Admin recording the disbursement
 }
 
 export interface NpoBudgetPercentages {
