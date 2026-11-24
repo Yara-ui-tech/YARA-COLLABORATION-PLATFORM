@@ -41,21 +41,30 @@ export function ensureUuid(str?: string): string {
 }
 
 const DISALLOWED_COURSE_CODES = [
-  'YARA-TECH-PY101-LEGACY', 'YARA-TECH-SCRATCH-LEGACY'
+  'YARA-TECH-PY101-LEGACY',
+  'YARA-TECH-SCRATCH-LEGACY',
+  'YARA-ROB-BEG',
+  'YARA-ROB-INT',
+  'YARA-ROB-ADV'
 ];
 
 const DISALLOWED_COURSE_IDS = [
-  'legacy-dummy-placeholder-01'
+  'legacy-dummy-placeholder-01',
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000003'
 ];
 
 export function isDisallowedCourse(c: any): boolean {
   if (!c) return true;
   const code = (c.code || '').toUpperCase().trim();
   const id = (c.id || '').toLowerCase().trim();
+  const title = (c.title || '').trim();
 
-  // Only filter deprecated legacy IDs if strictly specified. NEVER block dynamic admin courses!
+  // Filter legacy seeded courses
   if (DISALLOWED_COURSE_CODES.includes(code)) return true;
   if (DISALLOWED_COURSE_IDS.includes(id)) return true;
+  if (title.startsWith('Robotics & Embedded Systems — Tier')) return true;
 
   return false;
 }
@@ -86,6 +95,16 @@ export function getAllCourses(): UnifiedCourse[] {
 
 export async function fetchCoursesFromDatabase(): Promise<UnifiedCourse[]> {
   try {
+    // Attempt cleanup of legacy seeded courses in DB
+    try {
+      supabase
+        .from('courses')
+        .delete()
+        .in('code', ['YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV'])
+        .then(() => { })
+        .catch(() => { });
+    } catch { }
+
     const { data, error } = await supabase
       .from('courses')
       .select('*, course_modules(*)')

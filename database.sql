@@ -2067,61 +2067,10 @@ ALTER TABLE public.chapters ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active
 -- ------------------------------------------------------------------------------
 CREATE UNIQUE INDEX IF NOT EXISTS courses_pkey_idx ON public.courses (id);
 
--- Safe idempotent seeding: Ensure flagship courses exist with strict FK preservation (No destructive wipes)
-INSERT INTO public.courses (
-  id, code, title, slug, track, tier, level, min_theory_modules, total_modules, short_summary, description, requires_research_project, requires_final_design_project, requires_level_exam, is_published
-) VALUES
-  (
-    '00000000-0000-0000-0000-000000000001',
-    'YARA-ROB-BEG',
-    'Robotics & Embedded Systems — Tier 1: Beginner Foundations',
-    'robotics-beginner-foundations',
-    'Robotics',
-    1,
-    'Beginner',
-    6,
-    10,
-    'Fundamental circuits, Ohm''s law, electronic breadboarding, sensors and basic actuators.',
-    'Master core engineering fundamentals, electronic components, circuit schematics, hands-on lab experiments, and complete beginner capstone projects.',
-    TRUE, TRUE, TRUE, TRUE
-  ),
-  (
-    '00000000-0000-0000-0000-000000000002',
-    'YARA-ROB-INT',
-    'Robotics & Embedded Systems — Tier 2: Intermediate Systems',
-    'robotics-intermediate-systems',
-    'Robotics',
-    2,
-    'Intermediate',
-    6,
-    12,
-    'Microcontroller programming with C++ and MicroPython, PWM motor drivers, state machines, and telemetry.',
-    'Build and program autonomous mobile robots, integrate ultrasonic and infrared navigation, calibrate PID loops, and deploy sensor telemetry.',
-    TRUE, TRUE, TRUE, TRUE
-  ),
-  (
-    '00000000-0000-0000-0000-000000000003',
-    'YARA-ROB-ADV',
-    'Robotics & Embedded Systems — Tier 3: Advanced Robotics & Edge AI',
-    'robotics-advanced-systems',
-    'Robotics',
-    3,
-    'Advanced',
-    6,
-    15,
-    'ROS 2 kinematics, Edge AI computer vision, LiDAR SLAM, real-time telemetry, and FMEA safety engineering.',
-    'Design commercial-grade autonomous robots, write ROS 2 microservices, train neural network vision models on edge compute, and defend engineering capstone projects.',
-    TRUE, TRUE, TRUE, TRUE
-  )
-ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  slug = EXCLUDED.slug,
-  code = EXCLUDED.code,
-  level = EXCLUDED.level,
-  short_summary = EXCLUDED.short_summary,
-  description = EXCLUDED.description,
-  total_modules = EXCLUDED.total_modules,
-  is_published = EXCLUDED.is_published;
+-- Clean legacy seed courses (Ensure fresh dynamic courses only)
+DELETE FROM public.course_modules WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
+DELETE FROM public.course_projects WHERE course_id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
+DELETE FROM public.courses WHERE code IN ('YARA-ROB-BEG', 'YARA-ROB-INT', 'YARA-ROB-ADV') OR id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003');
 
 -- ------------------------------------------------------------------------------
 -- B. SEED BEGINNER LEVEL MODULES (10 FULL COMPREHENSIVE MODULES)
