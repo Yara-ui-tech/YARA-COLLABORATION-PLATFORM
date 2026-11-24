@@ -59,12 +59,18 @@ export function isDisallowedCourse(c: any): boolean {
   if (!c) return true;
   const code = (c.code || '').toUpperCase().trim();
   const id = (c.id || '').toLowerCase().trim();
-  const title = (c.title || '').trim();
+  const title = (c.title || '').trim().toLowerCase();
 
   // Filter legacy seeded courses
   if (DISALLOWED_COURSE_CODES.includes(code)) return true;
   if (DISALLOWED_COURSE_IDS.includes(id)) return true;
-  if (title.startsWith('Robotics & Embedded Systems — Tier')) return true;
+  if (code.startsWith('YARA-ROB-BEG') || code.startsWith('YARA-ROB-INT') || code.startsWith('YARA-ROB-ADV')) return true;
+  if (title.includes('tier 1: beginner foundations') || 
+      title.includes('tier 2: intermediate systems') || 
+      title.includes('tier 3: advanced robotics') ||
+      title.includes('robotics & embedded systems — tier')) {
+    return true;
+  }
 
   return false;
 }

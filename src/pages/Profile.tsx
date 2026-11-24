@@ -765,9 +765,20 @@ Possible causes:
                     {myStipendSlips.map(slip => (
                       <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.id}</td>
-                        <td className="py-3 px-4 text-slate-600">{slip.disbursement_date}</td>
                         <td className="py-3 px-4 text-slate-600">
-                          Base: ${Number(slip.base_stipend).toFixed(2)} | Allowances: ${Number(slip.allowance_amount).toFixed(2)} | T&amp;S: ${Number(slip.travel_subsistence_ts).toFixed(2)}
+                          <div className="font-semibold text-slate-900">{slip.disbursement_date}</div>
+                          {slip.reason_for_stipend && (
+                            <p className="text-[10px] text-indigo-600 font-bold">{slip.reason_for_stipend}</p>
+                          )}
+                          {slip.location && (
+                            <p className="text-[10px] text-slate-400">📍 {slip.location} {slip.number_of_days ? `(${slip.number_of_days}d)` : ''}</p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          <div>Base: ${Number(slip.base_stipend).toFixed(2)} | Allowances: ${Number(slip.allowance_amount).toFixed(2)} | T&amp;S: ${Number(slip.travel_subsistence_ts).toFixed(2)}</div>
+                          {slip.project_code && (
+                            <span className="text-[10px] font-mono text-slate-400">Project: {slip.project_code}</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 font-black text-emerald-600 text-sm">
                           ${Number(slip.net_amount_received).toFixed(2)} {slip.currency}

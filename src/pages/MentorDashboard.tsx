@@ -369,7 +369,15 @@ export default function MentorDashboard() {
                 {stipendSlips.map(slip => (
                   <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.id}</td>
-                    <td className="py-3 px-4 text-slate-600">{slip.disbursement_date}</td>
+                    <td className="py-3 px-4 text-slate-600">
+                      <div className="font-medium text-slate-900">{slip.disbursement_date}</div>
+                      {slip.reason_for_stipend && (
+                        <p className="text-[10px] text-indigo-600 font-bold">{slip.reason_for_stipend}</p>
+                      )}
+                      {slip.location && (
+                        <p className="text-[10px] text-slate-400">📍 {slip.location} {slip.number_of_days ? `(${slip.number_of_days}d)` : ''}</p>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-slate-600">
                       Base: <span className="font-bold text-slate-800">${Number(slip.base_stipend).toFixed(2)}</span>
                       {Number(slip.allowance_amount) > 0 && ` + Allw: $${Number(slip.allowance_amount).toFixed(2)}`}

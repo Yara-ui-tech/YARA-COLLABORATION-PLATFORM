@@ -233,8 +233,8 @@ export default function Mentorship() {
         slips = await stipendService.getStipendsForUser(user.id, user.email, profile?.display_name);
       } catch {}
 
-      const slipTotal = slips.reduce((sum: number, s: any) => sum + (Number(s.net_amount) || Number(s.base_amount) || 0), 0);
-      const sessionTotal = sessionLogs.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+      const slipTotal = slips.reduce((sum: number, s: any) => sum + (Number(s.net_amount_received) || Number(s.gross_amount) || Number(s.base_stipend) || 0), 0);
+      const sessionTotal = sessionLogs.reduce((sum: number, s: any) => sum + (Number(s.amount_received) || Number(s.amount) || 0), 0);
       
       const computedCommission = Math.max(
         slipTotal,
@@ -252,7 +252,7 @@ export default function Mentorship() {
       const finalStats = {
         mentoredCount: totalStudents,
         commission: computedCommission.toFixed(2),
-        rating: reviewCount > 0 ? calculatedRating : (profile?.rating ? Number(profile.rating).toFixed(1) : '0.0'),
+        rating: reviewCount > 0 ? calculatedRating : (profile?.rating && Number(profile.rating) > 0 ? Number(profile.rating).toFixed(1) : '0.0'),
         reviewCount: reviewCount
       };
 
@@ -287,6 +287,13 @@ export default function Mentorship() {
   useEffect(() => {
     if (profile?.role === 'mentor' && user) {
       computeMentorStats();
+      const handleDisbursed = () => {
+        computeMentorStats();
+      };
+      window.addEventListener('yara_stipend_disbursed', handleDisbursed);
+      return () => {
+        window.removeEventListener('yara_stipend_disbursed', handleDisbursed);
+      };
     }
   }, [user, profile, requests, computeMentorStats]);
 
