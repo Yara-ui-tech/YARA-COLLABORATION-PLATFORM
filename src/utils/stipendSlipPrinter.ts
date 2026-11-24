@@ -370,7 +370,7 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
         </div>
       </div>
       <div class="doc-type-box">
-        <div class="doc-title">Payslip / Stipend Advice</div>
+        <div class="doc-title">Stipend Slip</div>
         <div class="doc-subtitle">Disbursement Slip #${slip.id}</div>
         <span class="confidential-tag">Private &amp; Confidential</span>
       </div>
@@ -540,7 +540,7 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
 
       <!-- Corporate Legal Disclaimer -->
       <div class="legal-disclaimer">
-        This is an official computer-generated payroll advice issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&amp;S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.
+        This is an official computer-generated stipend slip issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&amp;S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.
       </div>
     </div>
   </div>
@@ -564,15 +564,15 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
 
   // 1. Top Corporate Navy Banner
   doc.setFillColor(9, 21, 46); // deep corporate midnight navy
-  doc.rect(0, 0, 210, 36, 'F');
+  doc.rect(0, 0, 210, 38, 'F');
 
   // Accent Blue Border
   doc.setFillColor(37, 99, 235);
-  doc.rect(0, 36, 210, 1.5, 'F');
+  doc.rect(0, 38, 210, 1.5, 'F');
 
   // Logo Icon / Official Circular Badge
   try {
-    doc.addImage(YARA_LOGO_BASE64, 'PNG', 14, 6.5, 23, 23);
+    doc.addImage(YARA_LOGO_BASE64, 'PNG', 14, 7, 24, 24);
   } catch (imgErr) {
     doc.setFillColor(37, 99, 235);
     doc.roundedRect(14, 8, 12, 12, 2, 2, 'F');
@@ -582,24 +582,25 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
     doc.text('Y', 17.5, 17);
   }
 
-  // Organization Title
+  // Organization Title (Left Block - Clean, Non-overlapping sizing)
+  doc.setFontSize(10.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION', 42, 14);
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(147, 197, 253);
+  doc.text('Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR', 42, 19.5);
+  doc.setTextColor(203, 213, 225);
+  doc.setFontSize(7);
+  doc.text('Directorate of Treasury & Financial Accountability • Harare Hub', 42, 25);
+
+  // Document Title (Right Block - STIPEND SLIP)
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('YOUNG AFRICANS ROBOTICS ASSOCIATION', 41, 14);
-
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(147, 197, 253);
-  doc.text('Non-Profit Organisation • Trust Reg #YARA-NPO-2026-AFR', 41, 19.5);
-  doc.setTextColor(203, 213, 225);
-  doc.text('Directorate of Treasury & Financial Accountability • Harare & Chinhoyi Hubs', 41, 24.5);
-
-  // Right-aligned Document Title
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(255, 255, 255);
-  doc.text('PAYSLIP / STIPEND ADVICE', 196, 14, { align: 'right' });
+  doc.text('STIPEND SLIP', 196, 14, { align: 'right' });
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
@@ -608,11 +609,11 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
 
   // Confidential tag
   doc.setFillColor(239, 68, 68);
-  doc.roundedRect(153, 22.5, 43, 5.5, 1, 1, 'F');
+  doc.roundedRect(162, 23, 34, 5.5, 1, 1, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(6.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('PRIVATE & CONFIDENTIAL', 174.5, 26.5, { align: 'center' });
+  doc.text('PRIVATE & CONFIDENTIAL', 179, 27, { align: 'center' });
 
   // 2. Payee and Payment Details Two-Column Box
   const panelY = 44;
@@ -853,11 +854,11 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
   doc.setFontSize(6.5);
   doc.setTextColor(148, 163, 184);
   doc.setFont('helvetica', 'normal');
-  const disclaimer = 'This is an official computer-generated payroll advice issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.';
+  const disclaimer = 'This is an official computer-generated stipend slip issued by the Young Africans Robotics Association (YARA). As an accredited non-profit trust, all stipends, allowances, and T&S travel grants adhere to international donor audit standards and statutory transparency guidelines. Retain this payslip for tax filings and proof of remuneration. For inquiries: finance@yara.org.';
   const splitDisc = doc.splitTextToSize(disclaimer, 182);
   doc.text(splitDisc, 14, footerY + 4);
 
-  doc.save(`YARA-Payslip-${slip.id}.pdf`);
+  doc.save(`YARA-Stipend-Slip-${slip.id}.pdf`);
 }
 
 /**
