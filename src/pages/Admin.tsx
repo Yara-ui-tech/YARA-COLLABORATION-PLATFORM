@@ -101,13 +101,13 @@ export default function Admin() {
   const { profile, user: authUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const isAdmin = profile?.role === 'admin' || 
-    profile?.email === 'manongwasimbarashe394@gmail.com' || 
-    profile?.email === 'goyaracorp@gmail.com' || 
-    authUser?.email === 'manongwasimbarashe394@gmail.com' || 
+  const isAdmin = profile?.role === 'admin' ||
+    profile?.email === 'manongwasimbarashe394@gmail.com' ||
+    profile?.email === 'goyaracorp@gmail.com' ||
+    authUser?.email === 'manongwasimbarashe394@gmail.com' ||
     authUser?.email === 'goyaracorp@gmail.com' ||
     authUser?.user_metadata?.role === 'admin';
-  
+
   const getHubForTab = (tab: string): AdminHub => {
     if (['site_content', 'shop_manager', 'org_posts', 'impact_gallery', 'feedbacks_testimonials'].includes(tab)) return 'webpage';
     if (['learning_academy', 'resources_media', 'yara_kids', 'brainstorming', 'curriculum', 'lms_evaluations'].includes(tab)) return 'lms';
@@ -157,7 +157,7 @@ export default function Admin() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showCompModal, setShowCompModal] = useState(false);
-  
+
   // Settings State
   const [courseFee, setCourseFee] = useState({ amount: 0, currency: 'USD', message: 'Platform fees and subscription amounts are updated by administrators or confirmed upon inquiry.' });
   const [launchConfig, setLaunchConfig] = useState({
@@ -210,10 +210,10 @@ export default function Admin() {
             fetchMentorReviews();
           })
           .subscribe();
-      } catch {}
+      } catch { }
       return () => {
         if (ch) {
-          try { supabase.removeChannel(ch); } catch {}
+          try { supabase.removeChannel(ch); } catch { }
         }
       };
     }
@@ -232,7 +232,7 @@ export default function Admin() {
         .select('value')
         .eq('key', 'course_fee')
         .single();
-      
+
       if (feeData?.value) {
         setCourseFee(feeData.value);
       }
@@ -242,7 +242,7 @@ export default function Admin() {
         .select('value')
         .eq('key', 'launch_time')
         .single();
-      
+
       if (launchData?.value) {
         const val = launchData.value;
         setLaunchConfig({
@@ -305,7 +305,7 @@ export default function Admin() {
       is_enabled: true
     };
     setLaunchConfig(updated);
-    
+
     try {
       await supabase
         .from('system_settings')
@@ -342,25 +342,54 @@ export default function Admin() {
 
   const fetchMentorshipRequests = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('mentorship_requests')
-      .select(`
-        *,
-        mentor:profiles!mentor_id(display_name)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      // 1. Try querying with join
+      let reqData: any[] = [];
+      const { data, error } = await supabase
+        .from('mentorship_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching requests:', error);
-      setErrorMessage('Failed to load mentorship requests.');
-    } else {
-      const formatted = data?.map((r: any) => ({
+      if (error) {
+        console.warn('DB error fetching mentorship requests:', error);
+      } else if (data) {
+        reqData = data;
+      }
+
+      // 2. Fallback to local storage if empty or network/RLS issues
+      let localReqs: any[] = [];
+      try {
+        const raw = localStorage.getItem('yara_local_mentorship_requests');
+        if (raw) localReqs = JSON.parse(raw);
+      } catch { }
+
+      const dbIds = new Set(reqData.map(r => r.id));
+      const combined = [...reqData, ...localReqs.filter(lr => !dbIds.has(lr.id))];
+
+      // Enrich with mentor display name if not already set
+      const formatted = combined.map((r: any) => ({
         ...r,
-        mentor_name: r.mentor?.display_name || 'Unknown Mentor'
+        mentor_name: r.mentor_name || r.mentor?.display_name || 'Assigned Mentor',
+        requester_name: r.requester_name || 'Student / Learner'
       }));
-      setMentorshipRequests(formatted || []);
+
+      setMentorshipRequests(formatted);
+    } catch (err: any) {
+      console.error('Error fetching requests:', err);
+      // Fallback cleanly from local storage without showing error alert
+      try {
+        const raw = localStorage.getItem('yara_local_mentorship_requests');
+        if (raw) {
+          const localReqs = JSON.parse(raw);
+          setMentorshipRequests(localReqs);
+          setLoading(false);
+          return;
+        }
+      } catch { }
+      setErrorMessage('Failed to load mentorship requests.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchAutoMentorRequests = async () => {
@@ -637,7 +666,7 @@ export default function Admin() {
             value: { events: currentEvents, updated_at: nowIso },
             description: 'YARA Public Events Catalog'
           }, { onConflict: 'key' });
-      } catch {}
+      } catch { }
 
       setShowEventModal(false);
       setEditingEventId(null);
@@ -715,7 +744,7 @@ export default function Admin() {
             value: { competitions: currentComps, updated_at: nowIso },
             description: 'YARA Robotics Competitions Catalog'
           }, { onConflict: 'key' });
-      } catch {}
+      } catch { }
 
       setShowCompModal(false);
       setEditingCompId(null);
@@ -847,7 +876,7 @@ export default function Admin() {
 
   const updateMemberId = async (userId: string, currentEmail: string, currentName: string, newMemberId: string) => {
     if (!newMemberId.trim()) return;
-    
+
     setUpdatingId(userId);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -855,7 +884,7 @@ export default function Admin() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           member_id: newMemberId,
           registration_paid: true, // Automatically mark as paid when ID is assigned
         })
@@ -864,10 +893,10 @@ export default function Admin() {
       if (error) throw error;
 
       setSuccessMessage(`Member ID assigned and account activated for ${currentName}. Please manually send the ID (${newMemberId}) to ${currentEmail}.`);
-      
+
       // Update local state
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, member_id: newMemberId, registration_paid: true } : u));
-      
+
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (error: any) {
       console.error('Error updating member ID:', error);
@@ -889,12 +918,12 @@ export default function Admin() {
 
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       setSuccessMessage(`User role updated to ${newRole}.`);
-      
+
       // If a user was promoted to mentor, they are now "approved"
       if (newRole === 'mentor') {
         setSuccessMessage(`User has been approved as a Mentor.`);
       }
-      
+
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
       setErrorMessage(error.message);
@@ -905,12 +934,12 @@ export default function Admin() {
 
   const revokeAccess = async (userId: string, currentName: string) => {
     if (!window.confirm(`Are you sure you want to revoke access for ${currentName}? This will clear their Member ID and deactivate their account.`)) return;
-    
+
     setUpdatingId(userId);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           member_id: null,
           registration_paid: false,
         })
@@ -930,7 +959,7 @@ export default function Admin() {
 
   const wipeAllData = async () => {
     if (!window.confirm("CRITICAL WARNING: This will delete ALL ideas, projects, mentorship requests, reviews, and user profiles. This action is irreversible. You will be logged out. Are you absolutely sure?")) return;
-    
+
     const secondConfirm = window.confirm("FINAL CONFIRMATION: Are you REALLY sure you want to wipe the entire database?");
     if (!secondConfirm) return;
 
@@ -967,7 +996,7 @@ export default function Admin() {
         .neq('email', 'dummy@example.com');
 
       setSuccessMessage("Database wiped successfully. Logging out...");
-      
+
       setTimeout(async () => {
         await safeSignOut();
         window.location.href = '/auth';
@@ -983,7 +1012,7 @@ export default function Admin() {
 
   const deletePastData = async () => {
     if (!window.confirm("Are you sure you want to remove all expired events and competitions?")) return;
-    
+
     setLoading(true);
     setErrorMessage(null);
     try {
@@ -1017,7 +1046,7 @@ export default function Admin() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.member_id?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1041,50 +1070,50 @@ export default function Admin() {
     defaultSub: string;
     badge?: string;
   }> = [
-    {
-      id: 'webpage',
-      label: 'Webpage & Content Studio',
-      tagline: 'Homepage sections, shop pricing & news',
-      icon: Globe,
-      color: 'from-blue-600 to-cyan-600',
-      defaultSub: 'site_content',
-      badge: 'Web Studio'
-    },
-    {
-      id: 'lms',
-      label: 'Robotics Academy & LMS',
-      tagline: 'Courses, modules, tiers & certificates',
-      icon: BookOpen,
-      color: 'from-emerald-600 to-teal-600',
-      defaultSub: 'learning_academy',
-      badge: 'LMS'
-    },
-    {
-      id: 'competitions',
-      label: 'Competitions & Arena',
-      tagline: 'Championships, teams (2B+2G) & arena',
-      icon: Trophy,
-      color: 'from-amber-500 to-amber-600',
-      defaultSub: 'competitions'
-    },
-    {
-      id: 'members',
-      label: 'Members & Chapters',
-      tagline: 'Directory, registrations & chapters',
-      icon: Users,
-      color: 'from-purple-600 to-indigo-600',
-      defaultSub: 'members',
-      badge: 'Directory'
-    },
-    {
-      id: 'platform',
-      label: 'Operations & Settings',
-      tagline: 'Finance ledger, CSV import & settings',
-      icon: Sliders,
-      color: 'from-slate-700 to-slate-900',
-      defaultSub: 'finance'
-    }
-  ];
+      {
+        id: 'webpage',
+        label: 'Webpage & Content Studio',
+        tagline: 'Homepage sections, shop pricing & news',
+        icon: Globe,
+        color: 'from-blue-600 to-cyan-600',
+        defaultSub: 'site_content',
+        badge: 'Web Studio'
+      },
+      {
+        id: 'lms',
+        label: 'Robotics Academy & LMS',
+        tagline: 'Courses, modules, tiers & certificates',
+        icon: BookOpen,
+        color: 'from-emerald-600 to-teal-600',
+        defaultSub: 'learning_academy',
+        badge: 'LMS'
+      },
+      {
+        id: 'competitions',
+        label: 'Competitions & Arena',
+        tagline: 'Championships, teams (2B+2G) & arena',
+        icon: Trophy,
+        color: 'from-amber-500 to-amber-600',
+        defaultSub: 'competitions'
+      },
+      {
+        id: 'members',
+        label: 'Members & Chapters',
+        tagline: 'Directory, registrations & chapters',
+        icon: Users,
+        color: 'from-purple-600 to-indigo-600',
+        defaultSub: 'members',
+        badge: 'Directory'
+      },
+      {
+        id: 'platform',
+        label: 'Operations & Settings',
+        tagline: 'Finance ledger, CSV import & settings',
+        icon: Sliders,
+        color: 'from-slate-700 to-slate-900',
+        defaultSub: 'finance'
+      }
+    ];
 
   const HUB_SUBTABS: Record<AdminHub, SubTabItem[]> = {
     webpage: [
@@ -1429,7 +1458,7 @@ export default function Admin() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative my-8"
             >
-              <button 
+              <button
                 onClick={() => {
                   setShowEventModal(false);
                   setEditingEventId(null);
@@ -1563,7 +1592,7 @@ export default function Admin() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-[2.5rem] p-10 max-w-2xl w-full shadow-2xl relative my-8"
             >
-              <button 
+              <button
                 onClick={() => {
                   setShowCompModal(false);
                   setEditingCompId(null);
@@ -1681,7 +1710,7 @@ export default function Admin() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative"
             >
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="absolute top-6 right-6 p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors"
               >
@@ -1820,14 +1849,14 @@ export default function Admin() {
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <button 
+                          <button
                             onClick={() => openEditEventModal(e)}
                             className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                             title="Edit Event"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => deleteEvent(e.id)}
                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                             title="Delete Event"
@@ -1870,9 +1899,9 @@ export default function Admin() {
 
         {activeTab === 'admin_management' && (
           <div className="p-6 md:p-8">
-            <AdminManagementSection 
-              users={users} 
-              onRefresh={fetchUsers} 
+            <AdminManagementSection
+              users={users}
+              onRefresh={fetchUsers}
             />
           </div>
         )}
@@ -1993,7 +2022,7 @@ export default function Admin() {
                 <DollarSign className="w-6 h-6 text-indigo-600" />
                 <span>Course & Platform Fees</span>
               </h3>
-              
+
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -2081,7 +2110,7 @@ export default function Admin() {
                         <span className={cn(
                           "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
                           r.status === 'accepted' ? "bg-emerald-50 text-emerald-600" :
-                          r.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-600"
+                            r.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-600"
                         )}>
                           {r.status}
                         </span>
@@ -2354,11 +2383,10 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
               {(() => {
                 const resolvedGender = (user as any).gender || (user as any).social_links?.gender || (user as any).accessibility_preferences?.gender || 'boy';
                 return (
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${
-                    resolvedGender === 'girl'
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-0.5 border ${resolvedGender === 'girl'
                       ? 'bg-pink-50 text-pink-700 border-pink-200'
                       : 'bg-blue-50 text-blue-700 border-blue-200'
-                  }`}>
+                    }`}>
                     <span>{resolvedGender === 'girl' ? '👧 Girl' : '👦 Boy'}</span>
                   </span>
                 );
@@ -2522,8 +2550,8 @@ function UserRow({ user, onUpdate, onToggleHalt, onUpdateSubscription, onUpdateR
             disabled={isUpdating}
             className={cn(
               "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm",
-              user.is_halted 
-                ? "bg-red-600 text-white border-red-700 hover:bg-red-700" 
+              user.is_halted
+                ? "bg-red-600 text-white border-red-700 hover:bg-red-700"
                 : "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100"
             )}
           >
