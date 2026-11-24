@@ -6228,20 +6228,37 @@ ALTER TABLE public.robotics_enrolments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.robotics_teacher_enrolments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.robotics_school_partnerships ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public view robotics programmes" ON public.robotics_programmes;
 CREATE POLICY "Public view robotics programmes" ON public.robotics_programmes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public view certification pathways" ON public.robotics_certification_levels;
 CREATE POLICY "Public view certification pathways" ON public.robotics_certification_levels FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public insert enrolments" ON public.robotics_enrolments;
 CREATE POLICY "Public insert enrolments" ON public.robotics_enrolments FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users view own enrolments" ON public.robotics_enrolments;
 CREATE POLICY "Users view own enrolments" ON public.robotics_enrolments FOR SELECT USING (
   auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "Admins update enrolments" ON public.robotics_enrolments;
 CREATE POLICY "Admins update enrolments" ON public.robotics_enrolments FOR UPDATE USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "Public insert partnerships" ON public.robotics_school_partnerships;
 CREATE POLICY "Public insert partnerships" ON public.robotics_school_partnerships FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins manage partnerships" ON public.robotics_school_partnerships;
 CREATE POLICY "Admins manage partnerships" ON public.robotics_school_partnerships FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "Public insert teacher enrolments" ON public.robotics_teacher_enrolments;
 CREATE POLICY "Public insert teacher enrolments" ON public.robotics_teacher_enrolments FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admins manage teacher enrolments" ON public.robotics_teacher_enrolments;
 CREATE POLICY "Admins manage teacher enrolments" ON public.robotics_teacher_enrolments FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
@@ -6291,7 +6308,10 @@ CREATE TABLE IF NOT EXISTS public.shop_orders (
 );
 
 ALTER TABLE public.shop_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can insert shop orders" ON public.shop_orders;
 CREATE POLICY "Anyone can insert shop orders" ON public.shop_orders FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public view own shop orders" ON public.shop_orders;
 CREATE POLICY "Public view own shop orders" ON public.shop_orders FOR SELECT USING (true);
 
 -- ==============================================================================
@@ -6299,6 +6319,7 @@ CREATE POLICY "Public view own shop orders" ON public.shop_orders FOR SELECT USI
 -- ==============================================================================
 DROP POLICY IF EXISTS "Participants view own mentorship requests" ON public.mentorship_requests;
 DROP POLICY IF EXISTS "Participants and admins can read mentorship requests" ON public.mentorship_requests;
+DROP POLICY IF EXISTS "Strict target mentor and admin view mentorship requests" ON public.mentorship_requests;
 CREATE POLICY "Strict target mentor and admin view mentorship requests" ON public.mentorship_requests
   FOR SELECT USING (
     auth.uid() IS NOT NULL AND (
@@ -6310,6 +6331,7 @@ CREATE POLICY "Strict target mentor and admin view mentorship requests" ON publi
 
 DROP POLICY IF EXISTS "Participants and admins can update mentorship requests" ON public.mentorship_requests;
 DROP POLICY IF EXISTS "Participants update mentorship requests" ON public.mentorship_requests;
+DROP POLICY IF EXISTS "Strict target mentor and admin update mentorship requests" ON public.mentorship_requests;
 CREATE POLICY "Strict target mentor and admin update mentorship requests" ON public.mentorship_requests
   FOR UPDATE USING (
     auth.uid() IS NOT NULL AND (
