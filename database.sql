@@ -6396,6 +6396,7 @@ CREATE TABLE IF NOT EXISTS public.stipend_slips (
 );
 
 CREATE INDEX IF NOT EXISTS idx_stipend_slips_recipient ON public.stipend_slips (recipient_id);
+CREATE INDEX IF NOT EXISTS idx_stipend_slips_email ON public.stipend_slips (recipient_email);
 CREATE INDEX IF NOT EXISTS idx_stipend_slips_date ON public.stipend_slips (disbursement_date);
 
 ALTER TABLE public.stipend_slips ENABLE ROW LEVEL SECURITY;
@@ -6404,11 +6405,14 @@ DROP POLICY IF EXISTS "Public insert stipend slips" ON public.stipend_slips;
 CREATE POLICY "Public insert stipend slips" ON public.stipend_slips FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Recipient and admin view stipend slips" ON public.stipend_slips;
-CREATE POLICY "Recipient and admin view stipend slips" ON public.stipend_slips FOR SELECT USING (
-  auth.uid() IS NULL 
-  OR auth.uid() = recipient_id 
-  OR public.is_admin()
-);
+DROP POLICY IF EXISTS "Public view stipend slips" ON public.stipend_slips;
+CREATE POLICY "Public view stipend slips" ON public.stipend_slips FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public update stipend slips" ON public.stipend_slips;
+CREATE POLICY "Public update stipend slips" ON public.stipend_slips FOR UPDATE USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public delete stipend slips" ON public.stipend_slips;
+CREATE POLICY "Public delete stipend slips" ON public.stipend_slips FOR DELETE USING (true);
 
 
 

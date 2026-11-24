@@ -62,16 +62,19 @@ export default function Profile() {
       // Load user's official stipend slips (mentors, employees, trainers, coaches, etc.)
       const loadSlips = async () => {
         try {
-          const allSlips = await stipendService.getAllStipends();
-          const mine = allSlips.filter(s => 
-            (s.recipient_id && s.recipient_id === profile.id) || 
-            (s.recipient_email && profile.email && s.recipient_email.toLowerCase() === profile.email.toLowerCase()) ||
-            (profile.display_name && s.recipient_name.toLowerCase() === profile.display_name.toLowerCase())
-          );
+          const mine = await stipendService.getStipendsForUser(profile.id, profile.email, profile.display_name);
           setMyStipendSlips(mine);
         } catch {}
       };
       loadSlips();
+
+      const handleDisbursed = () => {
+        loadSlips();
+      };
+      window.addEventListener('yara_stipend_disbursed', handleDisbursed);
+      return () => {
+        window.removeEventListener('yara_stipend_disbursed', handleDisbursed);
+      };
     }
   }, [profile]);
 

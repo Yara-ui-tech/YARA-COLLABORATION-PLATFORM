@@ -3,7 +3,26 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
 import PlaceholderImage from '../components/PlaceholderImage';
-import { Star, MessageSquare, Award, CheckCircle2, User, RefreshCw, BookOpen, Users, Radio } from 'lucide-react';
+import {
+  Star,
+  MessageSquare,
+  Award,
+  CheckCircle2,
+  User,
+  RefreshCw,
+  BookOpen,
+  Users,
+  Radio,
+  FileText,
+  Download,
+  Printer,
+  CreditCard,
+  Clock,
+  Sparkles
+} from 'lucide-react';
+import { StipendSlip } from '../types/stipends';
+import { stipendService } from '../services/stipendService';
+import { downloadStipendSlipPdf, printStipendSlip } from '../utils/stipendSlipPrinter';
 
 export default function MentorDashboard() {
   const { profile, refreshProfile } = useAuth();
@@ -13,34 +32,91 @@ export default function MentorDashboard() {
   const [logs, setLogs] = useState<any[]>([]);
   const [assignedSessions, setAssignedSessions] = useState<any[]>([]);
   const [mentorReviews, setMentorReviews] = useState<any[]>([]);
+  const [stipendSlips, setStipendSlips] = useState<StipendSlip[]>([]);
+  const [loadingStipends, setLoadingStipends] = useState(false);
 
-  const commissionTotal = profile?.total_commission || 0;
-  const amountPaid = profile?.amount_paid || 0;
-  const commissionDue = (Number(commissionTotal) - Number(amountPaid)).toFixed(2);
+  // Dynamic calculation from official stipend slips and approved logs
+  const stipendsPaidTotal = stipendSlips
+    .filter(s => s.status === 'completed' || s.status === 'processing')
+    .reduce((sum, s) => sum + (Number(s.net_amount_received) || 0), 0);
+
+  const approvedLogsTotal = logs
+    .filter(l => l.admin_approved)
+    .reduce((sum, l) => sum + (Number(l.amount_received) || 0), 0);
+
+  const effectiveEarned = Math.max(
+    Number(profile?.total_commission) || 0,
+    approvedLogsTotal,
+    stipendsPaidTotal
+  );
+
+  const effectivePaid = Math.max(
+    Number(profile?.amount_paid) || 0,
+    stipendsPaidTotal
+  );
+
+  const effectiveDue = Math.max(0, effectiveEarned - effectivePaid).toFixed(2);
 
   useEffect(() => {
     if (profile) {
       fetchLogs();
       fetchAssignedSessions();
       fetchReviews();
+      fetchStipends();
 
       // Realtime channel for mentor reviews
-      const channel = supabase
+      const reviewChannel = supabase
         .channel(`mentor-reviews-${profile.id}`)
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
           table: 'mentor_reviews'
         }, () => {
           fetchReviews();
         })
         .subscribe();
 
+      // Realtime channel for stipend slips & commission updates
+      const stipendChannel = supabase
+        .channel(`mentor-stipends-${profile.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'stipend_slips'
+        }, () => {
+          fetchStipends();
+          if (refreshProfile) refreshProfile();
+        })
+        .subscribe();
+
+      // Local event listener for cross-tab instant sync
+      const handleDisbursed = () => {
+        fetchStipends();
+        fetchLogs();
+        if (refreshProfile) refreshProfile();
+      };
+      window.addEventListener('yara_stipend_disbursed', handleDisbursed);
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(reviewChannel);
+        supabase.removeChannel(stipendChannel);
+        window.removeEventListener('yara_stipend_disbursed', handleDisbursed);
       };
     }
   }, [profile]);
+
+  async function fetchStipends() {
+    if (!profile) return;
+    setLoadingStipends(true);
+    try {
+      const slips = await stipendService.getStipendsForUser(profile.id, profile.email, profile.display_name);
+      setStipendSlips(slips);
+    } catch (err) {
+      console.warn('Failed to fetch mentor stipend slips:', err);
+    } finally {
+      setLoadingStipends(false);
+    }
+  }
 
   async function fetchReviews() {
     if (!profile) return;
@@ -105,7 +181,7 @@ export default function MentorDashboard() {
     if (!amount) return alert('Enter amount');
     setLoading(true);
     try {
-      const { error } = await supabase.from('mentor_session_logs').insert([{ 
+      const { error } = await supabase.from('mentor_session_logs').insert([{
         mentor_id: profile.id,
         session_id: profile.id + '-' + Date.now(),
         amount_received: parseFloat(amount),
@@ -134,7 +210,7 @@ export default function MentorDashboard() {
           <h1 className="text-3xl font-extrabold">Mentor Dashboard</h1>
           <p className="text-slate-500 mt-1">Tools for mentors: manage resources, view mentee requests, and submit commission requests.</p>
         </div>
-        <div className="text-sm text-slate-400">Balance due: <strong className="text-indigo-600">${commissionDue}</strong></div>
+        <div className="text-sm text-slate-400">Balance due: <strong className="text-indigo-600 text-base">${effectiveDue}</strong></div>
       </div>
       <div className="p-6 bg-white rounded-3xl border shadow-sm">
         <h3 className="font-bold">Assigned Sessions</h3>
@@ -202,11 +278,30 @@ export default function MentorDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="p-6 bg-white rounded-3xl border shadow-sm">
-          <h3 className="font-bold">Commission Summary</h3>
-          <div className="mt-4 space-y-2">
-            <p className="text-sm text-slate-500">Total Commission Earned: <strong className="text-emerald-600">${commissionTotal}</strong></p>
-            <p className="text-sm text-slate-500">Amount Paid: <strong className="text-slate-900">${amountPaid}</strong></p>
-            <p className="text-sm text-slate-500">Commission Due: <strong className="text-indigo-600">${commissionDue}</strong></p>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-emerald-600" />
+              <span>Commission &amp; Stipend Summary</span>
+            </h3>
+            {stipendSlips.length > 0 && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                {stipendSlips.length} Verified {stipendSlips.length === 1 ? 'Slip' : 'Slips'}
+              </span>
+            )}
+          </div>
+          <div className="mt-4 space-y-2.5">
+            <div className="flex justify-between items-center text-sm text-slate-500">
+              <span>Total Commission Earned:</span>
+              <strong className="text-emerald-600 font-bold">${effectiveEarned.toFixed(2)}</strong>
+            </div>
+            <div className="flex justify-between items-center text-sm text-slate-500">
+              <span>Amount Paid / Disbursed:</span>
+              <strong className="text-slate-900 font-bold">${effectivePaid.toFixed(2)}</strong>
+            </div>
+            <div className="flex justify-between items-center text-sm text-slate-500 pt-2 border-t border-slate-100">
+              <span className="font-bold text-slate-700">Commission Due / Outstanding:</span>
+              <strong className="text-indigo-600 font-black text-base">${effectiveDue}</strong>
+            </div>
           </div>
         </div>
 
@@ -215,17 +310,111 @@ export default function MentorDashboard() {
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div>
               <label className="text-sm font-medium">Amount</label>
-              <input value={amount} onChange={e=>setAmount(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
+              <input value={amount} onChange={e => setAmount(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
             </div>
             <div>
               <label className="text-sm font-medium">Description</label>
-              <input value={description} onChange={e=>setDescription(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
+              <input value={description} onChange={e => setDescription(e.target.value)} className="w-full mt-1 p-3 border rounded-lg" />
             </div>
             <div>
-              <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">{loading? 'Submitting...' : 'Submit Request'}</button>
+              <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold">{loading ? 'Submitting...' : 'Submit Request'}</button>
             </div>
           </form>
         </div>
+      </div>
+
+      {/* Official Stipend & Remuneration Slips Section */}
+      <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-600" />
+              <span>Official Stipend &amp; Remuneration Slips</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Verified computer-generated payslips issued by YARA Treasury for your mentoring and training services.
+            </p>
+          </div>
+
+          {stipendSlips.length > 0 && (
+            <span className="text-xs font-bold text-slate-500">
+              Total Disbursed: <strong className="text-emerald-600">${stipendsPaidTotal.toFixed(2)} USD</strong>
+            </span>
+          )}
+        </div>
+
+        {stipendSlips.length === 0 ? (
+          <div className="py-10 text-center bg-slate-50/60 rounded-2xl border border-dashed border-slate-200 space-y-2">
+            <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-sm font-bold text-slate-700">No Disbursed Stipend Slips Yet</p>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              When an administrator authorizes your session stipend or milestone payout in the Admin Console, your verifiable payslip will appear here for download.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
+                  <th className="py-3 px-4">Slip Ref</th>
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Remuneration Breakdown</th>
+                  <th className="py-3 px-4">Net Disbursed</th>
+                  <th className="py-3 px-4">Method &amp; Txn</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {stipendSlips.map(slip => (
+                  <tr key={slip.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.id}</td>
+                    <td className="py-3 px-4 text-slate-600">{slip.disbursement_date}</td>
+                    <td className="py-3 px-4 text-slate-600">
+                      Base: <span className="font-bold text-slate-800">${Number(slip.base_stipend).toFixed(2)}</span>
+                      {Number(slip.allowance_amount) > 0 && ` + Allw: $${Number(slip.allowance_amount).toFixed(2)}`}
+                      {Number(slip.travel_subsistence_ts) > 0 && ` + T&S: $${Number(slip.travel_subsistence_ts).toFixed(2)}`}
+                    </td>
+                    <td className="py-3 px-4 font-black text-emerald-600 text-sm">
+                      ${Number(slip.net_amount_received).toFixed(2)} {slip.currency}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-bold text-slate-700 capitalize">{slip.payment_method?.replace('_', ' ') || 'Direct'}</span>
+                      <p className="text-[10px] text-slate-400 font-mono">{slip.payment_reference}</p>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${slip.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                        }`}>
+                        {slip.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => printStipendSlip(slip)}
+                          className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                          title="Print Slip"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadStipendSlipPdf(slip)}
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 transition-all cursor-pointer"
+                          title="Download PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>PDF</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="p-6 bg-white rounded-3xl border shadow-sm">
@@ -263,8 +452,8 @@ export default function MentorDashboard() {
           <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
             <div className="text-center">
               <span className="text-2xl font-black text-slate-900">
-                {mentorReviews.length > 0 
-                  ? (mentorReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / mentorReviews.length).toFixed(1) 
+                {mentorReviews.length > 0
+                  ? (mentorReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / mentorReviews.length).toFixed(1)
                   : '—'}
               </span>
               <span className="text-xs text-amber-500 font-bold block">★ Rating</span>

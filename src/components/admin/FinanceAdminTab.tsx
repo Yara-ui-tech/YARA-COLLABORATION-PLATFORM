@@ -382,7 +382,7 @@ export default function FinanceAdminTab() {
     const newId = `STP-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     setSlipFormData({
       id: newId,
-      recipient_id: 'REC-' + Math.random().toString(36).substring(2, 7),
+      recipient_id: '',
       recipient_name: '',
       recipient_role: 'mentor',
       member_id: `YARA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1400,6 +1400,37 @@ export default function FinanceAdminTab() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                        Autofill from Registered Team Member (Optional)
+                      </label>
+                      <select
+                        onChange={(e) => {
+                          const p = personnel.find(x => x.id === e.target.value);
+                          if (p) {
+                            setSlipFormData(prev => ({
+                              ...prev,
+                              recipient_id: p.id,
+                              recipient_name: p.display_name || '',
+                              recipient_email: p.email || '',
+                              recipient_phone: p.contact_phone || '',
+                              recipient_role: (p.role === 'employee' || p.role === 'trainer' || p.role === 'coach' || p.role === 'volunteer' ? p.role : 'mentor') as any,
+                              member_id: p.member_id || `YARA-MEM-${p.id.slice(0, 6).toUpperCase()}`
+                            }));
+                          }
+                        }}
+                        defaultValue=""
+                        className="w-full bg-indigo-50/60 border border-indigo-200 rounded-xl py-2 px-3 text-xs font-bold text-indigo-950 focus:border-indigo-600 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">-- Or choose registered personnel to auto-link account --</option>
+                        {personnel.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.display_name} ({p.role}) - {p.email || 'No email'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                         Full Name <span className="text-red-500">*</span>
