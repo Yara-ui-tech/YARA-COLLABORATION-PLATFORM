@@ -431,36 +431,6 @@ export function generateStipendSlipHtml(slip: StipendSlip): string {
         </div>
       </div>
 
-      <!-- Audit & Bookkeeping Documentation -->
-      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 6px; margin-bottom: 8px;">
-          <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #4338ca;">
-            Audit &amp; Bookkeeping Specification
-          </span>
-          <span style="font-size: 10px; font-weight: 700; color: #047857; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; border: 1px solid #a7f3d0;">
-            ${(slip.activity_category || 'outreach').replace(/_/g, ' ').toUpperCase()} • ${slip.number_of_days || 1} DAY(S)
-          </span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 11px;">
-          <div>
-            <span style="color: #64748b; font-size: 9.5px; font-weight: 700; text-transform: uppercase; display: block;">Reason / Purpose:</span>
-            <strong style="color: #0f172a;">${slip.reason_for_stipend || 'Outreach STEM Workshop & Lab Setup'}</strong>
-          </div>
-          <div>
-            <span style="color: #64748b; font-size: 9.5px; font-weight: 700; text-transform: uppercase; display: block;">Location / Venue:</span>
-            <strong style="color: #0f172a;">${slip.location || 'Harare & Chinhoyi Operational Hubs'}</strong>
-          </div>
-          <div>
-            <span style="color: #64748b; font-size: 9.5px; font-weight: 700; text-transform: uppercase; display: block;">Funding Source &amp; Project Code:</span>
-            <strong style="color: #0f172a;">${slip.funding_source || 'NPO Direct Program Allocation'}${slip.project_code ? ` • Ref: ${slip.project_code}` : ''}</strong>
-          </div>
-          <div>
-            <span style="color: #64748b; font-size: 9.5px; font-weight: 700; text-transform: uppercase; display: block;">Appointed Finance Officer:</span>
-            <strong style="color: #0f172a;">${slip.recorded_by_officer || slip.approved_by_admin || 'Appointed Finance Officer'}</strong>
-          </div>
-        </div>
-      </div>
-
       <!-- Accounting Breakdown: Earnings vs Deductions Grid -->
       <div class="accounting-grid">
         <!-- Earnings Column -->
@@ -700,49 +670,8 @@ export function downloadStipendSlipPdf(slip: StipendSlip): void {
   doc.setFont('helvetica', 'bold');
   doc.text(slip.budget_category.replace(/_/g, ' ').toUpperCase(), 142, panelY + 27);
 
-  // 2.5 Audit & Bookkeeping Specification Panel
-  const auditY = panelY + 32;
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(14, auditY, 182, 16, 2, 2, 'F');
-  doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(14, auditY, 182, 16, 2, 2, 'D');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(67, 56, 202);
-  doc.text('AUDIT & BOOKKEEPING SPECIFICATION', 18, auditY + 4.5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text('PURPOSE / REASON: ', 18, auditY + 9);
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.text((slip.reason_for_stipend || 'Outreach STEM Workshop').substring(0, 48), 44, auditY + 9);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text('LOCATION / VENUE: ', 18, auditY + 13);
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.text((slip.location || 'Harare & Chinhoyi Hubs').substring(0, 48), 44, auditY + 13);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text('DURATION / TYPE: ', 115, auditY + 9);
-  doc.setTextColor(5, 150, 105);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`${slip.number_of_days || 1} Day(s) [${(slip.activity_category || 'outreach').toUpperCase()}]`, 140, auditY + 9);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text('FINANCE OFFICER: ', 115, auditY + 13);
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.text((slip.recorded_by_officer || slip.approved_by_admin || 'Appointed Finance Officer').substring(0, 24), 140, auditY + 13);
-
   // 3. Accounting Table (Dual-column: Earnings & Deductions)
-  let y = 97;
+  let y = 84;
   
   // Header: Earnings vs Deductions
   doc.setFillColor(241, 245, 249);

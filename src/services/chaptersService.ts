@@ -1,5 +1,5 @@
-import { 
-  Chapter, ChapterReport, NationalExecutiveAssessment, ChapterLeader, 
+import {
+  Chapter, ChapterReport, NationalExecutiveAssessment, ChapterLeader,
   ChapterLeaderRole, ChapterFinancialData, ChapterMember, ChapterRegistrationRequest,
   ChapterClub
 } from '../types/chapters';
@@ -86,7 +86,7 @@ export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
@@ -129,7 +129,7 @@ export function mergeWithStandardUniversities(existing: Chapter[]): Chapter[] {
   const existingNames = new Set(existing.map(c => c.name?.toLowerCase().trim()));
   const existingInst = new Set(existing.map(c => (c.institution_or_community || '').toLowerCase().trim()));
 
-  const missingStandards = STANDARD_ZIMBABWE_UNIVERSITIES.filter(std => 
+  const missingStandards = STANDARD_ZIMBABWE_UNIVERSITIES.filter(std =>
     !existingCodes.has(std.code.toUpperCase()) &&
     !existingNames.has(std.name.toLowerCase().trim()) &&
     !existingInst.has(std.institution_or_community.toLowerCase().trim())
@@ -362,7 +362,7 @@ export async function submitChapterRegistrationRequest(
     proposed_name: name,
     id: 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
     status: 'pending',
-    assigned_provincial_university_name: isProvincialLead 
+    assigned_provincial_university_name: isProvincialLead
       ? `${request.institution_or_community} [Designated Provincial University Lead]`
       : (provinceLead ? provinceLead.defaultChapterName : request.assigned_provincial_university_name),
     created_at: new Date().toISOString(),
@@ -603,7 +603,7 @@ export async function deleteChapterMember(
 export async function getChapters(includeConfidential: boolean = false): Promise<Chapter[]> {
   // Load the persistent deleted-ID blacklist so deleted items never reappear
   const deletedIds = getLocal<string[]>('yara_chapters_deleted_ids', []);
-  const applyDeleteFilter = (chs: Chapter[]) => 
+  const applyDeleteFilter = (chs: Chapter[]) =>
     deletedIds.length > 0 ? chs.filter(c => !deletedIds.includes(c.id)) : chs;
 
   const rawLocal = getLocal<Chapter[]>('yara_chapters_data', INITIAL_CHAPTERS);
@@ -949,7 +949,7 @@ export function verifyLeadershipAuthorization(
   if (cleanPin && chapter.leaders && chapter.leaders.length > 0) {
     const pinMatchedLeader = chapter.leaders.find(
       l => (l.access_pin && l.access_pin.toUpperCase() === cleanPin) ||
-           (l.secretary_access_pin && l.secretary_access_pin.toUpperCase() === cleanPin)
+        (l.secretary_access_pin && l.secretary_access_pin.toUpperCase() === cleanPin)
     );
 
     if (pinMatchedLeader) {
@@ -1109,8 +1109,8 @@ export function verifySecretaryAuthorization(
 }
 
 export async function approveChapterLeader(
-  chapterId: string, 
-  leaderId: string, 
+  chapterId: string,
+  leaderId: string,
   permissions?: {
     can_submit_general_reports?: boolean;
     can_submit_financial_reports?: boolean;
@@ -1436,8 +1436,8 @@ export async function submitChapterReport(
 }
 
 export async function toggleChapterReportLock(
-  reportId: string, 
-  locked: boolean, 
+  reportId: string,
+  locked: boolean,
   operatorName: string = 'National Executive'
 ): Promise<ChapterReport | null> {
   const reports = getLocal<ChapterReport[]>('yara_chapter_reports', INITIAL_REPORTS);
